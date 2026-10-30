@@ -1,5 +1,5 @@
 {
-  "id": "cc4ea2f7-2b07-41fd-8a6e-dcc43f48b8ca",
+  "id": "2c9ffa49-375c-4d1d-8f2e-35558578e29e",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -120,19 +120,25 @@
           "primaryKey": false,
           "notNull": true
         },
-        "debit": {
-          "name": "debit",
+        "from_account": {
+          "name": "from_account",
           "type": "ledger_account",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
         },
-        "credit": {
-          "name": "credit",
+        "to_account": {
+          "name": "to_account",
           "type": "ledger_account",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
+        },
+        "party": {
+          "name": "party",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "amount": {
           "name": "amount",
@@ -349,6 +355,100 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.submissions": {
+      "name": "submissions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "task_id": {
+          "name": "task_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "worker_id": {
+          "name": "worker_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "text": {
+          "name": "text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "file_urls": {
+          "name": "file_urls",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "submissions_task_idx": {
+          "name": "submissions_task_idx",
+          "columns": [
+            {
+              "expression": "task_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "submissions_task_id_tasks_id_fk": {
+          "name": "submissions_task_id_tasks_id_fk",
+          "tableFrom": "submissions",
+          "tableTo": "tasks",
+          "columnsFrom": [
+            "task_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "submissions_worker_id_workers_id_fk": {
+          "name": "submissions_worker_id_workers_id_fk",
+          "tableFrom": "submissions",
+          "tableTo": "workers",
+          "columnsFrom": [
+            "worker_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.task_events": {
       "name": "task_events",
       "schema": "",
@@ -382,6 +482,18 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": true
+        },
+        "salt": {
+          "name": "salt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prev_hash": {
+          "name": "prev_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "hash": {
           "name": "hash",
@@ -515,6 +627,18 @@
           "primaryKey": false,
           "notNull": true
         },
+        "funded_at": {
+          "name": "funded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "funding_tx_hash": {
+          "name": "funding_tx_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "claimed_by": {
           "name": "claimed_by",
           "type": "uuid",
@@ -524,6 +648,12 @@
         "claim_expires_at": {
           "name": "claim_expires_at",
           "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reviewer_ref": {
+          "name": "reviewer_ref",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },

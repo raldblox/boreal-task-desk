@@ -9,8 +9,9 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@boreal/concordium": "workspace:*",
     "@boreal/core": "workspace:*",
     "@boreal/db": "workspace:*",
-    "@boreal/concordium": "workspace:*"
+    "@boreal/desk": "workspace:*"
   }
 }

@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./testing": "./src/testing.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -12,11 +13,12 @@
     "migrate": "drizzle-kit migrate"
   },
   "dependencies": {
+    "@boreal/core": "workspace:*",
     "drizzle-orm": "^0.45.4",
-    "pg": "^8.23.1",
-    "@boreal/core": "workspace:*"
+    "pg": "^8.23.1"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.13",
     "@types/pg": "^8.23.1",
     "drizzle-kit": "^0.31.11"
   }

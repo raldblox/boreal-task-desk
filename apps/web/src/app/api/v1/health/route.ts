@@ -1,5 +1,5 @@
 import { POLICY } from "@boreal/core";
-import { sql } from "drizzle-orm";
+import { sql } from "@boreal/db";
 import { connection } from "next/server";
 
 import { getDb } from "@/server/db";

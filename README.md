@@ -10,7 +10,8 @@ apps/
   worker/       Long-running monitor loop: timers, outbox, escrow reconciliation
 packages/
   core/         Task state machine, fees, policy, input schemas. Pure TypeScript, no I/O
-  db/           Drizzle schema and client for Postgres
+  db/           Drizzle schema and client for Postgres, plus an in-process test database
+  desk/         Task service: every command in one transaction with its audit event, ledger and outbox
   concordium/   Interfaces for Agent Registry, Concordium ID, x402 payments, anchoring
   brain/        AI jobs (intake, safety, review, dispute summary), each with a non-AI fallback
 ```
@@ -40,6 +41,25 @@ pnpm db:migrate
 ## Deploying
 
 Pushing to `main` deploys `apps/web` to production on Vercel (region `sin1`, next to the Neon database). The monitor loop in `apps/worker` is not deployed yet; it needs a long-running host or Vercel Cron.
+
+## API
+
+Requester agents call `/api/v1` with `Authorization: Bearer bk_…`. Create an agent and its key with:
+
+```bash
+pnpm --filter @boreal/desk create-agent <name> <owner-verified-ref>
+```
+
+| Method | Path | Does |
+| --- | --- | --- |
+| POST | `/api/v1/tasks` | post_task |
+| GET | `/api/v1/tasks/:id` | get_task |
+| GET | `/api/v1/tasks/:id/trail` | get_trail |
+| POST | `/api/v1/tasks/:id/cancel` | cancel_task |
+| POST | `/api/v1/tasks/:id/accept` | accept_result (early) |
+| POST | `/api/v1/tasks/:id/dispute` | dispute_verdict |
+
+Funding and the worker routes arrive with the x402 and Concordium ID adapters.
 
 ## Checks
 

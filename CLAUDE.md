@@ -5,6 +5,9 @@ pnpm workspace. See README.md for the layout. The product spec lives in the "bor
 ## Rules that the code must keep
 
 - Only `packages/core` moves a task between states (`transition()`), and every transition names the actor allowed to make it. The AI never changes state.
+- All writes go through `packages/desk`: one transaction per command that locks the task, applies `transition()`, appends the hashed event and settles money. Never update `tasks` directly elsewhere.
+- Import drizzle helpers (`eq`, `sql`, …) from `@boreal/db`, never from `drizzle-orm`, so the whole workspace shares one drizzle copy.
+- Desk tests run on PGlite (`@boreal/db/testing`), a fresh database per test.
 - The reviewer decides pass or fail. The requester can accept a pass early, but never overrule one. One dispute per task.
 - Money is integer minor units. Every movement is a ledger entry with an idempotency key, written before the on-chain transfer.
 - Side effects (anchors, payouts, refunds, webhooks) go through the outbox in the same transaction as the state change.

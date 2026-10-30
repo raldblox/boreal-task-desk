@@ -22,8 +22,9 @@ CREATE TABLE "ledger_entries" (
 	"id" bigserial PRIMARY KEY NOT NULL,
 	"task_id" uuid,
 	"idempotency_key" text NOT NULL,
-	"debit" "ledger_account" NOT NULL,
-	"credit" "ledger_account" NOT NULL,
+	"from_account" "ledger_account" NOT NULL,
+	"to_account" "ledger_account" NOT NULL,
+	"party" text,
 	"amount" integer NOT NULL,
 	"status" "ledger_status" DEFAULT 'pending' NOT NULL,
 	"tx_hash" text,
@@ -51,12 +52,23 @@ CREATE TABLE "owners" (
 	CONSTRAINT "owners_verified_ref_unique" UNIQUE("verified_ref")
 );
 --> statement-breakpoint
+CREATE TABLE "submissions" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"task_id" uuid NOT NULL,
+	"worker_id" uuid NOT NULL,
+	"text" text,
+	"file_urls" jsonb NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "task_events" (
 	"id" bigserial PRIMARY KEY NOT NULL,
 	"task_id" uuid NOT NULL,
 	"type" text NOT NULL,
 	"actor" text NOT NULL,
 	"payload" jsonb NOT NULL,
+	"salt" text NOT NULL,
+	"prev_hash" text,
 	"hash" text NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -74,8 +86,11 @@ CREATE TABLE "tasks" (
 	"review_fee" integer NOT NULL,
 	"rulebook_version" text NOT NULL,
 	"deadline" timestamp with time zone NOT NULL,
+	"funded_at" timestamp with time zone,
+	"funding_tx_hash" text,
 	"claimed_by" uuid,
 	"claim_expires_at" timestamp with time zone,
+	"reviewer_ref" text,
 	"verdict_at" timestamp with time zone,
 	"dispute_used" boolean DEFAULT false NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -94,11 +109,14 @@ CREATE TABLE "workers" (
 --> statement-breakpoint
 ALTER TABLE "agents" ADD CONSTRAINT "agents_owner_id_owners_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."owners"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "ledger_entries" ADD CONSTRAINT "ledger_entries_task_id_tasks_id_fk" FOREIGN KEY ("task_id") REFERENCES "public"."tasks"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "submissions" ADD CONSTRAINT "submissions_task_id_tasks_id_fk" FOREIGN KEY ("task_id") REFERENCES "public"."tasks"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "submissions" ADD CONSTRAINT "submissions_worker_id_workers_id_fk" FOREIGN KEY ("worker_id") REFERENCES "public"."workers"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "task_events" ADD CONSTRAINT "task_events_task_id_tasks_id_fk" FOREIGN KEY ("task_id") REFERENCES "public"."tasks"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "tasks" ADD CONSTRAINT "tasks_agent_id_agents_id_fk" FOREIGN KEY ("agent_id") REFERENCES "public"."agents"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "tasks" ADD CONSTRAINT "tasks_claimed_by_workers_id_fk" FOREIGN KEY ("claimed_by") REFERENCES "public"."workers"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "ledger_idempotency_idx" ON "ledger_entries" USING btree ("idempotency_key");--> statement-breakpoint
 CREATE INDEX "outbox_due_idx" ON "outbox" USING btree ("done_at","next_attempt_at");--> statement-breakpoint
+CREATE INDEX "submissions_task_idx" ON "submissions" USING btree ("task_id");--> statement-breakpoint
 CREATE INDEX "task_events_task_idx" ON "task_events" USING btree ("task_id");--> statement-breakpoint
 CREATE INDEX "tasks_status_idx" ON "tasks" USING btree ("status");--> statement-breakpoint
 CREATE INDEX "tasks_agent_idx" ON "tasks" USING btree ("agent_id");

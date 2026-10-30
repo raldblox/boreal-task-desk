@@ -51,6 +51,8 @@ export const agents = pgTable("agents", {
   status: agentStatus("status").notNull().default("active"),
   maxTaskBudget: integer("max_task_budget").notNull(),
   maxDailySpend: integer("max_daily_spend").notNull(),
+  /** SHA-256 of the agent's API key secret; the key itself is shown once and never stored. */
+  apiKeyHash: text("api_key_hash"),
   ...timestamps,
 });
 
@@ -82,8 +84,12 @@ export const tasks = pgTable(
     reviewFee: integer("review_fee").notNull(),
     rulebookVersion: text("rulebook_version").notNull(),
     deadline: timestamp("deadline", { withTimezone: true }).notNull(),
+    fundedAt: timestamp("funded_at", { withTimezone: true }),
+    fundingTxHash: text("funding_tx_hash"),
     claimedBy: uuid("claimed_by").references(() => workers.id),
     claimExpiresAt: timestamp("claim_expires_at", { withTimezone: true }),
+    /** Reviewer whose verdict stands; paid the review fee once the task is final. */
+    reviewerRef: text("reviewer_ref"),
     verdictAt: timestamp("verdict_at", { withTimezone: true }),
     disputeUsed: boolean("dispute_used").notNull().default(false),
     ...timestamps,
@@ -92,6 +98,23 @@ export const tasks = pgTable(
     index("tasks_status_idx").on(t.status),
     index("tasks_agent_idx").on(t.agentId),
   ],
+);
+
+export const submissions = pgTable(
+  "submissions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    taskId: uuid("task_id")
+      .notNull()
+      .references(() => tasks.id),
+    workerId: uuid("worker_id")
+      .notNull()
+      .references(() => workers.id),
+    text: text("text"),
+    fileUrls: jsonb("file_urls").$type<string[]>().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("submissions_task_idx").on(t.taskId)],
 );
 
 /** Append-only audit trail; each row's hash is anchored on Concordium through the outbox. */
@@ -105,22 +128,27 @@ export const taskEvents = pgTable(
     type: text("type").notNull(),
     actor: text("actor").notNull(),
     payload: jsonb("payload").notNull(),
-    /** Salted hash, so off-chain records can be deleted without breaking the trail. */
+    /** Deleting the salt with the record leaves the anchored hash meaningless, as privacy requires. */
+    salt: text("salt").notNull(),
+    /** Hash of the task's previous event, so the trail can't be reordered or trimmed unnoticed. */
+    prevHash: text("prev_hash"),
     hash: text("hash").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("task_events_task_idx").on(t.taskId)],
 );
 
-/** Double-entry ledger: every movement is written before its on-chain transfer. */
+/** Every movement of money, written before its on-chain transfer. */
 export const ledgerEntries = pgTable(
   "ledger_entries",
   {
     id: bigserial("id", { mode: "number" }).primaryKey(),
     taskId: uuid("task_id").references(() => tasks.id),
     idempotencyKey: text("idempotency_key").notNull(),
-    debit: ledgerAccount("debit").notNull(),
-    credit: ledgerAccount("credit").notNull(),
+    fromAccount: ledgerAccount("from_account").notNull(),
+    toAccount: ledgerAccount("to_account").notNull(),
+    /** Who on the receiving side: an agent, worker or reviewer id. */
+    party: text("party"),
     amount: integer("amount").notNull(),
     status: ledgerStatus("status").notNull().default("pending"),
     txHash: text("tx_hash"),

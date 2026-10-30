@@ -1,0 +1,17 @@
+{
+  "name": "@boreal/desk",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "create-agent": "tsx scripts/create-agent.ts"
+  },
+  "dependencies": {
+    "@boreal/core": "workspace:*",
+    "@boreal/db": "workspace:*"
+  }
+}

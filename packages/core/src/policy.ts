@@ -9,6 +9,7 @@ export const POLICY = {
   /** Beta ceilings, in minor units. */
   maxTaskBudget: 5_000,
   maxAgentDailySpend: 50_000,
+  claimDurationMs: 4 * HOUR,
   maxActiveClaimsPerNewWorker: 1,
   lostDisputesBeforePause: 3,
   lostDisputesWindowMs: 30 * 24 * HOUR,

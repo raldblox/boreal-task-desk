@@ -1,0 +1,1 @@
+ALTER TABLE "agents" ADD COLUMN "api_key_hash" text;

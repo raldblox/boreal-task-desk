@@ -2,18 +2,31 @@
 // process beside the web app; each step must be idempotent so a crash mid-run is safe.
 
 import { POLICY } from "@boreal/core";
+import { createDb } from "@boreal/db";
+import { createDesk } from "@boreal/desk";
 
 interface Step {
   name: string;
   run(now: Date): Promise<void>;
 }
 
-// Each step is a stub until the task service lands; the order matches the spec.
+// Run a single instance until the leader lock lands.
+const desk = createDesk({ db: createDb() });
+
+const timer = (name: string, sweep: () => Promise<number>): Step => ({
+  name,
+  async run() {
+    const moved = await sweep();
+    if (moved > 0) console.log(`[monitor] ${name}: ${moved} task(s)`);
+  },
+});
+
 const steps: Step[] = [
-  { name: "expire-claims", run: async () => {} }, // claimed past claim_expires_at -> open
-  { name: "expire-deadlines", run: async () => {} }, // open past deadline -> expired, refund
-  { name: "close-objection-windows", run: async () => {} }, // passed/failed past 48h -> final
-  { name: "drain-outbox", run: async () => {} }, // anchors, payouts, refunds, webhooks
+  timer("expire-claims", () => desk.expireClaims()),
+  timer("expire-deadlines", () => desk.expireDeadlines()),
+  timer("close-objection-windows", () => desk.closeObjectionWindows()),
+  // Stub until the Concordium adapters land: anchors, payouts, refunds, webhooks.
+  { name: "drain-outbox", run: async () => {} },
 ];
 
 let lastReconcile = 0;
