@@ -59,6 +59,11 @@ describe("loadConcordium", () => {
     expect(() =>
       loadConcordium({ CONCORDIUM_MODE: "dev", DEV_CONCORDIUM_SECRET: secret, VERCEL_ENV: "production" }),
     ).toThrow(/refused on production/);
-    expect(loadConcordium({ CONCORDIUM_MODE: "dev", DEV_CONCORDIUM_SECRET: secret })).not.toBeNull();
+    expect(() =>
+      loadConcordium({ CONCORDIUM_MODE: "dev", DEV_CONCORDIUM_SECRET: secret, DATABASE_URL: "postgres://u@ep-x.neon.tech/db" }),
+    ).toThrow(/local DATABASE_URL/);
+    expect(
+      loadConcordium({ CONCORDIUM_MODE: "dev", DEV_CONCORDIUM_SECRET: secret, DATABASE_URL: "postgres://postgres@localhost:5433/postgres" }),
+    ).not.toBeNull();
   });
 });

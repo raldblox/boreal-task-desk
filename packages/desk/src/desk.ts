@@ -16,6 +16,7 @@ import {
   type Database,
   desc,
   eq,
+  gt,
   gte,
   inArray,
   ledgerEntries,
@@ -322,6 +323,10 @@ export function createDesk({
           if (task.resultFormat === "text" ? !text : fileUrls.length === 0) {
             throw new DeskError("invalid", `this task needs a ${task.resultFormat} result`);
           }
+          // Files are stored per task; a submission can only point at its own task's files.
+          if (fileUrls.some((path) => !path.startsWith(`submissions/${task.id}/`) || path.includes(".."))) {
+            throw new DeskError("invalid", "files must be uploaded for this task");
+          }
         },
         patch: () => ({ claimExpiresAt: null }),
         async after(tx, task, at) {
@@ -475,6 +480,67 @@ export function createDesk({
         throw new DeskError("not_found", "task not found");
       }
       return task;
+    },
+
+    /** Open tasks this worker has proven the attributes for, newest first. */
+    async browseOpenTasks(caller: Caller) {
+      requireRole(caller, "worker");
+      const [worker] = await db.select().from(workers).where(eq(workers.id, caller.workerId));
+      if (!worker) throw new DeskError("not_found", "worker not found");
+      const open = await db
+        .select()
+        .from(tasks)
+        .where(and(eq(tasks.status, "open"), gt(tasks.deadline, now())))
+        .orderBy(desc(tasks.createdAt))
+        .limit(100);
+      return open.filter((task) => meetsAttributes(task.requiredAttributes, worker.provenAttributes));
+    },
+
+    /** The worker's own tasks: claimed, submitted, under review and finished. */
+    async listWorkerTasks(caller: Caller) {
+      requireRole(caller, "worker");
+      return db
+        .select()
+        .from(tasks)
+        .where(eq(tasks.claimedBy, caller.workerId))
+        .orderBy(desc(tasks.updatedAt))
+        .limit(50);
+    },
+
+    /** The verdict that stands: the panel's if there was a dispute, else the reviewer's. Reviewers stay anonymous. */
+    async getVerdict(caller: Caller, taskId: string) {
+      await this.getTask(caller, taskId);
+      const [event] = await db
+        .select()
+        .from(taskEvents)
+        .where(
+          and(
+            eq(taskEvents.taskId, taskId),
+            inArray(taskEvents.type, ["verdict_pass", "verdict_fail", "panel_pass", "panel_fail"]),
+          ),
+        )
+        .orderBy(desc(taskEvents.id))
+        .limit(1);
+      if (!event) return null;
+      const { outcome, ruleIds, reasoning } = event.payload as {
+        outcome: "pass" | "fail";
+        ruleIds: string[];
+        reasoning: string;
+      };
+      return { outcome, ruleIds, reasoning, by: event.actor as "reviewer" | "panel", at: event.createdAt };
+    },
+
+    /** The latest submission, for the worker who made it or the task's requester. */
+    async getSubmission(caller: Caller, taskId: string) {
+      const task = await this.getTask(caller, taskId);
+      if (caller.role === "worker" && task.claimedBy !== caller.workerId) return null;
+      const [submission] = await db
+        .select()
+        .from(submissions)
+        .where(eq(submissions.taskId, taskId))
+        .orderBy(desc(submissions.createdAt))
+        .limit(1);
+      return submission ?? null;
     },
 
     /** list_tasks: the requester's own tasks, newest first. */

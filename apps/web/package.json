@@ -16,6 +16,7 @@
     "@boreal/db": "workspace:*",
     "@boreal/desk": "workspace:*",
     "@modelcontextprotocol/server": "^2.4.0",
+    "@vercel/blob": "^2.8.2",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.1",
     "lucide-react": "^1.65.0",

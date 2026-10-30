@@ -15,3 +15,6 @@ coverage/
 
 # Local Claude Code settings
 .claude/
+
+# Local dev database, uploads and secrets (pnpm dev:local)
+.local/

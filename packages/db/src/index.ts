@@ -5,7 +5,7 @@ import * as schema from "./schema";
 
 export * from "./schema";
 // Re-exported so every package builds queries with this package's copy of drizzle-orm.
-export { and, asc, count, desc, eq, gte, inArray, isNull, lt, lte, ne, or, sql, sum } from "drizzle-orm";
+export { and, asc, count, desc, eq, gt, gte, inArray, isNull, lt, lte, ne, or, sql, sum } from "drizzle-orm";
 
 /** Any Postgres-backed database with boreal's schema: node-postgres in production, PGlite in tests. */
 export type Database = PgDatabase<PgQueryResultHKT, typeof schema>;

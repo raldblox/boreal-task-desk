@@ -20,4 +20,6 @@ pnpm workspace. See README.md for the layout. The product spec lives in the "bor
 - Workspace packages export TypeScript source directly (`exports: ./src/index.ts`); Turbopack and tsx compile them.
 - shadcn uses the base-nova style on Base UI. Add components with `pnpm dlx shadcn@latest add <name>` from `apps/web`. For a link styled as a button, use `buttonVariants()` on the link, not `<Button render>`.
 - Next.js 16: read `apps/web/AGENTS.md` and the docs in `apps/web/node_modules/next/dist/docs/` before writing Next code.
+- Develop with `pnpm dev:local` (local PGlite Postgres, stand-in adapters, local files). `.env.local` points at production.
+- Pages read sessions and data inside `<Suspense>` (Cache Components); `workerFromSession()` calls `connection()` first.
 - Run `pnpm typecheck` and `pnpm test` before committing.

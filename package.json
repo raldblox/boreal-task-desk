@@ -12,7 +12,8 @@
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
     "db:generate": "pnpm --filter @boreal/db generate",
-    "db:migrate": "pnpm --filter @boreal/db migrate"
+    "db:migrate": "pnpm --filter @boreal/db migrate",
+    "dev:local": "tsx packages/db/scripts/local-db.ts"
   },
   "devDependencies": {
     "@types/node": "^20.19.43",

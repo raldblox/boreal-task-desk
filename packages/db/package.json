@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.13",
+    "@electric-sql/pglite-socket": "^0.2.16",
     "@types/pg": "^8.23.1",
     "drizzle-kit": "^0.31.11"
   }

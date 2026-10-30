@@ -65,7 +65,7 @@ const maria: Caller = { role: "worker", workerId: worker.id };
 note(`signed in as pseudonym ${worker.pseudonym}; boreal never sees a name`);
 await desk.claimTask(maria, task.id);
 clock = new Date(clock.getTime() + 90 * 60 * 1000);
-await desk.submitResult(maria, task.id, { fileUrls: ["https://files.example/shelf-photo.jpg"] });
+await desk.submitResult(maria, task.id, { fileUrls: [`submissions/${task.id}/shelf-photo.jpg`] });
 note("photo submitted");
 
 step(4, "The AI reviewer fails it citing a rule; the worker disputes; a human overturns it");

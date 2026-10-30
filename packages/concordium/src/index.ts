@@ -93,6 +93,11 @@ export function loadConcordium(
     if (env.VERCEL_ENV === "production") {
       throw new Error("CONCORDIUM_MODE=dev is refused on production: it accepts fake payments");
     }
+    // The stand-ins accept fake payments, so they only ever run against a local database.
+    const host = env.DATABASE_URL ? new URL(env.DATABASE_URL).hostname : "";
+    if (!["localhost", "127.0.0.1", "::1", "[::1]"].includes(host)) {
+      throw new Error("CONCORDIUM_MODE=dev needs a local DATABASE_URL; run `pnpm dev:local`");
+    }
     const secret = env.DEV_CONCORDIUM_SECRET;
     if (!secret || secret.length < 32) throw new Error("DEV_CONCORDIUM_SECRET must be at least 32 characters");
     return createDevConcordium({ ...dev, secret });

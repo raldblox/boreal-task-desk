@@ -26,10 +26,10 @@ Needs Node 22+, pnpm 10 and the Vercel CLI. The database is Neon Postgres, conne
 pnpm install
 vercel link --project boreal-task-desk
 vercel env pull .env.local
-pnpm dev
+pnpm dev:local
 ```
 
-`pnpm dev` runs the web app on http://localhost:3000 and the monitor loop together, both reading `.env.local`.
+`pnpm dev:local` (below) is the everyday command. `pnpm dev` runs the same app against the production database in `.env.local`, with payments and sign-in off.
 
 After changing `packages/db/src/schema.ts`, generate and apply a migration. Migrations use the unpooled `DATABASE_URL_UNPOOLED`:
 
@@ -73,6 +73,27 @@ claude mcp add --transport http boreal https://boreal-task-desk.vercel.app/api/m
 ```
 
 Any other client that speaks Streamable HTTP takes the URL and the same header.
+
+## Local development
+
+```bash
+pnpm dev:local
+```
+
+Starts a local Postgres (PGlite) on port 5433, migrates and seeds it (a badged agent and three funded tasks), then runs the app and the monitor loop with the stand-in Concordium adapters and local file storage. Nothing touches Neon, Blob or a chain. Data lives in `.local/`; delete it to start fresh. Sign in at http://localhost:3000/signin with the development wallet; the seeded agent's API key is in `.local/agent-key.txt`.
+
+The stand-in adapters refuse to start unless `DATABASE_URL` points at localhost.
+
+## Worker app
+
+| Page | What the worker does |
+| --- | --- |
+| `/signin` | Proves attributes with Concordium ID (a development wallet until testnet) |
+| `/tasks` | Sees open tasks they qualify for |
+| `/tasks/:id` | Claims, submits a photo or text, sees the verdict with its rules, disputes once |
+| `/me` | Follows their tasks to payment |
+
+Photos are shrunk in the browser to 2000 px and stored in a private Blob store. Only the submitting worker and the task's agent can open them, through `/api/files`.
 
 ## Seeing the whole flow
 

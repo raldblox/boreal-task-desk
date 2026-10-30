@@ -76,7 +76,7 @@ async function openTask(overrides: Record<string, unknown> = {}) {
 async function submittedTask() {
   const id = await openTask();
   await desk.claimTask(manilaWorker, id);
-  await desk.submitResult(manilaWorker, id, { fileUrls: ["https://files.example/photo.jpg"] });
+  await desk.submitResult(manilaWorker, id, { fileUrls: [`submissions/${id}/photo.jpg`] });
   return id;
 }
 
@@ -184,6 +184,33 @@ describe("who may do what", () => {
     const id = await openTask({ requiredAttributes: [] });
     await desk.claimTask(manilaWorker, id);
     await expectDeskError(desk.submitResult(otherWorker, id, { fileUrls: ["x"] }), "forbidden");
+  });
+});
+
+describe("worker views", () => {
+  it("shows a worker only the open tasks they qualify for", async () => {
+    const forPh = await openTask();
+    const forAnyone = await openTask({ requiredAttributes: [] });
+    expect((await desk.browseOpenTasks(otherWorker)).map((t) => t.id)).toEqual([forAnyone]);
+    expect((await desk.browseOpenTasks(manilaWorker)).map((t) => t.id).sort()).toEqual([forPh, forAnyone].sort());
+  });
+
+  it("shows the standing verdict without naming the reviewer", async () => {
+    const id = await submittedTask();
+    expect(await desk.getVerdict(manilaWorker, id)).toBeNull();
+    await desk.recordVerdict(reviewer, id, { outcome: "fail", ruleIds: ["R4.2"], reasoning: "tag unreadable" });
+    await desk.disputeVerdict(manilaWorker, id, "The tag is readable at full size.");
+    await desk.decideDispute(panel, id, { outcome: "pass", ruleIds: ["R5.2"], reasoning: "readable" });
+    const verdict = await desk.getVerdict(manilaWorker, id);
+    expect(verdict).toMatchObject({ outcome: "pass", ruleIds: ["R5.2"], by: "panel" });
+    expect(JSON.stringify(verdict)).not.toContain("panel-1");
+  });
+
+  it("refuses files that belong to another task", async () => {
+    const id = await openTask();
+    await desk.claimTask(manilaWorker, id);
+    await expectDeskError(desk.submitResult(manilaWorker, id, { fileUrls: ["submissions/other-task/x.jpg"] }), "invalid");
+    expect((await desk.listWorkerTasks(manilaWorker)).map((t) => t.id)).toEqual([id]);
   });
 });
 

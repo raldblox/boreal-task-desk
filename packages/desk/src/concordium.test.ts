@@ -126,7 +126,7 @@ describe("outbox", () => {
     const worker = await signIn("ph-1", { residency: "PH" });
     const caller: Caller = { role: "worker", workerId: worker.id };
     await desk.claimTask(caller, id);
-    await desk.submitResult(caller, id, { fileUrls: ["https://files.example/photo.jpg"] });
+    await desk.submitResult(caller, id, { fileUrls: [`submissions/${id}/photo.jpg`] });
     await desk.recordVerdict(reviewer, id, { outcome: "pass", ruleIds: ["R4.1"], reasoning: "ok" });
     await desk.acceptEarly(requester, id);
     return id;

@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "create-agent": "tsx scripts/create-agent.ts",
-    "demo": "tsx scripts/demo-flow.ts"
+    "demo": "tsx scripts/demo-flow.ts",
+    "seed:local": "tsx scripts/seed-local.ts"
   },
   "dependencies": {
     "@boreal/concordium": "workspace:*",
