@@ -53,6 +53,8 @@ export const agents = pgTable("agents", {
   maxDailySpend: integer("max_daily_spend").notNull(),
   /** SHA-256 of the agent's API key secret; the key itself is shown once and never stored. */
   apiKeyHash: text("api_key_hash"),
+  /** Concordium account that refunds go to. */
+  refundAddress: text("refund_address"),
   ...timestamps,
 });
 
@@ -62,6 +64,8 @@ export const workers = pgTable("workers", {
   pseudonym: text("pseudonym").notNull().unique(),
   provenAttributes: jsonb("proven_attributes").$type<Record<string, string>>().notNull(),
   maxActiveClaims: integer("max_active_claims").notNull().default(1),
+  /** Concordium account that payouts go to. */
+  payoutAddress: text("payout_address"),
   ...timestamps,
 });
 
@@ -133,6 +137,8 @@ export const taskEvents = pgTable(
     /** Hash of the task's previous event, so the trail can't be reordered or trimmed unnoticed. */
     prevHash: text("prev_hash"),
     hash: text("hash").notNull(),
+    /** Set once the outbox has anchored this hash on-chain. */
+    anchorTxHash: text("anchor_tx_hash"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("task_events_task_idx").on(t.taskId)],

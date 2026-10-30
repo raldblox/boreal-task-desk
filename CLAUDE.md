@@ -12,7 +12,8 @@ pnpm workspace. See README.md for the layout. The product spec lives in the "bor
 - Money is integer minor units. Every movement is a ledger entry with an idempotency key, written before the on-chain transfer.
 - Side effects (anchors, payouts, refunds, webhooks) go through the outbox in the same transaction as the state change.
 - Nothing personal goes on-chain: anchors are salted hashes. Workers are stored as a pseudonym plus proven attributes.
-- `packages/concordium` is interfaces only until the Agent Registry and x402 questions are settled at the workshops.
+- `packages/concordium` holds the interfaces plus stand-in (`dev`) adapters. Never set `CONCORDIUM_MODE=dev` against the production database: the stand-ins accept fake payments. Testnet adapters come after the workshops.
+- Funding confirms the payment inside `fundTask`'s checks, so a refused task never takes money.
 
 ## Conventions
 

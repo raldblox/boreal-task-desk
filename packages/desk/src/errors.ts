@@ -1,6 +1,6 @@
 import { TransitionError } from "@boreal/core";
 
-export type DeskErrorCode = "not_found" | "forbidden" | "invalid" | "conflict" | "limit";
+export type DeskErrorCode = "not_found" | "forbidden" | "invalid" | "conflict" | "limit" | "unavailable";
 
 /** A refusal the caller can act on; the API maps each code to an HTTP status. */
 export class DeskError extends Error {

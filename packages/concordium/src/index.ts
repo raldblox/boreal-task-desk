@@ -37,9 +37,27 @@ export interface Transfer {
   idempotencyKey: string;
 }
 
+/**
+ * What a 402 response asks the payer for. Follows the generic x402 shape; the Concordium
+ * specifics (network id, asset, signature scheme) are settled at Workshop 3.
+ */
+export interface PaymentRequirement {
+  scheme: "exact";
+  network: string;
+  asset: string;
+  payTo: string;
+  /** Minor units. */
+  amount: number;
+  /** The task being funded. */
+  resource: string;
+  nonce: string;
+  expiresAt: string;
+}
+
 /** x402 funding in, sponsored token transfers out of escrow. */
 export interface Payments {
-  createPaymentRequest(taskId: string, amount: number): Promise<{ paymentRequest: unknown }>;
+  createPaymentRequest(taskId: string, amount: number): Promise<PaymentRequirement>;
+  /** Verifies the payer's x402 payment and settles it on-chain; throws if it is invalid. */
   confirmPayment(taskId: string, payment: unknown): Promise<{ txHash: string; amount: number }>;
   sponsoredTransfer(transfer: Transfer): Promise<{ txHash: string }>;
   escrowBalance(): Promise<number>;
@@ -55,4 +73,29 @@ export interface Concordium {
   identity: IdentityVerifier;
   payments: Payments;
   anchor: Anchor;
+}
+
+export { createDevConcordium, DevConcordiumError, type DevConcordiumOptions, signDevPayment } from "./dev";
+
+import { createDevConcordium, type DevConcordiumOptions } from "./dev";
+
+/**
+ * Picks the adapters from `CONCORDIUM_MODE`: `dev` for the stand-ins, unset for none
+ * (payments and sign-in stay off). Testnet adapters land after the workshops.
+ */
+export function loadConcordium(
+  env: Record<string, string | undefined> = process.env,
+  dev: Omit<DevConcordiumOptions, "secret"> = {},
+): Concordium | null {
+  const mode = env.CONCORDIUM_MODE;
+  if (!mode) return null;
+  if (mode === "dev") {
+    if (env.VERCEL_ENV === "production") {
+      throw new Error("CONCORDIUM_MODE=dev is refused on production: it accepts fake payments");
+    }
+    const secret = env.DEV_CONCORDIUM_SECRET;
+    if (!secret || secret.length < 32) throw new Error("DEV_CONCORDIUM_SECRET must be at least 32 characters");
+    return createDevConcordium({ ...dev, secret });
+  }
+  throw new Error(`CONCORDIUM_MODE=${mode} is not supported yet`);
 }

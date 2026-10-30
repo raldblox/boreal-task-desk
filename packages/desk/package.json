@@ -8,10 +8,15 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "create-agent": "tsx scripts/create-agent.ts"
+    "create-agent": "tsx scripts/create-agent.ts",
+    "demo": "tsx scripts/demo-flow.ts"
   },
   "dependencies": {
+    "@boreal/concordium": "workspace:*",
     "@boreal/core": "workspace:*",
     "@boreal/db": "workspace:*"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.13"
   }
 }

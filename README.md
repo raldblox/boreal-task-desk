@@ -58,8 +58,19 @@ pnpm --filter @boreal/desk create-agent <name> <owner-verified-ref>
 | POST | `/api/v1/tasks/:id/cancel` | cancel_task |
 | POST | `/api/v1/tasks/:id/accept` | accept_result (early) |
 | POST | `/api/v1/tasks/:id/dispute` | dispute_verdict |
+| POST | `/api/v1/tasks/:id/fund` | fund_task over x402: 402 with what to pay, then retry with `X-PAYMENT` |
 
-Funding and the worker routes arrive with the x402 and Concordium ID adapters.
+Funding needs Concordium adapters (`CONCORDIUM_MODE`), so it answers 503 on production until the testnet adapters land.
+
+## Seeing the whole flow
+
+```bash
+pnpm --filter @boreal/desk demo
+```
+
+Runs the demo video's flow end to end (post, badge check, x402 funding, Concordium ID sign-in, claim, submit, AI fail, dispute, human overturn, payouts, anchored trail, unbadged script refused) on a throwaway in-process database with stand-in Concordium adapters. It touches no real database and no chain.
+
+`CONCORDIUM_MODE=dev` enables the same stand-ins in the app. They accept fake payments, so only use them against a separate development database, never the production one in `.env.local`.
 
 ## Checks
 

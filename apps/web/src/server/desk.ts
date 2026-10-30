@@ -1,13 +1,31 @@
 import "server-only";
 
-import { type Caller, createDesk, type Desk, DeskError, verifyAgentKey } from "@boreal/desk";
+import { type Concordium, loadConcordium } from "@boreal/concordium";
+import {
+  addressesFromEnv,
+  type Caller,
+  createDesk,
+  type Desk,
+  DeskError,
+  ledgerEscrowBalance,
+  verifyAgentKey,
+} from "@boreal/desk";
 
 import { getDb } from "./db";
 
 let desk: Desk | undefined;
+let concordium: Concordium | null | undefined;
+
+/** The configured adapters, or null when `CONCORDIUM_MODE` is unset (payments and sign-in off). */
+export function getConcordium(): Concordium | null {
+  if (concordium === undefined) {
+    concordium = loadConcordium(process.env, { escrowBalance: () => ledgerEscrowBalance(getDb()) });
+  }
+  return concordium;
+}
 
 export function getDesk(): Desk {
-  desk ??= createDesk({ db: getDb() });
+  desk ??= createDesk({ db: getDb(), concordium: getConcordium(), addresses: addressesFromEnv() });
   return desk;
 }
 
@@ -17,6 +35,7 @@ const STATUS: Record<DeskError["code"], number> = {
   not_found: 404,
   conflict: 409,
   limit: 422,
+  unavailable: 503,
 };
 
 /** Resolves the requester agent from `Authorization: Bearer bk_…`, or null. */
