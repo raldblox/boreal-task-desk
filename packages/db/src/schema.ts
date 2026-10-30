@@ -96,6 +96,12 @@ export const tasks = pgTable(
     reviewerRef: text("reviewer_ref"),
     verdictAt: timestamp("verdict_at", { withTimezone: true }),
     disputeUsed: boolean("dispute_used").notNull().default(false),
+    /** Set when the AI reviewer can't decide; a human reviewer takes it from there. */
+    needsHuman: boolean("needs_human").notNull().default(false),
+    humanReason: text("human_reason"),
+    /** Failed AI attempts for the current step, and when to try again. */
+    aiAttempts: integer("ai_attempts").notNull().default(0),
+    aiRetryAt: timestamp("ai_retry_at", { withTimezone: true }),
     ...timestamps,
   },
   (t) => [

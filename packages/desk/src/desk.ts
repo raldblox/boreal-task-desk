@@ -19,8 +19,10 @@ import {
   gt,
   gte,
   inArray,
+  isNull,
   ledgerEntries,
   lte,
+  or,
   submissions,
   type Task,
   taskEvents,
@@ -57,6 +59,10 @@ export type FundingPayment =
   | { confirm: () => Promise<{ txHash: string; amount: number }> };
 
 type TaskPatch = Partial<typeof tasks.$inferInsert>;
+
+/** A reviewer's decision clears any AI retry state and takes the task off the human queue. */
+const CLEAR_AI: TaskPatch = { needsHuman: false, humanReason: null, aiAttempts: 0, aiRetryAt: null };
+const MAX_AI_ATTEMPTS = 3;
 
 interface MutateOptions {
   /** Extra checks beyond the state machine, run on the locked row. */
@@ -217,7 +223,7 @@ export function createDesk({
     async screenTask(
       caller: Caller,
       taskId: string,
-      result: { outcome: "ok" } | { outcome: "refused"; ruleIds: string[] },
+      result: { outcome: "ok"; reasoning?: string } | { outcome: "refused"; ruleIds: string[]; reasoning?: string },
     ) {
       requireRole(caller, "reviewer");
       if (result.outcome === "refused" && result.ruleIds.length === 0) {
@@ -227,6 +233,7 @@ export function createDesk({
         taskId,
         caller,
         result.outcome === "ok" ? { type: "screen_ok" } : { type: "screen_refused", ruleIds: result.ruleIds },
+        { payload: { ...result, reviewerRef: caller.reviewerRef }, patch: () => CLEAR_AI },
       );
     },
 
@@ -345,7 +352,7 @@ export function createDesk({
     async recordVerdict(
       caller: Caller,
       taskId: string,
-      verdict: { outcome: "pass" | "fail"; ruleIds: string[]; reasoning: string },
+      verdict: { outcome: "pass" | "fail"; ruleIds: string[]; reasoning: string; model?: string },
     ) {
       requireRole(caller, "reviewer");
       if (verdict.outcome === "fail" && verdict.ruleIds.length === 0) {
@@ -359,7 +366,7 @@ export function createDesk({
           : { type: "verdict_fail", ruleIds: verdict.ruleIds },
         {
           payload: { ...verdict, reviewerRef: caller.reviewerRef },
-          patch: (_task, at) => ({ reviewerRef: caller.reviewerRef, verdictAt: at }),
+          patch: (_task, at) => ({ ...CLEAR_AI, reviewerRef: caller.reviewerRef, verdictAt: at }),
         },
       );
     },
@@ -459,6 +466,60 @@ export function createDesk({
         })
         .returning();
       return worker!;
+    },
+
+    /** Tasks waiting on the AI reviewer: posted ones to screen, submitted ones to review. */
+    async aiQueue(stage: "screen" | "review", limit = 10) {
+      return db
+        .select()
+        .from(tasks)
+        .where(
+          and(
+            eq(tasks.status, stage === "screen" ? "posted" : "submitted"),
+            eq(tasks.needsHuman, false),
+            or(isNull(tasks.aiRetryAt), lte(tasks.aiRetryAt, now())),
+          ),
+        )
+        .orderBy(asc(tasks.updatedAt))
+        .limit(limit);
+    },
+
+    /** Tasks a human reviewer must decide, oldest first. */
+    async humanQueue(limit = 50) {
+      return db.select().from(tasks).where(eq(tasks.needsHuman, true)).orderBy(asc(tasks.updatedAt)).limit(limit);
+    },
+
+    /** Hands a task to the human queue, recorded in the trail. The task's state doesn't change. */
+    async flagForHuman(caller: Caller, taskId: string, reason: string) {
+      requireRole(caller, "reviewer", "system");
+      return db.transaction(async (tx) => {
+        const at = now();
+        const [task] = await tx.select().from(tasks).where(eq(tasks.id, taskId)).for("update");
+        if (!task) throw new DeskError("not_found", "task not found");
+        const [updated] = await tx
+          .update(tasks)
+          .set({ needsHuman: true, humanReason: reason, aiRetryAt: null, updatedAt: at })
+          .where(eq(tasks.id, taskId))
+          .returning();
+        await appendEvent(tx, { taskId, type: "flagged_for_human", actor: caller.role, payload: { reason }, at });
+        return updated!;
+      });
+    },
+
+    /** Records a failed AI attempt; retries back off, and the third failure goes to a human. */
+    async deferAi(taskId: string, reason: string) {
+      const [task] = await db.select().from(tasks).where(eq(tasks.id, taskId));
+      if (!task) throw new DeskError("not_found", "task not found");
+      const attempts = task.aiAttempts + 1;
+      if (attempts >= MAX_AI_ATTEMPTS) {
+        return this.flagForHuman({ role: "system" }, taskId, `AI reviewer failed ${attempts} times: ${reason}`);
+      }
+      const [updated] = await db
+        .update(tasks)
+        .set({ aiAttempts: attempts, aiRetryAt: new Date(now().getTime() + 2 ** attempts * 60_000) })
+        .where(eq(tasks.id, taskId))
+        .returning();
+      return updated!;
     },
 
     /** Sends due anchors, payouts and refunds. Run by the monitor loop. */

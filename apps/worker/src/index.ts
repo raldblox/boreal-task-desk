@@ -1,10 +1,12 @@
 // The monitor loop: everything time-driven in the task lifecycle. Runs as one long-lived
 // process beside the web app; each step must be idempotent so a crash mid-run is safe.
 
+import { loadReviewer } from "@boreal/brain";
 import { loadConcordium } from "@boreal/concordium";
 import { POLICY } from "@boreal/core";
 import { createDb } from "@boreal/db";
-import { addressesFromEnv, createDesk, ledgerEscrowBalance } from "@boreal/desk";
+import { addressesFromEnv, createDesk, ledgerEscrowBalance, runAiReview } from "@boreal/desk";
+import { readSubmissionBytes } from "@boreal/files";
 
 interface Step {
   name: string;
@@ -15,6 +17,8 @@ interface Step {
 const db = createDb();
 const concordium = loadConcordium(process.env, { escrowBalance: () => ledgerEscrowBalance(db) });
 const desk = createDesk({ db, concordium, addresses: addressesFromEnv() });
+// Without Claude credentials, screening and reviews wait for human reviewers.
+const reviewer = await loadReviewer();
 
 /** Set when escrow and the ledger disagree; payouts stop until an operator resolves it. */
 let escrowGap = 0;
@@ -31,6 +35,18 @@ const steps: Step[] = [
   timer("expire-claims", () => desk.expireClaims()),
   timer("expire-deadlines", () => desk.expireDeadlines()),
   timer("close-objection-windows", () => desk.closeObjectionWindows()),
+  {
+    name: "ai-review",
+    async run() {
+      if (!reviewer) return;
+      const pass = await runAiReview(desk, reviewer, { readFile: readSubmissionBytes });
+      if (pass.screened || pass.reviewed || pass.toHumans || pass.deferred) {
+        console.log(
+          `[monitor] ai-review: ${pass.screened} screened, ${pass.reviewed} reviewed, ${pass.toHumans} to humans, ${pass.deferred} deferred`,
+        );
+      }
+    },
+  },
   {
     name: "drain-outbox",
     async run() {
@@ -80,7 +96,7 @@ let stopping = false;
 
 async function main(): Promise<void> {
   console.log(
-    `[monitor] started, ticking every ${intervalMs} ms; Concordium ${concordium ? process.env.CONCORDIUM_MODE : "off"}`,
+    `[monitor] started, ticking every ${intervalMs} ms; Concordium ${concordium ? process.env.CONCORDIUM_MODE : "off"}; AI reviewer ${reviewer ? "on" : "off"}`,
   );
   while (!stopping) {
     await tick();

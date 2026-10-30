@@ -95,6 +95,17 @@ The stand-in adapters refuse to start unless `DATABASE_URL` points at localhost.
 
 Photos are shrunk in the browser to 2000 px and stored in a private Blob store. Only the submitting worker and the task's agent can open them, through `/api/files`.
 
+## AI reviewer
+
+The monitor loop screens posted tasks (R1, R2) and reviews submissions (R3, R4) with Claude (`claude-opus-5-5`, `BRAIN_EFFORT=high`), looking at the submitted photos themselves. It suggests; the desk decides:
+
+- Answers are structured and every cited rule ID is checked against the rulebook in `packages/brain/src/rulebook.ts`. A fail must cite a failing rule and a missed criterion (R5.3).
+- Anything uncertain, inconsistent, refused by the model or citing an unknown rule goes to the human queue (`needs_human`), recorded in the trail. Outages retry with backoff; the third failure goes to a human.
+- Task and submission text are treated as untrusted data, never instructions.
+- Safety declines fall back server-side to Anthropic's recommended model; the verdict records which model judged.
+
+Set `ANTHROPIC_API_KEY` for the worker to turn it on. Without it, tasks wait for human reviewers.
+
 ## Seeing the whole flow
 
 ```bash

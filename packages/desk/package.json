@@ -13,9 +13,11 @@
     "seed:local": "tsx scripts/seed-local.ts"
   },
   "dependencies": {
+    "@boreal/brain": "workspace:*",
     "@boreal/concordium": "workspace:*",
     "@boreal/core": "workspace:*",
-    "@boreal/db": "workspace:*"
+    "@boreal/db": "workspace:*",
+    "@boreal/files": "workspace:*"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.13"

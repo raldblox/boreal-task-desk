@@ -1,28 +1,23 @@
-// The brain does judgment steps only. Every job has a non-AI fallback, and nothing here
-// changes task state: callers feed the result into the core state machine.
+// The brain does judgment steps only. Nothing here changes task state: callers feed the
+// result into the desk, and anything undecided goes to a human.
 
-export interface BrainJob<In, Out> {
-  name: "intake" | "safety" | "review" | "dispute_summary";
-  run(input: In): Promise<Out>;
-  fallback(input: In, error: unknown): Promise<Out>;
+export {
+  type ClaudeReviewerOptions,
+  createClaudeReviewer,
+  type Reviewer,
+  type ReviewInput,
+  type ReviewResult,
+  type ScreenInput,
+  type ScreenResult,
+} from "./claude";
+export { type Rule, RULEBOOK_VERSION, ruleById, rulebookText, RULES } from "./rulebook";
+
+/** The configured reviewer, or null without Claude credentials (tasks then wait for humans). */
+export async function loadReviewer(env: Record<string, string | undefined> = process.env) {
+  if (!env.ANTHROPIC_API_KEY && !env.ANTHROPIC_AUTH_TOKEN) return null;
+  const { createClaudeReviewer } = await import("./claude");
+  return createClaudeReviewer({
+    model: env.BRAIN_MODEL || undefined,
+    effort: (env.BRAIN_EFFORT as "low" | "medium" | "high" | "xhigh" | "max" | undefined) || undefined,
+  });
 }
-
-export async function runJob<In, Out>(job: BrainJob<In, Out>, input: In): Promise<Out> {
-  try {
-    return await job.run(input);
-  } catch (error) {
-    return job.fallback(input, error);
-  }
-}
-
-export interface ReviewInput {
-  description: string;
-  acceptanceCriteria: string[];
-  submission: { text?: string; fileUrls: string[] };
-  rulebookVersion: string;
-}
-
-export type ReviewOutput =
-  | { outcome: "pass" | "fail"; ruleIds: string[]; reasoning: string }
-  /** No verdict: the submission goes to the human reviewer queue. */
-  | { outcome: "needs_human"; reason: string };

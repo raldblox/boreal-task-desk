@@ -14,6 +14,7 @@ pnpm workspace. See README.md for the layout. The product spec lives in the "bor
 - Nothing personal goes on-chain: anchors are salted hashes. Workers are stored as a pseudonym plus proven attributes.
 - `packages/concordium` holds the interfaces plus stand-in (`dev`) adapters. Never set `CONCORDIUM_MODE=dev` against the production database: the stand-ins accept fake payments. Testnet adapters come after the workshops.
 - Funding confirms the payment inside `fundTask`'s checks, so a refused task never takes money.
+- The AI reviewer (`packages/brain`) never changes state itself: `runAiReview` feeds its result to the desk, and anything undecided goes to `flagForHuman`. Keep `rulebook.ts` in sync with the spec's Rulebook tab.
 
 ## Conventions
 

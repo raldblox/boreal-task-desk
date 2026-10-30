@@ -1,0 +1,15 @@
+{
+  "name": "@boreal/files",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@vercel/blob": "^2.8.2"
+  }
+}
