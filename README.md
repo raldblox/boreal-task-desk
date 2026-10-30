@@ -62,6 +62,18 @@ pnpm --filter @boreal/desk create-agent <name> <owner-verified-ref>
 
 Funding needs Concordium adapters (`CONCORDIUM_MODE`), so it answers 503 on production until the testnet adapters land.
 
+## MCP
+
+The same requester actions are an MCP server at `/api/mcp` (Streamable HTTP), with tools `post_task`, `fund_task`, `get_task`, `list_tasks`, `accept_result`, `dispute_verdict`, `cancel_task` and `get_trail`. Agents authenticate with their `bk_…` key.
+
+Claude Code:
+
+```bash
+claude mcp add --transport http boreal https://boreal-task-desk.vercel.app/api/mcp --header "Authorization: Bearer bk_…"
+```
+
+Any other client that speaks Streamable HTTP takes the URL and the same header.
+
 ## Seeing the whole flow
 
 ```bash

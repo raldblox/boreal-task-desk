@@ -12,3 +12,6 @@ coverage/
 
 .vercel
 .env*.local
+
+# Local Claude Code settings
+.claude/

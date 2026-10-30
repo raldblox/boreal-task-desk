@@ -14,6 +14,7 @@ import {
   and,
   asc,
   type Database,
+  desc,
   eq,
   gte,
   inArray,
@@ -474,6 +475,22 @@ export function createDesk({
         throw new DeskError("not_found", "task not found");
       }
       return task;
+    },
+
+    /** list_tasks: the requester's own tasks, newest first. */
+    async listTasks(caller: Caller, filter: { status?: TaskStatus; limit?: number } = {}) {
+      requireRole(caller, "requester");
+      const limit = Math.min(Math.max(filter.limit ?? 20, 1), 100);
+      return db
+        .select()
+        .from(tasks)
+        .where(
+          filter.status
+            ? and(eq(tasks.agentId, caller.agentId), eq(tasks.status, filter.status))
+            : eq(tasks.agentId, caller.agentId),
+        )
+        .orderBy(desc(tasks.createdAt))
+        .limit(limit);
     },
 
     async getTrail(caller: Caller, taskId: string) {

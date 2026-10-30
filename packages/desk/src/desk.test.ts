@@ -187,6 +187,19 @@ describe("who may do what", () => {
   });
 });
 
+describe("listing", () => {
+  it("lists only the caller's own tasks, newest first, with a status filter", async () => {
+    const older = await openTask();
+    advance(1_000);
+    const { task: newer } = await desk.postTask(requester, taskInput());
+    await desk.postTask(otherRequester, taskInput());
+
+    const mine = await desk.listTasks(requester);
+    expect(mine.map((t) => t.id)).toEqual([newer.id, older]);
+    expect((await desk.listTasks(requester, { status: "open" })).map((t) => t.id)).toEqual([older]);
+  });
+});
+
 describe("funding", () => {
   it("rejects a payment that doesn't match the quote", async () => {
     const { task, quote } = await desk.postTask(requester, taskInput());
