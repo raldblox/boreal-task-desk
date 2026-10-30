@@ -51,7 +51,7 @@ const TRANSITIONS: Record<TaskEventType, Transition> = {
   screen_ok: { from: ["posted"], to: "awaiting_funding", by: ["reviewer"] },
   screen_refused: { from: ["posted"], to: "refused", by: ["reviewer", "system"] },
   fund: { from: ["awaiting_funding"], to: "open", by: ["requester"] },
-  cancel: { from: ["awaiting_funding", "open"], to: "cancelled", by: ["requester"] },
+  cancel: { from: ["posted", "awaiting_funding", "open"], to: "cancelled", by: ["requester"] },
   deadline_passed: { from: ["open"], to: "expired", by: ["system"] },
   claim: { from: ["open"], to: "claimed", by: ["worker"] },
   release: { from: ["claimed"], to: "open", by: ["worker"] },

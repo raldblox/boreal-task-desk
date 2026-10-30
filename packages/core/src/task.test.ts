@@ -62,6 +62,11 @@ describe("transition", () => {
     ).toThrow(/cannot dispute as worker/);
   });
 
+  it("lets the requester withdraw a task before it is funded", () => {
+    expect(transition(at("posted"), { type: "cancel" }, "requester").status).toBe("cancelled");
+    expect(() => transition(at("claimed"), { type: "cancel" }, "requester")).toThrow(TransitionError);
+  });
+
   it("reopens a task when a claim expires", () => {
     expect(transition(at("claimed"), { type: "claim_expired" }, "system").status).toBe("open");
   });

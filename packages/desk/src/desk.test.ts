@@ -205,6 +205,12 @@ describe("funding", () => {
     await expectDeskError(desk.fundTask(capped, second.task.id, { txHash: "b", amount: second.quote.total }), "limit");
   });
 
+  it("cancels an unscreened task without moving money", async () => {
+    const { task } = await desk.postTask(requester, taskInput());
+    expect((await desk.cancelTask(requester, task.id)).status).toBe("cancelled");
+    expect(await ledgerFor(task.id)).toHaveLength(0);
+  });
+
   it("refunds everything when an open task is cancelled", async () => {
     const id = await openTask();
     await desk.cancelTask(requester, id);
