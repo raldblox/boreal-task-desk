@@ -2,7 +2,7 @@
   "name": "@boreal/web",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node --env-file-if-exists=../../.env.local node_modules/next/dist/bin/next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -16,10 +16,12 @@
     "@boreal/db": "workspace:*",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.1",
+    "drizzle-orm": "^0.45.4",
     "lucide-react": "^1.65.0",
     "next": "16.4.3",
     "react": "19.3.0",
     "react-dom": "19.3.0",
+    "server-only": "^0.0.1",
     "shadcn": "^4.23.0",
     "tw-animate-css": "^1.4.0",
     "zod": "^4.6.7"
