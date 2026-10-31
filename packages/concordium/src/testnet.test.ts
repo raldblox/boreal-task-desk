@@ -17,7 +17,7 @@ import { ExactConcordiumScheme } from "@x402/concordium/exact/facilitator";
 import type { PaymentPayload, PaymentRequirements } from "@x402/core/types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { Concordium, PaymentRequirement, SentTransfer, TransferJournal } from "./index";
+import type { Concordium, X402PaymentRequirement, SentTransfer, TransferJournal } from "./index";
 import { loadConcordium } from "./index";
 import {
   type Chain,
@@ -117,7 +117,7 @@ function fakeChain(clock: () => Date) {
 }
 
 /** What an agent's x402 client sends back: the requirement it accepted plus its signed transfer. */
-function paymentFor(requirement: PaymentRequirement, signedTransaction: unknown = { version: 1 }): PaymentPayload {
+function paymentFor(requirement: X402PaymentRequirement, signedTransaction: unknown = { version: 1 }): PaymentPayload {
   return {
     x402Version: 2,
     accepted: requirement as unknown as PaymentRequirements,
@@ -295,7 +295,7 @@ describe("x402 facilitator on a signed agent transfer", () => {
   const payer = keyPair();
   const payerAccount = address();
 
-  async function signedTransfer(r: PaymentRequirement, amount = BigInt(r.amount), payTo = r.payTo) {
+  async function signedTransfer(r: X402PaymentRequirement, amount = BigInt(r.amount), payTo = r.payTo) {
     const signable = Transaction.tokenUpdate({
       tokenId: TokenId.fromString(r.asset),
       operations: Cbor.encode([

@@ -13,6 +13,7 @@ packages/
   db/           Drizzle schema and client for Postgres, plus an in-process test database
   desk/         Task service: every command in one transaction with its audit event, ledger and outbox
   concordium/   Interfaces for Agent Registry, Concordium ID, x402 payments, anchoring
+  paypal/       PayPal rail for the payments port: authorize at funding, capture or void when final, Payouts to workers
   brain/        AI jobs (intake, safety, review, dispute summary), each with a non-AI fallback
 ```
 
@@ -87,7 +88,7 @@ pnpm --filter @boreal/desk create-agent <name> <owner-verified-ref>
 | POST | `/api/v1/tasks/:id/dispute` | dispute_verdict |
 | POST | `/api/v1/tasks/:id/fund` | fund_task over x402 v2: 402 with what to pay, then retry with `PAYMENT-SIGNATURE` (or `X-PAYMENT`) |
 
-Funding needs Concordium adapters (`CONCORDIUM_MODE`, see [Money path](#money-path-concordium-testnet)); without them it answers 503, except for test agents (below).
+Funding needs a payment rail: Concordium adapters (`CONCORDIUM_MODE`, see [Money path](#money-path-concordium-testnet)) or PayPal (`PAYMENTS_RAIL=paypal`, sandbox only, see [docs/paypal.md](docs/paypal.md)). Without one it answers 503, except for test agents (below).
 
 | Method | Path | Does |
 | --- | --- | --- |

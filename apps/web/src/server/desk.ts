@@ -2,7 +2,7 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 
-import { type Concordium, loadConcordium } from "@boreal/concordium";
+import { type Concordium, loadConcordium, type Payments } from "@boreal/concordium";
 import type { Task } from "@boreal/db";
 import {
   addressesFromEnv,
@@ -16,6 +16,7 @@ import {
   verifyAgentKey,
 } from "@boreal/desk";
 
+import { loadPayments, type PayPalPayments } from "@boreal/paypal";
 import { after } from "next/server";
 
 import { getDb } from "./db";
@@ -23,6 +24,7 @@ import { kickMonitor } from "./monitor";
 
 let desk: Desk | undefined;
 let concordium: Concordium | null | undefined;
+let payments: Payments | null | undefined;
 
 /** The configured adapters, or null when `CONCORDIUM_MODE` is unset (payments and sign-in off). */
 export function getConcordium(): Concordium | null {
@@ -35,10 +37,19 @@ export function getConcordium(): Concordium | null {
   return concordium;
 }
 
+/** The payment rail: PayPal when `PAYMENTS_RAIL=paypal`, else Concordium's, else null (payments off). */
+export function getPayments(): Payments | null {
+  if (payments === undefined) {
+    payments = loadPayments(process.env, getConcordium(), { escrowBalance: () => ledgerEscrowBalance(getDb()) });
+  }
+  return payments;
+}
+
 export function getDesk(): Desk {
   desk ??= createDesk({
     db: getDb(),
     concordium: getConcordium(),
+    payments: getPayments(),
     addresses: addressesFromEnv(),
     testInvite: process.env.TEST_WORKER_INVITE,
   });
@@ -102,4 +113,10 @@ export async function readJson(request: Request): Promise<unknown> {
   } catch {
     throw new DeskError("invalid", "request body must be JSON");
   }
+}
+
+/** The PayPal rail, when it is the one in use; webhooks need its client. */
+export function getPayPal(): PayPalPayments | null {
+  const rail = getPayments();
+  return rail && "client" in rail ? (rail as PayPalPayments) : null;
 }

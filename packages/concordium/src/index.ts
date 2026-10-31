@@ -38,11 +38,11 @@ export interface Transfer {
 }
 
 /**
- * What a 402 response asks the payer for: x402 v2 `PaymentRequirements` for the `exact` scheme,
- * as Concordium's x402 mechanism (`@x402/concordium`) defines it. boreal's own fields ride in
- * `extra`, which x402 clients echo back unchanged as `accepted`.
+ * What a 402 response asks the payer for on the Concordium rail: x402 v2 `PaymentRequirements`
+ * for the `exact` scheme, as Concordium's x402 mechanism (`@x402/concordium`) defines it.
+ * boreal's own fields ride in `extra`, which x402 clients echo back unchanged as `accepted`.
  */
-export interface PaymentRequirement {
+export interface X402PaymentRequirement {
   scheme: "exact";
   /** CAIP-2 network id: `ccd:4221332d34e1694168c2a0c0b3fd0f27` is testnet. */
   network: string;
@@ -67,13 +67,56 @@ export interface PaymentRequirement {
   };
 }
 
+/** What the PayPal rail asks for: an order the payer approves at `extra.approveUrl`. */
+export interface PayPalPaymentRequirement {
+  scheme: "exact";
+  network: "paypal";
+  /** Currency code, such as USD. */
+  asset: string;
+  payTo: string;
+  /** Minor units. */
+  amount: number;
+  /** The task being funded. */
+  resource: string;
+  /** The PayPal order id. */
+  nonce: string;
+  expiresAt: string;
+  extra: { rail: "paypal"; orderId: string; approveUrl: string };
+}
+
+export type PaymentRequirement = X402PaymentRequirement | PayPalPaymentRequirement;
+
+export function isPayPalRequirement(r: PaymentRequirement): r is PayPalPaymentRequirement {
+  return r.network === "paypal";
+}
+
+/** A confirmed payment. With `hold`, the money is authorized on the payer's side but not taken yet. */
+export interface ConfirmedPayment {
+  txHash: string;
+  amount: number;
+  hold?: string;
+}
+
+/**
+ * Rails that hold funds at confirmation (PayPal authorizations) instead of settling them.
+ * The desk takes the money only once the task is final.
+ */
+export interface PaymentHolds {
+  /** Takes `amount` of the hold and releases the rest. A repeated key never captures twice. */
+  capture(hold: string, amount: number, idempotencyKey: string): Promise<{ txHash: string }>;
+  /** Releases the whole hold to the payer. */
+  release(hold: string, idempotencyKey: string): Promise<void>;
+}
+
 /** x402 funding in, sponsored token transfers out of escrow. */
-export interface Payments {
-  createPaymentRequest(taskId: string, amount: number): Promise<PaymentRequirement>;
-  /** Verifies the payer's x402 payment and settles it on-chain; throws if it is invalid. */
-  confirmPayment(taskId: string, payment: unknown): Promise<{ txHash: string; amount: number }>;
+export interface Payments<R extends PaymentRequirement = PaymentRequirement> {
+  createPaymentRequest(taskId: string, amount: number): Promise<R>;
+  /** Verifies the payer's x402 payment and settles (or holds) it; throws if it is invalid. */
+  confirmPayment(taskId: string, payment: unknown): Promise<ConfirmedPayment>;
   sponsoredTransfer(transfer: Transfer): Promise<{ txHash: string }>;
   escrowBalance(): Promise<number>;
+  /** Present on rails whose confirmed payments are holds. */
+  holds?: PaymentHolds;
 }
 
 /** A payout or refund as sent: enough to tell later whether it can still land. */
@@ -97,7 +140,7 @@ export interface Anchor {
 export interface Concordium {
   registry: AgentRegistry;
   identity: IdentityVerifier;
-  payments: Payments;
+  payments: Payments<X402PaymentRequirement>;
   anchor: Anchor;
 }
 

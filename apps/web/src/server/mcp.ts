@@ -1,5 +1,6 @@
 import "server-only";
 
+import { isPayPalRequirement } from "@boreal/concordium";
 import { postTaskInput, quoteFees, TASK_STATUSES } from "@boreal/core";
 import type { Task } from "@boreal/db";
 import { type Caller, DeskError, taskTotal } from "@boreal/desk";
@@ -12,7 +13,7 @@ import { readSubmissionBytes } from "@boreal/files";
 
 import { GUIDE_VERSION, NETWORK } from "@/content/agent-guide";
 
-import { fundTestTask, getConcordium, getDesk } from "./desk";
+import { fundTestTask, getDesk, getPayments } from "./desk";
 import { clientHash } from "./id-app";
 import { kickMonitor } from "./monitor";
 
@@ -64,6 +65,8 @@ function summary(task: Task) {
     verdictAt: task.verdictAt,
     disputeUsed: task.disputeUsed,
     fundingTxHash: task.fundingTxHash,
+    /** Funded on a rail that holds the money (PayPal): taken only when the task is final. */
+    held: task.fundingHold !== null,
     reviewer: task.reviewMode,
     test: task.test,
   };
@@ -267,11 +270,17 @@ export function registerTools(server: McpServer): void {
     {
       title: "Fund a screened task",
       description:
-        "Pays the task's total into escrow over x402. Call once without `payment` to get the payment " +
-        "requirement, pay it, then call again with the signed payment. The task opens to workers once funded.",
+        "Pays the task's total into escrow. Call once without `payment` to get the payment requirement, pay it, then " +
+        "call again with the payment. The task opens to workers once funded. On PayPal the requirement's " +
+        "extra.approveUrl is a PayPal checkout: have your owner (or a PayPal-enabled wallet you control) approve it, " +
+        "then call again with payment: { orderId }. PayPal only holds the money: it is captured when the task passes, " +
+        "and the hold is voided if the task fails, expires or is cancelled (a fail still pays the review fee).",
       inputSchema: z.object({
         taskId,
-        payment: z.unknown().optional().describe("The signed x402 payment for the requirement you were given."),
+        payment: z
+          .unknown()
+          .optional()
+          .describe("The signed x402 payment for the requirement you were given, or { orderId } for an approved PayPal order."),
       }),
     },
     tool(async (caller, { taskId: id, payment }: { taskId: string; payment?: unknown }) => {
@@ -281,15 +290,23 @@ export function registerTools(server: McpServer): void {
       }
       // Test agents fund with test money: recorded in the ledger, never moved on-chain.
       if (task.test) return { ...summary(await fundTestTask(caller, task)), note: "funded with test money" };
-      const concordium = getConcordium();
-      if (!concordium) throw new DeskError("unavailable", "payments are not enabled yet");
+      const payments = getPayments();
+      if (!payments) throw new DeskError("unavailable", "payments are not enabled yet");
       if (payment === undefined) {
-        return { paymentRequired: await concordium.payments.createPaymentRequest(task.id, taskTotal(task)) };
+        const requirement = await payments.createPaymentRequest(task.id, taskTotal(task));
+        if (isPayPalRequirement(requirement)) {
+          return {
+            paymentRequired: requirement,
+            tellYourOwner: `Please approve ${usd(requirement.amount)} for this boreal task on PayPal: ${requirement.extra.approveUrl} (held, not charged, until the work passes review).`,
+            next: `once approved, call fund_task with payment: { "orderId": "${requirement.nonce}" }`,
+          };
+        }
+        return { paymentRequired: requirement };
       }
       const funded = await desk.fundTask(caller, id, {
         async confirm() {
           try {
-            return await concordium.payments.confirmPayment(task.id, payment);
+            return await payments.confirmPayment(task.id, payment);
           } catch (error) {
             throw new DeskError("invalid", error instanceof Error ? error.message : "payment was not accepted");
           }

@@ -13,22 +13,27 @@ export function taskTotal(task: Task): number {
   return task.budget + task.platformFee + task.reviewFee;
 }
 
-/** Funding has already settled on-chain (x402 confirmed it), so the entry is settled at once. */
+export const fundingKey = (taskId: string) => `${taskId}:fund`;
+
+/**
+ * Funding has already settled on-chain (x402 confirmed it), so the entry is settled at once.
+ * A held payment (a PayPal authorization) stays pending until it is captured or released.
+ */
 export async function recordFunding(
   tx: Transaction,
   task: Task,
-  txHash: string,
+  payment: { txHash: string; hold?: string },
   at: Date,
 ): Promise<void> {
   await tx.insert(ledgerEntries).values({
     taskId: task.id,
-    idempotencyKey: `${task.id}:fund`,
+    idempotencyKey: fundingKey(task.id),
     fromAccount: "requester",
     toAccount: "escrow",
     party: task.agentId,
     amount: taskTotal(task),
-    status: "settled",
-    txHash,
+    status: payment.hold ? "pending" : "settled",
+    txHash: payment.txHash,
     createdAt: at,
     updatedAt: at,
   });
@@ -93,6 +98,19 @@ export async function settle(
   const fresh = new Set(inserted.map((row) => row.key));
   const queued = movements.filter((m) => fresh.has(m.key));
   if (queued.length === 0 || task.test) return;
+
+  if (task.fundingHold) {
+    // The money is still only held: take what leaves for others, and the rest goes back to
+    // the payer with the hold. Payouts are queued once the capture has gone through.
+    const amount = queued.filter((m) => m.to !== "requester").reduce((sum, m) => sum + m.amount, 0);
+    await tx.insert(outbox).values({
+      kind: amount > 0 ? ("capture" as const) : ("release" as const),
+      payload: { taskId: task.id, hold: task.fundingHold, amount, key: `${task.id}:${amount > 0 ? "capture" : "release"}` },
+      nextAttemptAt: at,
+      createdAt: at,
+    });
+    return;
+  }
 
   await tx.insert(outbox).values(
     queued.map((m) => ({

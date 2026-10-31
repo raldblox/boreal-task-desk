@@ -10,7 +10,7 @@ import {
   transition,
   TransitionError,
 } from "@boreal/core";
-import type { Concordium, ProofRequest } from "@boreal/concordium";
+import type { Concordium, ConfirmedPayment, Payments, ProofRequest } from "@boreal/concordium";
 import {
   agents,
   and,
@@ -40,7 +40,7 @@ import { DeskError, fromTransitionError } from "./errors";
 import { linkCommands } from "./links";
 import { moneyViews } from "./money-views";
 import { recordFunding, settle, taskTotal } from "./money";
-import { drainOutbox, type PayoutAddresses, reconcileEscrow } from "./outbox";
+import { drainOutbox, type PaymentStatusUpdate, type PayoutAddresses, queuePaymentUpdate, reconcileEscrow } from "./outbox";
 import { appendEvent } from "./trail";
 
 export type Caller =
@@ -59,12 +59,12 @@ export interface DeskOptions {
   concordium?: Concordium | null;
   /** Payout accounts for the platform and reviewers; workers and agents carry their own. */
   addresses?: PayoutAddresses;
+  /** The payment rail, when it isn't Concordium's (PayPal). Defaults to `concordium.payments`. */
+  payments?: Payments | null;
 }
 
 /** A payment that has settled, or one to settle once the task's checks pass. */
-export type FundingPayment =
-  | { txHash: string; amount: number }
-  | { confirm: () => Promise<{ txHash: string; amount: number }> };
+export type FundingPayment = ConfirmedPayment | { confirm: () => Promise<ConfirmedPayment> };
 
 type TaskPatch = Partial<typeof tasks.$inferInsert>;
 
@@ -111,10 +111,16 @@ export function createDesk({
   concordium = null,
   addresses = {},
   testInvite,
+  payments = concordium?.payments ?? null,
 }: DeskOptions) {
   function requireConcordium(): Concordium {
     if (!concordium) throw new DeskError("unavailable", "Concordium adapters are not configured");
     return concordium;
+  }
+
+  function requirePayments(): Payments {
+    if (!payments) throw new DeskError("unavailable", "payments are not configured");
+    return payments;
   }
 
   async function mutate(
@@ -278,7 +284,7 @@ export function createDesk({
      */
     async fundTask(caller: Caller, taskId: string, payment: FundingPayment) {
       requireRole(caller, "requester");
-      let settled: { txHash: string; amount: number } | undefined;
+      let settled: ConfirmedPayment | undefined;
       return mutate(taskId, caller, { type: "fund" }, {
         payload: () => settled,
         async check(tx, task, at) {
@@ -308,8 +314,8 @@ export function createDesk({
             throw new DeskError("invalid", `payment must be exactly ${total}`);
           }
         },
-        patch: (_task, at) => ({ fundedAt: at, fundingTxHash: settled!.txHash }),
-        after: (tx, task, at) => recordFunding(tx, task, settled!.txHash, at),
+        patch: (_task, at) => ({ fundedAt: at, fundingTxHash: settled!.txHash, fundingHold: settled!.hold ?? null }),
+        after: (tx, task, at) => recordFunding(tx, task, settled!, at),
       });
     },
 
@@ -619,13 +625,29 @@ export function createDesk({
       return worker!;
     },
 
-    /** Sends due anchors, payouts and refunds. Run by the monitor loop. */
+    /** Sends due anchors, payouts, refunds, captures and releases. Run by the monitor loop. */
     async drainOutbox(limit?: number) {
-      return drainOutbox(db, requireConcordium(), { now, addresses, limit });
+      return drainOutbox(db, { payments: requirePayments(), anchor: concordium?.anchor ?? null }, { now, addresses, limit });
     },
 
     async reconcileEscrow() {
-      return reconcileEscrow(db, requireConcordium());
+      return reconcileEscrow(db, requirePayments());
+    },
+
+    /** The payment rail in use, or null when payments are off. */
+    payments,
+
+    /** A provider's report on a payout (a verified PayPal webhook), applied to the ledger by the outbox. */
+    async queuePaymentUpdate(update: PaymentStatusUpdate) {
+      await queuePaymentUpdate(db, update, now());
+    },
+
+    /** Where this worker is paid: a Concordium account, or a PayPal email on the PayPal rail. */
+    async setPayoutAddress(caller: Caller, address: string) {
+      requireRole(caller, "worker");
+      const value = address.trim();
+      if (value.length < 3 || value.length > 254 || /\s/.test(value)) throw new DeskError("invalid", "that payout address doesn't look right");
+      await db.update(workers).set({ payoutAddress: value, updatedAt: now() }).where(eq(workers.id, caller.workerId));
     },
 
     async getTask(caller: Caller, taskId: string) {
@@ -648,6 +670,7 @@ export function createDesk({
           pseudonym: workers.pseudonym,
           provenAttributes: workers.provenAttributes,
           testMode: workers.testMode,
+          payoutAddress: workers.payoutAddress,
           createdAt: workers.createdAt,
         })
         .from(workers)

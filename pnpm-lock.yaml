@@ -47,6 +47,9 @@ importers:
       '@boreal/monitor':
         specifier: workspace:*
         version: link:../../packages/monitor
+      '@boreal/paypal':
+        specifier: workspace:*
+        version: link:../../packages/paypal
       '@concordium/verification-web-ui':
         specifier: 0.2.1
         version: 0.2.1(@vercel/blob@2.8.2)(react@19.3.0)(typescript@5.9.3)(zod@4.6.7)
@@ -221,6 +224,28 @@ importers:
       '@boreal/files':
         specifier: workspace:*
         version: link:../files
+      '@boreal/paypal':
+        specifier: workspace:*
+        version: link:../paypal
+
+  packages/paypal:
+    dependencies:
+      '@boreal/concordium':
+        specifier: workspace:*
+        version: link:../concordium
+    devDependencies:
+      '@boreal/core':
+        specifier: workspace:*
+        version: link:../core
+      '@boreal/db':
+        specifier: workspace:*
+        version: link:../db
+      '@boreal/desk':
+        specifier: workspace:*
+        version: link:../desk
+      '@electric-sql/pglite':
+        specifier: ^0.5.13
+        version: 0.5.13
 
 packages:
 

@@ -1,6 +1,6 @@
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
-import type { Concordium, PaymentRequirement, ProofRequest, VerifiedWorker } from "./index";
+import type { Concordium, X402PaymentRequirement, ProofRequest, VerifiedWorker } from "./index";
 
 // Stand-in adapters so the whole flow runs with no chain. Stateless: challenges and payment
 // requests are HMAC-signed, so they verify on any server instance. Never for production.
@@ -94,7 +94,7 @@ export function createDevConcordium(options: DevConcordiumOptions): Concordium {
     },
 
     payments: {
-      async createPaymentRequest(taskId, amount): Promise<PaymentRequirement> {
+      async createPaymentRequest(taskId, amount): Promise<X402PaymentRequirement> {
         // dev-usd has two decimals, so its smallest unit is boreal's minor unit.
         return {
           scheme: "exact",
@@ -112,7 +112,7 @@ export function createDevConcordium(options: DevConcordiumOptions): Concordium {
        * `signDevPayment` gives the payer. Real x402 settles a signed transfer instead.
        */
       async confirmPayment(taskId, payment) {
-        const p = payment as { requirement?: PaymentRequirement; signature?: unknown } | null;
+        const p = payment as { requirement?: X402PaymentRequirement; signature?: unknown } | null;
         const requirement = p?.requirement;
         if (!requirement || typeof p?.signature !== "string") {
           throw new DevConcordiumError("payment must carry the requirement and a signature");
@@ -145,7 +145,7 @@ export function createDevConcordium(options: DevConcordiumOptions): Concordium {
 }
 
 /** What a dev wallet does to pay a 402: sign the exact requirement it was given. */
-export function signDevPayment(secret: string, requirement: PaymentRequirement): string {
+export function signDevPayment(secret: string, requirement: X402PaymentRequirement): string {
   const { resource, minorUnits, nonce, expiresAt } = requirement.extra;
   const fields = [resource, requirement.amount, minorUnits, nonce, expiresAt, requirement.payTo];
   return createHmac("sha256", secret).update(`pay:${fields.join("|")}`).digest("base64url");

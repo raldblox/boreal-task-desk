@@ -15,6 +15,7 @@
     "@boreal/core": "workspace:*",
     "@boreal/db": "workspace:*",
     "@boreal/desk": "workspace:*",
-    "@boreal/files": "workspace:*"
+    "@boreal/files": "workspace:*",
+    "@boreal/paypal": "workspace:*"
   }
 }

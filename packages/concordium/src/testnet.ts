@@ -21,7 +21,7 @@ import { ExactConcordiumScheme } from "@x402/concordium/exact/facilitator";
 import type { PaymentPayload, PaymentRequirements, SettleResponse } from "@x402/core/types";
 
 import { checkRegistryBadge, BadgeError } from "./registry";
-import type { Concordium, PaymentRequirement, SentTransfer, TransferJournal } from "./index";
+import type { Concordium, X402PaymentRequirement, SentTransfer, TransferJournal } from "./index";
 
 // boreal's real money path on Concordium testnet:
 // - Funding is x402 `exact` as Concordium's mechanism (`@x402/concordium`) defines it: the agent
@@ -154,7 +154,7 @@ function equalStrings(a: string, b: string): boolean {
 }
 
 /** Every requirement field a payer could tamper with, in a fixed order. */
-function sealedFields(r: PaymentRequirement): string {
+function sealedFields(r: X402PaymentRequirement): string {
   const { feePayer, resource, minorUnits, nonce, expiresAt } = r.extra;
   return [r.scheme, r.network, r.asset, r.payTo, r.amount, r.maxTimeoutSeconds, feePayer, resource, minorUnits, nonce, expiresAt].join("|");
 }
@@ -188,7 +188,7 @@ export function createTestnetConcordium(config: TestnetConfig, options: TestnetO
       }),
     });
 
-  const seal = (r: PaymentRequirement) => createHmac("sha256", config.paymentSecret).update(sealedFields(r)).digest("base64url");
+  const seal = (r: X402PaymentRequirement) => createHmac("sha256", config.paymentSecret).update(sealedFields(r)).digest("base64url");
 
   /** Token units per minor unit, from the token's on-chain decimals. */
   async function scale(): Promise<bigint> {
@@ -220,7 +220,7 @@ export function createTestnetConcordium(config: TestnetConfig, options: TestnetO
     payments: {
       async createPaymentRequest(taskId, amount) {
         if (!Number.isSafeInteger(amount) || amount <= 0) throw new TestnetConcordiumError("amount must be a positive integer in minor units");
-        const requirement: PaymentRequirement = {
+        const requirement: X402PaymentRequirement = {
           scheme: "exact",
           network: config.network,
           asset: config.tokenId,
@@ -249,7 +249,7 @@ export function createTestnetConcordium(config: TestnetConfig, options: TestnetO
         if (p?.x402Version !== 2 || !p.accepted || !p.payload) {
           throw new TestnetConcordiumError("payment must be an x402 v2 payment payload with `accepted` and `payload`");
         }
-        const accepted = p.accepted as unknown as PaymentRequirement;
+        const accepted = p.accepted as unknown as X402PaymentRequirement;
         const sealed = typeof accepted.extra?.seal === "string" ? accepted.extra.seal : "";
         if (!sealed || !equalStrings(seal(accepted), sealed)) throw new TestnetConcordiumError("payment requirement was not issued by boreal or was changed");
         if (accepted.extra.resource !== taskId) throw new TestnetConcordiumError("payment is for another task");

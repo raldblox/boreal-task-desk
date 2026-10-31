@@ -1,4 +1,4 @@
-import type { Concordium, SentTransfer, TransferJournal } from "@boreal/concordium";
+import type { Anchor, Concordium, Payments, SentTransfer, TransferJournal } from "@boreal/concordium";
 import {
   agents,
   and,
@@ -9,12 +9,15 @@ import {
   isNull,
   ledgerEntries,
   lte,
+  ne,
   outbox,
   sql,
   taskEvents,
   tasks,
   workers,
 } from "@boreal/db";
+
+import { fundingKey } from "./money";
 
 /** Where payouts go for accounts that aren't stored per person. */
 export interface PayoutAddresses {
@@ -25,6 +28,21 @@ export interface PayoutAddresses {
 
 type OutboxRow = typeof outbox.$inferSelect;
 type Transfer = { ledgerKey: string; to: string; party: string | null; amount: number };
+type HoldAction = { taskId: string; hold: string; amount: number; key: string };
+
+/** A payment provider's report on a transfer, such as a PayPal payout webhook. */
+export interface PaymentStatusUpdate {
+  ledgerKey: string;
+  status: "settled" | "failed";
+  txHash?: string;
+  detail: string;
+}
+
+/** What the outbox sends with: payments for money, the anchor for event hashes. */
+export interface OutboxAdapters {
+  payments: Payments | null;
+  anchor: Anchor | null;
+}
 
 const LEASE_MS = 5 * 60 * 1000;
 const MAX_BACKOFF_MS = 60 * 60 * 1000;
@@ -56,7 +74,7 @@ async function addressFor(db: Database, addresses: PayoutAddresses, t: Transfer)
  */
 export async function drainOutbox(
   db: Database,
-  concordium: Concordium,
+  adapters: OutboxAdapters,
   options: { now: () => Date; addresses: PayoutAddresses; limit?: number },
 ): Promise<{ sent: number; failed: number }> {
   const at = options.now();
@@ -64,7 +82,14 @@ export async function drainOutbox(
     const due = await tx
       .select({ id: outbox.id })
       .from(outbox)
-      .where(and(isNull(outbox.doneAt), lte(outbox.nextAttemptAt, at)))
+      .where(
+        and(
+          isNull(outbox.doneAt),
+          lte(outbox.nextAttemptAt, at),
+          // With no anchor configured (PayPal without Concordium), anchors wait rather than fail.
+          adapters.anchor ? undefined : ne(outbox.kind, "anchor"),
+        ),
+      )
       .orderBy(asc(outbox.id))
       .limit(options.limit ?? 20)
       .for("update", { skipLocked: true });
@@ -80,7 +105,7 @@ export async function drainOutbox(
   let failed = 0;
   for (const row of leased) {
     try {
-      await send(db, concordium, options.addresses, row, options.now());
+      await send(db, adapters, options.addresses, row, options.now());
       await db.update(outbox).set({ doneAt: options.now(), lastError: null }).where(eq(outbox.id, row.id));
       sent++;
     } catch (error) {
@@ -102,15 +127,20 @@ export async function drainOutbox(
 
 async function send(
   db: Database,
-  concordium: Concordium,
+  { payments, anchor }: OutboxAdapters,
   addresses: PayoutAddresses,
   row: OutboxRow,
   at: Date,
 ): Promise<void> {
+  const needPayments = () => {
+    if (!payments) throw new Error("payments are not configured");
+    return payments;
+  };
   switch (row.kind) {
     case "anchor": {
       const { eventId, hash } = row.payload as { eventId: number; hash: string };
-      const { txHash } = await concordium.anchor.anchor(hash);
+      if (!anchor) throw new Error("anchoring is not configured");
+      const { txHash } = await anchor.anchor(hash);
       await db.update(taskEvents).set({ anchorTxHash: txHash }).where(eq(taskEvents.id, eventId));
       return;
     }
@@ -118,7 +148,7 @@ async function send(
     case "refund": {
       const transfer = row.payload as Transfer;
       const to = await addressFor(db, addresses, transfer);
-      const { txHash } = await concordium.payments.sponsoredTransfer({
+      const { txHash } = await needPayments().sponsoredTransfer({
         to,
         amount: transfer.amount,
         idempotencyKey: transfer.ledgerKey,
@@ -127,6 +157,35 @@ async function send(
         .update(ledgerEntries)
         .set({ status: "settled", txHash, updatedAt: at })
         .where(eq(ledgerEntries.idempotencyKey, transfer.ledgerKey));
+      return;
+    }
+    case "capture":
+    case "release": {
+      const action = row.payload as HoldAction;
+      const holds = needPayments().holds;
+      if (!holds) throw new Error("this payment rail can't capture or release holds");
+      let txHash: string;
+      if (row.kind === "capture") {
+        ({ txHash } = await holds.capture(action.hold, action.amount, action.key));
+      } else {
+        await holds.release(action.hold, action.key);
+        txHash = `released:${action.hold}`;
+      }
+      await settleHold(db, action.taskId, txHash, at);
+      return;
+    }
+    case "reconcile": {
+      const update = row.payload as PaymentStatusUpdate;
+      const [entry] = await db
+        .update(ledgerEntries)
+        .set({ status: update.status, ...(update.txHash ? { txHash: update.txHash } : {}), updatedAt: at })
+        .where(eq(ledgerEntries.idempotencyKey, update.ledgerKey))
+        .returning({ amount: ledgerEntries.amount, toAccount: ledgerEntries.toAccount });
+      if (!entry) throw new Error(`no ledger entry ${update.ledgerKey}`);
+      // The money is back in escrow; sending it again is an operator's call, so it's loud.
+      if (update.status === "failed") {
+        console.error(`[outbox] ${entry.toAccount} transfer ${update.ledgerKey} of ${entry.amount} failed: ${update.detail}`);
+      }
       return;
     }
     case "webhook":
@@ -159,6 +218,51 @@ export function outboxTransferJournal(db: Database): TransferJournal {
   };
 }
 
+/**
+ * After a hold is captured or released, in one transaction: the funding entry settles, the
+ * entries the hold itself settled (refunds back to the payer, boreal's fee kept in its own
+ * account) settle with it, and payouts to workers and reviewers are queued. Only the first
+ * run does any of this, so a repeated capture never queues a payout twice.
+ */
+async function settleHold(db: Database, taskId: string, txHash: string, at: Date): Promise<void> {
+  await db.transaction(async (tx) => {
+    const [funding] = await tx
+      .update(ledgerEntries)
+      .set({ status: "settled", txHash, updatedAt: at })
+      .where(and(eq(ledgerEntries.idempotencyKey, fundingKey(taskId)), eq(ledgerEntries.status, "pending")))
+      .returning({ id: ledgerEntries.id });
+    if (!funding) return;
+
+    const pending = await tx
+      .select()
+      .from(ledgerEntries)
+      .where(and(eq(ledgerEntries.taskId, taskId), eq(ledgerEntries.fromAccount, "escrow"), eq(ledgerEntries.status, "pending")));
+    const inPlace = pending.filter((e) => e.toAccount === "requester" || e.toAccount === "operating");
+    if (inPlace.length > 0) {
+      await tx
+        .update(ledgerEntries)
+        .set({ status: "settled", txHash, updatedAt: at })
+        .where(inArray(ledgerEntries.id, inPlace.map((e) => e.id)));
+    }
+    const payouts = pending.filter((e) => e.toAccount === "worker" || e.toAccount === "reviewer");
+    if (payouts.length > 0) {
+      await tx.insert(outbox).values(
+        payouts.map((e) => ({
+          kind: "payout" as const,
+          payload: { ledgerKey: e.idempotencyKey, to: e.toAccount, party: e.party, amount: e.amount },
+          nextAttemptAt: at,
+          createdAt: at,
+        })),
+      );
+    }
+  });
+}
+
+/** Queues a provider's report on a transfer; the outbox applies it to the ledger. */
+export async function queuePaymentUpdate(db: Database, update: PaymentStatusUpdate, at: Date): Promise<void> {
+  await db.insert(outbox).values({ kind: "reconcile", payload: update, nextAttemptAt: at, createdAt: at });
+}
+
 /** What escrow should hold on-chain: money settled in, minus money settled out. */
 export async function ledgerEscrowBalance(db: Database): Promise<number> {
   const [row] = await db
@@ -178,9 +282,9 @@ export async function ledgerEscrowBalance(db: Database): Promise<number> {
 /** Compares the on-chain escrow balance with the ledger. Any gap must pause money movement. */
 export async function reconcileEscrow(
   db: Database,
-  concordium: Concordium,
+  payments: Payments,
 ): Promise<{ expected: number; actual: number; gap: number }> {
-  const [expected, actual] = await Promise.all([ledgerEscrowBalance(db), concordium.payments.escrowBalance()]);
+  const [expected, actual] = await Promise.all([ledgerEscrowBalance(db), payments.escrowBalance()]);
   return { expected, actual, gap: actual - expected };
 }
 

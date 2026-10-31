@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { loadReviewer, type Reviewer } from "@boreal/brain";
-import { type Concordium, loadConcordium } from "@boreal/concordium";
+import { type Concordium, loadConcordium, type Payments } from "@boreal/concordium";
 import { and, type Database, eq, leases, lt } from "@boreal/db";
 import {
   addressesFromEnv,
@@ -13,6 +13,7 @@ import {
   runAiReview,
 } from "@boreal/desk";
 import { readSubmissionBytes } from "@boreal/files";
+import { loadPayments } from "@boreal/paypal";
 
 // The monitor tick: everything time-driven in the task lifecycle, in one idempotent pass.
 // The local worker loops it; production runs it from cron and after user actions. A lease
@@ -37,6 +38,8 @@ export interface MonitorDeps {
   db: Database;
   desk: Desk;
   concordium: Concordium | null;
+  /** The payment rail; defaults to Concordium's. */
+  payments?: Payments | null;
   reviewer: Reviewer | null;
   readFile: ReadFile;
   now?: () => Date;
@@ -61,7 +64,15 @@ async function release(db: Database, holder: string): Promise<void> {
   await db.update(leases).set({ until: new Date(0) }).where(and(eq(leases.name, LEASE), eq(leases.holder, holder)));
 }
 
-export function createMonitor({ db, desk, concordium, reviewer, readFile, now = () => new Date() }: MonitorDeps): Monitor {
+export function createMonitor({
+  db,
+  desk,
+  concordium,
+  payments = concordium?.payments ?? null,
+  reviewer,
+  readFile,
+  now = () => new Date(),
+}: MonitorDeps): Monitor {
   return {
     async tick({ aiLimit = 3 } = {}) {
       const report: TickReport = {
@@ -102,7 +113,7 @@ export function createMonitor({ db, desk, concordium, reviewer, readFile, now = 
             report.ai = await runAiReview(desk, reviewer, { readFile, limit: aiLimit });
           });
         }
-        if (concordium) {
+        if (payments) {
           await step("reconcile-escrow", async () => {
             report.escrowGap = (await desk.reconcileEscrow()).gap;
           });
@@ -125,10 +136,12 @@ export function createMonitor({ db, desk, concordium, reviewer, readFile, now = 
 
 /** The monitor wired from the environment: Concordium and the AI reviewer turn on when configured. */
 export async function loadMonitor(db: Database, env: Record<string, string | undefined> = process.env): Promise<Monitor> {
-  const concordium = loadConcordium(env, { escrowBalance: () => ledgerEscrowBalance(db), journal: outboxTransferJournal(db) });
-  const desk = createDesk({ db, concordium, addresses: addressesFromEnv(env) });
+  const escrowBalance = () => ledgerEscrowBalance(db);
+  const concordium = loadConcordium(env, { escrowBalance, journal: outboxTransferJournal(db) });
+  const payments = loadPayments(env, concordium, { escrowBalance });
+  const desk = createDesk({ db, concordium, payments, addresses: addressesFromEnv(env) });
   const reviewer = await loadReviewer(env);
-  return createMonitor({ db, desk, concordium, reviewer, readFile: readSubmissionBytes });
+  return createMonitor({ db, desk, concordium, payments, reviewer, readFile: readSubmissionBytes });
 }
 
 /** A one-line summary for logs, or null when the tick did nothing worth saying. */
