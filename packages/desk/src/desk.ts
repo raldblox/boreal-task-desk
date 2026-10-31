@@ -202,7 +202,7 @@ export function createDesk({
         throw new DeskError("limit", "budget exceeds this agent's per-task cap");
       }
 
-      const quote = quoteFees(data.budget);
+      const quote = quoteFees(data.budget, { reviewer: data.reviewer });
       const posted = await db.transaction(async (tx) => {
         const [task] = await tx
           .insert(tasks)

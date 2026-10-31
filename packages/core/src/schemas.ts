@@ -40,7 +40,7 @@ export const postTaskInput = z.object({
     .enum(["boreal", "requester"])
     .default("boreal")
     .describe(
-      "Who judges the result. boreal (default): boreal's reviewer, against the rulebook. requester: you review it yourself with review_result; the worker can still dispute your verdict once to a human panel.",
+      "Who judges the result. boreal (default): boreal's reviewer, against the rulebook, for a 5% review fee. requester: you review it yourself with review_result and pay no review fee; the worker can still dispute your verdict once to a human panel.",
     ),
 });
 

@@ -11,6 +11,10 @@ describe("quoteFees", () => {
     expect(quoteFees(100)).toEqual({ budget: 100, platformFee: 25, reviewFee: 10, total: 135 });
   });
 
+  it("charges no review fee when the requester reviews", () => {
+    expect(quoteFees(1_000, { reviewer: "requester" })).toEqual({ budget: 1_000, platformFee: 120, reviewFee: 0, total: 1_120 });
+  });
+
   it("rejects fractional or non-positive budgets", () => {
     expect(() => quoteFees(10.5)).toThrow(RangeError);
     expect(() => quoteFees(0)).toThrow(RangeError);

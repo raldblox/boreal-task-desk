@@ -102,6 +102,9 @@ describe("requester review", () => {
     const entries = await db.select().from(ledgerEntries).where(eq(ledgerEntries.taskId, id));
     expect(entries.every((e) => e.status === "settled" && e.txHash?.startsWith("test"))).toBe(true);
     expect(entries.find((e) => e.toAccount === "worker")?.amount).toBe(300);
+    // No review fee on requester-reviewed tasks, so nothing goes to a reviewer.
+    expect(entries.find((e) => e.toAccount === "reviewer")).toBeUndefined();
+    expect(entries.find((e) => e.fromAccount === "requester")?.amount).toBe(300 + 36);
     expect(await db.select().from(outbox).where(eq(outbox.kind, "payout"))).toHaveLength(0);
     expect(await ledgerEscrowBalance(db)).toBe(0);
   });

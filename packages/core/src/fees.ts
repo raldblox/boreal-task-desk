@@ -26,10 +26,12 @@ function assertMinorUnits(amount: number, name: string): void {
   }
 }
 
-export function quoteFees(budget: number): FeeQuote {
+/** `reviewer: "requester"` tasks carry no review fee: the requester does the reviewing itself. */
+export function quoteFees(budget: number, { reviewer = "boreal" }: { reviewer?: "boreal" | "requester" } = {}): FeeQuote {
   assertMinorUnits(budget, "budget");
   const platformFee = Math.max(FEE_POLICY.platformMin, Math.ceil(budget * FEE_POLICY.platformRate));
-  const reviewFee = Math.max(FEE_POLICY.reviewMin, Math.ceil(budget * FEE_POLICY.reviewRate));
+  const reviewFee =
+    reviewer === "requester" ? 0 : Math.max(FEE_POLICY.reviewMin, Math.ceil(budget * FEE_POLICY.reviewRate));
   return { budget, platformFee, reviewFee, total: budget + platformFee + reviewFee };
 }
 
