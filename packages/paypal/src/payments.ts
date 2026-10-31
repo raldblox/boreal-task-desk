@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import type { ConfirmedPayment, PayPalPaymentRequirement, Payments } from "@boreal/concordium";
+import type { ConfirmedPayment, PayPalPaymentRequirement, Payments, PaymentVault } from "@boreal/concordium";
 
 import { createPayPalClient, fromValue, type PayPalClient, type PayPalClientOptions, PayPalError, toValue } from "./client";
 
@@ -9,6 +9,10 @@ import { createPayPalClient, fromValue, type PayPalClient, type PayPalClientOpti
 // money is only held. The desk captures the hold when the task is final (all of it on a pass,
 // the review fee on a fail) and voids it when the task is refunded. Workers are paid with
 // PayPal Payouts, the ledger idempotency key as the batch id.
+//
+// Vaulting: the first approved order also asks PayPal to save the payer's PayPal account
+// (vault with purchase). The vault id comes back with the authorization, and later orders
+// pay from it with no approval page; the desk still runs every funding check first.
 
 export interface PayPalPaymentsOptions extends PayPalClientOptions {
   /** Where PayPal sends the payer after approving or cancelling. */
@@ -20,6 +24,11 @@ export interface PayPalPaymentsOptions extends PayPalClientOptions {
   escrowBalance: () => Promise<number>;
   /** An existing client, for tests and scripts that share one. */
   client?: PayPalClient;
+  /**
+   * Ask PayPal to save the payer's account with each approved order (default true). Needs
+   * the Vault option on the PayPal app; turn it off where it isn't enabled.
+   */
+  vault?: boolean;
 }
 
 export class PayPalPaymentError extends Error {
@@ -46,6 +55,13 @@ export interface PayPalOrder {
   status: string;
   links?: { rel: string; href: string }[];
   purchase_units?: { custom_id?: string; amount?: Money; payments?: { authorizations?: Authorization[] } }[];
+  payment_source?: { paypal?: { attributes?: { vault?: { id?: string; status?: string } } } };
+}
+
+/** The vault id PayPal returns once it has saved the payer's account (status VAULTED). */
+function vaultIdOf(order: PayPalOrder): string | undefined {
+  const vault = order.payment_source?.paypal?.attributes?.vault;
+  return vault?.status === "VAULTED" && vault.id ? vault.id : undefined;
 }
 
 /** The order an agent approved: `{ orderId }`, the raw id, or the requirement it was given. */
@@ -69,9 +85,55 @@ export function createPayPalPayments(options: PayPalPaymentsOptions): PayPalPaym
   const currency = options.currency ?? "USD";
   const brand = options.brandName ?? "boreal.work";
   const now = options.now ?? (() => new Date());
+  const saveForLater = options.vault ?? true;
+
+  const purchaseUnit = (taskId: string, amount: number) => ({
+    reference_id: taskId,
+    custom_id: taskId,
+    description: "boreal.work task escrow: paid only if the result passes review",
+    amount: { currency_code: currency, value: toValue(amount) },
+  });
+
+  /** The order's authorization, checked: a live hold for this task in boreal's currency. */
+  function heldPayment(order: PayPalOrder): ConfirmedPayment {
+    const auth = order.purchase_units?.[0]?.payments?.authorizations?.[0];
+    if (!auth) throw new PayPalPaymentError(`PayPal returned no authorization for order ${order.id}`);
+    if (auth.status !== "CREATED") {
+      throw new PayPalPaymentError(`PayPal authorization is ${auth.status}, not CREATED`);
+    }
+    const vaultId = vaultIdOf(order);
+    return {
+      txHash: `paypal:order:${order.id}`,
+      amount: fromValue(auth.amount.value),
+      hold: auth.id,
+      ...(vaultId ? { vaultId } : {}),
+    };
+  }
+
+  const vault: PaymentVault = {
+    /** Authorizes a new order from the saved account. No approval page: the payer agreed once. */
+    async pay(taskId, amount, vaultId) {
+      let order = await client.request<PayPalOrder>("POST", "/v2/checkout/orders", {
+        body: { intent: "AUTHORIZE", purchase_units: [purchaseUnit(taskId, amount)], payment_source: { paypal: { vault_id: vaultId } } },
+        // A retry after a lost response replays the same order, so the payer is never held twice.
+        requestId: `${taskId}:fund:${vaultId}`,
+      });
+      if (order.status === "PAYER_ACTION_REQUIRED") {
+        throw new PayPalPaymentError("PayPal wants the payer to approve again; the saved account can't be used");
+      }
+      // PayPal may authorize on create; if not, the order needs no approval and authorizes now.
+      if (!order.purchase_units?.[0]?.payments?.authorizations?.length) {
+        order = await client.request<PayPalOrder>("POST", `/v2/checkout/orders/${order.id}/authorize`, {
+          requestId: `${taskId}:authorize:${order.id}`,
+        });
+      }
+      return heldPayment(order);
+    },
+  };
 
   return {
     client,
+    ...(saveForLater ? { vault } : {}),
 
     async createPaymentRequest(taskId, amount): Promise<PayPalPaymentRequirement> {
       const order = await client.request<PayPalOrder>("POST", "/v2/checkout/orders", {
@@ -79,16 +141,11 @@ export function createPayPalPayments(options: PayPalPaymentsOptions): PayPalPaym
         requestId: `${taskId}:order:${randomUUID()}`,
         body: {
           intent: "AUTHORIZE",
-          purchase_units: [
-            {
-              reference_id: taskId,
-              custom_id: taskId,
-              description: "boreal.work task escrow: paid only if the result passes review",
-              amount: { currency_code: currency, value: toValue(amount) },
-            },
-          ],
+          purchase_units: [purchaseUnit(taskId, amount)],
           payment_source: {
             paypal: {
+              // Save the payer's account when the order succeeds, so later tasks need no approval.
+              ...(saveForLater ? { attributes: { vault: { store_in_vault: "ON_SUCCESS", usage_type: "MERCHANT" } } } : {}),
               experience_context: {
                 brand_name: brand,
                 shipping_preference: "NO_SHIPPING",
@@ -136,12 +193,7 @@ export function createPayPalPayments(options: PayPalPaymentsOptions): PayPalPaym
           throw error;
         }
       }
-      const auth = authorized.purchase_units?.[0]?.payments?.authorizations?.[0];
-      if (!auth) throw new PayPalPaymentError(`PayPal returned no authorization for order ${orderId}`);
-      if (auth.status !== "CREATED") {
-        throw new PayPalPaymentError(`PayPal authorization is ${auth.status}, not CREATED`);
-      }
-      return { txHash: `paypal:order:${orderId}`, amount: fromValue(auth.amount.value), hold: auth.id };
+      return heldPayment(authorized);
     },
 
     holds: {

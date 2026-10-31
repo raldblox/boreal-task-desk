@@ -95,6 +95,8 @@ export interface ConfirmedPayment {
   txHash: string;
   amount: number;
   hold?: string;
+  /** A payment method the payer saved with this payment, to fund later tasks without approval. */
+  vaultId?: string;
 }
 
 /**
@@ -108,6 +110,15 @@ export interface PaymentHolds {
   release(hold: string, idempotencyKey: string): Promise<void>;
 }
 
+/**
+ * Rails that can save the payer's approval (PayPal vaulting) and pay again with it, with no
+ * payer present. The desk calls it only inside a task's funding checks.
+ */
+export interface PaymentVault {
+  /** Pays (or holds) `amount` for the task from the saved method; throws if it is refused. */
+  pay(taskId: string, amount: number, vaultId: string): Promise<ConfirmedPayment>;
+}
+
 /** x402 funding in, sponsored token transfers out of escrow. */
 export interface Payments<R extends PaymentRequirement = PaymentRequirement> {
   createPaymentRequest(taskId: string, amount: number): Promise<R>;
@@ -117,6 +128,8 @@ export interface Payments<R extends PaymentRequirement = PaymentRequirement> {
   escrowBalance(): Promise<number>;
   /** Present on rails whose confirmed payments are holds. */
   holds?: PaymentHolds;
+  /** Present on rails that can pay again from a saved payment method. */
+  vault?: PaymentVault;
 }
 
 /** A payout or refund as sent: enough to tell later whether it can still land. */

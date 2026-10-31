@@ -64,6 +64,13 @@
       "when": 1793477618304,
       "tag": "0008_paypal_holds",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793478643564,
+      "tag": "0009_paypal_vault",
+      "breakpoints": true
     }
   ]
 }

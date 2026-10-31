@@ -1,7 +1,8 @@
 // An in-memory stand-in for the PayPal REST endpoints boreal uses, for tests. It keeps the
 // rules that matter to escrow: an order can be authorized only once approved, a hold is
 // captured or voided once, a `PayPal-Request-Id` replays the first answer, and a payout
-// batch id can't be reused.
+// batch id can't be reused. Vaulting too: an approved order that asked to be saved yields a
+// vault id with its authorization, and an order paid from a vault id needs no approval.
 
 interface FakeOrder {
   id: string;
@@ -9,6 +10,10 @@ interface FakeOrder {
   customId: string;
   amount: { currency_code: string; value: string };
   authorizationId?: string;
+  /** Asked to save the payer's account (`store_in_vault: ON_SUCCESS`). */
+  storeInVault: boolean;
+  /** The vault id saved by, or paying for, this order. */
+  vaultId?: string;
 }
 
 interface FakeAuthorization {
@@ -24,6 +29,15 @@ export interface FakePayPal {
   orders: Map<string, FakeOrder>;
   authorizations: Map<string, FakeAuthorization>;
   payouts: { batchId: string; senderBatchId: string; receiver: string; value: string }[];
+  /** Saved payer accounts, by vault id. */
+  vaults: Map<string, { customerId: string; revoked: boolean }>;
+  /**
+   * Whether an order paid from a vault id comes back already authorized (true, the default)
+   * or approved and waiting for `/authorize`. PayPal's docs show only the capture case.
+   */
+  vaultAuthorizesOnCreate: boolean;
+  /** What the payer does when they remove boreal from their PayPal account. */
+  revokeVault(vaultId: string): void;
   /** What the payer does on PayPal's approval page. */
   approve(orderId: string): void;
   /** Every call, as "METHOD /path". */
@@ -34,6 +48,7 @@ export function createFakePayPal(): FakePayPal {
   const orders = new Map<string, FakeOrder>();
   const authorizations = new Map<string, FakeAuthorization>();
   const payouts: FakePayPal["payouts"] = [];
+  const vaults: FakePayPal["vaults"] = new Map();
   const replies = new Map<string, { status: number; body: unknown }>();
   const calls: string[] = [];
   let seq = 0;
@@ -50,6 +65,9 @@ export function createFakePayPal(): FakePayPal {
       id: o.id,
       status: auth ? "COMPLETED" : o.approved ? "APPROVED" : "PAYER_ACTION_REQUIRED",
       links: [{ rel: "payer-action", href: `https://www.sandbox.paypal.com/checkoutnow?token=${o.id}` }],
+      ...(o.vaultId && auth
+        ? { payment_source: { paypal: { attributes: { vault: { id: o.vaultId, status: "VAULTED", customer: { id: vaults.get(o.vaultId)!.customerId } } } } } }
+        : {}),
       purchase_units: [
         {
           custom_id: o.customId,
@@ -60,15 +78,40 @@ export function createFakePayPal(): FakePayPal {
     };
   };
 
+  function authorize(order: FakeOrder) {
+    const auth: FakeAuthorization = { id: id("AUTH"), orderId: order.id, status: "CREATED", amount: order.amount };
+    authorizations.set(auth.id, auth);
+    order.authorizationId = auth.id;
+    if (order.storeInVault && !order.vaultId) {
+      order.vaultId = id("VAULT");
+      vaults.set(order.vaultId, { customerId: id("CUSTOMER"), revoked: false });
+    }
+  }
+
   function route(method: string, path: string, body: any): { status: number; body: unknown } {
     let m: RegExpExecArray | null;
     if (method === "POST" && path === "/v1/oauth2/token") return { status: 200, body: { access_token: "fake-token", expires_in: 32_400 } };
 
     if (method === "POST" && path === "/v2/checkout/orders") {
       const unit = body.purchase_units[0];
-      const order: FakeOrder = { id: id("ORDER"), approved: false, customId: unit.custom_id, amount: unit.amount };
+      const paypal = body.payment_source?.paypal ?? {};
+      const order: FakeOrder = {
+        id: id("ORDER"),
+        approved: false,
+        customId: unit.custom_id,
+        amount: unit.amount,
+        storeInVault: paypal.attributes?.vault?.store_in_vault === "ON_SUCCESS",
+      };
+      if (paypal.vault_id) {
+        const vault = vaults.get(paypal.vault_id);
+        if (!vault || vault.revoked) return error(422, "UNPROCESSABLE_ENTITY", "PAYMENT_SOURCE_CANNOT_BE_USED");
+        // The payer agreed once: no approval page.
+        order.approved = true;
+        order.vaultId = paypal.vault_id;
+      }
       orders.set(order.id, order);
-      return { status: 200, body: orderView(order) };
+      if (order.vaultId && state.vaultAuthorizesOnCreate) authorize(order);
+      return { status: 201, body: orderView(order) };
     }
     if ((m = /^\/v2\/checkout\/orders\/([^/]+)$/.exec(path)) && method === "GET") {
       const order = orders.get(m[1]!);
@@ -79,9 +122,7 @@ export function createFakePayPal(): FakePayPal {
       if (!order) return error(404, "RESOURCE_NOT_FOUND", "INVALID_RESOURCE_ID");
       if (!order.approved) return error(422, "UNPROCESSABLE_ENTITY", "ORDER_NOT_APPROVED");
       if (order.authorizationId) return error(422, "UNPROCESSABLE_ENTITY", "ORDER_ALREADY_AUTHORIZED");
-      const auth: FakeAuthorization = { id: id("AUTH"), orderId: order.id, status: "CREATED", amount: order.amount };
-      authorizations.set(auth.id, auth);
-      order.authorizationId = auth.id;
+      authorize(order);
       return { status: 201, body: orderView(order) };
     }
     if ((m = /^\/v2\/payments\/authorizations\/([^/]+)\/(capture|void)$/.exec(path))) {
@@ -130,16 +171,24 @@ export function createFakePayPal(): FakePayPal {
     return new Response(reply.status === 204 ? null : text, { status: reply.status });
   }) as typeof fetch;
 
-  return {
+  const state: FakePayPal = {
     fetch: fakeFetch,
     orders,
     authorizations,
     payouts,
+    vaults,
+    vaultAuthorizesOnCreate: true,
     calls,
     approve(orderId) {
       const order = orders.get(orderId);
       if (!order) throw new Error(`no order ${orderId}`);
       order.approved = true;
     },
+    revokeVault(vaultId) {
+      const vault = vaults.get(vaultId);
+      if (!vault) throw new Error(`no vault ${vaultId}`);
+      vault.revoked = true;
+    },
   };
+  return state;
 }

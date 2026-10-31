@@ -8,7 +8,8 @@ import { asRequester, fundTestTask, getDesk, getPayments } from "@/server/desk";
  * (or the v1 name `X-PAYMENT`). The payment settles only after the task's checks pass, so a
  * refused task never takes money. On the PayPal rail the requirement's `extra.approveUrl` is
  * where the payer approves, and the header carries `{ orderId }`; the money is then held, and
- * taken only when the task is final.
+ * taken only when the task is final. Once the owner has approved one PayPal order, their
+ * account is saved for the agent, and a call without the header funds at once from it.
  */
 export async function POST(request: Request, ctx: RouteContext<"/api/v1/tasks/[id]/fund">) {
   const { id } = await ctx.params;
@@ -25,6 +26,14 @@ export async function POST(request: Request, ctx: RouteContext<"/api/v1/tasks/[i
     if (!payments) throw new DeskError("unavailable", "payments are not enabled yet");
 
     const header = request.headers.get("payment-signature") ?? request.headers.get("x-payment");
+    if (!header && payments.vault && (await desk.getAgentAccount(caller)).savedPaymentMethod) {
+      try {
+        return Response.json(await desk.fundTask(caller, id, { vault: true }));
+      } catch (error) {
+        // A refused saved account falls back to a fresh approval below; any other refusal stands.
+        if (!(error instanceof DeskError && error.code === "invalid")) throw error;
+      }
+    }
     if (!header) {
       const requirement = await payments.createPaymentRequest(task.id, taskTotal(task));
       const required = {

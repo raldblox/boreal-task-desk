@@ -59,8 +59,8 @@ beforeEach(async () => {
 
 afterEach(() => close());
 
-/** Posts and screens a task, then funds it the way an agent does: get the link, owner approves, fund. */
-async function fundedTask(options: { approve?: boolean } = {}) {
+/** Posts a task and screens it, ready for funding. */
+async function screenedTask() {
   const { task, quote } = await desk.postTask(requester, {
     description: "Photograph item X on the shelf at the Manila shop, with its price tag visible.",
     acceptanceCriteria: ["Photo shows item X on a shelf"],
@@ -70,6 +70,12 @@ async function fundedTask(options: { approve?: boolean } = {}) {
     deadline: new Date(clock.getTime() + 24 * HOUR).toISOString(),
   });
   await desk.screenTask(reviewer, task.id, { outcome: "ok" });
+  return { task, quote };
+}
+
+/** Posts and screens a task, then funds it the way an agent does: get the link, owner approves, fund. */
+async function fundedTask(options: { approve?: boolean } = {}) {
+  const { task, quote } = await screenedTask();
   const requirement = await payments.createPaymentRequest(task.id, quote.total);
   if (options.approve !== false) paypal.approve(requirement.nonce);
   const funded = await desk.fundTask(requester, task.id, {
@@ -82,6 +88,9 @@ async function submitted(taskId: string) {
   await desk.claimTask(worker, taskId);
   await desk.submitResult(worker, taskId, { fileUrls: [`submissions/${taskId}/shelf.jpg`] });
 }
+
+const agentId = () => (requester as { agentId: string }).agentId;
+const savedVault = async () => (await db.select().from(agents).where(eq(agents.id, agentId())))[0]!.paymentVaultId;
 
 const ledger = (taskId: string) =>
   db.select().from(ledgerEntries).where(eq(ledgerEntries.taskId, taskId)).orderBy(asc(ledgerEntries.id));
@@ -173,6 +182,80 @@ describe("PayPal rail", () => {
     await desk.drainOutbox();
     expect(await ledgerEscrowBalance(db)).toBe(quote.budget);
     expect(await db.select().from(outbox).where(eq(outbox.kind, "reconcile"))).toHaveLength(1);
+  });
+});
+
+describe("PayPal vaulting", () => {
+  it("saves the owner's PayPal account on the first approval, then funds with no approval page", async () => {
+    const first = await fundedTask();
+    const vaultId = await savedVault();
+    expect(vaultId).toMatch(/^VAULT/);
+    expect(paypal.orders.get(first.task.fundingTxHash!.replace("paypal:order:", ""))?.storeInVault).toBe(true);
+
+    const { task, quote } = await screenedTask();
+    const before = paypal.calls.length;
+    const funded = await desk.fundTask(requester, task.id, { vault: true });
+    expect(funded.status).toBe("open");
+    // One order paid from the vault, authorized on the spot: nobody was asked to approve.
+    expect(paypal.calls.slice(before).filter((c) => c !== "POST /v1/oauth2/token")).toEqual(["POST /v2/checkout/orders"]);
+    expect(paypal.authorizations.get(funded.fundingHold!)).toMatchObject({ status: "CREATED", amount: { value: toUsd(quote.total) } });
+    expect((await ledger(task.id))[0]).toMatchObject({ status: "pending", amount: quote.total });
+
+    // The hold settles like any other.
+    await submitted(task.id);
+    await desk.recordVerdict(reviewer, task.id, { outcome: "pass", ruleIds: ["R5.2"], reasoning: "Fine" });
+    await desk.acceptEarly(requester, task.id);
+    await desk.drainOutbox();
+    expect(paypal.authorizations.get(funded.fundingHold!)?.status).toBe("CAPTURED");
+    expect(await savedVault()).toBe(vaultId);
+  });
+
+  it("authorizes a vaulted order that PayPal returns approved but not yet authorized", async () => {
+    await fundedTask();
+    paypal.vaultAuthorizesOnCreate = false;
+    const { task } = await screenedTask();
+    const funded = await desk.fundTask(requester, task.id, { vault: true });
+    expect(funded.status).toBe("open");
+    expect(paypal.calls.at(-1)).toMatch(/^POST \/v2\/checkout\/orders\/ORDER\d+\/authorize$/);
+  });
+
+  it("checks the agent's limits before paying from the vault", async () => {
+    await fundedTask();
+    await db.update(agents).set({ maxDailySpend: 2_000 }).where(eq(agents.id, agentId()));
+    const { task } = await screenedTask();
+    const orders = paypal.orders.size;
+    await expect(desk.fundTask(requester, task.id, { vault: true })).rejects.toThrow(/daily spending cap/);
+    expect(paypal.orders.size).toBe(orders);
+    expect((await desk.getTask(requester, task.id)).status).toBe("awaiting_funding");
+  });
+
+  it("refuses a revoked vault without opening the task, and needs a vault to use one", async () => {
+    const { task: first } = await screenedTask();
+    await expect(desk.fundTask(requester, first.id, { vault: true })).rejects.toThrow(/hasn't saved a payment method/);
+
+    await fundedTask();
+    paypal.revokeVault((await savedVault())!);
+    const { task } = await screenedTask();
+    await expect(desk.fundTask(requester, task.id, { vault: true })).rejects.toThrow(/saved payment method was refused/);
+    expect((await desk.getTask(requester, task.id)).status).toBe("awaiting_funding");
+    expect(await ledger(task.id)).toEqual([]);
+  });
+
+  it("saves nothing when vaulting is off", async () => {
+    payments = createPayPalPayments({
+      clientId: "id",
+      clientSecret: "secret",
+      fetch: paypal.fetch,
+      now: () => clock,
+      returnUrl: "http://localhost:3000/paypal/approved",
+      cancelUrl: "http://localhost:3000/paypal/cancelled",
+      escrowBalance: () => ledgerEscrowBalance(db),
+      vault: false,
+    });
+    expect(payments.vault).toBeUndefined();
+    await fundedTask();
+    expect(await savedVault()).toBeNull();
+    expect(paypal.vaults.size).toBe(0);
   });
 });
 

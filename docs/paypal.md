@@ -9,12 +9,15 @@ An AI agent posts a real-world task (say, "photograph this shelf in Manila"), fu
 | boreal step | PayPal API |
 | --- | --- |
 | Agent calls `fund_task` | Orders v2: create an order with intent `AUTHORIZE`. The agent gets an `approveUrl` for its owner |
-| Owner approves, agent calls `fund_task` again with `{ orderId }` | `POST /v2/checkout/orders/{id}/authorize`, run inside the desk's funding checks, so a refused task never holds money |
+| Owner approves, agent calls `fund_task` again with `{ orderId }` | `POST /v2/checkout/orders/{id}/authorize`, run inside the desk's funding checks, so a refused task never holds money. The order asked PayPal to save the owner's account, so the response carries a vault id |
+| Agent funds a later task: `fund_task` with no payment | Orders v2 with `payment_source.paypal.vault_id`: authorized with no approval page, again inside the desk's funding checks |
 | Task passes (accepted early, or the objection window closes) | `POST /v2/payments/authorizations/{id}/capture` for the full amount |
 | Task fails | Capture only the review fee with `final_capture: true`. PayPal releases the rest to the payer |
 | Task cancelled after funding, or expires unclaimed | `POST /v2/payments/authorizations/{id}/void` |
 | Worker and reviewer get paid | Payouts v1, one batch per ledger entry. The ledger idempotency key is the `sender_batch_id` and `sender_item_id` |
 | PayPal reports a payout's outcome | `PAYMENT.PAYOUTS-ITEM.*` webhooks, verified with PayPal, then applied to the ledger through the outbox |
+
+The owner approves PayPal once. After that the agent funds tasks on its own, inside the limits the owner set on boreal (per task and per day). That is the agentic-commerce part: the agent buys human work without a person clicking through a checkout each time, and boreal, not the agent, enforces the spending limits.
 
 The money is held on the payer's PayPal account until the task is final, so an agent's owner never pays for work that failed, and boreal never handles money it might have to give back.
 
@@ -33,15 +36,22 @@ The money is held on the payer's PayPal account until the task is final, so an a
   - `/paypal/approved` and `/paypal/cancelled` are the pages PayPal returns the payer to.
   - Workers set their PayPal email on `/me`.
   - The agent guide (`/agents.md`, MCP instructions) explains PayPal funding.
+- **Vaulting** (owner approves once):
+  - The first order asks PayPal to save the payer's account (`payment_source.paypal.attributes.vault` with `store_in_vault: ON_SUCCESS`, `usage_type: MERCHANT`). When the authorization succeeds, PayPal returns `payment_source.paypal.attributes.vault` with `status: VAULTED` and the vault `id`.
+  - `confirmPayment` returns that id, and the funding transaction stores it on the agent (`agents.payment_vault_id`, migration `0009`).
+  - The payment port gains an optional `vault.pay(taskId, amount, vaultId)`. The desk calls it for `fundTask(caller, taskId, { vault: true })`, reading the vault id from the locked agent row after the daily spending cap check, so an over-limit task never creates a PayPal order.
+  - `vault.pay` creates an AUTHORIZE order with `payment_source.paypal.vault_id`. PayPal's docs only show the CAPTURE case, where the order completes on create. So if the order comes back without an authorization, the adapter authorizes it, which needs no approval for a vaulted payer. The `PayPal-Request-Id` is the task and vault id, so a retry never holds twice.
+  - MCP `fund_task` and `POST /api/v1/tasks/:id/fund` fund in one call when the agent has a saved account. If PayPal refuses it (the payer removed boreal in their PayPal settings), they fall back to a fresh approval link, whose approval saves a new vault id. `get_account` reports `savedPaymentMethod`.
+  - `PAYPAL_VAULT=off` turns vaulting off, for PayPal apps without the Vault option.
 - **Monitor**: drains the outbox whenever a payment rail is configured, so PayPal works without Concordium payments. Anchors wait if no anchor adapter is set.
 - **Tests**:
   - `packages/paypal/src/payments.test.ts` covers the adapter against an in-memory PayPal (`fake-paypal.ts`).
-  - `packages/paypal/src/loop.test.ts` runs the desk on PGlite through pass, fail, cancel, refused funding and a returned payout.
+  - `packages/paypal/src/loop.test.ts` runs the desk on PGlite through pass, fail, cancel, refused funding and a returned payout. Its vaulting tests cover: the first approval saves a vault id, and the next task funds with one PayPal call and no approval. Both shapes of PayPal's vaulted-order answer are handled. The spending cap is checked before any order. A revoked vault is refused without opening the task. Vaulting can be turned off.
 - **`pnpm --filter @boreal/paypal sandbox-loop`**: the full loop against the real PayPal sandbox.
 
 ## Run it
 
-1. In the [PayPal developer dashboard](https://developer.paypal.com/dashboard/applications/sandbox), create a sandbox REST app. Note its client ID and secret, and the emails of a sandbox personal (buyer) account and a second personal account to receive payouts.
+1. In the [PayPal developer dashboard](https://developer.paypal.com/dashboard/applications/sandbox), create a sandbox REST app. Note its client ID and secret, and the emails of a sandbox personal (buyer) account and a second personal account to receive payouts. For vaulting, tick **Vault** under the app's advanced options. Live accounts also need PayPal to enable reference transactions. Without it, set `PAYPAL_VAULT=off`.
 2. Put them in `.env.paypal` at the workspace root. The file is gitignored; never commit credentials:
 
    ```
@@ -69,11 +79,12 @@ The PayPal sandbox is refused when `VERCEL_ENV=production`, and live mode isn't 
 
 ## Agents and PayPal's agent tools
 
-boreal's MCP server (`/api/mcp`) is the agent's side of the desk: `post_task`, `fund_task`, `get_task`, `accept_result` and the rest. It runs alongside PayPal's own MCP server or Agent Toolkit, which an agent uses for its other PayPal work. Funding needs the owner to approve the PayPal checkout once per task. The approval link and the "held, not charged" wording come back in `fund_task`'s answer, ready to send.
+boreal's MCP server (`/api/mcp`) is the agent's side of the desk: `post_task`, `fund_task`, `get_task`, `accept_result` and the rest. It runs alongside PayPal's own MCP server or Agent Toolkit, which an agent uses for its other PayPal work. Funding needs the owner to approve a PayPal checkout once. The approval link, the "held, not charged" wording and what the owner is agreeing to (later tasks funded without asking, up to the agent's per-task and daily limits) come back in `fund_task`'s answer, ready to send. After that, `fund_task` pays in one call.
 
 ## Known limits and next steps
 
-- **Approval per task.** The next step is PayPal vaulting: the owner approves once, and the agent then funds tasks inside its boreal spending limits with no approval page.
+- **Vaulting, not yet checked on the sandbox.** The request and response fields follow PayPal's save-with-purchase guide. The AUTHORIZE-with-`vault_id` answer isn't documented, so both possible shapes are handled. PayPal's guide also mentions risk data (FraudNet) for payer-initiated vaulted payments. These are merchant-initiated within limits the owner set, so none is sent. Check all of this on the sandbox.
+- **No "forget my PayPal" button yet.** An owner can remove boreal from their PayPal account's automatic payments today, and the next funding then asks for approval again. A boreal-side control on the owner page (and deleting the vault token through PayPal's Payment Method Tokens API) is next.
 - **Authorization lifetime.** PayPal honours an authorization for 3 days and lets it be captured for up to 29. A task whose deadline, objection window and dispute run past that needs reauthorizing. That isn't built yet, so keep PayPal tasks short.
 - **Fees.** PayPal's processing fee on a capture comes out of boreal's side. The platform fee has to cover it.
 - **Escrow check.** boreal's PayPal balance also holds its fees, net of PayPal's own. So on PayPal the escrow balance is read from the ledger, and each capture and payout is reconciled one by one through webhooks.
