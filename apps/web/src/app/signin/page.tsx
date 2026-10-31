@@ -1,8 +1,8 @@
 import { connection } from "next/server";
 import { Suspense } from "react";
 
-import { signIn } from "@/app/actions";
-import { DevWallet } from "@/components/worker-forms";
+import { signIn, signInTest } from "@/app/actions";
+import { DevWallet, TestSignIn } from "@/components/worker-forms";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getConcordium, getDesk } from "@/server/desk";
@@ -11,13 +11,29 @@ async function SignIn() {
   await connection();
   if (!getConcordium()) {
     return (
-      <Alert>
-        <AlertTitle>Sign-in opens with Concordium ID</AlertTitle>
-        <AlertDescription>
-          Workers sign in by proving only what tasks need, like residency or age, with Concordium ID. This opens on
-          testnet once the integration is live.
-        </AlertDescription>
-      </Alert>
+      <div className="flex flex-col gap-6">
+        <Alert>
+          <AlertTitle>Sign-in opens with Concordium ID</AlertTitle>
+          <AlertDescription>
+            Workers sign in by proving only what tasks need, like residency or age, with Concordium ID. This opens on
+            testnet once the integration is live.
+          </AlertDescription>
+        </Alert>
+        {process.env.TEST_WORKER_INVITE && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Testers</CardTitle>
+              <CardDescription>
+                Have an invite? Sign in to run test tasks. Test tasks pay in test money only, and your attributes are
+                self-declared until Concordium ID is live.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <TestSignIn action={signInTest} />
+            </CardContent>
+          </Card>
+        )}
+      </div>
     );
   }
   // A fresh, signed challenge each time; the wallet's proof must answer this exact one.

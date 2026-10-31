@@ -80,6 +80,8 @@ export async function settle(
         toAccount: m.to,
         party: m.party,
         amount: m.amount,
+        // Test money never moves on-chain: settled on the spot, with nothing sent.
+        ...(task.test ? { status: "settled" as const, txHash: `test:${m.key}` } : {}),
         createdAt: at,
         updatedAt: at,
       })),
@@ -90,7 +92,7 @@ export async function settle(
   // Only queue transfers for entries written now, so a repeat can never send twice.
   const fresh = new Set(inserted.map((row) => row.key));
   const queued = movements.filter((m) => fresh.has(m.key));
-  if (queued.length === 0) return;
+  if (queued.length === 0 || task.test) return;
 
   await tx.insert(outbox).values(
     queued.map((m) => ({

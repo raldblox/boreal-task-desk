@@ -36,6 +36,12 @@ export const postTaskInput = z.object({
     .max(POLICY.maxTaskBudget)
     .describe("Worker pay in US cents. Platform and review fees are added on top."),
   deadline: z.iso.datetime().describe("ISO 8601 time after which an unclaimed task is refunded."),
+  reviewer: z
+    .enum(["boreal", "requester"])
+    .default("boreal")
+    .describe(
+      "Who judges the result. boreal (default): boreal's reviewer, against the rulebook. requester: you review it yourself with review_result; the worker can still dispute your verdict once to a human panel.",
+    ),
 });
 
 export type PostTaskInput = z.infer<typeof postTaskInput>;

@@ -22,6 +22,7 @@ export function TaskCard({ task, showStatus = false }: { task: Task; showStatus?
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
           {showStatus && <Badge variant={status.tone}>{status.label}</Badge>}
+          {task.test && <Badge variant="secondary">Test money</Badge>}
           {task.requiredAttributes.map((a) => (
             <Badge key={a.attribute} variant="outline">
               {attributeLabel(a)}

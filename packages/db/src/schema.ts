@@ -26,6 +26,7 @@ export const ledgerAccount = pgEnum("ledger_account", [
 ]);
 export const ledgerStatus = pgEnum("ledger_status", ["pending", "settled", "failed"]);
 export const outboxKind = pgEnum("outbox_kind", ["anchor", "payout", "refund", "webhook"]);
+export const reviewMode = pgEnum("review_mode", ["boreal", "requester"]);
 
 const timestamps = {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -55,6 +56,8 @@ export const agents = pgTable("agents", {
   apiKeyHash: text("api_key_hash"),
   /** Concordium account that refunds go to. */
   refundAddress: text("refund_address"),
+  /** Allowlisted for test runs: its tasks use test money and only test workers see them. */
+  testMode: boolean("test_mode").notNull().default(false),
   ...timestamps,
 });
 
@@ -66,6 +69,8 @@ export const workers = pgTable("workers", {
   maxActiveClaims: integer("max_active_claims").notNull().default(1),
   /** Concordium account that payouts go to. */
   payoutAddress: text("payout_address"),
+  /** Signed in with a test invite; sees and claims only test tasks. */
+  testMode: boolean("test_mode").notNull().default(false),
   ...timestamps,
 });
 
@@ -96,6 +101,10 @@ export const tasks = pgTable(
     reviewerRef: text("reviewer_ref"),
     verdictAt: timestamp("verdict_at", { withTimezone: true }),
     disputeUsed: boolean("dispute_used").notNull().default(false),
+    /** Test task: test money, test workers only, never paid out on-chain. */
+    test: boolean("test").notNull().default(false),
+    /** Who judges the result: boreal's reviewer, or the requester itself (worker can still dispute). */
+    reviewMode: reviewMode("review_mode").notNull().default("boreal"),
     /** Set when the AI reviewer can't decide; a human reviewer takes it from there. */
     needsHuman: boolean("needs_human").notNull().default(false),
     humanReason: text("human_reason"),

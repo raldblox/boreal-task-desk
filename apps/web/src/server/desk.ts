@@ -1,6 +1,9 @@
 import "server-only";
 
+import { randomUUID } from "node:crypto";
+
 import { type Concordium, loadConcordium } from "@boreal/concordium";
+import type { Task } from "@boreal/db";
 import {
   addressesFromEnv,
   type Caller,
@@ -8,6 +11,7 @@ import {
   type Desk,
   DeskError,
   ledgerEscrowBalance,
+  taskTotal,
   verifyAgentKey,
 } from "@boreal/desk";
 
@@ -28,8 +32,18 @@ export function getConcordium(): Concordium | null {
 }
 
 export function getDesk(): Desk {
-  desk ??= createDesk({ db: getDb(), concordium: getConcordium(), addresses: addressesFromEnv() });
+  desk ??= createDesk({
+    db: getDb(),
+    concordium: getConcordium(),
+    addresses: addressesFromEnv(),
+    testInvite: process.env.TEST_WORKER_INVITE,
+  });
   return desk;
+}
+
+/** Funds a test agent's task with test money: recorded in the ledger, never moved on-chain. */
+export async function fundTestTask(caller: Caller, task: Task) {
+  return getDesk().fundTask(caller, task.id, { txHash: `test-${randomUUID()}`, amount: taskTotal(task) });
 }
 
 const STATUS: Record<DeskError["code"], number> = {

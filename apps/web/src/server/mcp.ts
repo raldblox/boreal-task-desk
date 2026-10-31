@@ -8,13 +8,21 @@ import { z } from "zod";
 
 import { after } from "next/server";
 
-import { getConcordium, getDesk } from "./desk";
+import { readSubmissionBytes } from "@boreal/files";
+
+import { fundTestTask, getConcordium, getDesk } from "./desk";
 import { kickMonitor } from "./monitor";
 
 // The requester tools, as an agent sees them. Each one is a thin wrapper over the desk,
 // so MCP, REST and A2A always behave the same.
 
-type ToolResult = { content: { type: "text"; text: string }[]; isError?: boolean };
+type ToolContent = { type: "text"; text: string } | { type: "image"; data: string; mimeType: string };
+type ToolResult = { content: ToolContent[]; isError?: boolean };
+
+/** A tool result with its own content blocks (like images), passed through as is. */
+class Raw {
+  constructor(readonly content: ToolContent[]) {}
+}
 type ToolContext = { http?: { authInfo?: { clientId: string } } };
 
 const taskId = z.uuid().describe("The task's id, as returned by post_task.");
@@ -40,6 +48,8 @@ function summary(task: Task) {
     verdictAt: task.verdictAt,
     disputeUsed: task.disputeUsed,
     fundingTxHash: task.fundingTxHash,
+    reviewer: task.reviewMode,
+    test: task.test,
   };
 }
 
@@ -51,7 +61,8 @@ function tool<A>(run: (caller: Caller, args: A) => Promise<unknown>, { writes = 
     const agentId = ctx.http?.authInfo?.clientId;
     if (!agentId) return { isError: true, content: [{ type: "text", text: "unauthorized: no agent key" }] };
     try {
-      const result = ok(await run({ role: "requester", agentId }, args));
+      const value = await run({ role: "requester", agentId }, args);
+      const result: ToolResult = value instanceof Raw ? { content: value.content } : ok(value);
       if (writes) after(kickMonitor);
       return result;
     } catch (error) {
@@ -96,12 +107,14 @@ export function registerTools(server: McpServer): void {
       }),
     },
     tool(async (caller, { taskId: id, payment }: { taskId: string; payment?: unknown }) => {
-      const concordium = getConcordium();
-      if (!concordium) throw new DeskError("unavailable", "payments are not enabled yet");
       const task = await desk.getTask(caller, id);
       if (task.status !== "awaiting_funding") {
         throw new DeskError("conflict", `task is ${task.status}, not awaiting funding`);
       }
+      // Test agents fund with test money: recorded in the ledger, never moved on-chain.
+      if (task.test) return { ...summary(await fundTestTask(caller, task)), note: "funded with test money" };
+      const concordium = getConcordium();
+      if (!concordium) throw new DeskError("unavailable", "payments are not enabled yet");
       if (payment === undefined) {
         return { paymentRequired: await concordium.payments.createPaymentRequest(task.id, taskTotal(task)) };
       }
@@ -178,6 +191,66 @@ export function registerTools(server: McpServer): void {
       inputSchema: z.object({ taskId }),
     },
     tool(async (caller, { taskId: id }: { taskId: string }) => summary(await desk.cancelTask(caller, id))),
+  );
+
+  server.registerTool(
+    "get_submission",
+    {
+      title: "See a task's submission",
+      description:
+        "The worker's latest submission: their text, and any photos as images you can look at. " +
+        "Use it to review tasks you posted with reviewer: requester.",
+      inputSchema: z.object({ taskId }),
+    },
+    tool(
+      async (caller, { taskId: id }: { taskId: string }) => {
+        const submission = await desk.getSubmission(caller, id);
+        if (!submission) throw new DeskError("not_found", "nothing has been submitted yet");
+        const content: ToolContent[] = [
+          {
+            type: "text",
+            text: JSON.stringify({ submittedAt: submission.createdAt, text: submission.text, files: submission.fileUrls.length }, null, 2),
+          },
+        ];
+        for (const path of submission.fileUrls) {
+          const file = await readSubmissionBytes(path);
+          if (file?.contentType.startsWith("image/")) {
+            content.push({ type: "image", data: file.bytes.toString("base64"), mimeType: file.contentType });
+          } else if (file) {
+            content.push({ type: "text", text: `Attached ${file.contentType} file: ${path}` });
+          }
+        }
+        return new Raw(content);
+      },
+      { writes: false },
+    ),
+  );
+
+  server.registerTool(
+    "review_result",
+    {
+      title: "Review a submission",
+      description:
+        "Pass or fail the worker's result on a task you posted with reviewer: requester. Judge only against " +
+        "your acceptance criteria; where they're ambiguous, the worker's reasonable reading wins (R5.2). A fail " +
+        "must cite at least one rule, usually R4.1 or R4.2. The worker can dispute your verdict once to a human " +
+        "panel. A pass becomes final after 48 hours, or call accept_result to pay now.",
+      inputSchema: z.object({
+        taskId,
+        outcome: z.enum(["pass", "fail"]),
+        ruleIds: z.array(z.string()).default([]).describe("Rulebook IDs, e.g. R4.1; required for a fail."),
+        reasoning: z.string().min(5).max(2_000).describe("What you checked, in words the worker will read."),
+      }),
+    },
+    tool(async (caller, args: { taskId: string; outcome: "pass" | "fail"; ruleIds: string[]; reasoning: string }) =>
+      summary(
+        await desk.requesterReview(caller, args.taskId, {
+          outcome: args.outcome,
+          ruleIds: args.ruleIds,
+          reasoning: args.reasoning,
+        }),
+      ),
+    ),
   );
 
   server.registerTool(

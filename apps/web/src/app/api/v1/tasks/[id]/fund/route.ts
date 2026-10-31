@@ -1,6 +1,6 @@
 import { DeskError, taskTotal } from "@boreal/desk";
 
-import { asRequester, getConcordium, getDesk } from "@/server/desk";
+import { asRequester, fundTestTask, getConcordium, getDesk } from "@/server/desk";
 
 /**
  * fund_task over x402. Without an `X-PAYMENT` header the reply is 402 with what to pay;
@@ -10,14 +10,16 @@ import { asRequester, getConcordium, getDesk } from "@/server/desk";
 export async function POST(request: Request, ctx: RouteContext<"/api/v1/tasks/[id]/fund">) {
   const { id } = await ctx.params;
   return asRequester(request, async (caller) => {
-    const concordium = getConcordium();
-    if (!concordium) throw new DeskError("unavailable", "payments are not enabled yet");
-
     const desk = getDesk();
     const task = await desk.getTask(caller, id);
     if (task.status !== "awaiting_funding") {
       throw new DeskError("conflict", `task is ${task.status}, not awaiting funding`);
     }
+    // Test agents fund with test money: no 402 round trip, nothing moved on-chain.
+    if (task.test) return Response.json(await fundTestTask(caller, task));
+
+    const concordium = getConcordium();
+    if (!concordium) throw new DeskError("unavailable", "payments are not enabled yet");
 
     const header = request.headers.get("x-payment");
     if (!header) {

@@ -1,3 +1,5 @@
+import { timingSafeEqual } from "node:crypto";
+
 import {
   type Actor,
   postTaskInput,
@@ -46,6 +48,8 @@ export type Caller =
 
 export interface DeskOptions {
   db: Database;
+  /** Invite code for test workers (TEST_WORKER_INVITE); unset = test sign-in off. */
+  testInvite?: string;
   now?: () => Date;
   /** Concordium adapters. Without them the registry check, sign-in and the outbox stay off. */
   concordium?: Concordium | null;
@@ -63,6 +67,7 @@ type TaskPatch = Partial<typeof tasks.$inferInsert>;
 /** A reviewer's decision clears any AI retry state and takes the task off the human queue. */
 const CLEAR_AI: TaskPatch = { needsHuman: false, humanReason: null, aiAttempts: 0, aiRetryAt: null };
 const MAX_AI_ATTEMPTS = 3;
+const TEST_SCREENER: Caller = { role: "reviewer", reviewerRef: "test-mode" };
 
 interface MutateOptions {
   /** Extra checks beyond the state machine, run on the locked row. */
@@ -101,6 +106,7 @@ export function createDesk({
   now = () => new Date(),
   concordium = null,
   addresses = {},
+  testInvite,
 }: DeskOptions) {
   function requireConcordium(): Concordium {
     if (!concordium) throw new DeskError("unavailable", "Concordium adapters are not configured");
@@ -197,7 +203,7 @@ export function createDesk({
       }
 
       const quote = quoteFees(data.budget);
-      return db.transaction(async (tx) => {
+      const posted = await db.transaction(async (tx) => {
         const [task] = await tx
           .insert(tasks)
           .values({
@@ -211,6 +217,8 @@ export function createDesk({
             reviewFee: quote.reviewFee,
             rulebookVersion: POLICY.rulebookVersion,
             deadline: new Date(data.deadline),
+            test: agent.testMode,
+            reviewMode: data.reviewer,
             createdAt: at,
             updatedAt: at,
           })
@@ -218,6 +226,12 @@ export function createDesk({
         await appendEvent(tx, { taskId: task!.id, type: "posted", actor: "requester", payload: data, at });
         return { task: task!, quote };
       });
+      if (!agent.testMode) return posted;
+      // Test agents skip screening (recorded in the trail), so test runs don't wait on a reviewer.
+      const screened = await mutate(posted.task.id, TEST_SCREENER, { type: "screen_ok" }, {
+        payload: { outcome: "ok", reasoning: "Test agent: screening skipped.", reviewerRef: "test-mode" },
+      });
+      return { task: screened, quote };
     },
 
     async screenTask(
@@ -290,6 +304,9 @@ export function createDesk({
           if (task.deadline <= at) throw new DeskError("conflict", "task deadline has passed");
           const [worker] = await tx.select().from(workers).where(eq(workers.id, caller.workerId));
           if (!worker) throw new DeskError("not_found", "worker not found");
+          if (task.test !== worker.testMode) {
+            throw new DeskError("forbidden", task.test ? "this is a test task" : "test workers can only claim test tasks");
+          }
           if (!meetsAttributes(task.requiredAttributes, worker.provenAttributes)) {
             throw new DeskError("forbidden", "you haven't proven the attributes this task requires");
           }
@@ -476,6 +493,8 @@ export function createDesk({
         .where(
           and(
             eq(tasks.status, stage === "screen" ? "posted" : "submitted"),
+            // Requester-reviewed tasks are judged by their requester, not the AI.
+            stage === "review" ? eq(tasks.reviewMode, "boreal") : undefined,
             eq(tasks.needsHuman, false),
             or(isNull(tasks.aiRetryAt), lte(tasks.aiRetryAt, now())),
           ),
@@ -554,7 +573,9 @@ export function createDesk({
         .where(and(eq(tasks.status, "open"), gt(tasks.deadline, now())))
         .orderBy(desc(tasks.createdAt))
         .limit(100);
-      return open.filter((task) => meetsAttributes(task.requiredAttributes, worker.provenAttributes));
+      return open.filter(
+        (task) => task.test === worker.testMode && meetsAttributes(task.requiredAttributes, worker.provenAttributes),
+      );
     },
 
     /** The worker's own tasks: claimed, submitted, under review and finished. */
@@ -566,6 +587,61 @@ export function createDesk({
         .where(eq(tasks.claimedBy, caller.workerId))
         .orderBy(desc(tasks.updatedAt))
         .limit(50);
+    },
+
+    /**
+     * review_result for tasks posted with `reviewer: "requester"`: the requester judges its own
+     * task. The same rules bind it: a fail cites a rule, and the worker can dispute once.
+     */
+    async requesterReview(
+      caller: Caller,
+      taskId: string,
+      verdict: { outcome: "pass" | "fail"; ruleIds: string[]; reasoning: string },
+    ) {
+      requireRole(caller, "requester");
+      const task = await this.getTask(caller, taskId);
+      if (task.reviewMode !== "requester") {
+        throw new DeskError("forbidden", "boreal's reviewer judges this task; you can accept a pass early or dispute");
+      }
+      if (verdict.outcome === "fail" && verdict.ruleIds.length === 0) {
+        throw new DeskError("invalid", "a fail must cite at least one rule (R5.3)");
+      }
+      if (verdict.reasoning.trim().length < 5) throw new DeskError("invalid", "explain the verdict for the worker");
+      const reviewer: Caller = { role: "reviewer", reviewerRef: `requester:${caller.agentId}` };
+      return mutate(
+        taskId,
+        reviewer,
+        verdict.outcome === "pass"
+          ? { type: "verdict_pass", ruleIds: verdict.ruleIds }
+          : { type: "verdict_fail", ruleIds: verdict.ruleIds },
+        {
+          payload: { ...verdict, reviewerRef: reviewer.reviewerRef },
+          patch: (_task, at) => ({ ...CLEAR_AI, reviewerRef: reviewer.reviewerRef, verdictAt: at }),
+        },
+      );
+    },
+
+    /**
+     * Test sign-in for allowlisted testers while Concordium ID isn't live: an invite code
+     * instead of a proof, and the worker is walled off to test tasks.
+     */
+    async signInTestWorker(invite: string, pseudonym: string, attributes: Record<string, string>) {
+      const expected = Buffer.from(testInvite ?? "");
+      const given = Buffer.from(invite);
+      if (!testInvite || testInvite.length < 12 || expected.length !== given.length || !timingSafeEqual(expected, given)) {
+        throw new DeskError("forbidden", "that invite code isn't valid");
+      }
+      const name = pseudonym.trim();
+      if (!/^[a-z0-9-]{3,32}$/.test(name)) {
+        throw new DeskError("invalid", "pseudonym: 3 to 32 lowercase letters, digits or dashes");
+      }
+      const at = now();
+      const [worker] = await db
+        .insert(workers)
+        .values({ pseudonym: `test:${name}`, provenAttributes: attributes, testMode: true, createdAt: at, updatedAt: at })
+        .onConflictDoUpdate({ target: workers.pseudonym, set: { provenAttributes: attributes, updatedAt: at } })
+        .returning();
+      return worker!;
     },
 
     /** The verdict that stands: the panel's if there was a dispute, else the reviewer's. Reviewers stay anonymous. */

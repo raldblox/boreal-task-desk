@@ -69,7 +69,11 @@ function NextStep({ task, worker }: { task: Task; worker: Extract<Caller, { role
     case "disputed":
       return <p className="text-muted-foreground">Disputed. The review panel is deciding.</p>;
     case "final_pass":
-      return <p className="font-medium">Paid {usd(task.budget)} to your account.</p>;
+      return (
+        <p className="font-medium">
+          {task.test ? `Paid ${usd(task.budget)} in test money.` : `Paid ${usd(task.budget)} to your account.`}
+        </p>
+      );
     case "final_fail":
       return <p className="text-muted-foreground">Not paid. The verdict stands.</p>;
     default:
@@ -107,6 +111,8 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant={status.tone}>{status.label}</Badge>
+          {task.test && <Badge variant="secondary">Test task: test money only</Badge>}
+          {task.reviewMode === "requester" && <Badge variant="outline">Reviewed by the requester</Badge>}
           {task.requiredAttributes.map((a) => (
             <Badge key={a.attribute} variant="outline">
               {attributeLabel(a)}
@@ -137,7 +143,8 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">
-              {verdict.by === "panel" ? "Panel decision" : "Reviewer verdict"}: {verdict.outcome}
+              {verdict.by === "panel" ? "Panel decision" : task.reviewMode === "requester" ? "Requester verdict" : "Reviewer verdict"}:{" "}
+              {verdict.outcome}
             </CardTitle>
             <CardDescription>
               Rules cited: {verdict.ruleIds.length ? verdict.ruleIds.join(", ") : "none"} · {when(verdict.at)}

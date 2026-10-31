@@ -12,6 +12,7 @@ import {
   outbox,
   sql,
   taskEvents,
+  tasks,
   workers,
 } from "@boreal/db";
 
@@ -144,7 +145,9 @@ export async function ledgerEscrowBalance(db: Database): Promise<number> {
         else 0 end), 0)::int`,
     })
     .from(ledgerEntries)
-    .where(eq(ledgerEntries.status, "settled"));
+    .innerJoin(tasks, eq(tasks.id, ledgerEntries.taskId))
+    // Test money never reaches the chain, so it stays out of the escrow comparison.
+    .where(and(eq(ledgerEntries.status, "settled"), eq(tasks.test, false)));
   return row?.balance ?? 0;
 }
 
