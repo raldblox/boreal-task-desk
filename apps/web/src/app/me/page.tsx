@@ -1,4 +1,4 @@
-import { BadgeCheck } from "lucide-react";
+import { BadgeCheck, Bot } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
@@ -53,6 +53,29 @@ async function Identity() {
   );
 }
 
+/** The agents this person owns, if any: linking happens at /link when an agent asks. */
+async function MyAgents() {
+  const worker = await workerFromSession();
+  if (!worker || worker.role !== "worker") return null;
+  const agents = await getDesk()
+    .listOwnerAgents(worker.workerId)
+    .catch(() => []); // testers can't own agents
+  if (agents.length === 0) return null;
+  return (
+    <section className="flex flex-col gap-3">
+      <h2 className="text-sm font-semibold text-muted-foreground">Your agents · {agents.length}</h2>
+      {agents.map((agent) => (
+        <div key={agent.id} className="flex items-center gap-3 rounded-2xl border bg-card p-4">
+          <Bot className="size-5 shrink-0 text-primary" />
+          <p className="min-w-0 flex-1 truncate font-medium">{agent.name}</p>
+          {agent.badgeVerifiedAt && <Badge>Verified by Concordium</Badge>}
+          {agent.testMode && <Badge variant="outline">Test mode</Badge>}
+        </div>
+      ))}
+    </section>
+  );
+}
+
 async function MyTasks() {
   const worker = await workerFromSession();
   if (!worker) redirect("/signin");
@@ -100,6 +123,9 @@ export default function MyTasksPage() {
       </div>
       <Suspense fallback={<div className="h-44 animate-pulse rounded-2xl bg-muted" />}>
         <Identity />
+      </Suspense>
+      <Suspense>
+        <MyAgents />
       </Suspense>
       <Suspense fallback={<div className="h-40 animate-pulse rounded-2xl bg-muted" />}>
         <MyTasks />

@@ -27,6 +27,7 @@ export const ledgerAccount = pgEnum("ledger_account", [
 export const ledgerStatus = pgEnum("ledger_status", ["pending", "settled", "failed"]);
 export const outboxKind = pgEnum("outbox_kind", ["anchor", "payout", "refund", "webhook"]);
 export const reviewMode = pgEnum("review_mode", ["boreal", "requester"]);
+export const agentLinkStatus = pgEnum("agent_link_status", ["pending", "approved", "denied", "collected"]);
 
 const timestamps = {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -58,8 +59,40 @@ export const agents = pgTable("agents", {
   refundAddress: text("refund_address"),
   /** Allowlisted for test runs: its tasks use test money and only test workers see them. */
   testMode: boolean("test_mode").notNull().default(false),
+  /** Set once the owner proved they control the agent's Agent Registry entry (registryId is then its badge). */
+  badgeVerifiedAt: timestamp("badge_verified_at", { withTimezone: true }),
+  /** The registry network the badge lives on: testnet or mainnet. */
+  badgeNetwork: text("badge_network"),
+  /** The Concordium account that owns the registry entry, as proven by the owner's signature. */
+  ownerAccount: text("owner_account"),
   ...timestamps,
 });
+
+/**
+ * An agent asking to be linked to an owner. The agent holds a secret poll token; the owner
+ * approves the short code on boreal.work, and the agent collects its key once.
+ */
+export const agentLinks = pgTable(
+  "agent_links",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** What the owner types or opens, like K7QM-2XPA. */
+    code: text("code").notNull().unique(),
+    /** SHA-256 of the agent's poll token. */
+    pollTokenHash: text("poll_token_hash").notNull().unique(),
+    agentName: text("agent_name").notNull(),
+    agentDescription: text("agent_description"),
+    status: agentLinkStatus("status").notNull().default("pending"),
+    ownerId: uuid("owner_id").references(() => owners.id),
+    agentId: uuid("agent_id").references(() => agents.id),
+    /** SHA-256 of the requester's IP, for rate limiting; never the IP itself. */
+    clientHash: text("client_hash").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [index("agent_links_client_idx").on(t.clientHash, t.createdAt)],
+);
 
 /** Workers are known only by a pseudonym and the attributes they proved. */
 export const workers = pgTable("workers", {

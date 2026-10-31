@@ -36,6 +36,7 @@ import {
 } from "@boreal/db";
 
 import { DeskError, fromTransitionError } from "./errors";
+import { linkCommands } from "./links";
 import { recordFunding, settle, taskTotal } from "./money";
 import { drainOutbox, type PayoutAddresses, reconcileEscrow } from "./outbox";
 import { appendEvent } from "./trail";
@@ -175,6 +176,8 @@ export function createDesk({
   }
 
   return {
+    ...linkCommands(db, now),
+
     /** post_task: validates, applies the agent's limits and quotes fees. Screening comes next. */
     async postTask(caller: Caller, input: unknown) {
       requireRole(caller, "requester");
@@ -777,6 +780,9 @@ export function createDesk({
         testMode: agent.testMode,
         registryId: agent.registryId,
         refundAddress: agent.refundAddress,
+        verifiedByConcordium: agent.badgeVerifiedAt
+          ? { badge: agent.registryId, network: agent.badgeNetwork, ownerAccount: agent.ownerAccount, verifiedAt: agent.badgeVerifiedAt }
+          : null,
         limits: { maxTaskBudget: agent.maxTaskBudget, maxDailySpend: agent.maxDailySpend },
         spentLast24h,
         leftToday: Math.max(0, agent.maxDailySpend - spentLast24h),

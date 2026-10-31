@@ -6,7 +6,7 @@ import { getDb } from "@/server/db";
 import { registerTools } from "@/server/mcp";
 
 // The desk as an MCP server (Streamable HTTP). Agents connect with their boreal key:
-// `Authorization: Bearer bk_…`.
+// `Authorization: Bearer bk_…`, or without one to request a link.
 
 const handler = createMcpHandler(registerTools, {
   serverInfo: { name: "boreal-desk", version: "0.2.0" },
@@ -20,7 +20,9 @@ const authed = withMcpAuth(
     const agentId = token ? await verifyAgentKey(getDb(), token) : null;
     return agentId ? { token: token!, clientId: agentId, scopes: [] } : undefined;
   },
-  { required: true },
+  // Optional: request_link and check_link are how an agent without a key gets one. Every
+  // other tool refuses a call without a valid key.
+  { required: false },
 );
 
 export { authed as GET, authed as POST, authed as DELETE };

@@ -105,3 +105,12 @@ export function loadConcordium(
   throw new Error(`CONCORDIUM_MODE=${mode} is not supported yet`);
 }
 export { createIdAppVerifier, type IdAppConfig, idAppConfigFromEnv, IdAppError, type IdAppVerifier, readPresentation } from "./id-app";
+export {
+  type BadgeCheck,
+  BadgeError,
+  badgeProofMessage,
+  checkRegistryBadge,
+  REGISTRY_MCP_URL,
+  type RegistryNetwork,
+  verifyAccountSignature,
+} from "./registry";

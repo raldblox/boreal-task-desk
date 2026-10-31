@@ -7,16 +7,17 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { finishProof, startProof } from "@/lib/concordium-proof";
 
-const STORE_URL = "https://chromewebstore.google.com/detail/concordium-wallet/mnnkpffndmickbiakofclnpoiajlegmg";
+export const STORE_URL = "https://chromewebstore.google.com/detail/concordium-wallet/mnnkpffndmickbiakofclnpoiajlegmg";
 
-/** The part of the Concordium Wallet for Web's injected API this sign-in uses. */
-type WalletApi = {
+/** The part of the Concordium Wallet for Web's injected API boreal uses. */
+export type WalletApi = {
   connect(): Promise<string | undefined>;
   requestVerifiablePresentationV1(request: unknown): Promise<unknown>;
+  signMessage(accountAddress: string, message: string): Promise<unknown>;
 };
 
 /** The extension injects window.concordium shortly after the page loads. */
-async function detectWallet(timeoutMs = 1500): Promise<WalletApi | null> {
+export async function detectWallet(timeoutMs = 1500): Promise<WalletApi | null> {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
     const api = (window as { concordium?: WalletApi }).concordium;
@@ -40,7 +41,7 @@ const LABEL: Record<Status, string> = {
  * Sign-in with the Concordium Wallet for Web browser extension. It answers the same anchored
  * proof request as the ID App, so the server side and the worker's pseudonym are the same.
  */
-export function ConcordiumWalletSignIn() {
+export function ConcordiumWalletSignIn({ next = "/tasks" }: { next?: string }) {
   const router = useRouter();
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +60,7 @@ export function ConcordiumWalletSignIn() {
       const presentation = await wallet.requestVerifiablePresentationV1(request);
       setStatus("verifying");
       await finishProof(id, presentation);
-      router.push("/tasks");
+      router.push(next);
       router.refresh();
     } catch (e) {
       setError(e instanceof Error && e.message ? e.message : "The wallet didn't complete the sign-in.");

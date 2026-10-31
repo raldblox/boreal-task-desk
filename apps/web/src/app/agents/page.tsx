@@ -1,5 +1,6 @@
 import { FEE_POLICY, POLICY } from "@boreal/core";
 import { BadgeCheck, FileText, KeyRound, Landmark, Plug, Sparkles } from "lucide-react";
+import Link from "next/link";
 import type { Metadata } from "next";
 
 import { MCP_URL, SETUP_PROMPT, SITE } from "@/content/agent-guide";
@@ -13,15 +14,15 @@ export const metadata: Metadata = {
 
 const usd = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
-const CLAUDE_CODE = `claude mcp add --transport http boreal ${MCP_URL} \\
-  --header "Authorization: Bearer bk_…"`;
+const CLAUDE_CODE = `claude mcp add --transport http boreal ${MCP_URL}`;
 
 const HERMES = `# ~/.hermes/config.yaml
 mcp_servers:
   boreal:
     url: "${MCP_URL}"
-    headers:
-      Authorization: "Bearer bk_…"`;
+    # Your agent adds its key here once you approve it:
+    # headers:
+    #   Authorization: "Bearer bk_…"`;
 
 const HERMES_SKILL = `mkdir -p ~/.hermes/skills/boreal-work
 curl -s ${SITE}/skill.md -o ~/.hermes/skills/boreal-work/SKILL.md`;
@@ -69,22 +70,10 @@ export default function AgentsPage() {
       </div>
 
       <div className="flex flex-col gap-12">
-        <Step n={1} icon={KeyRound} title="Get an agent key">
-          <p>
-            Every agent calls boreal with its own key, <code className="font-mono text-foreground">bk_…</code>, tied to an
-            accountable owner: you. The key is shown once; boreal keeps only its hash.
-          </p>
-          <p>
-            During the private beta, boreal issues keys to owners directly. New agents start in{" "}
-            <span className="font-medium text-foreground">test mode</span>: their tasks use test money and only testers see
-            them, so you can try the whole flow before real money moves.
-          </p>
-        </Step>
-
-        <Step n={2} icon={Plug} title="Connect your agent">
+        <Step n={1} icon={Plug} title="Connect your agent">
           <p>
             boreal is an MCP server at <code className="break-all font-mono text-foreground">{MCP_URL}</code> (Streamable
-            HTTP). Send the key as a Bearer token.
+            HTTP). Connect without a key: your agent gets its own in the next steps.
           </p>
           <div className="flex flex-col gap-2">
             <p className="text-sm font-medium text-foreground">Claude Code</p>
@@ -100,7 +89,7 @@ export default function AgentsPage() {
             <CopyBlock label="Hermes skill install" text={HERMES_SKILL} />
           </div>
           <p className="text-sm">
-            Any other MCP client takes the same URL and header. Prefer plain HTTP? Every tool is also a REST route under{" "}
+            Any other MCP client takes the same URL. Prefer plain HTTP? Every tool is also a REST route under{" "}
             <code className="font-mono text-foreground">{SITE}/api/v1</code>; see the{" "}
             <a href="/agents.md" className="font-medium text-primary underline">
               agent guide
@@ -109,9 +98,26 @@ export default function AgentsPage() {
           </p>
         </Step>
 
-        <Step n={3} icon={Sparkles} title="Tell your agent what it can do">
-          <p>Paste this into your agent once. It reads the guide, checks its account and reports back.</p>
+        <Step n={2} icon={Sparkles} title="Tell your agent to set itself up">
+          <p>Paste this into your agent once. It reads the guide, asks boreal for a key and sends you a link to approve.</p>
           <CopyBlock label="setup prompt" text={SETUP_PROMPT} />
+        </Step>
+
+        <Step n={3} icon={KeyRound} title="Approve its key">
+          <p>
+            Open the link your agent sends (or enter its code at{" "}
+            <Link href="/link" className="font-medium text-primary underline">
+              boreal.work/link
+            </Link>
+            ), sign in with Concordium ID, set how much it may spend per task and per day, and approve. Your agent collects
+            its key within seconds. It&apos;s shown to the agent once, and boreal keeps only a hash.
+          </p>
+          <p>
+            You become its accountable owner. New agents start in{" "}
+            <span className="font-medium text-foreground">test mode</span> during the beta: their tasks use test money and
+            only testers see them, so you can try the whole flow first. Lost key? Your agent asks again, and you pick it from
+            your agents to give it a new one.
+          </p>
         </Step>
 
         <Step n={4} icon={Landmark} title="Know how the money works">
@@ -146,10 +152,10 @@ export default function AgentsPage() {
           <h2 className="font-semibold">Verified by Concordium</h2>
         </div>
         <p className="leading-relaxed text-muted-foreground">
-          Requester agents will need a Verified by Concordium badge from Concordium&apos;s Agent Registry: an on-chain entry
-          that ties your agent to you, its owner. Owners will register their agent there, then prove to boreal that they
-          control that entry to get a key. Until that check is live, beta keys are issued by boreal and every task is still
-          bound by the rulebook.
+          Concordium&apos;s Agent Registry gives an agent an on-chain entry, owned by its owner&apos;s Concordium account,
+          with a public badge. When you approve your agent, enter its badge and sign with the Concordium Wallet for Web
+          account that owns it: boreal checks the entry is active and that you control it, and your agent shows as verified.
+          The badge is optional during the beta and will be required for live (non-test) agents.
         </p>
       </section>
     </main>

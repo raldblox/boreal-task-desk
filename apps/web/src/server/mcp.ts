@@ -10,7 +10,10 @@ import { after } from "next/server";
 
 import { readSubmissionBytes } from "@boreal/files";
 
+import { GUIDE_VERSION, NETWORK } from "@/content/agent-guide";
+
 import { fundTestTask, getConcordium, getDesk } from "./desk";
+import { clientHash } from "./id-app";
 import { kickMonitor } from "./monitor";
 
 // The requester tools, as an agent sees them. Each one is a thin wrapper over the desk,
@@ -23,7 +26,7 @@ type ToolResult = { content: ToolContent[]; isError?: boolean };
 class Raw {
   constructor(readonly content: ToolContent[]) {}
 }
-type ToolContext = { http?: { authInfo?: { clientId: string } } };
+type ToolContext = { http?: { authInfo?: { clientId: string }; req?: Request } };
 
 const taskId = z.uuid().describe("The task's id, as returned by post_task.");
 
@@ -59,7 +62,12 @@ const ok = (value: unknown): ToolResult => ({ content: [{ type: "text", text: JS
 function tool<A>(run: (caller: Caller, args: A) => Promise<unknown>, { writes = true } = {}) {
   return async (args: A, ctx: ToolContext): Promise<ToolResult> => {
     const agentId = ctx.http?.authInfo?.clientId;
-    if (!agentId) return { isError: true, content: [{ type: "text", text: "unauthorized: no agent key" }] };
+    if (!agentId) {
+      return {
+        isError: true,
+        content: [{ type: "text", text: "unauthorized: no valid agent key. Call request_link to get one from your owner." }],
+      };
+    }
     try {
       const value = await run({ role: "requester", agentId }, args);
       const result: ToolResult = value instanceof Raw ? { content: value.content } : ok(value);
@@ -75,8 +83,66 @@ function tool<A>(run: (caller: Caller, args: A) => Promise<unknown>, { writes = 
   };
 }
 
+/** Link tools work without a key: they're how an agent gets one. */
+function keyless<A>(run: (args: A, req: Request | undefined) => Promise<unknown>) {
+  return async (args: A, ctx: ToolContext): Promise<ToolResult> => {
+    try {
+      return ok(await run(args, ctx.http?.req));
+    } catch (error) {
+      if (error instanceof DeskError) return { isError: true, content: [{ type: "text", text: `${error.code}: ${error.message}` }] };
+      console.error("[mcp] link tool failed", error);
+      return { isError: true, content: [{ type: "text", text: "internal: something went wrong" }] };
+    }
+  };
+}
+
 export function registerTools(server: McpServer): void {
   const desk = getDesk();
+
+  server.registerTool(
+    "request_link",
+    {
+      title: "Ask your owner for a boreal key",
+      description:
+        "Use this when you have no agent key yet (or lost it). Returns a code and a link for your owner, and a secret " +
+        "pollToken for you. Show your owner the link; they sign in with Concordium ID and approve. Then call check_link " +
+        "with the pollToken every few seconds until it returns your key. Works without a key.",
+      inputSchema: z.object({
+        agentName: z.string().min(1).max(80).describe("Your name, as your owner will recognise it, e.g. Hermes."),
+        agentDescription: z.string().max(500).optional().describe("One line on what you do, shown to your owner."),
+      }),
+    },
+    keyless(async (args: { agentName: string; agentDescription?: string }, req) => {
+      const origin = req ? new URL(req.url).origin : "https://boreal.work";
+      const link = await desk.requestAgentLink(args, req ? clientHash(req) : "mcp");
+      return {
+        ...link,
+        approveUrl: `${origin}/link/${link.code}`,
+        tellYourOwner: `Please approve me on boreal.work: ${origin}/link/${link.code} (code ${link.code}, valid 15 minutes).`,
+        next: "call check_link with pollToken every 5 seconds; keep pollToken secret",
+      };
+    }),
+  );
+
+  server.registerTool(
+    "check_link",
+    {
+      title: "Collect your boreal key",
+      description:
+        "Polls a link request made with request_link. Returns pending until your owner decides. When approved it returns " +
+        "your agent key (bk_…) exactly once: save it right away as the Authorization: Bearer header for the boreal MCP " +
+        "server (or REST API), then reconnect. Works without a key.",
+      inputSchema: z.object({ pollToken: z.string().min(10).describe("The secret pollToken from request_link.") }),
+    },
+    keyless(async ({ pollToken }: { pollToken: string }) => {
+      const result = await desk.pollAgentLink(pollToken);
+      if (result.status !== "approved") return result;
+      return {
+        ...result,
+        save: "This key is shown once. Store it as the header Authorization: Bearer <key> for https://boreal.work/api/mcp, reconnect, then call get_account.",
+      };
+    }),
+  );
 
   server.registerTool(
     "get_account",
@@ -94,7 +160,8 @@ export function registerTools(server: McpServer): void {
         limits: { maxTaskBudget: usd(account.limits.maxTaskBudget), maxDailySpend: usd(account.limits.maxDailySpend) },
         spentLast24h: usd(account.spentLast24h),
         leftToday: usd(account.leftToday),
-        guide: "https://boreal.work/agents.md",
+        network: NETWORK,
+        guide: { version: GUIDE_VERSION, url: "https://boreal.work/agents.md" },
       };
     }, { writes: false }),
   );

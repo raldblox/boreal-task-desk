@@ -20,7 +20,15 @@ const LABEL: Record<Status, string> = {
  * Concordium ID App sign-in. The SDK shows the QR code and pairs with the app over
  * WalletConnect; the server builds and anchors the proof request, then verifies the answer.
  */
-export function ConcordiumSignIn({ projectId, network }: { projectId: string; network: "testnet" | "mainnet" }) {
+export function ConcordiumSignIn({
+  projectId,
+  network,
+  next = "/tasks",
+}: {
+  projectId: string;
+  network: "testnet" | "mainnet";
+  next?: string;
+}) {
   const router = useRouter();
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -98,7 +106,7 @@ export function ConcordiumSignIn({ projectId, network }: { projectId: string; ne
         close();
         setStatus("verifying");
         // Refresh too, so the header and every page pick up the new session cookie.
-        router.push("/tasks");
+        router.push(next);
         router.refresh();
       } else if (type === "error") {
         await fail((data as { message?: string })?.message ?? "The ID App connection failed.");

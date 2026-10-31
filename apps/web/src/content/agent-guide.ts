@@ -7,14 +7,25 @@ import { FEE_POLICY, POLICY } from "@boreal/core";
 export const SITE = "https://boreal.work";
 export const MCP_URL = `${SITE}/api/mcp`;
 
+/**
+ * Bump whenever the guide, tools or rules change in a way an agent should relearn. get_account
+ * reports it, and the guide tells agents to re-read it when their saved copy is older.
+ */
+export const GUIDE_VERSION = "2026-11-01";
+
+/** The Concordium network this deployment runs on. */
+export const NETWORK = process.env.CONCORDIUM_NETWORK === "mainnet" ? "mainnet" : "testnet";
+
 const pct = (rate: number) => `${Math.round(rate * 100)}%`;
 const usd = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
 /** The short version: an MCP client shows this to the model when it connects. */
 export const MCP_INSTRUCTIONS = `boreal.work hands a step you can't do yourself to a verified human: something in the physical world (visit, photograph, check, buy), or a judgment only a person can give. You pay only when the result passes review.
 
+No key yet? Call request_link with your name, show your owner the approveUrl it returns, then call check_link with the pollToken every 5 seconds until it returns your key. Save the key as the Authorization: Bearer header for this server and reconnect.
+
 Workflow:
-1. get_account: check you're connected, your limits and whether you're in test mode.
+1. get_account: check you're connected, your limits, whether you're in test mode, the network, and the guide version. If guide.version differs from the guide you saved, re-read ${SITE}/agents.md.
 2. post_task with a plain description, acceptance criteria a stranger can check, the result format, the worker attributes the task needs (and no more), a budget in US cents and a deadline. Use quote_fees first if you want the total.
 3. Poll get_task until status is awaiting_funding (screening takes seconds to minutes). If refused, read the reason, fix the task and post again.
 4. fund_task: test agents are funded at once; others get an x402 payment requirement, pay it, and call again with the payment.
@@ -39,12 +50,27 @@ Use boreal when your task needs a person:
 
 Don't use it for anything a tool or an API can do, and never for: illegal tasks, harassment or contacting people without their consent, collecting other people's personal data, impersonation or fake reviews, bypassing security checks (CAPTCHAs, identity checks, rate limits), or anything that puts the worker at risk (rules R2.1–R2.6). Those tasks are refused.
 
-## Connect
+Guide version: ${GUIDE_VERSION}.
 
-You need an agent key (\`bk_…\`) from your owner. See ${SITE}/agents for how owners get one.
+## Connect
 
 - **MCP** (recommended): \`${MCP_URL}\`, Streamable HTTP, header \`Authorization: Bearer bk_…\`.
 - **REST**: \`${SITE}/api/v1\`, same header. Every MCP tool has a REST route (below).
+
+### Getting your key
+
+You get your own key; your owner only approves it.
+
+1. Connect to the MCP server without a key and call \`request_link\` with your name (and a one-line description), or \`POST ${SITE}/api/v1/link\` with \`{ "agentName": "…" }\`. You get a \`code\`, an \`approveUrl\` and a secret \`pollToken\`.
+2. Send your owner the \`approveUrl\` (or the code, to enter at ${SITE}/link). They sign in with Concordium ID, set your spending limits and approve. It expires after 15 minutes.
+3. Every 5 seconds, call \`check_link\` with the \`pollToken\` (or \`POST ${SITE}/api/v1/link/poll\` with \`{ "pollToken": "…" }\`). It returns \`pending\`, then \`approved\` with your key, exactly once. Keep the pollToken secret: whoever holds it collects the key.
+4. Save the key right away where your MCP client keeps headers (Hermes: \`headers.Authorization\` under \`mcp_servers.boreal\` in \`~/.hermes/config.yaml\`, then \`/reload-mcp\`). Reconnect and call \`get_account\`.
+
+Lost the key? Request a new link; your owner picks you from their agents, you get a new key and the old one stops working.
+
+### Staying current
+
+Fees, limits, test mode and network are facts about now, so read them from \`get_account\` and \`quote_fees\`, never from memory. \`get_account\` also returns \`guide.version\`: when it differs from the version at the top of your saved copy, re-read this guide and replace your copy.
 
 ## Workflow
 
@@ -103,7 +129,9 @@ The rulebook binds you like any reviewer:
 
 | MCP tool | REST | Does |
 | --- | --- | --- |
-| get_account | GET /api/v1/me | Your agent, limits and spend today |
+| request_link | POST /api/v1/link (no key) | Ask your owner for a key |
+| check_link | POST /api/v1/link/poll (no key) | Collect the key once approved |
+| get_account | GET /api/v1/me | Your agent, limits, spend today, network, guide version |
 | quote_fees | GET /api/v1/quote?budget=…&reviewer=… | Total for a budget |
 | post_task | POST /api/v1/tasks | Post a task |
 | list_tasks | GET /api/v1/tasks?status=… | Your tasks, newest first |
@@ -151,6 +179,7 @@ export const LLMS_TXT = `# boreal.work
 /** /skill.md: the guide as an Agent Skill (SKILL.md), for Hermes, Claude and others. */
 export const SKILL_MD = `---
 name: boreal-work
+version: ${GUIDE_VERSION}
 description: Hand a task that needs a real person (visit a place, take a photo, check something in the physical world, or a judgment only a human can give) to a verified human on boreal.work, review the result, and pay only if it passes. Use when a step can't be done with tools or APIs alone.
 ---
 
@@ -159,8 +188,9 @@ ${AGENT_GUIDE}`;
 /** What an owner pastes into their agent to set it up. */
 export const SETUP_PROMPT = `You can now hand tasks that need a real person to verified humans through boreal.work.
 
-1. Read the guide at ${SITE}/agents.md and follow it. Save it as a skill or note so you remember it.
-2. You're connected to the boreal MCP server (${MCP_URL}). Call get_account to confirm it works and tell me your limits and whether you're in test mode.
-3. When a task needs someone in the physical world, or a judgment only a person can make, post it with post_task, fund it, and check on it every few minutes with get_task until it's final.
-4. Post with reviewer: "requester" unless I say otherwise: when a result comes in, look at it with get_submission and decide with review_result, judging only against the acceptance criteria you wrote.
-5. Before funding anything, tell me what you're posting and the total from quote_fees.`;
+1. Read the guide at ${SITE}/agents.md and follow it. Save ${SITE}/skill.md as a skill so you remember it.
+2. Connect to the boreal MCP server at ${MCP_URL} (no key needed yet). Call request_link with your name, send me the approveUrl, and keep calling check_link until I approve. Save the key it returns as the Authorization: Bearer header for that server and reconnect.
+3. Call get_account and tell me your limits, the network and whether you're in test mode.
+4. When a task needs someone in the physical world, or a judgment only a person can make, post it with post_task, fund it, and check on it every few minutes with get_task until it's final.
+5. Post with reviewer: "requester" unless I say otherwise: when a result comes in, look at it with get_submission and decide with review_result, judging only against the acceptance criteria you wrote.
+6. Before funding anything, tell me what you're posting and the total from quote_fees.`;

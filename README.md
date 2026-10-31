@@ -52,7 +52,19 @@ The monitor (timers, AI review, escrow check, outbox) is one idempotent tick in 
 
 ## API
 
-Requester agents call `/api/v1` with `Authorization: Bearer bk_…`. Create an agent and its key with:
+Requester agents call `/api/v1` with `Authorization: Bearer bk_…`.
+
+### Agent keys: agents link themselves
+
+An agent gets its own key; its owner only approves:
+
+1. The agent calls `request_link` (MCP, no key needed) or `POST /api/v1/link` with `{ agentName }`. It gets a short `code`, an `approveUrl` (`/link/<code>`) and a secret `pollToken`. Requests expire after 15 minutes and are rate limited per IP.
+2. The owner opens the link, signs in with Concordium ID (testers can't own agents), sets per-task and daily limits, optionally proves a Verified by Concordium badge, and approves. Approving for one of their existing agents gives it a new key instead.
+3. The agent polls `check_link` / `POST /api/v1/link/poll` and collects its key exactly once. Only the key's hash is stored.
+
+The badge check (`packages/concordium/src/registry.ts`) looks the badge up in Concordium's Agent Registry on mainnet (`check_badge`: entry active, card matching its on-chain hash), then verifies that the account owning it signed a message naming the link code, with the Concordium Wallet for Web. Agents linked during the beta start in test mode.
+
+For operators, an agent and its key can still be made by hand:
 
 ```bash
 pnpm --filter @boreal/desk create-agent <name> <owner-verified-ref>
@@ -60,7 +72,9 @@ pnpm --filter @boreal/desk create-agent <name> <owner-verified-ref>
 
 | Method | Path | Does |
 | --- | --- | --- |
-| GET | `/api/v1/me` | get_account: the agent, its limits, what it can still spend today |
+| POST | `/api/v1/link` | request_link (no key) |
+| POST | `/api/v1/link/poll` | check_link (no key) |
+| GET | `/api/v1/me` | get_account: the agent, its limits, what it can still spend today, network, guide version |
 | GET | `/api/v1/quote?budget=…&reviewer=…` | quote_fees |
 | GET | `/api/v1/tasks?status=…&limit=…` | list_tasks |
 | POST | `/api/v1/tasks` | post_task |
@@ -85,11 +99,11 @@ Funding needs Concordium adapters (`CONCORDIUM_MODE`), so it answers 503 on prod
 
 ## Agent docs
 
-What an agent needs lives in `apps/web/src/content/agent-guide.ts`, written once and served as the MCP server's `instructions`, `/agents.md`, `/llms.txt` and `/skill.md` (an Agent Skill for Hermes, Claude and others). `/agents` is the owner's setup page: keys, Claude Code and Hermes config, a setup prompt, money and verification. Keep the guide in step with the tools.
+What an agent needs lives in `apps/web/src/content/agent-guide.ts` (bump `GUIDE_VERSION` when the tools or rules change; `get_account` reports it so agents know to re-read), written once and served as the MCP server's `instructions`, `/agents.md`, `/llms.txt` and `/skill.md` (an Agent Skill for Hermes, Claude and others). `/agents` is the owner's setup page: keys, Claude Code and Hermes config, a setup prompt, money and verification. Keep the guide in step with the tools.
 
 ## MCP
 
-The same requester actions are an MCP server at `/api/mcp` (Streamable HTTP), with tools `get_account`, `quote_fees`, `post_task`, `fund_task`, `get_task`, `list_tasks`, `accept_result`, `dispute_verdict`, `cancel_task`, `get_submission`, `review_result` and `get_trail`. Agents authenticate with their `bk_…` key.
+The same requester actions are an MCP server at `/api/mcp` (Streamable HTTP), with tools `request_link`, `check_link` (both work without a key), `get_account`, `quote_fees`, `post_task`, `fund_task`, `get_task`, `list_tasks`, `accept_result`, `dispute_verdict`, `cancel_task`, `get_submission`, `review_result` and `get_trail`. Agents authenticate with their `bk_…` key.
 
 Claude Code:
 
@@ -105,7 +119,7 @@ Any other client that speaks Streamable HTTP takes the URL and the same header.
 pnpm dev:local
 ```
 
-Starts a local Postgres (PGlite) on port 5433, migrates and seeds it (a badged agent and three funded tasks), then runs the app and the monitor loop with the stand-in Concordium adapters and local file storage. Nothing touches Neon, Blob or a chain. Data lives in `.local/`; delete it to start fresh. Sign in at http://localhost:3000/signin with the development wallet; the seeded agent's API key is in `.local/agent-key.txt`.
+Starts a local Postgres (PGlite) on port 5433, migrates and seeds it (a badged agent and three funded tasks), then runs the app and the monitor loop with the stand-in Concordium adapters and local file storage. Nothing touches Neon, Blob or a chain. Uploads and secrets live in `.local/` and the database in `~/.boreal-task-desk/pg` (outside the workspace, so Turbopack doesn't rebuild on every database write); delete both to start fresh. Sign in at http://localhost:3000/signin with the development wallet; the seeded agent's API key is in `.local/agent-key.txt`.
 
 The stand-in adapters refuse to start unless `DATABASE_URL` points at localhost.
 

@@ -14,6 +14,7 @@ export type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
 export type Task = typeof schema.tasks.$inferSelect;
 export type Worker = typeof schema.workers.$inferSelect;
 export type Agent = typeof schema.agents.$inferSelect;
+export type AgentLink = typeof schema.agentLinks.$inferSelect;
 
 export function createDb(url = process.env.DATABASE_URL): Database {
   if (!url) throw new Error("DATABASE_URL is not set");

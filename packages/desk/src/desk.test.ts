@@ -355,3 +355,84 @@ describe("agent account", () => {
     await expectDeskError(desk.getAgentAccount(reviewer), "forbidden");
   });
 });
+
+describe("agent linking", () => {
+  const limits = { maxTaskBudget: 1_000, maxDailySpend: 5_000 };
+  const workerIdOf = (caller: Caller) => (caller as Extract<Caller, { role: "worker" }>).workerId;
+
+  it("lets an agent collect its own key once its owner approves", async () => {
+    const { code, pollToken } = await desk.requestAgentLink({ agentName: "Hermes" }, "client-a");
+    expect(code).toMatch(/^[A-Z2-9]{4}-[A-Z2-9]{4}$/);
+    expect(await desk.pollAgentLink(pollToken)).toMatchObject({ status: "pending" });
+
+    expect(await desk.getAgentLink(code.toLowerCase().replace("-", " "))).toMatchObject({ agentName: "Hermes" });
+    await desk.approveAgentLink(workerIdOf(manilaWorker), code, { name: "Hermes", ...limits });
+
+    const collected = await desk.pollAgentLink(pollToken);
+    expect(collected).toMatchObject({ status: "approved", agent: { name: "Hermes", testMode: true, badgeVerified: false } });
+    const key = (collected as { key: string }).key;
+    const agentId = await verifyAgentKey(db, key);
+    expect(agentId).toBe((collected as { agent: { id: string } }).agent.id);
+    expect(await desk.getAgentAccount({ role: "requester", agentId: agentId! })).toMatchObject({
+      limits: { maxTaskBudget: 1_000, maxDailySpend: 5_000 },
+    });
+
+    // The key is handed over once, and the code can't be approved again.
+    expect(await desk.pollAgentLink(pollToken)).toEqual({ status: "collected" });
+    await expectDeskError(desk.approveAgentLink(workerIdOf(manilaWorker), code, { name: "Again", ...limits }), "conflict");
+  });
+
+  it("replaces the key of one of the owner's agents instead of making a duplicate", async () => {
+    const first = await desk.requestAgentLink({ agentName: "Hermes" }, "client-a");
+    await desk.approveAgentLink(workerIdOf(manilaWorker), first.code, { name: "Hermes", ...limits });
+    const oldKey = ((await desk.pollAgentLink(first.pollToken)) as { key: string }).key;
+    const [mine] = await desk.listOwnerAgents(workerIdOf(manilaWorker));
+
+    const second = await desk.requestAgentLink({ agentName: "Hermes" }, "client-a");
+    await desk.approveAgentLink(workerIdOf(manilaWorker), second.code, { name: "Hermes", ...limits, replaceAgentId: mine!.id });
+    const newKey = ((await desk.pollAgentLink(second.pollToken)) as { key: string }).key;
+    expect(await verifyAgentKey(db, newKey)).toBe(mine!.id);
+    expect(await verifyAgentKey(db, oldKey)).toBeNull();
+    expect(await desk.listOwnerAgents(workerIdOf(manilaWorker))).toHaveLength(1);
+
+    // Someone else can't take over that agent.
+    const third = await desk.requestAgentLink({ agentName: "Hermes" }, "client-b");
+    await expectDeskError(
+      desk.approveAgentLink(workerIdOf(otherWorker), third.code, { name: "Mine now", ...limits, replaceAgentId: mine!.id }),
+      "forbidden",
+    );
+  });
+
+  it("records a verified badge, and one badge belongs to one agent", async () => {
+    const badge = { registryId: "Mf22soLh1NuZYFgBK8iSs", network: "mainnet" as const, ownerAccount: "4DDv…" };
+    const a = await desk.requestAgentLink({ agentName: "Hermes" }, "client-a");
+    await desk.approveAgentLink(workerIdOf(manilaWorker), a.code, { name: "Hermes", ...limits, badge });
+    expect(await desk.pollAgentLink(a.pollToken)).toMatchObject({ agent: { badgeVerified: true } });
+    const b = await desk.requestAgentLink({ agentName: "Copycat" }, "client-b");
+    await expectDeskError(desk.approveAgentLink(workerIdOf(otherWorker), b.code, { name: "Copycat", ...limits, badge }), "conflict");
+  });
+
+  it("refuses testers as owners, and honours denial, expiry and limits", async () => {
+    const [tester] = await db.insert(workers).values({ pseudonym: "tester-1", provenAttributes: {}, testMode: true }).returning();
+    const link = await desk.requestAgentLink({ agentName: "Hermes" }, "client-a");
+    await expectDeskError(desk.approveAgentLink(tester!.id, link.code, { name: "Hermes", ...limits }), "forbidden");
+    await expectDeskError(
+      desk.approveAgentLink(workerIdOf(manilaWorker), link.code, { name: "Hermes", maxTaskBudget: POLICY.maxTaskBudget + 1, maxDailySpend: 50_000 }),
+      "invalid",
+    );
+
+    await desk.denyAgentLink(workerIdOf(manilaWorker), link.code);
+    expect(await desk.pollAgentLink(link.pollToken)).toEqual({ status: "denied" });
+
+    const late = await desk.requestAgentLink({ agentName: "Hermes" }, "client-a");
+    advance(16 * 60 * 1000);
+    expect(await desk.pollAgentLink(late.pollToken)).toEqual({ status: "expired" });
+    await expectDeskError(desk.getAgentLink(late.code), "conflict");
+    await expectDeskError(desk.pollAgentLink("bl_nope"), "not_found");
+  });
+
+  it("rate limits link requests per client", async () => {
+    for (let i = 0; i < 5; i++) await desk.requestAgentLink({ agentName: `Agent ${i}` }, "client-c");
+    await expectDeskError(desk.requestAgentLink({ agentName: "One more" }, "client-c"), "limit");
+  });
+});

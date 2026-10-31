@@ -1,10 +1,14 @@
 // `pnpm dev:local`: the app and worker against a local Postgres (PGlite) with the stand-in
 // Concordium adapters and local file storage. Nothing here touches Neon, Blob or a chain.
-// Data persists in `.local/` at the workspace root; delete it to start fresh.
+// Uploads, keys and secrets persist in `.local/` at the workspace root. The database lives in
+// ~/.boreal-task-desk/pg instead: Turbopack watches the whole workspace, and Postgres writes
+// its log constantly, which kept the dev server recompiling and reloading pages. Delete both
+// to start fresh.
 
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -26,7 +30,13 @@ function persistentSecret(name: string): string {
   return readFileSync(file, "utf8").trim();
 }
 
-const pg = await PGlite.create(join(localDir, "pg"));
+const pgDir = join(homedir(), ".boreal-task-desk", "pg");
+if (!existsSync(pgDir) && existsSync(join(localDir, "pg"))) {
+  // One-time move from where the database used to live.
+  mkdirSync(dirname(pgDir), { recursive: true });
+  renameSync(join(localDir, "pg"), pgDir);
+}
+const pg = await PGlite.create(pgDir);
 await migrate(drizzle(pg), { migrationsFolder: resolve(here, "../migrations") });
 const server = new PGLiteSocketServer({ db: pg, port, host: "127.0.0.1", maxConnections: 20 });
 await server.start();

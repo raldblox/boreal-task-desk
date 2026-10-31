@@ -32,9 +32,15 @@ function TesterInvite() {
   );
 }
 
-async function SignInOptions() {
+/** Where to go after signing in: only a path on this site. */
+function safeNext(next: string | undefined): string {
+  return next && next.startsWith("/") && !next.startsWith("//") ? next : "/tasks";
+}
+
+async function SignInOptions({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
+  const next = safeNext((await searchParams).next);
   // Already signed in: nothing to do here.
-  if (await workerFromSession()) redirect("/tasks");
+  if (await workerFromSession()) redirect(next);
 
   if (getIdAppVerifier()) {
     const network = process.env.CONCORDIUM_NETWORK === "mainnet" ? "mainnet" : "testnet";
@@ -55,13 +61,13 @@ async function SignInOptions() {
             <li>2. Approve the request in the app.</li>
             <li>3. You&apos;re signed in. No password, no email.</li>
           </ol>
-          <ConcordiumSignIn projectId={process.env.NEXT_PUBLIC_REOWN_PROJECT_ID!} network={network} />
+          <ConcordiumSignIn projectId={process.env.NEXT_PUBLIC_REOWN_PROJECT_ID!} network={network} next={next} />
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span className="h-px flex-1 bg-border" />
             or on a computer
             <span className="h-px flex-1 bg-border" />
           </div>
-          <ConcordiumWalletSignIn />
+          <ConcordiumWalletSignIn next={next} />
         </div>
         <TesterInvite />
       </div>
@@ -91,7 +97,7 @@ async function SignInOptions() {
   );
 }
 
-export default function SignInPage() {
+export default function SignInPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   return (
     <main className="mx-auto grid w-full max-w-5xl flex-1 grid-cols-1 items-start gap-10 px-4 py-12 md:grid-cols-2 md:py-20">
       <div className="flex flex-col gap-6">
@@ -129,7 +135,7 @@ export default function SignInPage() {
         </div>
       </div>
       <Suspense fallback={<div className="h-64 rounded-2xl border bg-card" />}>
-        <SignInOptions />
+        <SignInOptions searchParams={searchParams} />
       </Suspense>
     </main>
   );

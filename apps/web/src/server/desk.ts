@@ -46,7 +46,7 @@ export async function fundTestTask(caller: Caller, task: Task) {
   return getDesk().fundTask(caller, task.id, { txHash: `test-${randomUUID()}`, amount: taskTotal(task) });
 }
 
-const STATUS: Record<DeskError["code"], number> = {
+export const STATUS: Record<DeskError["code"], number> = {
   invalid: 400,
   forbidden: 403,
   not_found: 404,

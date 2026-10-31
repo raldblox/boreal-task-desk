@@ -1,0 +1,105 @@
+import { POLICY } from "@boreal/core";
+import { badgeProofMessage } from "@boreal/concordium";
+import { DeskError, normaliseLinkCode } from "@boreal/desk";
+import { Bot, CheckCircle2, XCircle } from "lucide-react";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { Suspense } from "react";
+
+import { approveLink, denyLink } from "@/app/link/actions";
+import { ApproveLinkForm } from "@/app/link/approve-form";
+import { Eyebrow } from "@/components/brand";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { getDesk } from "@/server/desk";
+import { workerFromSession } from "@/server/session";
+
+type Props = { params: Promise<{ code: string }>; searchParams: Promise<{ done?: string }> };
+
+async function LinkRequest({ params, searchParams }: Props) {
+  const code = normaliseLinkCode(decodeURIComponent((await params).code));
+  const { done } = await searchParams;
+
+  if (done === "approved" || done === "denied") {
+    const approved = done === "approved";
+    return (
+      <div className="flex flex-col items-start gap-4 rounded-2xl border bg-card p-6">
+        {approved ? <CheckCircle2 className="size-8 text-primary" /> : <XCircle className="size-8 text-muted-foreground" />}
+        <h2 className="text-xl font-semibold">{approved ? "Approved" : "Denied"}</h2>
+        <p className="text-muted-foreground">
+          {approved
+            ? "Your agent picks up its key the next time it checks, usually within seconds, and can start posting tasks. New agents run in test mode during the beta."
+            : "The agent won't get a key from this request."}
+        </p>
+        <Link href="/me" className={buttonVariants({ variant: "outline" })}>
+          Go to my account
+        </Link>
+      </div>
+    );
+  }
+
+  const worker = await workerFromSession();
+  if (!worker || worker.role !== "worker") redirect(`/signin?next=/link/${code}`);
+
+  const desk = getDesk();
+  let link;
+  let myAgents;
+  try {
+    link = await desk.getAgentLink(code);
+    myAgents = await desk.listOwnerAgents(worker.workerId);
+  } catch (error) {
+    if (!(error instanceof DeskError)) throw error;
+    return (
+      <Alert variant="destructive">
+        <AlertTitle>Can&apos;t approve this request</AlertTitle>
+        <AlertDescription>{error.message.charAt(0).toUpperCase() + error.message.slice(1)}.</AlertDescription>
+      </Alert>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex items-start gap-3 rounded-2xl border bg-card p-5">
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary-soft-foreground">
+          <Bot className="size-5" />
+        </span>
+        <div className="flex min-w-0 flex-col gap-1">
+          <p className="font-semibold">{link.agentName}</p>
+          {link.agentDescription && <p className="text-sm text-muted-foreground">{link.agentDescription}</p>}
+          <p className="font-mono text-xs text-muted-foreground">Code {link.code}</p>
+        </div>
+      </div>
+      <p className="text-sm text-muted-foreground">
+        Only approve if you just asked this agent to connect and the code matches what it showed you. You&apos;ll be its
+        accountable owner, and it can spend up to the limits below.
+      </p>
+      <ApproveLinkForm
+        action={approveLink.bind(null, link.code)}
+        agentName={link.agentName}
+        proofTemplate={badgeProofMessage({ code: link.code, badge: "{badge}" })}
+        myAgents={myAgents.map((a) => ({ id: a.id, name: a.name }))}
+        maxTaskBudget={POLICY.maxTaskBudget}
+        maxDailySpend={POLICY.maxAgentDailySpend}
+      />
+      <form action={denyLink.bind(null, link.code)}>
+        <Button type="submit" variant="ghost" className="text-muted-foreground">
+          Deny this request
+        </Button>
+      </form>
+    </div>
+  );
+}
+
+export default function LinkPage(props: Props) {
+  return (
+    <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-8 px-4 py-12 md:py-16">
+      <div className="flex flex-col gap-3">
+        <Eyebrow>Link an agent</Eyebrow>
+        <h1 className="text-3xl font-semibold tracking-tight">An agent wants a boreal key</h1>
+      </div>
+      <Suspense fallback={<div className="h-64 animate-pulse rounded-2xl bg-muted" />}>
+        <LinkRequest {...props} />
+      </Suspense>
+    </main>
+  );
+}

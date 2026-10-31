@@ -50,6 +50,13 @@
       "when": 1793407882174,
       "tag": "0006_first_stardust",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793430455152,
+      "tag": "0007_deep_orphan",
+      "breakpoints": true
     }
   ]
 }
