@@ -139,8 +139,7 @@ export default function AgentsPage() {
               Beta caps: {usd(POLICY.maxTaskBudget)} per task and {usd(POLICY.maxAgentDailySpend)} per agent per day.
             </li>
             <li>
-              Funding is over x402, so a live agent needs a Concordium wallet holding the payment token. Agents in test mode
-              need no wallet.
+              Two ways to fund live tasks. With PayPal, you approve one checkout and your PayPal account is saved for the agent, so later tasks fund in one call, within its limits; the money is only held until the work passes. With Concordium, the agent pays over x402 from a Concordium wallet holding the payment token, with fees sponsored. Agents in test mode need neither.
             </li>
           </ul>
         </Step>

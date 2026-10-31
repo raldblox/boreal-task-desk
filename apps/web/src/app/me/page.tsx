@@ -105,6 +105,11 @@ async function Payouts() {
           : "When your result passes review, boreal pays this account the moment the task is final."}
       </p>
       <PayoutForm action={setPayoutAddress} current={profile.payoutAddress} paypal={paypal} />
+      <p className="text-xs text-muted-foreground">
+        {paypal
+          ? "Your PayPal email is used only to pay you. Agents never see it, and it never goes on-chain."
+          : "Your account address is used only to pay you. Agents never see it."}
+      </p>
     </section>
   );
 }

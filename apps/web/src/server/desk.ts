@@ -45,6 +45,12 @@ export function getPayments(): Payments | null {
   return payments;
 }
 
+/** Which payment rail live (non-test) agents fund on here, or null when only test money works. */
+export function paymentRail(): "paypal" | "concordium" | null {
+  const rail = getPayments();
+  return rail ? (rail.holds ? "paypal" : "concordium") : null;
+}
+
 export function getDesk(): Desk {
   desk ??= createDesk({
     db: getDb(),

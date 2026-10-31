@@ -13,7 +13,7 @@ import { readSubmissionBytes } from "@boreal/files";
 
 import { GUIDE_VERSION, NETWORK } from "@/content/agent-guide";
 
-import { fundTestTask, getDesk, getPayments } from "./desk";
+import { fundTestTask, getDesk, getPayments, paymentRail } from "./desk";
 import { clientHash } from "./id-app";
 import { kickMonitor } from "./monitor";
 
@@ -177,6 +177,8 @@ export function registerTools(server: McpServer): void {
         spentLast24h: usd(account.spentLast24h),
         leftToday: usd(account.leftToday),
         network: NETWORK,
+        // Which rail live tasks fund on; null means only test money works here today.
+        paymentRail: paymentRail(),
         guide: { version: GUIDE_VERSION, url: "https://boreal.work/agents.md" },
       };
     }, { writes: false }),
