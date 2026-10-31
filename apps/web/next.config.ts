@@ -14,6 +14,9 @@ const nextConfig: NextConfig = {
   experimental: {
     // Photos are shrunk in the browser first; this leaves room under Vercel's 4.5 MB body cap.
     serverActions: { bodySizeLimit: "4.2mb" },
+    // A Turbopack cache restored from Vercel's build cache once shipped stale CSS (the old theme);
+    // builds take ~30 s, so always building fresh is worth it.
+    turbopackFileSystemCacheForBuild: false,
   },
   partialPrefetching: true,
   turbopack: {
