@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -10,8 +10,8 @@ type Status = "idle" | "connecting" | "proving" | "verifying";
 
 const LABEL: Record<Status, string> = {
   idle: "Sign in with Concordium ID",
-  connecting: "Scan the code with your Concordium ID App…",
-  proving: "Approve the request in your app…",
+  connecting: "Waiting for the ID App…",
+  proving: "Approve in the ID App…",
   verifying: "Checking your proof…",
 };
 
@@ -23,16 +23,24 @@ export function ConcordiumSignIn({ projectId, network }: { projectId: string; ne
   const router = useRouter();
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
+  // Closes the modal and stops listening; set while a sign-in is running.
+  const cancel = useRef<(() => void) | null>(null);
 
   async function begin() {
     setError(null);
     setStatus("connecting");
     const { ConcordiumVerificationWebUI, resetSDK } = await import("@concordium/verification-web-ui");
     resetSDK();
+    // The modal mounts straight under <body>, outside the page layout.
+    if (!document.getElementById("concordium-modal-root")) {
+      const root = document.createElement("div");
+      root.id = "concordium-modal-root";
+      document.body.appendChild(root);
+    }
     const sdk = new ConcordiumVerificationWebUI({
       network,
       projectId,
-      // The modal mounts into its own scoped root, so its styles and the site's never mix.
+      // Its own scoped root, so the modal's styles and the site's never mix.
       defaultContainer: "#concordium-modal-root",
       metadata: {
         name: "boreal.work",
@@ -43,6 +51,22 @@ export function ConcordiumSignIn({ projectId, network }: { projectId: string; ne
     });
 
     let requestId: string | null = null;
+    // Some of the SDK's screens (like "processing") have no close button: Escape, a tap
+    // outside the modal, or our Cancel button always close it.
+    const onKey = (event: KeyboardEvent) => event.key === "Escape" && close();
+    const onClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (target.matches(".desktop--modal-overlay, .mobile--modal-overlay")) close();
+    };
+    const close = () => {
+      window.removeEventListener("verification-web-ui-event", onEvent);
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("click", onClick);
+      ConcordiumVerificationWebUI.closeModal();
+      cancel.current = null;
+      setStatus("idle");
+    };
+    cancel.current = close;
     const fail = async (message: string) => {
       setError(message);
       setStatus("idle");
@@ -73,7 +97,10 @@ export function ConcordiumSignIn({ projectId, network }: { projectId: string; ne
         const body = (await res.json().catch(() => ({}))) as { message?: string };
         if (!res.ok) return fail(body.message ?? "Your proof couldn't be verified.");
         await sdk.showSuccessState().catch(() => {});
-        window.removeEventListener("verification-web-ui-event", onEvent);
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+        close();
+        setStatus("verifying");
+        // Refresh too, so the header and every page pick up the new session cookie.
         router.push("/tasks");
         router.refresh();
       } else if (type === "error") {
@@ -82,19 +109,26 @@ export function ConcordiumSignIn({ projectId, network }: { projectId: string; ne
     };
 
     window.addEventListener("verification-web-ui-event", onEvent);
-    await sdk.renderUIModals(() => {
-      window.removeEventListener("verification-web-ui-event", onEvent);
-      setStatus("idle");
-    });
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("click", onClick);
+    await sdk.renderUIModals(close);
   }
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Above the sticky header; the SDK fills it, React never renders children here. */}
-      <div id="concordium-modal-root" className="relative z-[60]" />
-      <Button onClick={begin} disabled={status !== "idle"} size="lg" className="h-11 w-full text-base">
+      <Button
+        onClick={begin}
+        disabled={status !== "idle"}
+        size="lg"
+        className="h-auto min-h-11 w-full whitespace-normal text-base"
+      >
         {LABEL[status]}
       </Button>
+      {status !== "idle" && status !== "verifying" && (
+        <Button variant="ghost" onClick={() => cancel.current?.()} className="self-center text-muted-foreground">
+          Cancel
+        </Button>
+      )}
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>

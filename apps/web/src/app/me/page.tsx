@@ -1,14 +1,57 @@
+import { BadgeCheck } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { Eyebrow } from "@/components/brand";
 import { TaskCard } from "@/components/task-card";
+import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { attributeLabel, workerHandle } from "@/lib/format";
 import { getDesk } from "@/server/desk";
 import { workerFromSession } from "@/server/session";
 
 const ACTIVE = new Set(["claimed", "submitted", "passed", "failed", "disputed"]);
+
+/** Who the desk knows you as: a pseudonym and what you proved, nothing more. */
+async function Identity() {
+  const worker = await workerFromSession();
+  if (!worker) redirect("/signin");
+  const profile = await getDesk().getWorker(worker);
+  if (!profile) redirect("/signin");
+  const since = new Intl.DateTimeFormat("en-PH", { dateStyle: "medium", timeZone: "Asia/Manila" }).format(profile.createdAt);
+  return (
+    <section className="flex flex-col gap-4 rounded-2xl border bg-card p-6">
+      <div className="flex items-start gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary-soft-foreground">
+          <BadgeCheck className="size-5" />
+        </span>
+        <div className="flex min-w-0 flex-col gap-1">
+          <p className="font-semibold">{profile.testMode ? "Tester" : "Verified with Concordium ID"}</p>
+          <p className="text-sm text-muted-foreground">
+            <span className="font-mono">{workerHandle(profile.pseudonym)}</span> · worker since {since}
+          </p>
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {Object.entries(profile.provenAttributes).map(([attribute, value]) => (
+          <Badge key={attribute} variant="outline">
+            {attributeLabel({ attribute, value })}
+          </Badge>
+        ))}
+      </div>
+      <div className="flex flex-col gap-1">
+        <p className="text-xs font-medium text-muted-foreground">Your worker ID</p>
+        <code className="break-all rounded-lg bg-muted px-3 py-2 font-mono text-xs">{profile.pseudonym}</code>
+        <p className="text-xs text-muted-foreground">
+          {profile.testMode
+            ? "Test workers see and do only test tasks."
+            : "A one-way code made from your ID document. It's the same every time you sign in, and it can't be turned back into who you are."}
+        </p>
+      </div>
+    </section>
+  );
+}
 
 async function MyTasks() {
   const worker = await workerFromSession();
@@ -53,8 +96,11 @@ export default function MyTasksPage() {
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-4 py-10 md:py-14">
       <div className="flex flex-col gap-3">
         <Eyebrow>Your work</Eyebrow>
-        <h1 className="text-3xl font-semibold tracking-tight">My tasks</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">My account</h1>
       </div>
+      <Suspense fallback={<div className="h-44 animate-pulse rounded-2xl bg-muted" />}>
+        <Identity />
+      </Suspense>
       <Suspense fallback={<div className="h-40 animate-pulse rounded-2xl bg-muted" />}>
         <MyTasks />
       </Suspense>

@@ -620,6 +620,21 @@ export function createDesk({
       return task;
     },
 
+    /** The signed-in worker's own profile: pseudonym and proven attributes, nothing else is kept. */
+    async getWorker(caller: Caller) {
+      requireRole(caller, "worker");
+      const [worker] = await db
+        .select({
+          pseudonym: workers.pseudonym,
+          provenAttributes: workers.provenAttributes,
+          testMode: workers.testMode,
+          createdAt: workers.createdAt,
+        })
+        .from(workers)
+        .where(eq(workers.id, caller.workerId));
+      return worker ?? null;
+    },
+
     /** Open tasks this worker has proven the attributes for, newest first. */
     async browseOpenTasks(caller: Caller) {
       requireRole(caller, "worker");

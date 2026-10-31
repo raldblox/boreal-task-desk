@@ -1,5 +1,5 @@
 import { Check, EyeOff } from "lucide-react";
-import { connection } from "next/server";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { signIn, signInTest } from "@/app/actions";
@@ -9,6 +9,7 @@ import { DevWallet, TestSignIn } from "@/components/worker-forms";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getConcordium, getDesk } from "@/server/desk";
 import { getIdAppVerifier } from "@/server/id-app";
+import { workerFromSession } from "@/server/session";
 
 function TesterInvite() {
   if (!process.env.TEST_WORKER_INVITE) return null;
@@ -31,7 +32,8 @@ function TesterInvite() {
 }
 
 async function SignInOptions() {
-  await connection();
+  // Already signed in: nothing to do here.
+  if (await workerFromSession()) redirect("/tasks");
 
   if (getIdAppVerifier()) {
     const network = process.env.CONCORDIUM_NETWORK === "mainnet" ? "mainnet" : "testnet";
@@ -84,7 +86,7 @@ async function SignInOptions() {
 
 export default function SignInPage() {
   return (
-    <main className="mx-auto grid w-full max-w-5xl flex-1 items-start gap-10 px-4 py-12 md:grid-cols-2 md:py-20">
+    <main className="mx-auto grid w-full max-w-5xl flex-1 grid-cols-1 items-start gap-10 px-4 py-12 md:grid-cols-2 md:py-20">
       <div className="flex flex-col gap-6">
         <Eyebrow>Sign in to work</Eyebrow>
         <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">Your identity stays with you.</h1>

@@ -1,9 +1,12 @@
+import { BadgeCheck } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
 import { signOut } from "@/app/actions";
 import { BorealLogo } from "@/components/brand";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { workerHandle } from "@/lib/format";
+import { getDesk } from "@/server/desk";
 import { workerFromSession } from "@/server/session";
 
 async function Account() {
@@ -15,10 +18,16 @@ async function Account() {
       </Link>
     );
   }
+  const profile = await getDesk().getWorker(worker);
   return (
     <div className="flex items-center gap-1">
-      <Link href="/me" className={buttonVariants({ variant: "ghost", size: "sm" })}>
-        My tasks
+      <Link
+        href="/me"
+        title="Your worker ID and tasks"
+        className={buttonVariants({ variant: "ghost", size: "sm", className: "gap-1.5" })}
+      >
+        <BadgeCheck className="size-4 text-primary" />
+        {profile ? <span className="font-mono text-xs">{workerHandle(profile.pseudonym)}</span> : "My tasks"}
       </Link>
       <form action={signOut}>
         <Button type="submit" variant="outline" size="sm">
