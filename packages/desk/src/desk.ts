@@ -30,6 +30,7 @@ import {
   taskEvents,
   tasks,
   type Transaction,
+  verificationRequests,
   workers,
   sql,
 } from "@boreal/db";
@@ -539,6 +540,63 @@ export function createDesk({
         .where(eq(tasks.id, taskId))
         .returning();
       return updated!;
+    },
+
+    /**
+     * Stores a Concordium ID proof request until the wallet answers. Call
+     * checkVerificationAllowed first: each request costs an on-chain anchor transaction.
+     */
+    async saveVerificationRequest(connectionId: string, request: unknown, clientHash: string) {
+      const at = now();
+      const [row] = await db
+        .insert(verificationRequests)
+        .values({ connectionId, request, clientHash, createdAt: at })
+        .returning({ id: verificationRequests.id });
+      return row!.id;
+    },
+
+    /** Checks a sign-in may start, before its anchor transaction is paid for. */
+    async checkVerificationAllowed(clientHash: string) {
+      const at = now();
+      const [recent] = await db
+        .select({ n: sql<number>`count(*)::int` })
+        .from(verificationRequests)
+        .where(and(eq(verificationRequests.clientHash, clientHash), gt(verificationRequests.createdAt, new Date(at.getTime() - 10 * 60_000))));
+      if ((recent?.n ?? 0) >= 5) throw new DeskError("limit", "too many sign-in attempts; try again in a few minutes");
+      const [today] = await db
+        .select({ n: sql<number>`count(*)::int` })
+        .from(verificationRequests)
+        .where(gt(verificationRequests.createdAt, new Date(at.getTime() - 24 * 3600_000)));
+      if ((today?.n ?? 0) >= 300) throw new DeskError("limit", "sign-in is busy right now; try again later");
+    },
+
+    /** Takes a pending request exactly once, within 15 minutes of its creation. */
+    async takeVerificationRequest(id: string) {
+      const at = now();
+      const [row] = await db
+        .update(verificationRequests)
+        .set({ completedAt: at })
+        .where(
+          and(
+            eq(verificationRequests.id, id),
+            isNull(verificationRequests.completedAt),
+            gt(verificationRequests.createdAt, new Date(at.getTime() - 15 * 60_000)),
+          ),
+        )
+        .returning();
+      if (!row) throw new DeskError("conflict", "this sign-in request has expired or was already used; start again");
+      return row;
+    },
+
+    /** Signs in a worker whose Concordium proof has been verified; one worker per account credential. */
+    async signInVerifiedWorker(verified: { pseudonym: string; provenAttributes: Record<string, string> }) {
+      const at = now();
+      const [worker] = await db
+        .insert(workers)
+        .values({ pseudonym: verified.pseudonym, provenAttributes: verified.provenAttributes, createdAt: at, updatedAt: at })
+        .onConflictDoUpdate({ target: workers.pseudonym, set: { provenAttributes: verified.provenAttributes, updatedAt: at } })
+        .returning();
+      return worker!;
     },
 
     /** Sends due anchors, payouts and refunds. Run by the monitor loop. */

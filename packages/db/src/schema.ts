@@ -200,3 +200,18 @@ export const leases = pgTable("leases", {
   holder: text("holder").notNull(),
   until: timestamp("until", { withTimezone: true }).notNull(),
 });
+
+/** Concordium ID proof requests waiting for the wallet's answer; each can be used once. */
+export const verificationRequests = pgTable(
+  "verification_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    connectionId: text("connection_id").notNull(),
+    request: jsonb("request").notNull(),
+    /** SHA-256 of the requester's IP, for rate limiting; never the IP itself. */
+    clientHash: text("client_hash").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+  },
+  (t) => [index("verification_requests_client_idx").on(t.clientHash, t.createdAt)],
+);

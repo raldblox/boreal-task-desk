@@ -104,3 +104,4 @@ export function loadConcordium(
   }
   throw new Error(`CONCORDIUM_MODE=${mode} is not supported yet`);
 }
+export { createIdAppVerifier, type IdAppConfig, idAppConfigFromEnv, IdAppError, type IdAppVerifier, readPresentation } from "./id-app";

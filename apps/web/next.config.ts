@@ -9,6 +9,8 @@ if (process.env.NODE_ENV !== "production" && existsSync(rootEnv)) process.loadEn
 const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
+  // Concordium's SDK loads WebAssembly and native gRPC at runtime; keep it out of the bundle.
+  serverExternalPackages: ["@concordium/web-sdk", "@grpc/grpc-js"],
   experimental: {
     // Photos are shrunk in the browser first; this leaves room under Vercel's 4.5 MB body cap.
     serverActions: { bodySizeLimit: "4.2mb" },

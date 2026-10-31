@@ -38,7 +38,7 @@ export async function saveSubmissionFile(taskId: string, file: File): Promise<st
   const path = `submissions/${taskId}/${randomUUID()}.${ext}`;
   const dir = localDir();
   if (dir) {
-    const target = join(dir, path);
+    const target = join(/* turbopackIgnore: true */ dir, path);
     await mkdir(dirname(target), { recursive: true });
     await writeFile(target, Buffer.from(await file.arrayBuffer()));
   } else {
@@ -55,7 +55,7 @@ export async function readSubmissionFile(path: string): Promise<{ body: FileBody
   const dir = localDir();
   if (dir) {
     try {
-      return { body: new Uint8Array(await readFile(join(dir, path))), contentType };
+      return { body: new Uint8Array(await readFile(join(/* turbopackIgnore: true */ dir, path))), contentType };
     } catch {
       return null;
     }

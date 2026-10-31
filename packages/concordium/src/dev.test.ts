@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { createDevConcordium, signDevPayment } from "./dev";
-import { loadConcordium } from "./index";
+import { idAppConfigFromEnv, IdAppError, loadConcordium, readPresentation } from "./index";
 
 const secret = "x".repeat(32);
 
@@ -65,5 +65,42 @@ describe("loadConcordium", () => {
     expect(
       loadConcordium({ CONCORDIUM_MODE: "dev", DEV_CONCORDIUM_SECRET: secret, DATABASE_URL: "postgres://postgres@localhost:5433/postgres" }),
     ).not.toBeNull();
+  });
+});
+
+describe("Concordium ID App presentations", () => {
+  const account = (statement: object[]) =>
+    ({
+      verifiableCredential: [
+        {
+          type: ["VerifiableCredential", "ConcordiumVerifiableCredentialV1", "ConcordiumAccountBasedCredential"],
+          credentialSubject: { id: "did:ccd:testnet:cred:a1b2", statement },
+        },
+      ],
+    }) as unknown as Parameters<typeof readPresentation>[0];
+
+  it("reads the account DID, the age proof and the revealed country", () => {
+    const worker = readPresentation(
+      account([
+        { type: "AttributeInRange", attributeTag: "dob", lower: "18000101", upper: "20081102" },
+        { type: "AttributeValue", attributeTag: "countryOfResidence", attributeValue: "PH" },
+      ]),
+    );
+    expect(worker).toEqual({ pseudonym: "did:ccd:testnet:cred:a1b2", provenAttributes: { residency: "PH", age_over_18: "true" } });
+  });
+
+  it("rejects a proof without the age statement, or from an identity credential", () => {
+    expect(() => readPresentation(account([{ type: "AttributeValue", attributeTag: "countryOfResidence", attributeValue: "PH" }]))).toThrow(IdAppError);
+    const identity = { verifiableCredential: [{ type: ["VerifiableCredential", "ConcordiumIdBasedCredential"], credentialSubject: { id: "x", statement: [] } }] };
+    expect(() => readPresentation(identity as never)).toThrow(/account credential/);
+  });
+
+  it("is configured only with an anchor account and key", () => {
+    expect(idAppConfigFromEnv({})).toBeNull();
+    expect(idAppConfigFromEnv({ CONCORDIUM_ANCHOR_ACCOUNT: "4abc", CONCORDIUM_ANCHOR_KEY: "00" })).toMatchObject({
+      network: "Testnet",
+      grpcHost: "grpc.testnet.concordium.com",
+      grpcPort: 20000,
+    });
   });
 });

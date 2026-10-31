@@ -102,6 +102,16 @@ Starts a local Postgres (PGlite) on port 5433, migrates and seeds it (a badged a
 
 The stand-in adapters refuse to start unless `DATABASE_URL` points at localhost.
 
+## Concordium ID sign-in
+
+Workers sign in with the **Concordium ID App** (Verify & Access), with boreal's backend as the verifier (`packages/concordium/src/id-app.ts`, `@concordium/web-sdk` 12):
+
+1. `@concordium/verification-web-ui` shows a QR code and pairs with the ID App over WalletConnect (Reown).
+2. `POST /api/worker/verification/start` builds an account-based proof request (18 or older, reveal country of residence), anchors it on-chain, and stores it for one use within 15 minutes. Starts are rate limited (5 per IP per 10 minutes, 300 a day) because each anchor is a transaction.
+3. The app answers with a zero-knowledge proof; `POST /api/worker/verification/finish` checks it against the chain and the anchored request (`VerificationAuditRecordV1.createChecked`) and signs the worker in. The account credential's DID is the worker's pseudonym; boreal stores only that and the proven attributes.
+
+To turn it on, set in Vercel: `NEXT_PUBLIC_REOWN_PROJECT_ID`, `CONCORDIUM_ANCHOR_ACCOUNT` and `CONCORDIUM_ANCHOR_KEY` (a funded testnet account that pays for the anchors), and optionally `CONCORDIUM_NETWORK` (default `testnet`). Until then `/signin` offers only the tester invite.
+
 ## Worker app
 
 | Page | What the worker does |
