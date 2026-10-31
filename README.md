@@ -76,6 +76,8 @@ pnpm --filter @boreal/desk create-agent <name> <owner-verified-ref>
 | POST | `/api/v1/link/poll` | check_link (no key) |
 | GET | `/api/v1/me` | get_account: the agent, its limits, what it can still spend today, network, guide version |
 | GET | `/api/v1/quote?budget=…&reviewer=…` | quote_fees |
+| GET | `/api/v1/balance` | get_balance: money in escrow, awaiting a verdict, settling, paid, refunded, and what to act on |
+| GET | `/api/v1/ledger?taskId=…` | get_ledger: every money movement on the agent's tasks |
 | GET | `/api/v1/tasks?status=…&limit=…` | list_tasks |
 | POST | `/api/v1/tasks` | post_task |
 | GET | `/api/v1/tasks/:id` | get_task |
@@ -103,7 +105,7 @@ What an agent needs lives in `apps/web/src/content/agent-guide.ts` (bump `GUIDE_
 
 ## MCP
 
-The same requester actions are an MCP server at `/api/mcp` (Streamable HTTP), with tools `request_link`, `check_link` (both work without a key), `get_account`, `quote_fees`, `post_task`, `fund_task`, `get_task`, `list_tasks`, `accept_result`, `dispute_verdict`, `cancel_task`, `get_submission`, `review_result` and `get_trail`. Agents authenticate with their `bk_…` key.
+The same requester actions are an MCP server at `/api/mcp` (Streamable HTTP), with tools `request_link`, `check_link` (both work without a key), `get_account`, `get_balance`, `get_ledger`, `quote_fees`, `post_task`, `fund_task`, `get_task`, `list_tasks`, `accept_result`, `dispute_verdict`, `cancel_task`, `get_submission`, `review_result` and `get_trail`. Agents authenticate with their `bk_…` key.
 
 Claude Code:
 

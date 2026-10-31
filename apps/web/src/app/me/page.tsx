@@ -7,7 +7,7 @@ import { Eyebrow } from "@/components/brand";
 import { TaskCard } from "@/components/task-card";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { attributeLabel, workerHandle } from "@/lib/format";
+import { attributeLabel, usd, workerHandle } from "@/lib/format";
 import { getDesk } from "@/server/desk";
 import { workerFromSession } from "@/server/session";
 
@@ -49,6 +49,40 @@ async function Identity() {
             : "A one-way code made from your ID document. It's the same every time you sign in, and it can't be turned back into who you are."}
         </p>
       </div>
+    </section>
+  );
+}
+
+/** What this worker has earned: paid, settling, and passes still inside their objection window. */
+async function Earnings() {
+  const worker = await workerFromSession();
+  if (!worker) return null;
+  const earnings = await getDesk().getWorkerEarnings(worker);
+  const rows = [
+    { label: "Earnings", money: earnings.real, note: "Paid to your Concordium account." },
+    { label: "Test money", money: earnings.test, note: "From test tasks. Not real money." },
+  ].filter((r, i) => i === 0 || r.money.paid + r.money.settling + r.money.upcoming > 0);
+  return (
+    <section className="grid gap-3 sm:grid-cols-2">
+      {rows.map(({ label, money, note }) => (
+        <div key={label} className="flex flex-col gap-3 rounded-2xl border bg-card p-5">
+          <p className="text-sm font-semibold text-muted-foreground">{label}</p>
+          <p className="text-3xl font-semibold tabular-nums">{usd(money.paid)}</p>
+          <dl className="grid grid-cols-2 gap-2 text-sm">
+            <div>
+              <dt className="text-muted-foreground">On its way</dt>
+              <dd className="font-medium tabular-nums">{usd(money.settling)}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Passed, pending</dt>
+              <dd className="font-medium tabular-nums">{usd(money.upcoming)}</dd>
+            </div>
+          </dl>
+          <p className="text-xs text-muted-foreground">
+            {note} A pass is paid 48 hours after the verdict, or sooner if the requester accepts it.
+          </p>
+        </div>
+      ))}
     </section>
   );
 }
@@ -123,6 +157,9 @@ export default function MyTasksPage() {
       </div>
       <Suspense fallback={<div className="h-44 animate-pulse rounded-2xl bg-muted" />}>
         <Identity />
+      </Suspense>
+      <Suspense fallback={<div className="h-36 animate-pulse rounded-2xl bg-muted" />}>
+        <Earnings />
       </Suspense>
       <Suspense>
         <MyAgents />

@@ -457,3 +457,56 @@ describe("test tasks and owners", () => {
     expect((await desk.claimTask(ownerWorker, task.id)).status).toBe("claimed");
   });
 });
+
+describe("money views", () => {
+  it("shows the agent its money moving from escrow to the worker", async () => {
+    const quote = quoteFees(1_000);
+    const id = await submittedTask();
+    let balance = await desk.getBalance(requester);
+    expect(balance.inEscrow).toBe(quote.total);
+    expect(balance.totals.funded).toBe(quote.total);
+
+    await desk.recordVerdict(reviewer, id, { outcome: "pass", ruleIds: ["R4.1"], reasoning: "Shows item and tag" });
+    balance = await desk.getBalance(requester);
+    expect(balance.awaitingFinalVerdict).toBe(quote.total);
+    expect(balance.actions.acceptToPayNow.map((a) => a.taskId)).toEqual([id]);
+
+    await desk.acceptEarly(requester, id);
+    // Real money: entries wait for the transfer to confirm.
+    expect((await desk.taskMoneyFor(await desk.getTask(requester, id))).state).toBe("settling");
+    balance = await desk.getBalance(requester);
+    expect(balance.inEscrow).toBe(0);
+    expect(balance.settling).toBe(quote.total);
+    expect(balance.totals.paidToWorkers).toBe(quote.budget);
+
+    const ledger = await desk.getLedger(requester, { taskId: id });
+    expect(ledger.map((e) => e.what)).toEqual(
+      expect.arrayContaining(["funded into escrow", "paid to the worker", "review fee to the reviewer", "platform fee to boreal"]),
+    );
+    expect((await desk.getWorkerEarnings(manilaWorker)).real).toEqual({ paid: 0, settling: quote.budget, upcoming: 0 });
+    expect(await desk.getLedger(otherRequester, { taskId: id })).toEqual([]);
+  });
+
+  it("settles test money at once and keeps it apart from real earnings", async () => {
+    const [owner] = await db.insert(owners).values({ kind: "individual", verifiedRef: "owner-test-money" }).returning();
+    const [agent] = await db
+      .insert(agents)
+      .values({ ownerId: owner!.id, registryId: "registry-test-money", name: "tester", maxTaskBudget: 5_000, maxDailySpend: 50_000, testMode: true })
+      .returning();
+    const testAgent: Caller = { role: "requester", agentId: agent!.id };
+    const tester: Caller = { role: "worker", workerId: (await db.insert(workers).values({ pseudonym: "test:t", provenAttributes: { residency: "PH" }, testMode: true }).returning())[0]!.id };
+    const { task } = await desk.postTask(testAgent, taskInput({ reviewer: "requester" }));
+    await desk.fundTask(testAgent, task.id, { txHash: "test", amount: taskTotal(task) });
+    await desk.claimTask(tester, task.id);
+    await desk.submitResult(tester, task.id, { fileUrls: [`submissions/${task.id}/photo.jpg`] });
+    await desk.requesterReview(testAgent, task.id, { outcome: "pass", ruleIds: [], reasoning: "All criteria met" });
+    await desk.acceptEarly(testAgent, task.id);
+
+    expect((await desk.taskMoneyFor(await desk.getTask(testAgent, task.id))).state).toBe("paid_out");
+    expect((await desk.getLedger(testAgent))[0]).toMatchObject({ test: true, txHash: null });
+    const earnings = await desk.getWorkerEarnings(tester);
+    expect(earnings.test.paid).toBe(task.budget);
+    expect(earnings.real.paid).toBe(0);
+    await expectDeskError(desk.getBalance(tester), "forbidden");
+  });
+});

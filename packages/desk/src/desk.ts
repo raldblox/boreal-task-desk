@@ -38,6 +38,7 @@ import {
 
 import { DeskError, fromTransitionError } from "./errors";
 import { linkCommands } from "./links";
+import { moneyViews } from "./money-views";
 import { recordFunding, settle, taskTotal } from "./money";
 import { drainOutbox, type PayoutAddresses, reconcileEscrow } from "./outbox";
 import { appendEvent } from "./trail";
@@ -192,6 +193,7 @@ export function createDesk({
 
   return {
     ...linkCommands(db, now),
+    ...moneyViews(db),
 
     /** post_task: validates, applies the agent's limits and quotes fees. Screening comes next. */
     async postTask(caller: Caller, input: unknown) {

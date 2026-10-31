@@ -32,6 +32,19 @@ const taskId = z.uuid().describe("The task's id, as returned by post_task.");
 
 const usd = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
+/** A task's money view with amounts as dollars. */
+function moneyUsd(m: Awaited<ReturnType<ReturnType<typeof getDesk>["taskMoneyFor"]>>) {
+  return {
+    ...m,
+    total: usd(m.total),
+    funded: usd(m.funded),
+    inEscrow: usd(m.inEscrow),
+    paidOut: { worker: usd(m.paidOut.worker), reviewer: usd(m.paidOut.reviewer), platform: usd(m.paidOut.platform) },
+    refunded: usd(m.refunded),
+    settling: usd(m.settling),
+  };
+}
+
 /** What an agent needs to know about a task; internal fields stay out. */
 function summary(task: Task) {
   return {
@@ -167,6 +180,55 @@ export function registerTools(server: McpServer): void {
   );
 
   server.registerTool(
+    "get_balance",
+    {
+      title: "See where your money is",
+      description:
+        "Your money across all your tasks: how much is held in escrow, how much is waiting out a verdict's 48-hour " +
+        "window, what's settling, and totals paid to workers, fees and refunds. Also lists what you can act on now: " +
+        "tasks to fund, open tasks you can cancel for a full refund, passes you can accept to pay now, and results to review. " +
+        "Refunds go back automatically; there's nothing to withdraw.",
+      inputSchema: z.object({}),
+    },
+    tool(async (caller) => {
+      const b = await desk.getBalance(caller);
+      return {
+        ...b,
+        currency: "USD",
+        inEscrow: usd(b.inEscrow),
+        awaitingFinalVerdict: usd(b.awaitingFinalVerdict),
+        settling: usd(b.settling),
+        totals: Object.fromEntries(Object.entries(b.totals).map(([k, v]) => [k, usd(v)])),
+        actions: {
+          ...b.actions,
+          fund: b.actions.fund.map((a) => ({ ...a, total: usd(a.total) })),
+          cancelForRefund: b.actions.cancelForRefund.map((a) => ({ ...a, inEscrow: usd(a.inEscrow) })),
+        },
+        awaiting: b.awaiting.map((a) => ({ ...a, inEscrow: usd(a.inEscrow) })),
+      };
+    }, { writes: false }),
+  );
+
+  server.registerTool(
+    "get_ledger",
+    {
+      title: "List your money movements",
+      description:
+        "Every ledger entry on your tasks, newest first: funding into escrow, payouts to workers, fees and refunds, " +
+        "with status (pending until the transfer confirms, then settled) and the on-chain transaction when there is one. " +
+        "Test-money entries are marked test and never move on-chain.",
+      inputSchema: z.object({
+        taskId: taskId.optional(),
+        limit: z.number().int().min(1).max(200).optional(),
+      }),
+    },
+    tool(async (caller, args: { taskId?: string; limit?: number }) =>
+      (await desk.getLedger(caller, args)).map((e) => ({ ...e, amount: usd(e.amount) })),
+      { writes: false },
+    ),
+  );
+
+  server.registerTool(
     "quote_fees",
     {
       title: "Quote a task's total",
@@ -241,10 +303,15 @@ export function registerTools(server: McpServer): void {
     "get_task",
     {
       title: "Get a task",
-      description: "Status, money and verdict details for one of your tasks.",
+      description:
+        "Status, money and verdict details for one of your tasks, including where its money is now (escrow.state: " +
+        "not_funded, held, awaiting_final_verdict, settling, paid_out or refunded) and when a verdict becomes final.",
       inputSchema: z.object({ taskId }),
     },
-    tool(async (caller, { taskId: id }: { taskId: string }) => summary(await desk.getTask(caller, id)), { writes: false }),
+    tool(async (caller, { taskId: id }: { taskId: string }) => {
+      const task = await desk.getTask(caller, id);
+      return { ...summary(task), escrow: moneyUsd(await desk.taskMoneyFor(task)) };
+    }, { writes: false }),
   );
 
   server.registerTool(
