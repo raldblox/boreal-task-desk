@@ -1,7 +1,5 @@
 "use client";
 
-import "@concordium/verification-web-ui/styles";
-
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 

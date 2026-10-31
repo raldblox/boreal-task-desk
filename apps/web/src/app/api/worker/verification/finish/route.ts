@@ -27,7 +27,10 @@ export async function POST(request: Request) {
     await startWorkerSession(worker.id);
     return Response.json({ ok: true, attributes: verified.provenAttributes });
   } catch (error) {
-    if (error instanceof IdAppError) return Response.json({ error: "proof", message: error.message }, { status: 403 });
+    if (error instanceof IdAppError) {
+      console.warn(`[id-app] proof rejected: ${error.message}`);
+      return Response.json({ error: "proof", message: error.message }, { status: 403 });
+    }
     if (error instanceof DeskError) return Response.json({ error: error.code, message: error.message }, { status: 409 });
     console.error("[id-app] finish failed", error);
     return Response.json({ error: "chain", message: "Couldn't verify the proof right now. Try again." }, { status: 502 });

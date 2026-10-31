@@ -6,7 +6,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "next typegen && tsc --noEmit"
+    "typecheck": "next typegen && tsc --noEmit",
+    "vendor:concordium-css": "node scripts/vendor-concordium-css.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

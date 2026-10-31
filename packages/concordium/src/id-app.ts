@@ -111,6 +111,12 @@ export function createIdAppVerifier(config: IdAppConfig, grpc?: ConcordiumGRPCCl
       } catch {
         throw new IdAppError("the proof couldn't be read");
       }
+      // Logged without attribute values, so a rejected sign-in can be diagnosed.
+      console.info(
+        `[id-app] presentation with ${presentation.verifiableCredential.length} credential(s): ${presentation.verifiableCredential
+          .map((c) => `${(c.type as readonly string[]).at(-1)} [${c.credentialSubject.statement.map((st) => `${st.type}:${String(st.attributeTag)}`).join(", ")}]`)
+          .join("; ")}`,
+      );
       const checked = await VerificationAuditRecordV1.createChecked(auditId, request, presentation, client, config.network);
       if (checked.type === "failed") throw new IdAppError(`the proof didn't verify: ${checked.error.message}`);
       return readPresentation(presentation);
