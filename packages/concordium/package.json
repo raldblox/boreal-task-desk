@@ -7,9 +7,12 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "testnet:round-trip": "tsx --env-file-if-exists=.env.testnet scripts/testnet-round-trip.ts"
   },
   "dependencies": {
-    "@concordium/web-sdk": "12.0.2"
+    "@concordium/web-sdk": "12.0.2",
+    "@x402/concordium": "2.29.0",
+    "@x402/core": "2.29.0"
   }
 }

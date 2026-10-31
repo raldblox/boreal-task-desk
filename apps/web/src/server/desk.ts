@@ -11,6 +11,7 @@ import {
   type Desk,
   DeskError,
   ledgerEscrowBalance,
+  outboxTransferJournal,
   taskTotal,
   verifyAgentKey,
 } from "@boreal/desk";
@@ -26,7 +27,10 @@ let concordium: Concordium | null | undefined;
 /** The configured adapters, or null when `CONCORDIUM_MODE` is unset (payments and sign-in off). */
 export function getConcordium(): Concordium | null {
   if (concordium === undefined) {
-    concordium = loadConcordium(process.env, { escrowBalance: () => ledgerEscrowBalance(getDb()) });
+    concordium = loadConcordium(process.env, {
+      escrowBalance: () => ledgerEscrowBalance(getDb()),
+      journal: outboxTransferJournal(getDb()),
+    });
   }
   return concordium;
 }

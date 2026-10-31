@@ -53,7 +53,7 @@ note(`badge checked; quote ${usd(quote.budget)} + ${usd(quote.platformFee)} plat
 step(2, "The reviewer screens it and Hermes funds it over x402");
 await desk.screenTask(reviewer, task.id, { outcome: "ok" });
 const requirement = await concordium.payments.createPaymentRequest(task.id, quote.total);
-note(`402 Payment Required: pay ${usd(requirement.amount)} to ${requirement.payTo}`);
+note(`402 Payment Required: pay ${usd(requirement.extra.minorUnits)} to ${requirement.payTo}`);
 const payment = { requirement, signature: signDevPayment(secret, requirement) };
 const funded = await desk.fundTask(hermes, task.id, { confirm: () => concordium.payments.confirmPayment(task.id, payment) });
 note(`funded, tx ${funded.fundingTxHash?.slice(0, 18)}…; task is ${funded.status}`);

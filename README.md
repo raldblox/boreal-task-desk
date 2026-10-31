@@ -83,9 +83,9 @@ pnpm --filter @boreal/desk create-agent <name> <owner-verified-ref>
 | POST | `/api/v1/tasks/:id/cancel` | cancel_task |
 | POST | `/api/v1/tasks/:id/accept` | accept_result (early) |
 | POST | `/api/v1/tasks/:id/dispute` | dispute_verdict |
-| POST | `/api/v1/tasks/:id/fund` | fund_task over x402: 402 with what to pay, then retry with `X-PAYMENT` |
+| POST | `/api/v1/tasks/:id/fund` | fund_task over x402 v2: 402 with what to pay, then retry with `PAYMENT-SIGNATURE` (or `X-PAYMENT`) |
 
-Funding needs Concordium adapters (`CONCORDIUM_MODE`), so it answers 503 on production until the testnet adapters land, except for test agents (below).
+Funding needs Concordium adapters (`CONCORDIUM_MODE`, see [Money path](#money-path-concordium-testnet)); without them it answers 503, except for test agents (below).
 
 | Method | Path | Does |
 | --- | --- | --- |
@@ -134,6 +134,40 @@ Workers sign in with the **Concordium ID App** (Verify & Access), with boreal's 
 On a computer, workers can use the **Concordium Wallet for Web** extension instead: the browser calls the same start route, passes the anchored request to `window.concordium.requestVerifiablePresentationV1`, and posts the answer to the same finish route. Same request, same checks, same pseudonym.
 
 To turn it on, set in Vercel: `NEXT_PUBLIC_REOWN_PROJECT_ID`, `CONCORDIUM_ANCHOR_ACCOUNT` and `CONCORDIUM_ANCHOR_KEY` (a funded testnet account that pays for the anchors), `CONCORDIUM_PSEUDONYM_SECRET` (never change it), and optionally `CONCORDIUM_NETWORK` (default `testnet`). The ID App's modal is scoped to `#concordium-modal-root` (`pnpm --filter @boreal/web vendor:concordium-css` after upgrading it). Until then `/signin` offers only the tester invite.
+
+## Money path (Concordium testnet)
+
+`CONCORDIUM_MODE=testnet` (`packages/concordium/src/testnet.ts`) moves real test tokens on Concordium testnet, so every movement can be looked up on [CCDExplorer](https://ccdexplorer.io/testnet):
+
+- **Currency.** A protocol-level token (PLT), USDR by default (StablR's USD token, the x402 default asset on Concordium, 6 decimals). boreal keeps cents; the adapter scales them by the token's on-chain decimals.
+- **Funding is x402 `exact`** as Concordium's own mechanism defines it ([`@x402/concordium`](https://github.com/coinbase/x402/blob/main/specs/schemes/exact/scheme_exact_concordium.md), network `ccd:4221332d34e1694168c2a0c0b3fd0f27`). The 402 names the escrow account as `payTo` and boreal's sponsor as `extra.feePayer`; the agent signs a sponsored PLT transfer (sender signature only) and sends it back as `PAYMENT-SIGNATURE`. boreal is its own facilitator: inside `fundTask`'s checks it runs the package's verification (exact amount, recipient, token, expiry, sender signature against the chain, nonce and balance), adds the sponsor's signature, submits it and waits for finalization. Agents need no CCD. boreal's fields (task, cents, expiry) ride in `extra` with an HMAC seal, so a changed amount or task is refused before anything moves.
+- **Escrow** is one dedicated account that holds only open tasks' money and never pays fees. The monitor compares its token balance with the ledger every tick and stops payouts on any gap.
+- **Payouts and refunds** are sponsored PLT transfers out of escrow (the sponsor pays the fee), with a memo that is a short hash of the ledger key. Each is journaled on its outbox row (`payload.sent`: hash and expiry) before it is sent, so a retry asks the chain about the first attempt and sends again only once that one can never execute. One ledger key never pays twice.
+- **Anchors** register `boreal:<event hash>` (CBOR text) as data from the anchor account.
+
+### Environment
+
+| Variable | What |
+| --- | --- |
+| `CONCORDIUM_MODE` | `testnet` |
+| `CONCORDIUM_ESCROW_ACCOUNT`, `CONCORDIUM_ESCROW_KEY` | The escrow account and its signing key (hex). Its own account: never the sponsor or anchor account |
+| `CONCORDIUM_SPONSOR_ACCOUNT`, `CONCORDIUM_SPONSOR_KEY` | Pays every fee (holds CCD only). Defaults to the anchor account |
+| `CONCORDIUM_ANCHOR_ACCOUNT`, `CONCORDIUM_ANCHOR_KEY` | Pays for anchors (the same account as Concordium ID sign-in) |
+| `CONCORDIUM_TOKEN_ID` | The task currency's token id, default `USDR` |
+| `CONCORDIUM_PAYMENT_SECRET` | 32+ characters; seals payment requirements |
+| `CONCORDIUM_GRPC_HOST`, `CONCORDIUM_GRPC_PORT` | Default `grpc.testnet.concordium.com:20000` |
+| `OPERATING_ACCOUNT_ADDRESS`, `REVIEWER_ADDRESSES` | Where platform fees and review fees go (`ref=address,…`) |
+
+Testnet mode refuses `CONCORDIUM_NETWORK=mainnet`. Workers' payouts go to their `payoutAddress` and refunds to the agent's `refundAddress`. If the token has an allow list, escrow and every payee must be on it. With testnet mode on, posting needs an active Agent Registry badge, and workers sign in only with the Concordium ID App.
+
+### One real round trip
+
+```bash
+pnpm --filter @boreal/concordium testnet:round-trip
+pnpm --filter @boreal/concordium testnet:round-trip -- --yes 100
+```
+
+Reads the variables above from the environment or `packages/concordium/.env.testnet` (git-ignored), plus a paying agent account (`CONCORDIUM_TEST_PAYER_ACCOUNT`, `CONCORDIUM_TEST_PAYER_KEY`, holding some of the token) and optionally `CONCORDIUM_TEST_PAYOUT_ACCOUNT` (default: back to the payer). Without `--yes` it only prints the accounts and the 402. With it, it funds escrow over x402, pays the amount back out as a sponsored transfer, anchors a hash, and prints each transaction's CCDExplorer link.
 
 ## Worker app
 
