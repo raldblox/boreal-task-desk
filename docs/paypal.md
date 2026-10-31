@@ -51,6 +51,8 @@ The money is held on the payer's PayPal account until the task is final, so an a
    PAYPAL_SANDBOX_WORKER_EMAIL=worker@personal.example.com
    ```
 
+   The worker email must be a sandbox **Personal** account (`…@personal.example.com`), not the app's Business account. Paying the business account from itself fails with `SELF_PAY_NOT_ALLOWED`.
+
 3. Run the loop. It prints an approval link. Approve it as the sandbox buyer, and the script funds, completes, reviews, captures and pays out:
 
    ```bash
@@ -76,4 +78,4 @@ boreal's MCP server (`/api/mcp`) is the agent's side of the desk: `post_task`, `
 - **Fees.** PayPal's processing fee on a capture comes out of boreal's side. The platform fee has to cover it.
 - **Escrow check.** boreal's PayPal balance also holds its fees, net of PayPal's own. So on PayPal the escrow balance is read from the ledger, and each capture and payout is reconciled one by one through webhooks.
 - **Worker email.** A PayPal email is personal data. It is stored only in boreal's database, never on-chain.
-- **Not yet verified against the live sandbox.** The tests use an in-memory PayPal. The sandbox loop script is ready, but has not been run, because no sandbox credentials are set up yet.
+- **Verified against the live sandbox up to the payouts.** The order, authorization and capture ran against the real PayPal sandbox on 2026-11-02, and the payout batches were accepted. The tests use an in-memory PayPal.

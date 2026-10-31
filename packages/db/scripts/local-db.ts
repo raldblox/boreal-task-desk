@@ -59,7 +59,7 @@ const env = {
   OPERATING_ACCOUNT_ADDRESS: "dev-acct-boreal",
   // On PayPal the AI reviewer's fee is paid out like any other; point it at a sandbox account.
   REVIEWER_ADDRESSES: paypal
-    ? `boreal-ai-reviewer=${process.env.PAYPAL_SANDBOX_REVIEWER_EMAIL ?? process.env.PAYPAL_SANDBOX_WORKER_EMAIL ?? ""}`
+    ? `boreal-ai-reviewer=${process.env.PAYPAL_SANDBOX_REVIEWER_EMAIL || process.env.PAYPAL_SANDBOX_WORKER_EMAIL || ""}`
     : "boreal-ai-reviewer=dev-acct-reviewer",
   // Real Concordium ID and payout settings from .env.local stay off locally.
   CONCORDIUM_ANCHOR_ACCOUNT: "",

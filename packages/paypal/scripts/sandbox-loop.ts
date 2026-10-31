@@ -17,7 +17,7 @@ import { loadPayPal, type PayPalOrder, payoutUpdateFrom, toValue } from "../src/
 
 const workerEmail = process.env.PAYPAL_SANDBOX_WORKER_EMAIL;
 if (!workerEmail) throw new Error("set PAYPAL_SANDBOX_WORKER_EMAIL to a sandbox personal account's email");
-const reviewerEmail = process.env.PAYPAL_SANDBOX_REVIEWER_EMAIL ?? workerEmail;
+const reviewerEmail = process.env.PAYPAL_SANDBOX_REVIEWER_EMAIL || workerEmail;
 const useCard = process.argv.includes("--card");
 
 const { db, close } = await createTestDb();
@@ -60,6 +60,7 @@ let orderId: string;
 if (useCard) {
   // PayPal's sandbox test card: the order is ready to authorize with no approval page.
   const order = await paypal.client.request<PayPalOrder>("POST", "/v2/checkout/orders", {
+    requestId: `${task.id}:card-order`,
     body: {
       intent: "AUTHORIZE",
       purchase_units: [{ custom_id: task.id, amount: { currency_code: "USD", value: toValue(quote.total) } }],

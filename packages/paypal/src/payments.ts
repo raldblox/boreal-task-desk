@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import type { ConfirmedPayment, PaymentRequirement, Payments } from "@boreal/concordium";
 
 import { createPayPalClient, fromValue, type PayPalClient, type PayPalClientOptions, PayPalError, toValue } from "./client";
@@ -73,6 +75,8 @@ export function createPayPalPayments(options: PayPalPaymentsOptions): PayPalPaym
 
     async createPaymentRequest(taskId, amount): Promise<PaymentRequirement> {
       const order = await client.request<PayPalOrder>("POST", "/v2/checkout/orders", {
+        // PayPal requires a request id on orders that name a payment source. Each call is a new order.
+        requestId: `${taskId}:order:${randomUUID()}`,
         body: {
           intent: "AUTHORIZE",
           purchase_units: [
