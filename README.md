@@ -40,7 +40,15 @@ pnpm db:migrate
 
 ## Deploying
 
-Pushing to `main` deploys `apps/web` to production on Vercel (region `sin1`, next to the Neon database). The monitor loop in `apps/worker` is not deployed yet; it needs a long-running host or Vercel Cron.
+Pushing to `main` deploys `apps/web` to production on Vercel (region `sin1`, next to the Neon database).
+
+The monitor (timers, AI review, escrow check, outbox) is one idempotent tick in `packages/monitor`, guarded by a database lease so only one runs at a time. On production it runs:
+
+- right after writes (posting, funding, submitting, accepting, disputing), in the background via `after()`;
+- from `GET /api/cron/tick` with `Authorization: Bearer $CRON_SECRET`: Vercel Cron calls it daily, and any scheduler (such as a Hermes agent) can call it every few minutes;
+- locally, `apps/worker` loops it.
+
+`CRON_SECRET` is in the Vercel project (production and development) and in `.env.local`.
 
 ## API
 

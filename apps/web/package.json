@@ -16,6 +16,7 @@
     "@boreal/db": "workspace:*",
     "@boreal/desk": "workspace:*",
     "@boreal/files": "workspace:*",
+    "@boreal/monitor": "workspace:*",
     "@modelcontextprotocol/server": "^2.4.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.1",

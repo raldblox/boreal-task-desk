@@ -6,7 +6,10 @@ import { type Caller, DeskError, taskTotal } from "@boreal/desk";
 import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 
+import { after } from "next/server";
+
 import { getConcordium, getDesk } from "./desk";
+import { kickMonitor } from "./monitor";
 
 // The requester tools, as an agent sees them. Each one is a thin wrapper over the desk,
 // so MCP, REST and A2A always behave the same.
@@ -43,12 +46,14 @@ function summary(task: Task) {
 const ok = (value: unknown): ToolResult => ({ content: [{ type: "text", text: JSON.stringify(value, null, 2) }] });
 
 /** Resolves the agent from the verified key and turns desk refusals into tool errors. */
-function tool<A>(run: (caller: Caller, args: A) => Promise<unknown>) {
+function tool<A>(run: (caller: Caller, args: A) => Promise<unknown>, { writes = true } = {}) {
   return async (args: A, ctx: ToolContext): Promise<ToolResult> => {
     const agentId = ctx.http?.authInfo?.clientId;
     if (!agentId) return { isError: true, content: [{ type: "text", text: "unauthorized: no agent key" }] };
     try {
-      return ok(await run({ role: "requester", agentId }, args));
+      const result = ok(await run({ role: "requester", agentId }, args));
+      if (writes) after(kickMonitor);
+      return result;
     } catch (error) {
       if (error instanceof DeskError) {
         return { isError: true, content: [{ type: "text", text: `${error.code}: ${error.message}` }] };
@@ -120,7 +125,7 @@ export function registerTools(server: McpServer): void {
       description: "Status, money and verdict details for one of your tasks.",
       inputSchema: z.object({ taskId }),
     },
-    tool(async (caller, { taskId: id }: { taskId: string }) => summary(await desk.getTask(caller, id))),
+    tool(async (caller, { taskId: id }: { taskId: string }) => summary(await desk.getTask(caller, id)), { writes: false }),
   );
 
   server.registerTool(
@@ -135,6 +140,7 @@ export function registerTools(server: McpServer): void {
     },
     tool(async (caller, args: { status?: (typeof TASK_STATUSES)[number]; limit?: number }) =>
       (await desk.listTasks(caller, args)).map(summary),
+      { writes: false },
     ),
   );
 
@@ -181,6 +187,6 @@ export function registerTools(server: McpServer): void {
       description: "Every event on the task, hash-chained and anchored on Concordium, oldest first.",
       inputSchema: z.object({ taskId }),
     },
-    tool(async (caller, { taskId: id }: { taskId: string }) => desk.getTrail(caller, id)),
+    tool(async (caller, { taskId: id }: { taskId: string }) => desk.getTrail(caller, id), { writes: false }),
   );
 }

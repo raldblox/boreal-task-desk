@@ -184,3 +184,10 @@ export const outbox = pgTable(
   },
   (t) => [index("outbox_due_idx").on(t.doneAt, t.nextAttemptAt)],
 );
+
+/** Named leases, so only one monitor tick runs at a time across the worker, cron and the app. */
+export const leases = pgTable("leases", {
+  name: text("name").primaryKey(),
+  holder: text("holder").notNull(),
+  until: timestamp("until", { withTimezone: true }).notNull(),
+});

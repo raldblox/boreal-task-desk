@@ -11,7 +11,10 @@ import {
   verifyAgentKey,
 } from "@boreal/desk";
 
+import { after } from "next/server";
+
 import { getDb } from "./db";
+import { kickMonitor } from "./monitor";
 
 let desk: Desk | undefined;
 let concordium: Concordium | null | undefined;
@@ -62,7 +65,10 @@ export async function asRequester(
     );
   }
   try {
-    return await action(caller);
+    const response = await action(caller);
+    // A write may unblock screening, review or payouts; run them now rather than at the next cron.
+    if (request.method !== "GET" && response.ok) after(kickMonitor);
+    return response;
   } catch (error) {
     if (error instanceof DeskError) {
       return Response.json({ error: error.code, message: error.message }, { status: STATUS[error.code] });

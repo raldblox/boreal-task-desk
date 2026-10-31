@@ -3,10 +3,12 @@
 import { type Caller, DeskError } from "@boreal/desk";
 import type { ProofRequest } from "@boreal/concordium";
 import { refresh } from "next/cache";
+import { after } from "next/server";
 import { redirect } from "next/navigation";
 
 import { getDesk } from "@/server/desk";
 import { FileRejected, saveSubmissionFile } from "@/server/files";
+import { kickMonitor } from "@/server/monitor";
 import { endWorkerSession, startWorkerSession, workerFromSession } from "@/server/session";
 
 export type ActionState = { error?: string } | null;
@@ -22,6 +24,7 @@ async function asWorker(action: (worker: Caller) => Promise<void>): Promise<Acti
     console.error("[worker action] failed", error);
     return { error: "Something went wrong. Try again." };
   }
+  after(kickMonitor); // e.g. a new submission gets reviewed within seconds
   refresh();
   return null;
 }
