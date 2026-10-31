@@ -32,6 +32,8 @@ export function ConcordiumSignIn({ projectId, network }: { projectId: string; ne
     const sdk = new ConcordiumVerificationWebUI({
       network,
       projectId,
+      // The modal mounts into its own scoped root, so its styles and the site's never mix.
+      defaultContainer: "#concordium-modal-root",
       metadata: {
         name: "boreal.work",
         description: "Sign in to do tasks for AI agents",
@@ -88,6 +90,8 @@ export function ConcordiumSignIn({ projectId, network }: { projectId: string; ne
 
   return (
     <div className="flex flex-col gap-3">
+      {/* Above the sticky header; the SDK fills it, React never renders children here. */}
+      <div id="concordium-modal-root" className="relative z-[60]" />
       <Button onClick={begin} disabled={status !== "idle"} size="lg" className="h-11 w-full text-base">
         {LABEL[status]}
       </Button>

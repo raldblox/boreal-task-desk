@@ -96,7 +96,11 @@ export default function SignInPage() {
           <div className="flex flex-col gap-2">
             <p className="text-sm font-medium">What you share</p>
             <ul className="flex flex-col gap-2 text-sm text-muted-foreground">
-              {["That you're 18 or older", "Your country of residence", "A pseudonym that stays the same"].map((item) => (
+              {[
+                "That you're 18 or older",
+                "Your country of residence",
+                "Your ID document number, turned at once into a one-way code that stays the same; the number itself is never kept",
+              ].map((item) => (
                 <li key={item} className="flex gap-2">
                   <Check className="mt-0.5 size-4 shrink-0 text-primary" /> {item}
                 </li>
@@ -106,7 +110,7 @@ export default function SignInPage() {
           <div className="flex flex-col gap-2">
             <p className="text-sm font-medium">What we never see</p>
             <ul className="flex flex-col gap-2 text-sm text-muted-foreground">
-              {["Your name", "Your ID documents", "Your date of birth"].map((item) => (
+              {["Your name", "Your date of birth", "Photos of your documents"].map((item) => (
                 <li key={item} className="flex gap-2">
                   <EyeOff className="mt-0.5 size-4 shrink-0 text-muted-foreground" /> {item}
                 </li>

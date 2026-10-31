@@ -69,40 +69,54 @@ describe("loadConcordium", () => {
 });
 
 describe("Concordium ID App presentations", () => {
-  const account = (statement: object[]) =>
+  const secret = "p".repeat(32);
+  const identity = (statement: object[], issuer = "did:ccd:testnet:idp:0") =>
     ({
       verifiableCredential: [
         {
-          type: ["VerifiableCredential", "ConcordiumVerifiableCredentialV1", "ConcordiumAccountBasedCredential"],
-          credentialSubject: { id: "did:ccd:testnet:cred:a1b2", statement },
+          type: ["VerifiableCredential", "ConcordiumVerifiableCredentialV1", "ConcordiumIdBasedCredential"],
+          issuer,
+          credentialSubject: { id: "ephemeral-changes-every-time", statement },
         },
       ],
     }) as unknown as Parameters<typeof readPresentation>[0];
+  const full = [
+    { type: "AttributeInRange", attributeTag: "dob", lower: "18000101", upper: "20081102" },
+    { type: "AttributeValue", attributeTag: "countryOfResidence", attributeValue: "PH" },
+    { type: "AttributeValue", attributeTag: "idDocNo", attributeValue: "P1234567" },
+    { type: "AttributeValue", attributeTag: "idDocIssuer", attributeValue: "PH" },
+  ];
 
-  it("reads the account DID, the age proof and the revealed country", () => {
-    const worker = readPresentation(
-      account([
-        { type: "AttributeInRange", attributeTag: "dob", lower: "18000101", upper: "20081102" },
-        { type: "AttributeValue", attributeTag: "countryOfResidence", attributeValue: "PH" },
-      ]),
-    );
-    expect(worker).toEqual({ pseudonym: "did:ccd:testnet:cred:a1b2", provenAttributes: { residency: "PH", age_over_18: "true" } });
+  it("derives a stable pseudonym without keeping the document number", () => {
+    const first = readPresentation(identity(full), secret);
+    const again = readPresentation(identity(full), secret);
+    expect(first.pseudonym).toBe(again.pseudonym);
+    expect(first.pseudonym).toMatch(/^ccdid:[0-9a-f]{64}$/);
+    expect(JSON.stringify(first)).not.toContain("P1234567");
+    expect(first.provenAttributes).toEqual({ age_over_18: "true", residency: "PH" });
   });
 
-  it("rejects a proof without the age statement, or from an identity credential", () => {
-    expect(() => readPresentation(account([{ type: "AttributeValue", attributeTag: "countryOfResidence", attributeValue: "PH" }]))).toThrow(IdAppError);
-    const identity = { verifiableCredential: [{ type: ["VerifiableCredential", "ConcordiumIdBasedCredential"], credentialSubject: { id: "x", statement: [] } }] };
-    expect(() => readPresentation(identity as never)).toThrow(/account credential/);
+  it("gives different people, providers or secrets different pseudonyms", () => {
+    const base = readPresentation(identity(full), secret).pseudonym;
+    const other = full.map((st) => (st.attributeTag === "idDocNo" ? { ...st, attributeValue: "P7654321" } : st));
+    expect(readPresentation(identity(other), secret).pseudonym).not.toBe(base);
+    expect(readPresentation(identity(full, "did:ccd:testnet:idp:3"), secret).pseudonym).not.toBe(base);
+    expect(readPresentation(identity(full), "q".repeat(32)).pseudonym).not.toBe(base);
   });
 
-  it("is configured only with an anchor account and key", () => {
-    expect(idAppConfigFromEnv({})).toBeNull();
+  it("rejects a proof without the age statement or document details, or an account credential", () => {
+    expect(() => readPresentation(identity(full.slice(1)), secret)).toThrow(/18 or older/);
+    expect(() => readPresentation(identity(full.slice(0, 2)), secret)).toThrow(/document/);
+    const account = { verifiableCredential: [{ type: ["VerifiableCredential", "ConcordiumAccountBasedCredential"], credentialSubject: { id: "x", statement: full } }] };
+    expect(() => readPresentation(account as never, secret)).toThrow(IdAppError);
+  });
+
+  it("is configured only with an anchor account, key and pseudonym secret", () => {
     const account = "4".padEnd(50, "a");
-    expect(idAppConfigFromEnv({ CONCORDIUM_ANCHOR_ACCOUNT: `0x${"a".repeat(40)}`, CONCORDIUM_ANCHOR_KEY: `0x${"1".repeat(64)}` })).toBeNull();
-    expect(idAppConfigFromEnv({ CONCORDIUM_ANCHOR_ACCOUNT: account, CONCORDIUM_ANCHOR_KEY: "1".repeat(64) })).toMatchObject({
-      network: "Testnet",
-      grpcHost: "grpc.testnet.concordium.com",
-      grpcPort: 20000,
-    });
+    const env = { CONCORDIUM_ANCHOR_ACCOUNT: account, CONCORDIUM_ANCHOR_KEY: "1".repeat(64), CONCORDIUM_PSEUDONYM_SECRET: secret };
+    expect(idAppConfigFromEnv({})).toBeNull();
+    expect(idAppConfigFromEnv({ ...env, CONCORDIUM_PSEUDONYM_SECRET: undefined })).toBeNull();
+    expect(idAppConfigFromEnv({ ...env, CONCORDIUM_ANCHOR_ACCOUNT: `0x${"a".repeat(40)}` })).toBeNull();
+    expect(idAppConfigFromEnv(env)).toMatchObject({ network: "Testnet", grpcHost: "grpc.testnet.concordium.com", grpcPort: 20000 });
   });
 });

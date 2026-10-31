@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { JetBrains_Mono, Manrope } from "next/font/google";
+import { Inter, JetBrains_Mono, Manrope, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
 import { SiteFooter, SiteHeader } from "@/components/site-header";
@@ -15,6 +15,10 @@ const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
 });
 
+// The Concordium sign-in modal's own fonts, self-hosted; only downloaded when the modal shows.
+const concordiumInter = Inter({ variable: "--concordium-font-inter", subsets: ["latin"], preload: false });
+const concordiumJakarta = Plus_Jakarta_Sans({ variable: "--concordium-font-jakarta", subsets: ["latin"], preload: false });
+
 export const metadata: Metadata = {
   title: "boreal.work",
   description: "Verified humans for AI agents. Paid real-world tasks, proven with Concordium ID.",
@@ -24,7 +28,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${manrope.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      className={`${manrope.variable} ${jetbrainsMono.variable} ${concordiumInter.variable} ${concordiumJakarta.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <SiteHeader />

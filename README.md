@@ -107,10 +107,10 @@ The stand-in adapters refuse to start unless `DATABASE_URL` points at localhost.
 Workers sign in with the **Concordium ID App** (Verify & Access), with boreal's backend as the verifier (`packages/concordium/src/id-app.ts`, `@concordium/web-sdk` 12):
 
 1. `@concordium/verification-web-ui` shows a QR code and pairs with the ID App over WalletConnect (Reown).
-2. `POST /api/worker/verification/start` builds an account-based proof request (18 or older, reveal country of residence), anchors it on-chain, and stores it for one use within 15 minutes. Starts are rate limited (5 per IP per 10 minutes, 300 a day) because each anchor is a transaction.
-3. The app answers with a zero-knowledge proof; `POST /api/worker/verification/finish` checks it against the chain and the anchored request (`VerificationAuditRecordV1.createChecked`) and signs the worker in. The account credential's DID is the worker's pseudonym; boreal stores only that and the proven attributes.
+2. `POST /api/worker/verification/start` builds an identity proof request (18 or older; reveal country of residence, ID document number and issuer), anchors it on-chain, and stores it for one use within 15 minutes. Starts are rate limited (5 per IP per 10 minutes, 300 a day) because each anchor is a transaction.
+3. The app answers with a zero-knowledge proof; `POST /api/worker/verification/finish` checks it against the chain and the anchored request (`VerificationAuditRecordV1.createChecked`) and signs the worker in. Identity proofs carry no stable ID, so the pseudonym is an HMAC (keyed by `CONCORDIUM_PSEUDONYM_SECRET`) of the identity provider, document issuer and document number: one worker per person. The document number is never stored or logged; boreal keeps only the pseudonym and the proven attributes.
 
-To turn it on, set in Vercel: `NEXT_PUBLIC_REOWN_PROJECT_ID`, `CONCORDIUM_ANCHOR_ACCOUNT` and `CONCORDIUM_ANCHOR_KEY` (a funded testnet account that pays for the anchors), and optionally `CONCORDIUM_NETWORK` (default `testnet`). Until then `/signin` offers only the tester invite.
+To turn it on, set in Vercel: `NEXT_PUBLIC_REOWN_PROJECT_ID`, `CONCORDIUM_ANCHOR_ACCOUNT` and `CONCORDIUM_ANCHOR_KEY` (a funded testnet account that pays for the anchors), `CONCORDIUM_PSEUDONYM_SECRET` (never change it), and optionally `CONCORDIUM_NETWORK` (default `testnet`). The ID App's modal is scoped to `#concordium-modal-root` (`pnpm --filter @boreal/web vendor:concordium-css` after upgrading it). Until then `/signin` offers only the tester invite.
 
 ## Worker app
 

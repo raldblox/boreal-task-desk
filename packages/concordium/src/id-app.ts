@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { createHmac, randomBytes } from "node:crypto";
 
 import { AccountAddress, buildBasicAccountSigner, type ConcordiumGRPCClient, IdentityProviderDID } from "@concordium/web-sdk";
 import { ConcordiumGRPCNodeClient, credentials } from "@concordium/web-sdk/nodejs";
@@ -7,11 +7,12 @@ import { VerifiablePresentationV1, VerificationAuditRecordV1, VerificationReques
 import type { VerifiedWorker } from "./index";
 
 // Concordium ID App sign-in (Verify & Access), with boreal's backend as the verifier:
-// 1. start: build an account-based proof request (18+, reveal country of residence),
-//    anchor it on-chain, and hand it to the browser to send to the ID App.
+// 1. start: build an identity proof request (18+, reveal country of residence, ID document
+//    number and issuer), anchor it on-chain, and hand it to the browser for the ID App.
 // 2. finish: check the returned presentation against the chain and the anchored request.
-// The account credential's DID becomes the worker's pseudonym: stable per account, no
-// personal data.
+// Identity proofs carry no stable ID, so the worker's pseudonym is a keyed hash of the
+// identity provider, document issuer and document number: one worker per person. The
+// document number is never stored or logged.
 
 export interface IdAppConfig {
   network: "Testnet" | "Mainnet";
@@ -21,6 +22,8 @@ export interface IdAppConfig {
   anchorAccount: string;
   /** That account's private signing key (hex). */
   anchorKey: string;
+  /** Keys the pseudonym hash. Must never change, or every worker becomes a new one. */
+  pseudonymSecret: string;
 }
 
 export class IdAppError extends Error {
@@ -42,8 +45,16 @@ const CONTEXT = "Sign in to boreal.work as a worker";
 
 /** Reads the config from the environment; null when Concordium ID sign-in isn't configured. */
 export function idAppConfigFromEnv(env: Record<string, string | undefined> = process.env): IdAppConfig | null {
-  const { CONCORDIUM_ANCHOR_ACCOUNT: anchorAccount, CONCORDIUM_ANCHOR_KEY: anchorKey } = env;
+  const {
+    CONCORDIUM_ANCHOR_ACCOUNT: anchorAccount,
+    CONCORDIUM_ANCHOR_KEY: anchorKey,
+    CONCORDIUM_PSEUDONYM_SECRET: pseudonymSecret,
+  } = env;
   if (!anchorAccount || !anchorKey) return null;
+  if (!pseudonymSecret || pseudonymSecret.length < 32) {
+    console.error("[id-app] CONCORDIUM_PSEUDONYM_SECRET (32+ characters) is required; sign-in stays off");
+    return null;
+  }
   // Concordium addresses are base58 (50 characters) and signing keys 32-byte hex; an Ethereum-style
   // 0x address or key here would fail on every sign-in, so refuse it up front.
   if (!/^[1-9A-HJ-NP-Za-km-z]{50}$/.test(anchorAccount) || !/^[0-9a-fA-F]{64}$/.test(anchorKey)) {
@@ -56,24 +67,32 @@ export function idAppConfigFromEnv(env: Record<string, string | undefined> = pro
     grpcPort: Number(env.CONCORDIUM_GRPC_PORT || 20000),
     anchorAccount,
     anchorKey,
+    pseudonymSecret,
   };
 }
 
-/** The account credential DID and the revealed country, read from a verified presentation. */
-export function readPresentation(presentation: VerifiablePresentationV1.Type): VerifiedWorker {
+/** The worker's pseudonym and proven attributes, read from a verified identity presentation. */
+export function readPresentation(presentation: VerifiablePresentationV1.Type, pseudonymSecret: string): VerifiedWorker {
   const credential = presentation.verifiableCredential[0];
-  if (!credential || !(credential.type as readonly string[]).includes("ConcordiumAccountBasedCredential")) {
-    throw new IdAppError("sign in with an account credential from your Concordium ID App");
+  if (!credential || !(credential.type as readonly string[]).includes("ConcordiumIdBasedCredential")) {
+    throw new IdAppError("sign in with your identity in the Concordium ID App");
   }
-  const attributes: Record<string, string> = {};
+  const revealed: Record<string, string> = {};
+  let adult = false;
   for (const statement of credential.credentialSubject.statement) {
-    if (statement.type === "AttributeValue" && statement.attributeTag === "countryOfResidence") {
-      attributes.residency = String(statement.attributeValue);
-    }
-    if (statement.type === "AttributeInRange" && statement.attributeTag === "dob") attributes.age_over_18 = "true";
+    if (statement.type === "AttributeValue") revealed[String(statement.attributeTag)] = String(statement.attributeValue);
+    if (statement.type === "AttributeInRange" && statement.attributeTag === "dob") adult = true;
   }
-  if (attributes.age_over_18 !== "true") throw new IdAppError("the proof doesn't show you are 18 or older");
-  return { pseudonym: String(credential.credentialSubject.id), provenAttributes: attributes };
+  if (!adult) throw new IdAppError("the proof doesn't show you are 18 or older");
+  if (!revealed.idDocNo || !revealed.idDocIssuer) throw new IdAppError("the proof is missing the ID document details");
+
+  // Stable per person and identity provider, and meaningless without the secret.
+  const pseudonym = `ccdid:${createHmac("sha256", pseudonymSecret)
+    .update(`${credential.issuer}|${revealed.idDocIssuer}|${revealed.idDocNo}`)
+    .digest("hex")}`;
+  const attributes: Record<string, string> = { age_over_18: "true" };
+  if (revealed.countryOfResidence) attributes.residency = revealed.countryOfResidence;
+  return { pseudonym, provenAttributes: attributes };
 }
 
 export function createIdAppVerifier(config: IdAppConfig, grpc?: ConcordiumGRPCClient): IdAppVerifier {
@@ -91,7 +110,9 @@ export function createIdAppVerifier(config: IdAppConfig, grpc?: ConcordiumGRPCCl
   return {
     async start(connectionId) {
       const claims = VerificationRequestV1.claimsBuilder()
-        .addAccountClaims(await issuers(), (b) => b.addMinimumAge(18).revealAttribute("countryOfResidence"))
+        .addIdentityClaims(await issuers(), (b) =>
+          b.addMinimumAge(18).revealAttribute("countryOfResidence").revealAttribute("idDocNo").revealAttribute("idDocIssuer"),
+        )
         .getClaims();
       const context = VerificationRequestV1.createSimpleContext(randomBytes(32), connectionId, RESOURCE, CONTEXT);
       const request = await VerificationRequestV1.createAndAnchor(client, { sender, signer }, context, claims, {
@@ -119,7 +140,7 @@ export function createIdAppVerifier(config: IdAppConfig, grpc?: ConcordiumGRPCCl
       );
       const checked = await VerificationAuditRecordV1.createChecked(auditId, request, presentation, client, config.network);
       if (checked.type === "failed") throw new IdAppError(`the proof didn't verify: ${checked.error.message}`);
-      return readPresentation(presentation);
+      return readPresentation(presentation, config.pseudonymSecret);
     },
   };
 }

@@ -1,7 +1,6 @@
-/* The Concordium sign-in modal ships page-wide resets; a layer below Tailwind's keeps them from
-   overriding the site while the modal keeps its own styles. */
-@layer concordium, theme, base, components, utilities;
-@import "./concordium-modal.css" layer(concordium);
+/* The Concordium sign-in modal's own styles, scoped to #concordium-modal-root: they style only
+   the modal, and the site's styles can't reach it (see scripts/vendor-concordium-css.mjs). */
+@import "./concordium-modal.css";
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
