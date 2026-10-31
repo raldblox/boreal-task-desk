@@ -95,15 +95,15 @@ export function createDevConcordium(options: DevConcordiumOptions): Concordium {
 
     payments: {
       async createPaymentRequest(taskId, amount): Promise<PaymentRequirement> {
+        // dev-usd has two decimals, so its smallest unit is boreal's minor unit.
         return {
           scheme: "exact",
           network: "concordium-dev",
           asset: "dev-usd",
           payTo: ESCROW_ADDRESS,
-          amount,
-          resource: taskId,
-          nonce: randomBytes(12).toString("base64url"),
-          expiresAt: expiry(),
+          amount: String(amount),
+          maxTimeoutSeconds: TTL_MS / 1000,
+          extra: { resource: taskId, minorUnits: amount, nonce: randomBytes(12).toString("base64url"), expiresAt: expiry() },
         };
       },
 
@@ -117,12 +117,12 @@ export function createDevConcordium(options: DevConcordiumOptions): Concordium {
         if (!requirement || typeof p?.signature !== "string") {
           throw new DevConcordiumError("payment must carry the requirement and a signature");
         }
-        if (requirement.resource !== taskId) throw new DevConcordiumError("payment is for another task");
-        if (new Date(requirement.expiresAt) <= now()) throw new DevConcordiumError("payment request has expired");
+        if (requirement.extra?.resource !== taskId) throw new DevConcordiumError("payment is for another task");
+        if (new Date(requirement.extra.expiresAt) <= now()) throw new DevConcordiumError("payment request has expired");
         if (!equalStrings(signDevPayment(secret, requirement), p.signature)) {
           throw new DevConcordiumError("payment signature is invalid");
         }
-        return { txHash: devTxHash("fund", taskId, requirement.nonce), amount: requirement.amount };
+        return { txHash: devTxHash("fund", taskId, requirement.extra.nonce), amount: requirement.extra.minorUnits };
       },
 
       async sponsoredTransfer(transfer) {
@@ -146,6 +146,7 @@ export function createDevConcordium(options: DevConcordiumOptions): Concordium {
 
 /** What a dev wallet does to pay a 402: sign the exact requirement it was given. */
 export function signDevPayment(secret: string, requirement: PaymentRequirement): string {
-  const fields = [requirement.resource, requirement.amount, requirement.nonce, requirement.expiresAt, requirement.payTo];
+  const { resource, minorUnits, nonce, expiresAt } = requirement.extra;
+  const fields = [resource, requirement.amount, minorUnits, nonce, expiresAt, requirement.payTo];
   return createHmac("sha256", secret).update(`pay:${fields.join("|")}`).digest("base64url");
 }

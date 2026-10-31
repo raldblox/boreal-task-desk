@@ -1,4 +1,4 @@
-import type { Concordium } from "@boreal/concordium";
+import type { Concordium, SentTransfer, TransferJournal } from "@boreal/concordium";
 import {
   agents,
   and,
@@ -133,6 +133,30 @@ async function send(
       // No webhook subscribers yet; nothing to deliver.
       return;
   }
+}
+
+/**
+ * Journals payouts and refunds on their outbox row (`payload.sent`), so a retry after a crash
+ * between sending and recording knows the transaction it already sent.
+ */
+export function outboxTransferJournal(db: Database): TransferJournal {
+  const row = (key: string) =>
+    and(inArray(outbox.kind, ["payout", "refund"]), sql`${outbox.payload}->>'ledgerKey' = ${key}`);
+  return {
+    async find(key) {
+      const [found] = await db.select({ payload: outbox.payload }).from(outbox).where(row(key)).limit(1);
+      return (found?.payload as { sent?: SentTransfer } | undefined)?.sent ?? null;
+    },
+    async save(key, sent) {
+      const updated = await db
+        .update(outbox)
+        .set({ payload: sql`${outbox.payload} || ${JSON.stringify({ sent })}::jsonb` })
+        .where(row(key))
+        .returning({ id: outbox.id });
+      // Never send a transfer that isn't journaled.
+      if (updated.length !== 1) throw new Error(`no outbox row to journal transfer ${key}`);
+    },
+  };
 }
 
 /** What escrow should hold on-chain: money settled in, minus money settled out. */

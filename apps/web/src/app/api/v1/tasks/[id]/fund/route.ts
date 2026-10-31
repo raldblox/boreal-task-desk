@@ -3,9 +3,10 @@ import { DeskError, taskTotal } from "@boreal/desk";
 import { asRequester, fundTestTask, getConcordium, getDesk } from "@/server/desk";
 
 /**
- * fund_task over x402. Without an `X-PAYMENT` header the reply is 402 with what to pay;
- * the agent pays and retries with the header. The payment settles only after the task's
- * checks pass, so a refused task never takes money.
+ * fund_task over x402 v2. Without a payment header the reply is 402 with what to pay (in the
+ * `PAYMENT-REQUIRED` header and the body); the agent signs and retries with `PAYMENT-SIGNATURE`
+ * (or the v1 name `X-PAYMENT`). The payment settles only after the task's checks pass, so a
+ * refused task never takes money.
  */
 export async function POST(request: Request, ctx: RouteContext<"/api/v1/tasks/[id]/fund">) {
   const { id } = await ctx.params;
@@ -21,17 +22,23 @@ export async function POST(request: Request, ctx: RouteContext<"/api/v1/tasks/[i
     const concordium = getConcordium();
     if (!concordium) throw new DeskError("unavailable", "payments are not enabled yet");
 
-    const header = request.headers.get("x-payment");
+    const header = request.headers.get("payment-signature") ?? request.headers.get("x-payment");
     if (!header) {
       const requirement = await concordium.payments.createPaymentRequest(task.id, taskTotal(task));
-      return Response.json({ x402Version: 1, error: "payment required", accepts: [requirement] }, { status: 402 });
+      const required = {
+        x402Version: 2,
+        error: "payment required",
+        resource: { url: request.url, description: `Fund task ${task.id} into escrow`, mimeType: "application/json" },
+        accepts: [requirement],
+      };
+      return Response.json(required, { status: 402, headers: { "PAYMENT-REQUIRED": encode(required) } });
     }
 
     let payment: unknown;
     try {
       payment = JSON.parse(Buffer.from(header, "base64").toString("utf8"));
     } catch {
-      throw new DeskError("invalid", "X-PAYMENT must be base64-encoded JSON");
+      throw new DeskError("invalid", "PAYMENT-SIGNATURE must be base64-encoded JSON");
     }
 
     const funded = await desk.fundTask(caller, id, {
@@ -43,7 +50,9 @@ export async function POST(request: Request, ctx: RouteContext<"/api/v1/tasks/[i
         }
       },
     });
-    const receipt = Buffer.from(JSON.stringify({ success: true, transaction: funded.fundingTxHash })).toString("base64");
-    return Response.json(funded, { headers: { "X-PAYMENT-RESPONSE": receipt } });
+    const receipt = encode({ success: true, transaction: funded.fundingTxHash });
+    return Response.json(funded, { headers: { "PAYMENT-RESPONSE": receipt, "X-PAYMENT-RESPONSE": receipt } });
   });
 }
+
+const encode = (value: unknown) => Buffer.from(JSON.stringify(value)).toString("base64");

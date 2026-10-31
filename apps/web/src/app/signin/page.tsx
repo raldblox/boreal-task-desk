@@ -74,7 +74,7 @@ async function SignInOptions({ searchParams }: { searchParams: Promise<{ next?: 
     );
   }
 
-  if (getConcordium()) {
+  if (getConcordium() && process.env.CONCORDIUM_MODE === "dev") {
     // Local stand-in mode (pnpm dev:local): a fresh, signed challenge each time.
     const request = await getDesk().workerProofRequest([]);
     return (

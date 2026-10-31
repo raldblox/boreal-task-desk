@@ -1,5 +1,5 @@
 // Ports for every Concordium component boreal uses. The task engine depends only on
-// these interfaces; testnet and mainnet adapters implement them.
+// these interfaces; the stand-ins (`dev.ts`) and testnet (`testnet.ts`) adapters implement them.
 
 export interface RegistryEntry {
   registryId: string;
@@ -38,20 +38,33 @@ export interface Transfer {
 }
 
 /**
- * What a 402 response asks the payer for. Follows the generic x402 shape; the Concordium
- * specifics (network id, asset, signature scheme) are settled at Workshop 3.
+ * What a 402 response asks the payer for: x402 v2 `PaymentRequirements` for the `exact` scheme,
+ * as Concordium's x402 mechanism (`@x402/concordium`) defines it. boreal's own fields ride in
+ * `extra`, which x402 clients echo back unchanged as `accepted`.
  */
 export interface PaymentRequirement {
   scheme: "exact";
+  /** CAIP-2 network id: `ccd:4221332d34e1694168c2a0c0b3fd0f27` is testnet. */
   network: string;
+  /** Protocol-level token id (its registered symbol, such as USDR). */
   asset: string;
   payTo: string;
-  /** Minor units. */
-  amount: number;
-  /** The task being funded. */
-  resource: string;
-  nonce: string;
-  expiresAt: string;
+  /** In the asset's smallest units, as a decimal string. */
+  amount: string;
+  /** How long the payer's signed transfer may live. */
+  maxTimeoutSeconds: number;
+  extra: {
+    /** Sponsors the payer's transfer, so the payer needs no CCD. */
+    feePayer?: string;
+    /** The task being funded. */
+    resource: string;
+    /** `amount` in boreal's minor units (US cents). */
+    minorUnits: number;
+    nonce: string;
+    expiresAt: string;
+    /** Server seal over every field above, so a payer can't change them. */
+    seal?: string;
+  };
 }
 
 /** x402 funding in, sponsored token transfers out of escrow. */
@@ -61,6 +74,19 @@ export interface Payments {
   confirmPayment(taskId: string, payment: unknown): Promise<{ txHash: string; amount: number }>;
   sponsoredTransfer(transfer: Transfer): Promise<{ txHash: string }>;
   escrowBalance(): Promise<number>;
+}
+
+/** A payout or refund as sent: enough to tell later whether it can still land. */
+export interface SentTransfer {
+  txHash: string;
+  /** Epoch seconds after which the chain will never execute it. */
+  expiry: number;
+}
+
+/** Durable record of sent transfers by ledger idempotency key, written before each send. */
+export interface TransferJournal {
+  find(idempotencyKey: string): Promise<SentTransfer | null>;
+  save(idempotencyKey: string, sent: SentTransfer): Promise<void>;
 }
 
 /** Writes a task event hash on-chain so the trail can be checked on CCDExplorer. */
@@ -76,16 +102,33 @@ export interface Concordium {
 }
 
 export { createDevConcordium, DevConcordiumError, type DevConcordiumOptions, signDevPayment } from "./dev";
+export {
+  type Chain,
+  createTestnetConcordium,
+  type Facilitator,
+  grpcChain,
+  type PreparedTransaction,
+  TestnetConcordiumError,
+  type TestnetConfig,
+  testnetConfigFromEnv,
+  type TransactionOutcome,
+} from "./testnet";
 
 import { createDevConcordium, type DevConcordiumOptions } from "./dev";
+import { createTestnetConcordium, testnetConfigFromEnv } from "./testnet";
+
+export interface LoadOptions extends Omit<DevConcordiumOptions, "secret"> {
+  /** Where testnet payouts and refunds are journaled before they are sent. */
+  journal?: TransferJournal;
+}
 
 /**
- * Picks the adapters from `CONCORDIUM_MODE`: `dev` for the stand-ins, unset for none
- * (payments and sign-in stay off). Testnet adapters land after the workshops.
+ * Picks the adapters from `CONCORDIUM_MODE`: `dev` for the stand-ins, `testnet` for real
+ * money on Concordium testnet, unset for none (payments and sign-in stay off).
  */
 export function loadConcordium(
   env: Record<string, string | undefined> = process.env,
-  dev: Omit<DevConcordiumOptions, "secret"> = {},
+  options: LoadOptions = {},
 ): Concordium | null {
   const mode = env.CONCORDIUM_MODE;
   if (!mode) return null;
@@ -100,9 +143,15 @@ export function loadConcordium(
     }
     const secret = env.DEV_CONCORDIUM_SECRET;
     if (!secret || secret.length < 32) throw new Error("DEV_CONCORDIUM_SECRET must be at least 32 characters");
+    const { journal: _journal, ...dev } = options;
     return createDevConcordium({ ...dev, secret });
   }
-  throw new Error(`CONCORDIUM_MODE=${mode} is not supported yet`);
+  if (mode === "testnet") {
+    // Without a durable journal a retried payout could be sent twice.
+    if (!options.journal) throw new Error("CONCORDIUM_MODE=testnet needs a transfer journal");
+    return createTestnetConcordium(testnetConfigFromEnv(env), { journal: options.journal, now: options.now });
+  }
+  throw new Error(`CONCORDIUM_MODE=${mode} is not supported`);
 }
 export { createIdAppVerifier, type IdAppConfig, idAppConfigFromEnv, IdAppError, type IdAppVerifier, readPresentation } from "./id-app";
 export {

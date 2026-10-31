@@ -8,6 +8,7 @@ import {
   createDesk,
   type Desk,
   ledgerEscrowBalance,
+  outboxTransferJournal,
   type ReadFile,
   runAiReview,
 } from "@boreal/desk";
@@ -124,7 +125,7 @@ export function createMonitor({ db, desk, concordium, reviewer, readFile, now = 
 
 /** The monitor wired from the environment: Concordium and the AI reviewer turn on when configured. */
 export async function loadMonitor(db: Database, env: Record<string, string | undefined> = process.env): Promise<Monitor> {
-  const concordium = loadConcordium(env, { escrowBalance: () => ledgerEscrowBalance(db) });
+  const concordium = loadConcordium(env, { escrowBalance: () => ledgerEscrowBalance(db), journal: outboxTransferJournal(db) });
   const desk = createDesk({ db, concordium, addresses: addressesFromEnv(env) });
   const reviewer = await loadReviewer(env);
   return createMonitor({ db, desk, concordium, reviewer, readFile: readSubmissionBytes });

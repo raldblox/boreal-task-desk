@@ -22,7 +22,10 @@ describe("dev payments", () => {
     const signature = signDevPayment(secret, requirement);
 
     await expect(
-      c.payments.confirmPayment("task-1", { requirement: { ...requirement, amount: 1 }, signature }),
+      c.payments.confirmPayment("task-1", { requirement: { ...requirement, amount: "1" }, signature }),
+    ).rejects.toThrow(/signature/);
+    await expect(
+      c.payments.confirmPayment("task-1", { requirement: { ...requirement, extra: { ...requirement.extra, minorUnits: 1 } }, signature }),
     ).rejects.toThrow(/signature/);
     await expect(c.payments.confirmPayment("task-2", { requirement, signature })).rejects.toThrow(/another task/);
     clock = new Date(clock.getTime() + 16 * 60 * 1000);
