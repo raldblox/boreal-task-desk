@@ -42,6 +42,11 @@ const env = {
   SESSION_SECRET: persistentSecret("session-secret"),
   OPERATING_ACCOUNT_ADDRESS: "dev-acct-boreal",
   REVIEWER_ADDRESSES: "boreal-ai-reviewer=dev-acct-reviewer",
+  // Real Concordium ID and payout settings from .env.local stay off locally.
+  CONCORDIUM_ANCHOR_ACCOUNT: "",
+  CONCORDIUM_ANCHOR_KEY: "",
+  NEXT_PUBLIC_REOWN_PROJECT_ID: "",
+  BLOB_READ_WRITE_TOKEN: "",
   FILE_STORAGE: "local",
   LOCAL_UPLOAD_DIR: join(localDir, "uploads"),
   MONITOR_INTERVAL_MS: "5000",

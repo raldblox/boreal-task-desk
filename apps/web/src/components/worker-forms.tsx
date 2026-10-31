@@ -33,7 +33,7 @@ export function ActionButton({
   const [state, formAction, pending] = useActionState(action, null);
   return (
     <form action={formAction} className="flex flex-col gap-3">
-      <Button type="submit" variant={variant} disabled={pending} className="w-fit">
+      <Button type="submit" variant={variant} disabled={pending} size="lg" className="w-full sm:w-fit">
         {pending ? "Working…" : children}
       </Button>
       <FormError state={state} />
@@ -92,7 +92,7 @@ export function SubmitForm({ action, resultFormat }: { action: Action; resultFor
         <Label htmlFor="text">{resultFormat === "text" ? "Your answer" : "Notes (optional)"}</Label>
         <Textarea id="text" name="text" rows={resultFormat === "text" ? 6 : 3} required={resultFormat === "text"} />
       </div>
-      <Button type="submit" disabled={busy} className="w-fit">
+      <Button type="submit" disabled={busy} size="lg" className="w-full sm:w-fit">
         {preparing ? "Preparing photo…" : pending ? "Submitting…" : "Submit result"}
       </Button>
       <FormError state={state} />
@@ -106,7 +106,7 @@ export function DisputeForm({ action }: { action: Action }) {
     <form action={formAction} className="flex flex-col gap-3">
       <Label htmlFor="reason">Why is the verdict wrong?</Label>
       <Textarea id="reason" name="reason" rows={4} minLength={10} required />
-      <Button type="submit" variant="outline" disabled={pending} className="w-fit">
+      <Button type="submit" variant="outline" disabled={pending} size="lg" className="w-full sm:w-fit">
         {pending ? "Sending…" : "Dispute verdict"}
       </Button>
       <FormError state={state} />
@@ -139,7 +139,7 @@ export function TestSignIn({ action }: { action: Action }) {
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" name="adult" defaultChecked /> I am 18 or older
       </label>
-      <Button type="submit" disabled={pending} className="w-fit">
+      <Button type="submit" disabled={pending} size="lg" className="w-full sm:w-fit">
         {pending ? "Signing in…" : "Sign in as tester"}
       </Button>
       <FormError state={state} />
@@ -174,7 +174,7 @@ export function DevWallet({ action, request }: { action: Action; request: string
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" name="adult" defaultChecked /> I am 18 or older
       </label>
-      <Button type="submit" disabled={pending} className="w-fit">
+      <Button type="submit" disabled={pending} size="lg" className="w-full sm:w-fit">
         {pending ? "Verifying…" : "Prove and sign in"}
       </Button>
       <FormError state={state} />

@@ -1,29 +1,50 @@
+import { Inbox } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
+import { Eyebrow } from "@/components/brand";
 import { TaskCard } from "@/components/task-card";
 import { buttonVariants } from "@/components/ui/button";
 import { getDesk } from "@/server/desk";
 import { workerFromSession } from "@/server/session";
 
+function EmptyState({ title, body, action }: { title: string; body: string; action?: React.ReactNode }) {
+  return (
+    <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed bg-card/60 px-6 py-14 text-center">
+      <span className="grid size-12 place-items-center rounded-2xl bg-primary-soft text-primary-soft-foreground">
+        <Inbox className="size-6" />
+      </span>
+      <p className="font-semibold">{title}</p>
+      <p className="max-w-sm text-sm text-muted-foreground">{body}</p>
+      {action}
+    </div>
+  );
+}
+
 async function OpenTasks() {
   const worker = await workerFromSession();
   if (!worker) {
     return (
-      <div className="flex flex-col items-start gap-4 rounded-xl border p-6">
-        <p className="text-muted-foreground">Sign in with Concordium ID to see the tasks you qualify for.</p>
-        <Link href="/signin" className={buttonVariants()}>
-          Sign in
-        </Link>
-      </div>
+      <EmptyState
+        title="Sign in to see tasks"
+        body="Tasks are matched to what you've proven with Concordium ID, like your country or age."
+        action={
+          <Link href="/signin" className={buttonVariants({ className: "mt-2" })}>
+            Sign in
+          </Link>
+        }
+      />
     );
   }
   const tasks = await getDesk().browseOpenTasks(worker);
   if (tasks.length === 0) {
-    return <p className="text-muted-foreground">No open tasks match what you&apos;ve proven right now. Check back soon.</p>;
+    return <EmptyState title="No open tasks right now" body="New tasks appear as agents post them. Check back soon." />;
   }
   return (
     <div className="flex flex-col gap-3">
+      <p className="text-sm text-muted-foreground">
+        {tasks.length} open {tasks.length === 1 ? "task" : "tasks"} you qualify for
+      </p>
       {tasks.map((task) => (
         <TaskCard key={task.id} task={task} />
       ))}
@@ -33,14 +54,15 @@ async function OpenTasks() {
 
 export default function TasksPage() {
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-10">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">Open tasks</h1>
+    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-4 py-10 md:py-14">
+      <div className="flex flex-col gap-3">
+        <Eyebrow>Open tasks</Eyebrow>
+        <h1 className="text-3xl font-semibold tracking-tight">Find a task</h1>
         <p className="text-muted-foreground">
-          Paid when your result passes review. Every task is funded before it appears here.
+          Every task is funded before it appears here. You&apos;re paid when your result passes review.
         </p>
       </div>
-      <Suspense fallback={<p className="text-muted-foreground">Loading tasks…</p>}>
+      <Suspense fallback={<div className="h-40 animate-pulse rounded-2xl bg-muted" />}>
         <OpenTasks />
       </Suspense>
     </main>

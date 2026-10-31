@@ -18,3 +18,7 @@ coverage/
 
 # Local dev database, uploads and secrets (pnpm dev:local)
 .local/
+
+# Brand design previews
+.brand-preview/
+*.bak

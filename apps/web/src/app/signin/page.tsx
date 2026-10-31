@@ -1,53 +1,60 @@
+import { Check, EyeOff } from "lucide-react";
 import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { signIn, signInTest } from "@/app/actions";
+import { BorealMark, Eyebrow } from "@/components/brand";
 import { ConcordiumSignIn } from "@/components/concordium-sign-in";
 import { DevWallet, TestSignIn } from "@/components/worker-forms";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getConcordium, getDesk } from "@/server/desk";
 import { getIdAppVerifier } from "@/server/id-app";
 
-function TesterCard() {
+function TesterInvite() {
   if (!process.env.TEST_WORKER_INVITE) return null;
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Testers</CardTitle>
-        <CardDescription>
-          Have an invite? Sign in to run test tasks. Test tasks pay in test money only, and your attributes are
-          self-declared.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+    <details className="group rounded-xl border bg-card">
+      <summary className="cursor-pointer list-none px-5 py-4 text-sm font-medium marker:hidden">
+        <span className="flex items-center justify-between">
+          I have a tester invite
+          <span className="text-muted-foreground transition-transform group-open:rotate-45">+</span>
+        </span>
+      </summary>
+      <div className="flex flex-col gap-4 border-t px-5 py-5">
+        <p className="text-sm text-muted-foreground">
+          Testers run test tasks paid in test money. Attributes are self-declared until you use Concordium ID.
+        </p>
         <TestSignIn action={signInTest} />
-      </CardContent>
-    </Card>
+      </div>
+    </details>
   );
 }
 
-async function SignIn() {
+async function SignInOptions() {
   await connection();
 
   if (getIdAppVerifier()) {
     const network = process.env.CONCORDIUM_NETWORK === "mainnet" ? "mainnet" : "testnet";
     return (
-      <div className="flex flex-col gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Concordium ID</CardTitle>
-            <CardDescription>
-              Scan the code with the Concordium ID App and approve the request. You prove you are 18 or older and share
-              your country of residence; boreal never sees your name or documents.
-              {network === "testnet" ? " (Concordium testnet)" : ""}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ConcordiumSignIn projectId={process.env.NEXT_PUBLIC_REOWN_PROJECT_ID!} network={network} />
-          </CardContent>
-        </Card>
-        <TesterCard />
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-5 rounded-2xl border bg-card p-6 shadow-sm">
+          <div className="flex items-center gap-3">
+            <BorealMark className="size-9" />
+            <div>
+              <p className="font-semibold">Sign in with Concordium ID</p>
+              <p className="text-sm text-muted-foreground">
+                Use the Concordium ID App{network === "testnet" ? " (testnet)" : ""}
+              </p>
+            </div>
+          </div>
+          <ol className="flex flex-col gap-2 text-sm text-muted-foreground">
+            <li>1. Tap the button and scan the code with the ID App.</li>
+            <li>2. Approve the request in the app.</li>
+            <li>3. You&apos;re signed in. No password, no email.</li>
+          </ol>
+          <ConcordiumSignIn projectId={process.env.NEXT_PUBLIC_REOWN_PROJECT_ID!} network={network} />
+        </div>
+        <TesterInvite />
       </div>
     );
   }
@@ -56,43 +63,60 @@ async function SignIn() {
     // Local stand-in mode (pnpm dev:local): a fresh, signed challenge each time.
     const request = await getDesk().workerProofRequest([]);
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Development wallet</CardTitle>
-          <CardDescription>
-            Stands in for the Concordium ID wallet. Choose what to prove; boreal stores only a pseudonym and these
-            attributes, never your name.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <DevWallet action={signIn} request={JSON.stringify(request)} />
-        </CardContent>
-      </Card>
+      <div className="flex flex-col gap-4 rounded-2xl border bg-card p-6">
+        <p className="font-semibold">Development wallet</p>
+        <p className="text-sm text-muted-foreground">Stands in for the Concordium ID App during local development.</p>
+        <DevWallet action={signIn} request={JSON.stringify(request)} />
+      </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <Alert>
-        <AlertTitle>Sign-in opens with Concordium ID</AlertTitle>
-        <AlertDescription>
-          Workers sign in by proving only what tasks need, like residency or age, with Concordium ID.
-        </AlertDescription>
+        <AlertTitle>Concordium ID sign-in is opening soon</AlertTitle>
+        <AlertDescription>Workers will sign in by proving only what tasks need, like residency or age.</AlertDescription>
       </Alert>
-      <TesterCard />
+      <TesterInvite />
     </div>
   );
 }
 
 export default function SignInPage() {
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-12">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">Sign in to work</h1>
-        <p className="text-muted-foreground">Prove only what tasks require. Your identity stays with you.</p>
+    <main className="mx-auto grid w-full max-w-5xl flex-1 items-start gap-10 px-4 py-12 md:grid-cols-2 md:py-20">
+      <div className="flex flex-col gap-6">
+        <Eyebrow>Sign in to work</Eyebrow>
+        <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">Your identity stays with you.</h1>
+        <p className="text-lg leading-relaxed text-muted-foreground">
+          boreal checks what a task needs with a zero-knowledge proof from your Concordium ID. You prove facts, not who you
+          are.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="flex flex-col gap-2">
+            <p className="text-sm font-medium">What you share</p>
+            <ul className="flex flex-col gap-2 text-sm text-muted-foreground">
+              {["That you're 18 or older", "Your country of residence", "A pseudonym that stays the same"].map((item) => (
+                <li key={item} className="flex gap-2">
+                  <Check className="mt-0.5 size-4 shrink-0 text-primary" /> {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="flex flex-col gap-2">
+            <p className="text-sm font-medium">What we never see</p>
+            <ul className="flex flex-col gap-2 text-sm text-muted-foreground">
+              {["Your name", "Your ID documents", "Your date of birth"].map((item) => (
+                <li key={item} className="flex gap-2">
+                  <EyeOff className="mt-0.5 size-4 shrink-0 text-muted-foreground" /> {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
       </div>
-      <Suspense fallback={<p className="text-muted-foreground">Preparing sign-in…</p>}>
-        <SignIn />
+      <Suspense fallback={<div className="h-64 rounded-2xl border bg-card" />}>
+        <SignInOptions />
       </Suspense>
     </main>
   );

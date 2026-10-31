@@ -1,15 +1,16 @@
 import { POLICY } from "@boreal/core";
 import { type Caller, DeskError } from "@boreal/desk";
 import type { Task } from "@boreal/db";
+import { ArrowLeft, CircleCheck } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { claimTask, disputeVerdict, releaseTask, submitResult } from "@/app/actions";
+import { TaskProgress } from "@/components/task-progress";
 import { ActionButton, DisputeForm, SubmitForm } from "@/components/worker-forms";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { attributeLabel, usd, when, WORKER_STATUS } from "@/lib/format";
 import { getDesk } from "@/server/desk";
@@ -106,88 +107,97 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
   const [submission, verdict] = await Promise.all([desk.getSubmission(worker, id), desk.getVerdict(worker, id)]);
   const status = WORKER_STATUS[task.status];
 
-  return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant={status.tone}>{status.label}</Badge>
-          {task.test && <Badge variant="secondary">Test task: test money only</Badge>}
-          {task.reviewMode === "requester" && <Badge variant="outline">Reviewed by the requester</Badge>}
-          {task.requiredAttributes.map((a) => (
-            <Badge key={a.attribute} variant="outline">
-              {attributeLabel(a)}
-            </Badge>
-          ))}
-        </div>
-        <h1 className="text-xl font-semibold leading-snug tracking-tight">{task.description}</h1>
-        <p className="text-muted-foreground">
-          Pays <span className="font-medium text-foreground">{usd(task.budget)}</span> · due {when(task.deadline)}
-        </p>
-      </div>
+  const verdictTitle =
+    verdict?.by === "panel" ? "Panel decision" : task.reviewMode === "requester" ? "Requester verdict" : "Reviewer verdict";
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">What counts as done</CardTitle>
-          <CardDescription>The reviewer checks your result against these, and only these.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ul className="list-disc space-y-1 pl-5">
+  return (
+    <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <aside className="flex flex-col gap-5 rounded-2xl border bg-card p-5 lg:sticky lg:top-20 lg:order-2">
+        <div className="flex items-baseline justify-between gap-3">
+          <p className="text-3xl font-semibold tabular-nums text-primary">{usd(task.budget)}</p>
+          <Badge variant={status.tone}>{status.label}</Badge>
+        </div>
+        <TaskProgress status={task.status} />
+        <div className="border-t pt-5">
+          <NextStep task={task} worker={worker} />
+        </div>
+      </aside>
+
+      <div className="flex flex-col gap-6 lg:order-1">
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            {task.test && <Badge className="bg-primary-soft text-primary-soft-foreground">Test task · test money only</Badge>}
+            {task.reviewMode === "requester" && <Badge variant="outline">Reviewed by the requester</Badge>}
+            {task.requiredAttributes.map((a) => (
+              <Badge key={a.attribute} variant="outline">
+                {attributeLabel(a)}
+              </Badge>
+            ))}
+          </div>
+          <h1 className="text-2xl font-semibold leading-snug tracking-tight text-balance">{task.description}</h1>
+          <p className="text-sm text-muted-foreground">Due {when(task.deadline)}</p>
+        </div>
+
+        <section className="flex flex-col gap-3 rounded-2xl border bg-card p-5">
+          <div>
+            <h2 className="font-semibold">What counts as done</h2>
+            <p className="text-sm text-muted-foreground">The reviewer checks your result against these, and only these.</p>
+          </div>
+          <ul className="flex flex-col gap-2">
             {task.acceptanceCriteria.map((c) => (
-              <li key={c}>{c}</li>
+              <li key={c} className="flex gap-2.5">
+                <CircleCheck className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>{c}</span>
+              </li>
             ))}
           </ul>
-        </CardContent>
-      </Card>
+        </section>
 
-      {verdict && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">
-              {verdict.by === "panel" ? "Panel decision" : task.reviewMode === "requester" ? "Requester verdict" : "Reviewer verdict"}:{" "}
-              {verdict.outcome}
-            </CardTitle>
-            <CardDescription>
-              Rules cited: {verdict.ruleIds.length ? verdict.ruleIds.join(", ") : "none"} · {when(verdict.at)}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>{verdict.reasoning}</CardContent>
-        </Card>
-      )}
+        {verdict && (
+          <section
+            className={`flex flex-col gap-2 rounded-2xl border p-5 ${verdict.outcome === "pass" ? "border-primary/30 bg-primary-soft/40" : "border-destructive/30 bg-destructive/5"}`}
+          >
+            <h2 className="font-semibold">
+              {verdictTitle}: {verdict.outcome === "pass" ? "passed" : "failed"}
+            </h2>
+            <p>{verdict.reasoning}</p>
+            <p className="font-mono text-xs text-muted-foreground">
+              {verdict.ruleIds.length ? verdict.ruleIds.join(" · ") : "No rules cited"} · {when(verdict.at)}
+            </p>
+          </section>
+        )}
 
-      {submission && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Your submission</CardTitle>
-            <CardDescription>{when(submission.createdAt)}</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
+        {submission && (
+          <section className="flex flex-col gap-3 rounded-2xl border bg-card p-5">
+            <div>
+              <h2 className="font-semibold">Your submission</h2>
+              <p className="text-sm text-muted-foreground">{when(submission.createdAt)}</p>
+            </div>
             {submission.fileUrls.map((path) =>
               path.endsWith(".pdf") ? (
-                <a key={path} href={`/api/files/${path}`} className="underline">
+                <a key={path} href={`/api/files/${path}`} className="text-primary underline underline-offset-4">
                   View file
                 </a>
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element -- private files are served by our own route
-                <img key={path} src={`/api/files/${path}`} alt="Submitted photo" className="max-h-96 rounded-lg border" />
+                <img key={path} src={`/api/files/${path}`} alt="Your submitted photo" className="max-h-[28rem] w-full rounded-xl border object-contain" />
               ),
             )}
             {submission.text && <p className="whitespace-pre-wrap">{submission.text}</p>}
-          </CardContent>
-        </Card>
-      )}
-
-      <NextStep task={task} worker={worker} />
+          </section>
+        )}
+      </div>
     </div>
   );
 }
 
 export default function TaskPage({ params }: PageProps<"/tasks/[id]">) {
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-10">
-      <Link href="/tasks" className="text-sm text-muted-foreground hover:text-foreground">
-        ← Open tasks
+    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-8 md:py-12">
+      <Link href="/tasks" className="flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <ArrowLeft className="size-4" /> Open tasks
       </Link>
-      <Suspense fallback={<p className="text-muted-foreground">Loading task…</p>}>
+      <Suspense fallback={<div className="h-64 animate-pulse rounded-2xl bg-muted" />}>
         <TaskDetail params={params} />
       </Suspense>
     </main>

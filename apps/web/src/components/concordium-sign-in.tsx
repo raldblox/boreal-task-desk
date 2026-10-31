@@ -88,7 +88,7 @@ export function ConcordiumSignIn({ projectId, network }: { projectId: string; ne
 
   return (
     <div className="flex flex-col gap-3">
-      <Button onClick={begin} disabled={status !== "idle"} className="w-fit">
+      <Button onClick={begin} disabled={status !== "idle"} size="lg" className="h-11 w-full text-base">
         {LABEL[status]}
       </Button>
       {error && (
