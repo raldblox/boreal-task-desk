@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { signIn, signInTest } from "@/app/actions";
 import { BorealMark, Eyebrow } from "@/components/brand";
 import { ConcordiumSignIn } from "@/components/concordium-sign-in";
+import { ConcordiumWalletSignIn } from "@/components/concordium-wallet-sign-in";
 import { DevWallet, TestSignIn } from "@/components/worker-forms";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getConcordium, getDesk } from "@/server/desk";
@@ -45,7 +46,7 @@ async function SignInOptions() {
             <div>
               <p className="font-semibold">Sign in with Concordium ID</p>
               <p className="text-sm text-muted-foreground">
-                Use the Concordium ID App{network === "testnet" ? " (testnet)" : ""}
+                The ID App or Wallet for Web{network === "testnet" ? ", on testnet" : ""}
               </p>
             </div>
           </div>
@@ -55,6 +56,12 @@ async function SignInOptions() {
             <li>3. You&apos;re signed in. No password, no email.</li>
           </ol>
           <ConcordiumSignIn projectId={process.env.NEXT_PUBLIC_REOWN_PROJECT_ID!} network={network} />
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="h-px flex-1 bg-border" />
+            or on a computer
+            <span className="h-px flex-1 bg-border" />
+          </div>
+          <ConcordiumWalletSignIn />
         </div>
         <TesterInvite />
       </div>

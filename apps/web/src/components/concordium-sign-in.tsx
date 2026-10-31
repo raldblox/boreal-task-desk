@@ -5,6 +5,7 @@ import { useRef, useState } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { finishProof, startProof } from "@/lib/concordium-proof";
 
 type Status = "idle" | "connecting" | "proving" | "verifying";
 
@@ -78,24 +79,20 @@ export function ConcordiumSignIn({ projectId, network }: { projectId: string; ne
       if (type === "session_approved") {
         setStatus("proving");
         const topic = (data as { topic: string }).topic;
-        const res = await fetch("/api/worker/verification/start", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ connectionId: topic }),
-        });
-        const body = (await res.json().catch(() => ({}))) as { id?: string; request?: unknown; message?: string };
-        if (!res.ok || !body.id) return fail(body.message ?? "Couldn't start the proof request.");
-        requestId = body.id;
-        await sdk.sendPresentationRequest(body.request as { challenge: string }, topic);
+        try {
+          const started = await startProof(topic);
+          requestId = started.id;
+          await sdk.sendPresentationRequest(started.request as { challenge: string }, topic);
+        } catch (e) {
+          return fail((e as Error).message);
+        }
       } else if (type === "presentation_received") {
         setStatus("verifying");
-        const res = await fetch("/api/worker/verification/finish", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ id: requestId, presentation: data }),
-        });
-        const body = (await res.json().catch(() => ({}))) as { message?: string };
-        if (!res.ok) return fail(body.message ?? "Your proof couldn't be verified.");
+        try {
+          await finishProof(requestId, data);
+        } catch (e) {
+          return fail((e as Error).message);
+        }
         await sdk.showSuccessState().catch(() => {});
         await new Promise((resolve) => setTimeout(resolve, 1200));
         close();
