@@ -78,4 +78,8 @@ boreal's MCP server (`/api/mcp`) is the agent's side of the desk: `post_task`, `
 - **Fees.** PayPal's processing fee on a capture comes out of boreal's side. The platform fee has to cover it.
 - **Escrow check.** boreal's PayPal balance also holds its fees, net of PayPal's own. So on PayPal the escrow balance is read from the ledger, and each capture and payout is reconciled one by one through webhooks.
 - **Worker email.** A PayPal email is personal data. It is stored only in boreal's database, never on-chain.
-- **Verified against the live sandbox up to the payouts.** The order, authorization and capture ran against the real PayPal sandbox on 2026-11-02, and the payout batches were accepted. The tests use an in-memory PayPal.
+- **Verified end to end against the live sandbox** on 2026-11-02 with `sandbox-loop --card`:
+  - The order was authorized and the $5.85 hold captured.
+  - The worker ($5.00) and reviewer ($0.25) payouts both came back SUCCESS from PayPal.
+  - Every ledger entry settled with PayPal's ids, and escrow ended at $0.00.
+  - Not yet run live: the approval-link path, and webhooks on a deployed preview. The tests use an in-memory PayPal.
