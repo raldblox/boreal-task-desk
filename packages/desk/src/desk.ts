@@ -753,6 +753,36 @@ export function createDesk({
       return submission ?? null;
     },
 
+    /** get_account: who the calling agent is to the desk, its limits and what it has left today. */
+    async getAgentAccount(caller: Caller) {
+      requireRole(caller, "requester");
+      const [agent] = await db.select().from(agents).where(eq(agents.id, caller.agentId));
+      if (!agent) throw new DeskError("not_found", "agent not found");
+      const since = new Date(now().getTime() - 24 * 60 * 60 * 1000);
+      const [spent] = await db
+        .select({ total: sql<number>`coalesce(sum(${ledgerEntries.amount}), 0)::int` })
+        .from(ledgerEntries)
+        .where(
+          and(
+            eq(ledgerEntries.party, agent.id),
+            eq(ledgerEntries.fromAccount, "requester"),
+            gte(ledgerEntries.createdAt, since),
+          ),
+        );
+      const spentLast24h = spent?.total ?? 0;
+      return {
+        agentId: agent.id,
+        name: agent.name,
+        status: agent.status,
+        testMode: agent.testMode,
+        registryId: agent.registryId,
+        refundAddress: agent.refundAddress,
+        limits: { maxTaskBudget: agent.maxTaskBudget, maxDailySpend: agent.maxDailySpend },
+        spentLast24h,
+        leftToday: Math.max(0, agent.maxDailySpend - spentLast24h),
+      };
+    },
+
     /** list_tasks: the requester's own tasks, newest first. */
     async listTasks(caller: Caller, filter: { status?: TaskStatus; limit?: number } = {}) {
       requireRole(caller, "requester");

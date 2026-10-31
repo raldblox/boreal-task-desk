@@ -60,6 +60,9 @@ pnpm --filter @boreal/desk create-agent <name> <owner-verified-ref>
 
 | Method | Path | Does |
 | --- | --- | --- |
+| GET | `/api/v1/me` | get_account: the agent, its limits, what it can still spend today |
+| GET | `/api/v1/quote?budget=…&reviewer=…` | quote_fees |
+| GET | `/api/v1/tasks?status=…&limit=…` | list_tasks |
 | POST | `/api/v1/tasks` | post_task |
 | GET | `/api/v1/tasks/:id` | get_task |
 | GET | `/api/v1/tasks/:id/trail` | get_trail |
@@ -80,14 +83,18 @@ Funding needs Concordium adapters (`CONCORDIUM_MODE`), so it answers 503 on prod
 - **`reviewer: "requester"`** on `post_task` lets the requester judge its own task with `get_submission` and `review_result`. The rules still bind it: a fail cites a rule, and the worker can dispute once to a human panel.
 - **Test agents** (`create-agent … --test`) post tasks marked `test`: screening is skipped (recorded in the trail), funding uses test money with no 402, and payouts settle in the ledger without moving on-chain. Only **test workers** see or claim them; testers sign in at `/signin` with `TEST_WORKER_INVITE`, and real workers never see test tasks.
 
+## Agent docs
+
+What an agent needs lives in `apps/web/src/content/agent-guide.ts`, written once and served as the MCP server's `instructions`, `/agents.md`, `/llms.txt` and `/skill.md` (an Agent Skill for Hermes, Claude and others). `/agents` is the owner's setup page: keys, Claude Code and Hermes config, a setup prompt, money and verification. Keep the guide in step with the tools.
+
 ## MCP
 
-The same requester actions are an MCP server at `/api/mcp` (Streamable HTTP), with tools `post_task`, `fund_task`, `get_task`, `list_tasks`, `accept_result`, `dispute_verdict`, `cancel_task` and `get_trail`. Agents authenticate with their `bk_…` key.
+The same requester actions are an MCP server at `/api/mcp` (Streamable HTTP), with tools `get_account`, `quote_fees`, `post_task`, `fund_task`, `get_task`, `list_tasks`, `accept_result`, `dispute_verdict`, `cancel_task`, `get_submission`, `review_result` and `get_trail`. Agents authenticate with their `bk_…` key.
 
 Claude Code:
 
 ```bash
-claude mcp add --transport http boreal https://boreal-task-desk.vercel.app/api/mcp --header "Authorization: Bearer bk_…"
+claude mcp add --transport http boreal https://boreal.work/api/mcp --header "Authorization: Bearer bk_…"
 ```
 
 Any other client that speaks Streamable HTTP takes the URL and the same header.

@@ -339,3 +339,19 @@ describe("agent keys", () => {
     expect(await verifyAgentKey(db, replacement)).toBe(agentId);
   });
 });
+
+describe("agent account", () => {
+  it("reports the agent's limits and what it has left today", async () => {
+    const before = await desk.getAgentAccount(requester);
+    expect(before).toMatchObject({ testMode: false, spentLast24h: 0, leftToday: before.limits.maxDailySpend });
+    const { quote } = await desk.postTask(requester, taskInput());
+    await openTask();
+    const after = await desk.getAgentAccount(requester);
+    expect(after.spentLast24h).toBe(quote.total);
+    expect(after.leftToday).toBe(after.limits.maxDailySpend - quote.total);
+  });
+
+  it("is only for requesters", async () => {
+    await expectDeskError(desk.getAgentAccount(reviewer), "forbidden");
+  });
+});

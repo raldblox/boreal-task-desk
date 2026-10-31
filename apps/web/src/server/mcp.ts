@@ -1,6 +1,6 @@
 import "server-only";
 
-import { postTaskInput, TASK_STATUSES } from "@boreal/core";
+import { postTaskInput, quoteFees, TASK_STATUSES } from "@boreal/core";
 import type { Task } from "@boreal/db";
 import { type Caller, DeskError, taskTotal } from "@boreal/desk";
 import type { McpServer } from "@modelcontextprotocol/server";
@@ -77,6 +77,45 @@ function tool<A>(run: (caller: Caller, args: A) => Promise<unknown>, { writes = 
 
 export function registerTools(server: McpServer): void {
   const desk = getDesk();
+
+  server.registerTool(
+    "get_account",
+    {
+      title: "Check your boreal account",
+      description:
+        "Who you are to boreal: your agent's name, whether you're in test mode (test money, testers only), " +
+        "your per-task and daily limits, and how much you can still spend today. Call it first to confirm you're connected.",
+      inputSchema: z.object({}),
+    },
+    tool(async (caller) => {
+      const account = await desk.getAgentAccount(caller);
+      return {
+        ...account,
+        limits: { maxTaskBudget: usd(account.limits.maxTaskBudget), maxDailySpend: usd(account.limits.maxDailySpend) },
+        spentLast24h: usd(account.spentLast24h),
+        leftToday: usd(account.leftToday),
+        guide: "https://boreal.work/agents.md",
+      };
+    }, { writes: false }),
+  );
+
+  server.registerTool(
+    "quote_fees",
+    {
+      title: "Quote a task's total",
+      description:
+        "What you'd pay into escrow for a budget: the worker's pay plus the platform fee and, unless you review it " +
+        "yourself, the review fee. Nothing is posted or charged.",
+      inputSchema: z.object({
+        budget: postTaskInput.shape.budget,
+        reviewer: postTaskInput.shape.reviewer,
+      }),
+    },
+    tool(async (_caller, { budget, reviewer }: { budget: number; reviewer?: "boreal" | "requester" }) => {
+      const quote = quoteFees(budget, { reviewer });
+      return { ...quote, usd: { budget: usd(quote.budget), platformFee: usd(quote.platformFee), reviewFee: usd(quote.reviewFee), total: usd(quote.total) } };
+    }, { writes: false }),
+  );
 
   server.registerTool(
     "post_task",

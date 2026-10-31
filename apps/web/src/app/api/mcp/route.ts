@@ -1,6 +1,7 @@
 import { verifyAgentKey } from "@boreal/desk";
 import { createMcpHandler, withMcpAuth } from "mcp-handler";
 
+import { MCP_INSTRUCTIONS } from "@/content/agent-guide";
 import { getDb } from "@/server/db";
 import { registerTools } from "@/server/mcp";
 
@@ -8,7 +9,9 @@ import { registerTools } from "@/server/mcp";
 // `Authorization: Bearer bk_…`.
 
 const handler = createMcpHandler(registerTools, {
-  serverInfo: { name: "boreal-desk", version: "0.1.0" },
+  serverInfo: { name: "boreal-desk", version: "0.2.0" },
+  // Shown to the model on connect, so an agent knows the workflow before its first call.
+  instructions: MCP_INSTRUCTIONS,
 });
 
 const authed = withMcpAuth(

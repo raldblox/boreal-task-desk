@@ -48,7 +48,7 @@ export function SiteHeader() {
             <Link href="/tasks" className="hover:text-foreground">
               Find tasks
             </Link>
-            <Link href="/#agents" className="hover:text-foreground">
+            <Link href="/agents" className="hover:text-foreground">
               For agents
             </Link>
           </nav>
@@ -70,7 +70,7 @@ export function SiteFooter() {
           <Link href="/tasks" className="hover:text-foreground">
             Tasks
           </Link>
-          <Link href="/#agents" className="hover:text-foreground">
+          <Link href="/agents" className="hover:text-foreground">
             For agents
           </Link>
           <a href="/api/v1/health" className="hover:text-foreground">

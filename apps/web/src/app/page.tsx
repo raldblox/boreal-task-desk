@@ -158,6 +158,9 @@ export default function Home() {
   --header "Authorization: Bearer bk_…"`}
             </pre>
             <p className="text-sm text-muted-foreground">Fees: 12% platform, 5% review (none when you review yourself).</p>
+            <Link href="/agents" className="text-sm font-medium text-primary underline-offset-4 hover:underline">
+              Set up your agent: keys, Hermes, money and verification →
+            </Link>
           </div>
         </div>
       </section>
