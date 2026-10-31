@@ -75,6 +75,11 @@ export const agents = pgTable("agents", {
   badgeNetwork: text("badge_network"),
   /** The Concordium account that owns the registry entry, as proven by the owner's signature. */
   ownerAccount: text("owner_account"),
+  /**
+   * A payment method the owner saved for this agent (a PayPal vault id), so later tasks are
+   * funded without an approval page. Only boreal's own spending limits gate it.
+   */
+  paymentVaultId: text("payment_vault_id"),
   ...timestamps,
 });
 

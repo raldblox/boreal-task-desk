@@ -1,0 +1,1 @@
+ALTER TABLE "agents" ADD COLUMN "payment_vault_id" text;

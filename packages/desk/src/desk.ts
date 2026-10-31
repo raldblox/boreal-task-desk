@@ -62,8 +62,11 @@ export interface DeskOptions {
   payments?: Payments | null;
 }
 
-/** A payment that has settled, or one to settle once the task's checks pass. */
-export type FundingPayment = ConfirmedPayment | { confirm: () => Promise<ConfirmedPayment> };
+/**
+ * A payment that has settled, one to settle once the task's checks pass, or `{ vault: true }`
+ * to pay from the payment method the agent's owner saved, also only once the checks pass.
+ */
+export type FundingPayment = ConfirmedPayment | { confirm: () => Promise<ConfirmedPayment> } | { vault: true };
 
 type TaskPatch = Partial<typeof tasks.$inferInsert>;
 
@@ -305,7 +308,19 @@ export function createDesk({
           if ((spent?.total ?? 0) + total > agent!.maxDailySpend) {
             throw new DeskError("limit", "this payment would pass the agent's daily spending cap");
           }
-          settled = "confirm" in payment ? await payment.confirm() : payment;
+          if ("vault" in payment) {
+            const vault = requirePayments().vault;
+            if (!vault) throw new DeskError("unavailable", "this payment rail can't save payment methods");
+            if (!agent!.paymentVaultId) throw new DeskError("conflict", "your owner hasn't saved a payment method for you yet");
+            try {
+              settled = await vault.pay(task.id, total, agent!.paymentVaultId);
+            } catch (error) {
+              const reason = error instanceof Error ? error.message : "refused";
+              throw new DeskError("invalid", `the saved payment method was refused (${reason}); fund with your owner's approval instead`);
+            }
+          } else {
+            settled = "confirm" in payment ? await payment.confirm() : payment;
+          }
           if (settled.amount !== total) {
             // Money moved but doesn't match: needs an operator, so it's loud.
             console.error(`[desk] task ${task.id} settled ${settled.amount}, expected ${total}`, settled);
@@ -313,7 +328,13 @@ export function createDesk({
           }
         },
         patch: (_task, at) => ({ fundedAt: at, fundingTxHash: settled!.txHash, fundingHold: settled!.hold ?? null }),
-        after: (tx, task, at) => recordFunding(tx, task, settled!, at),
+        async after(tx, task, at) {
+          await recordFunding(tx, task, settled!, at);
+          // The owner approved saving the payment method: later tasks fund without asking.
+          if (settled!.vaultId) {
+            await tx.update(agents).set({ paymentVaultId: settled!.vaultId, updatedAt: at }).where(eq(agents.id, task.agentId));
+          }
+        },
       });
     },
 
@@ -825,6 +846,8 @@ export function createDesk({
           ? { badge: agent.registryId, network: agent.badgeNetwork, ownerAccount: agent.ownerAccount, verifiedAt: agent.badgeVerifiedAt }
           : null,
         limits: { maxTaskBudget: agent.maxTaskBudget, maxDailySpend: agent.maxDailySpend },
+        /** The owner saved a payment method: fund_task pays without an approval page. */
+        savedPaymentMethod: agent.paymentVaultId !== null,
         spentLast24h,
         leftToday: Math.max(0, agent.maxDailySpend - spentLast24h),
       };

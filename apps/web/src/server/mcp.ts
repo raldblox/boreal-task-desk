@@ -210,8 +210,10 @@ export function registerTools(server: McpServer): void {
         "Pays the task's total into escrow. Call once without `payment` to get the payment requirement, pay it, then " +
         "call again with the payment. The task opens to workers once funded. On PayPal the requirement's " +
         "extra.approveUrl is a PayPal checkout: have your owner (or a PayPal-enabled wallet you control) approve it, " +
-        "then call again with payment: { orderId }. PayPal only holds the money: it is captured when the task passes, " +
-        "and the hold is voided if the task fails, expires or is cancelled (a fail still pays the review fee).",
+        "then call again with payment: { orderId }. Approving also saves the owner's PayPal account for you, so after " +
+        "that one approval fund_task pays in a single call, within your daily spending cap. PayPal only holds the money: " +
+        "it is captured when the task passes, and the hold is voided if the task fails, expires or is cancelled (a fail " +
+        "still pays the review fee).",
       inputSchema: z.object({
         taskId,
         payment: z
@@ -230,11 +232,30 @@ export function registerTools(server: McpServer): void {
       const payments = getPayments();
       if (!payments) throw new DeskError("unavailable", "payments are not enabled yet");
       if (payment === undefined) {
+        // The owner saved a payment method: fund in this one call, no approval page.
+        let savedRefused: string | undefined;
+        if (payments.vault && (await desk.getAgentAccount(caller)).savedPaymentMethod) {
+          try {
+            return { ...summary(await desk.fundTask(caller, id, { vault: true })), paidWith: "your owner's saved PayPal account" };
+          } catch (error) {
+            // A refused saved account falls back to an approval; any other refusal stands.
+            if (!(error instanceof DeskError && error.code === "invalid")) throw error;
+            savedRefused = error.message;
+          }
+        }
         const requirement = await payments.createPaymentRequest(task.id, taskTotal(task));
         if (requirement.extra?.approveUrl) {
+          const { limits } = await desk.getAgentAccount(caller);
+          const saves = payments.vault
+            ? ` Approving also saves your PayPal account for me, so I can fund later boreal tasks without asking, up to ` +
+              `${usd(limits.maxTaskBudget)} a task and ${usd(limits.maxDailySpend)} a day.`
+            : "";
           return {
+            ...(savedRefused ? { savedPaymentMethodRefused: savedRefused } : {}),
             paymentRequired: requirement,
-            tellYourOwner: `Please approve ${usd(requirement.amount)} for this boreal task on PayPal: ${requirement.extra.approveUrl} (held, not charged, until the work passes review).`,
+            tellYourOwner:
+              `Please approve ${usd(requirement.amount)} for this boreal task on PayPal: ${requirement.extra.approveUrl} ` +
+              `(held, not charged, until the work passes review).${saves}`,
             next: `once approved, call fund_task with payment: { "orderId": "${requirement.nonce}" }`,
           };
         }

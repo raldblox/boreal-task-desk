@@ -31,6 +31,8 @@ export function loadPayPal(
     baseUrl: PAYPAL_SANDBOX_URL,
     returnUrl: `${site}/paypal/approved`,
     cancelUrl: `${site}/paypal/cancelled`,
+    // Saving the payer's account needs the Vault option on the PayPal app.
+    vault: env.PAYPAL_VAULT !== "off",
     escrowBalance: options.escrowBalance,
   });
 }
