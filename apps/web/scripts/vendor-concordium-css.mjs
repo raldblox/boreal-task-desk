@@ -3,11 +3,16 @@
 // button, a…); scoped, they style only the modal, and the site's styles can't reach it either.
 // Its Google Fonts @import is dropped: the app self-hosts Inter and Plus Jakarta Sans with
 // next/font and points the modal's font-family declarations at them.
+// The stylesheet also leaves out some utilities its markup uses (mx-auto, flex-col…). The
+// site's own copies can't help: they sit in a layer, and the modal's unlayered reset beats
+// them. So the missing ones are built here with Tailwind and scoped like the rest.
 // Run after upgrading @concordium/verification-web-ui: pnpm --filter @boreal/web vendor:concordium-css
-import { readFileSync, writeFileSync } from "node:fs";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { compile } from "tailwindcss";
 
 const ROOT = "#concordium-modal-root";
 const require = createRequire(import.meta.url);
@@ -79,7 +84,24 @@ function scope(css) {
   return out;
 }
 
-const scoped = scope(source)
+// Every class the modal's components use, minus the ones its stylesheet already defines.
+const componentsDir = join(dirname(cssPath), "components");
+const markup = readdirSync(componentsDir, { recursive: true })
+  .filter((f) => String(f).endsWith(".js"))
+  .map((f) => readFileSync(join(componentsDir, String(f)), "utf8"))
+  .join("\n");
+const classes = new Set(
+  [...markup.matchAll(/class="([^"]*)"/g)].flatMap((m) => m[1].replace(/\$\{[^}]*\}/g, " ").split(/\s+/)).filter(Boolean),
+);
+const escapeClass = (c) => c.replace(/[^\w-]/g, (ch) => `\\${ch}`);
+const missing = [...classes].filter((c) => !source.includes(`.${escapeClass(c)}`));
+const twDir = dirname(require.resolve("tailwindcss/package.json"));
+const compiler = await compile(`${readFileSync(join(twDir, "theme.css"), "utf8")}\n@tailwind utilities;`, {
+  base: twDir,
+});
+const extras = compiler.build(missing).replace(/\/\*[\s\S]*?\*\//g, "");
+
+const scoped = scope(source + extras)
   .replace(/font-family:Inter,/g, "font-family:var(--concordium-font-inter),Inter,")
   .replace(/font-family:Plus Jakarta Sans,/g, "font-family:var(--concordium-font-jakarta),Plus Jakarta Sans,");
 
@@ -88,5 +110,6 @@ writeFileSync(out, `/* Generated from @concordium/verification-web-ui@${version}
 const unscoped = [...scoped.matchAll(/(?:^|[{};])\s*([^{}@;]+)\{/g)]
   .map((m) => m[1].trim())
   .filter((sel) => !/^(from|to|\d+%)/.test(sel) && !splitTopLevel(sel).every((x) => x.startsWith(ROOT)));
+console.log(`added ${missing.length} missing utilities: ${missing.join(" ")}`);
 console.log(`wrote ${out} (${scoped.length} bytes); selectors outside the root: ${unscoped.length}`);
 if (unscoped.length) console.log(unscoped.slice(0, 5).join("\n"));
