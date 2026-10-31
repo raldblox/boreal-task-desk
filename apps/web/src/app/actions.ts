@@ -6,7 +6,7 @@ import { refresh } from "next/cache";
 import { after } from "next/server";
 import { redirect } from "next/navigation";
 
-import { getDesk } from "@/server/desk";
+import { getDesk, getPayments } from "@/server/desk";
 import { FileRejected, saveSubmissionFile } from "@/server/files";
 import { kickMonitor } from "@/server/monitor";
 import { endWorkerSession, startWorkerSession, workerFromSession } from "@/server/session";
@@ -92,6 +92,17 @@ export async function submitResult(taskId: string, _prev: ActionState, form: For
     const file = form.get("file");
     const fileUrls = file instanceof File && file.size > 0 ? [await saveSubmissionFile(taskId, file)] : [];
     await getDesk().submitResult(worker, taskId, { text, fileUrls });
+  });
+}
+
+/** Where the worker is paid. On the PayPal rail it's the email of their PayPal account. */
+export async function setPayoutAddress(_prev: ActionState, form: FormData): Promise<ActionState> {
+  return asWorker(async (worker) => {
+    const address = String(form.get("payoutAddress") ?? "").trim();
+    if (getPayments()?.holds && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(address)) {
+      throw new DeskError("invalid", "Enter the email address of your PayPal account.");
+    }
+    await getDesk().setPayoutAddress(worker, address);
   });
 }
 

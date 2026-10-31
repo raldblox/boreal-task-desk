@@ -41,6 +41,30 @@ export function ActionButton({
   );
 }
 
+/** Where the worker is paid: their PayPal email on the PayPal rail. */
+export function PayoutForm({ action, current, paypal }: { action: Action; current: string | null; paypal: boolean }) {
+  const [state, formAction, pending] = useActionState(action, null);
+  return (
+    <form action={formAction} className="flex flex-col gap-3">
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="payoutAddress">{paypal ? "PayPal email for payouts" : "Payout account"}</Label>
+        <Input
+          id="payoutAddress"
+          name="payoutAddress"
+          type={paypal ? "email" : "text"}
+          defaultValue={current ?? ""}
+          placeholder={paypal ? "you@example.com" : "Concordium account address"}
+          required
+        />
+      </div>
+      <Button type="submit" variant="outline" disabled={pending} className="w-full sm:w-fit">
+        {pending ? "Saving…" : "Save"}
+      </Button>
+      <FormError state={state} />
+    </form>
+  );
+}
+
 /** Shrinks a photo to at most 2000 px on its longest side as a JPEG, so uploads stay small. */
 async function shrinkPhoto(file: File): Promise<File> {
   if (!file.type.startsWith("image/")) return file;

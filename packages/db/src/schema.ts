@@ -25,7 +25,17 @@ export const ledgerAccount = pgEnum("ledger_account", [
   "reviewer",
 ]);
 export const ledgerStatus = pgEnum("ledger_status", ["pending", "settled", "failed"]);
-export const outboxKind = pgEnum("outbox_kind", ["anchor", "payout", "refund", "webhook"]);
+export const outboxKind = pgEnum("outbox_kind", [
+  "anchor",
+  "payout",
+  "refund",
+  "webhook",
+  // Holds (PayPal authorizations): take some or all of the money, or give it all back.
+  "capture",
+  "release",
+  // A payment provider's report on a transfer (a PayPal webhook), applied to the ledger.
+  "reconcile",
+]);
 export const reviewMode = pgEnum("review_mode", ["boreal", "requester"]);
 export const agentLinkStatus = pgEnum("agent_link_status", ["pending", "approved", "denied", "collected"]);
 
@@ -128,6 +138,8 @@ export const tasks = pgTable(
     deadline: timestamp("deadline", { withTimezone: true }).notNull(),
     fundedAt: timestamp("funded_at", { withTimezone: true }),
     fundingTxHash: text("funding_tx_hash"),
+    /** On rails that hold funds (a PayPal authorization id): captured or released once the task is final. */
+    fundingHold: text("funding_hold"),
     claimedBy: uuid("claimed_by").references(() => workers.id),
     claimExpiresAt: timestamp("claim_expires_at", { withTimezone: true }),
     /** Reviewer whose verdict stands; paid the review fee once the task is final. */

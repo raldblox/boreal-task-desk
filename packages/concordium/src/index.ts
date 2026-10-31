@@ -52,15 +52,37 @@ export interface PaymentRequirement {
   resource: string;
   nonce: string;
   expiresAt: string;
+  /** Rail-specific details, such as the link where a PayPal payer approves. */
+  extra?: Record<string, string>;
+}
+
+/** A confirmed payment. With `hold`, the money is authorized on the payer's side but not taken yet. */
+export interface ConfirmedPayment {
+  txHash: string;
+  amount: number;
+  hold?: string;
+}
+
+/**
+ * Rails that hold funds at confirmation (PayPal authorizations) instead of settling them.
+ * The desk takes the money only once the task is final.
+ */
+export interface PaymentHolds {
+  /** Takes `amount` of the hold and releases the rest. A repeated key never captures twice. */
+  capture(hold: string, amount: number, idempotencyKey: string): Promise<{ txHash: string }>;
+  /** Releases the whole hold to the payer. */
+  release(hold: string, idempotencyKey: string): Promise<void>;
 }
 
 /** x402 funding in, sponsored token transfers out of escrow. */
 export interface Payments {
   createPaymentRequest(taskId: string, amount: number): Promise<PaymentRequirement>;
-  /** Verifies the payer's x402 payment and settles it on-chain; throws if it is invalid. */
-  confirmPayment(taskId: string, payment: unknown): Promise<{ txHash: string; amount: number }>;
+  /** Verifies the payer's x402 payment and settles (or holds) it; throws if it is invalid. */
+  confirmPayment(taskId: string, payment: unknown): Promise<ConfirmedPayment>;
   sponsoredTransfer(transfer: Transfer): Promise<{ txHash: string }>;
   escrowBalance(): Promise<number>;
+  /** Present on rails whose confirmed payments are holds. */
+  holds?: PaymentHolds;
 }
 
 /** Writes a task event hash on-chain so the trail can be checked on CCDExplorer. */

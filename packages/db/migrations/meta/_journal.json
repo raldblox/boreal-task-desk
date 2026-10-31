@@ -57,6 +57,13 @@
       "when": 1793430455152,
       "tag": "0007_deep_orphan",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793477618304,
+      "tag": "0008_paypal_holds",
+      "breakpoints": true
     }
   ]
 }

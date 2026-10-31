@@ -3,12 +3,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
+import { setPayoutAddress } from "@/app/actions";
 import { Eyebrow } from "@/components/brand";
 import { TaskCard } from "@/components/task-card";
+import { PayoutForm } from "@/components/worker-forms";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { attributeLabel, workerHandle } from "@/lib/format";
-import { getDesk } from "@/server/desk";
+import { getDesk, getPayments } from "@/server/desk";
 import { workerFromSession } from "@/server/session";
 
 const ACTIVE = new Set(["claimed", "submitted", "passed", "failed", "disputed"]);
@@ -49,6 +51,26 @@ async function Identity() {
             : "A one-way code made from your ID document. It's the same every time you sign in, and it can't be turned back into who you are."}
         </p>
       </div>
+    </section>
+  );
+}
+
+/** Where passed tasks pay out. On the PayPal rail, the worker's PayPal email; it never goes on-chain. */
+async function Payouts() {
+  const worker = await workerFromSession();
+  if (!worker) redirect("/signin");
+  const profile = await getDesk().getWorker(worker);
+  if (!profile || profile.testMode) return null;
+  const paypal = Boolean(getPayments()?.holds);
+  return (
+    <section className="flex flex-col gap-3 rounded-2xl border bg-card p-6">
+      <h2 className="font-semibold">Getting paid</h2>
+      <p className="text-sm text-muted-foreground">
+        {paypal
+          ? "When your result passes review, boreal pays you with PayPal Payouts the moment the task is final."
+          : "When your result passes review, boreal pays this account the moment the task is final."}
+      </p>
+      <PayoutForm action={setPayoutAddress} current={profile.payoutAddress} paypal={paypal} />
     </section>
   );
 }
@@ -123,6 +145,9 @@ export default function MyTasksPage() {
       </div>
       <Suspense fallback={<div className="h-44 animate-pulse rounded-2xl bg-muted" />}>
         <Identity />
+      </Suspense>
+      <Suspense>
+        <Payouts />
       </Suspense>
       <Suspense>
         <MyAgents />

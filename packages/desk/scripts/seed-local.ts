@@ -60,9 +60,12 @@ const tasks = [
   },
 ];
 
+// On the PayPal rail the tasks wait for funding, so the agent funds them through PayPal.
+const paypal = process.env.PAYMENTS_RAIL === "paypal";
 for (const input of tasks) {
   const { task, quote } = await desk.postTask(hermes, input);
   await desk.screenTask(reviewer, task.id, { outcome: "ok" });
+  if (paypal) continue;
   const requirement = await concordium.payments.createPaymentRequest(task.id, quote.total);
   const payment = { requirement, signature: signDevPayment(secret, requirement) };
   await desk.fundTask(hermes, task.id, { confirm: () => concordium.payments.confirmPayment(task.id, payment) });
@@ -70,5 +73,7 @@ for (const input of tasks) {
 
 const key = await issueAgentKey(db, agent!.id);
 writeFileSync(join(process.env.LOCAL_UPLOAD_DIR!, "..", "agent-key.txt"), key);
-console.log(`[seed] dev-hermes agent with ${tasks.length} open tasks; its key is in .local/agent-key.txt`);
+console.log(
+  `[seed] dev-hermes agent with ${tasks.length} ${paypal ? "tasks awaiting PayPal funding" : "open tasks"}; its key is in .local/agent-key.txt`,
+);
 process.exit(0);

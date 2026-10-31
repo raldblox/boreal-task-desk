@@ -24,6 +24,12 @@ const port = 5433;
 
 mkdirSync(join(localDir, "uploads"), { recursive: true });
 
+// PayPal sandbox credentials, if you want the PayPal rail locally (PAYMENTS_RAIL=paypal).
+// Kept in their own gitignored file so .env.local's production values never mix in.
+const paypalEnv = join(root, ".env.paypal");
+if (existsSync(paypalEnv)) process.loadEnvFile(paypalEnv);
+const paypal = process.env.PAYMENTS_RAIL === "paypal";
+
 function persistentSecret(name: string): string {
   const file = join(localDir, name);
   if (!existsSync(file)) writeFileSync(file, randomBytes(32).toString("base64url"));
@@ -51,7 +57,10 @@ const env = {
   DEV_CONCORDIUM_SECRET: persistentSecret("dev-concordium-secret"),
   SESSION_SECRET: persistentSecret("session-secret"),
   OPERATING_ACCOUNT_ADDRESS: "dev-acct-boreal",
-  REVIEWER_ADDRESSES: "boreal-ai-reviewer=dev-acct-reviewer",
+  // On PayPal the AI reviewer's fee is paid out like any other; point it at a sandbox account.
+  REVIEWER_ADDRESSES: paypal
+    ? `boreal-ai-reviewer=${process.env.PAYPAL_SANDBOX_REVIEWER_EMAIL ?? process.env.PAYPAL_SANDBOX_WORKER_EMAIL ?? ""}`
+    : "boreal-ai-reviewer=dev-acct-reviewer",
   // Real Concordium ID and payout settings from .env.local stay off locally.
   CONCORDIUM_ANCHOR_ACCOUNT: "",
   CONCORDIUM_ANCHOR_KEY: "",
@@ -62,7 +71,7 @@ const env = {
   MONITOR_INTERVAL_MS: "5000",
 };
 
-console.log(`[local] Postgres (PGlite) on ${databaseUrl}, data in .local/`);
+console.log(`[local] Postgres (PGlite) on ${databaseUrl}, data in .local/${paypal ? "; payments on the PayPal sandbox" : ""}`);
 
 const run = (command: string) => spawn(command, { cwd: root, env, shell: true, stdio: "inherit" });
 
