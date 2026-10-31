@@ -44,6 +44,12 @@ const CONTEXT = "Sign in to boreal.work as a worker";
 export function idAppConfigFromEnv(env: Record<string, string | undefined> = process.env): IdAppConfig | null {
   const { CONCORDIUM_ANCHOR_ACCOUNT: anchorAccount, CONCORDIUM_ANCHOR_KEY: anchorKey } = env;
   if (!anchorAccount || !anchorKey) return null;
+  // Concordium addresses are base58 (50 characters) and signing keys 32-byte hex; an Ethereum-style
+  // 0x address or key here would fail on every sign-in, so refuse it up front.
+  if (!/^[1-9A-HJ-NP-Za-km-z]{50}$/.test(anchorAccount) || !/^[0-9a-fA-F]{64}$/.test(anchorKey)) {
+    console.error("[id-app] CONCORDIUM_ANCHOR_ACCOUNT must be a Concordium base58 address and CONCORDIUM_ANCHOR_KEY a 64-character hex key; sign-in stays off");
+    return null;
+  }
   return {
     network: env.CONCORDIUM_NETWORK === "mainnet" ? "Mainnet" : "Testnet",
     grpcHost: env.CONCORDIUM_GRPC_HOST || (env.CONCORDIUM_NETWORK === "mainnet" ? "grpc.mainnet.concordium.software" : "grpc.testnet.concordium.com"),

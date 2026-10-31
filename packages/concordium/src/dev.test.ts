@@ -97,7 +97,9 @@ describe("Concordium ID App presentations", () => {
 
   it("is configured only with an anchor account and key", () => {
     expect(idAppConfigFromEnv({})).toBeNull();
-    expect(idAppConfigFromEnv({ CONCORDIUM_ANCHOR_ACCOUNT: "4abc", CONCORDIUM_ANCHOR_KEY: "00" })).toMatchObject({
+    const account = "4".padEnd(50, "a");
+    expect(idAppConfigFromEnv({ CONCORDIUM_ANCHOR_ACCOUNT: `0x${"a".repeat(40)}`, CONCORDIUM_ANCHOR_KEY: `0x${"1".repeat(64)}` })).toBeNull();
+    expect(idAppConfigFromEnv({ CONCORDIUM_ANCHOR_ACCOUNT: account, CONCORDIUM_ANCHOR_KEY: "1".repeat(64) })).toMatchObject({
       network: "Testnet",
       grpcHost: "grpc.testnet.concordium.com",
       grpcPort: 20000,
