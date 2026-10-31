@@ -16,6 +16,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { type Caller, createDesk, type Desk } from "./desk";
 import { DeskError } from "./errors";
 import { issueAgentKey, verifyAgentKey } from "./keys";
+import { taskTotal } from "./money";
 import { hashEvent } from "./trail";
 
 const HOUR = 60 * 60 * 1000;
@@ -434,5 +435,25 @@ describe("agent linking", () => {
   it("rate limits link requests per client", async () => {
     for (let i = 0; i < 5; i++) await desk.requestAgentLink({ agentName: `Agent ${i}` }, "client-c");
     await expectDeskError(desk.requestAgentLink({ agentName: "One more" }, "client-c"), "limit");
+  });
+});
+
+describe("test tasks and owners", () => {
+  it("shows a real worker their own agents' test tasks, and no one else's", async () => {
+    const [owner] = await db.insert(owners).values({ kind: "individual", verifiedRef: "ph-owner" }).returning();
+    const [agent] = await db
+      .insert(agents)
+      .values({ ownerId: owner!.id, registryId: "registry-owned", name: "mine", maxTaskBudget: 5_000, maxDailySpend: 50_000, testMode: true })
+      .returning();
+    const ownerWorker: Caller = { role: "worker", workerId: (await seedWorker("ph-owner", { residency: "PH" })).id };
+    const mine: Caller = { role: "requester", agentId: agent!.id };
+
+    const { task } = await desk.postTask(mine, taskInput());
+    await desk.fundTask(mine, task.id, { txHash: "test", amount: taskTotal(task) });
+
+    expect((await desk.browseOpenTasks(ownerWorker)).map((t) => t.id)).toContain(task.id);
+    expect((await desk.browseOpenTasks(manilaWorker)).map((t) => t.id)).not.toContain(task.id);
+    await expectDeskError(desk.claimTask(manilaWorker, task.id), "forbidden");
+    expect((await desk.claimTask(ownerWorker, task.id)).status).toBe("claimed");
   });
 });

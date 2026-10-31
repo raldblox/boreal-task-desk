@@ -25,6 +25,7 @@ import {
   ledgerEntries,
   lte,
   or,
+  owners,
   submissions,
   type Task,
   taskEvents,
@@ -164,6 +165,20 @@ export function createDesk({
 
       return updated!;
     });
+  }
+
+  /**
+   * The agents this person owns (their worker pseudonym is their owner identity). Test tasks
+   * stay hidden from real workers, except an owner's own agents' test tasks, so an owner can
+   * try their agent end to end from their own account.
+   */
+  async function ownedAgentIds(pseudonym: string, q: Database | Transaction = db): Promise<Set<string>> {
+    const rows = await q
+      .select({ id: agents.id })
+      .from(agents)
+      .innerJoin(owners, eq(owners.id, agents.ownerId))
+      .where(eq(owners.verifiedRef, pseudonym));
+    return new Set(rows.map((r) => r.id));
   }
 
   function requireRole<R extends Caller["role"]>(
@@ -308,7 +323,7 @@ export function createDesk({
           if (task.deadline <= at) throw new DeskError("conflict", "task deadline has passed");
           const [worker] = await tx.select().from(workers).where(eq(workers.id, caller.workerId));
           if (!worker) throw new DeskError("not_found", "worker not found");
-          if (task.test !== worker.testMode) {
+          if (task.test !== worker.testMode && !(task.test && (await ownedAgentIds(worker.pseudonym, tx)).has(task.agentId))) {
             throw new DeskError("forbidden", task.test ? "this is a test task" : "test workers can only claim test tasks");
           }
           if (!meetsAttributes(task.requiredAttributes, worker.provenAttributes)) {
@@ -649,8 +664,11 @@ export function createDesk({
         .where(and(eq(tasks.status, "open"), gt(tasks.deadline, now())))
         .orderBy(desc(tasks.createdAt))
         .limit(100);
+      const mine = await ownedAgentIds(worker.pseudonym);
       return open.filter(
-        (task) => task.test === worker.testMode && meetsAttributes(task.requiredAttributes, worker.provenAttributes),
+        (task) =>
+          (task.test === worker.testMode || (task.test && mine.has(task.agentId))) &&
+          meetsAttributes(task.requiredAttributes, worker.provenAttributes),
       );
     },
 
