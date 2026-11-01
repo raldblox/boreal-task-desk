@@ -4,6 +4,15 @@ import { Check } from "lucide-react";
 // Where a task stands for its worker: claimed, submitted, reviewed, paid.
 const STEPS = ["Claimed", "Submitted", "Reviewed", "Paid"] as const;
 
+// Once there's a verdict, the third step says what it was.
+const VERDICT: Partial<Record<TaskStatus, string>> = {
+  passed: "Passed",
+  failed: "Failed",
+  disputed: "Disputed",
+  final_pass: "Passed",
+  final_fail: "Failed",
+};
+
 function reached(status: TaskStatus): number {
   switch (status) {
     case "claimed":
@@ -42,7 +51,7 @@ export function TaskProgress({ status }: { status: TaskStatus }) {
               aria-current={current ? "step" : undefined}
             >
               {done && !current && <Check className="size-3 text-primary" />}
-              {failed && i === 3 ? "Not paid" : label}
+              {i === 2 && VERDICT[status] ? VERDICT[status] : failed && i === 3 ? "Not paid" : label}
             </span>
           </li>
         );

@@ -15,6 +15,9 @@ import { getDesk, paymentRails } from "@/server/desk";
 import { paypalAccounts } from "@/server/paypal-accounts";
 import { workerFromSession } from "@/server/session";
 
+/** Desk errors are lower-case clauses; show one as a sentence. */
+const sentence = (message: string) => `${message.charAt(0).toUpperCase()}${message.slice(1).replace(/\.?$/, ".")}`;
+
 type Props = { params: Promise<{ code: string }>; searchParams: Promise<{ done?: string; agent?: string }> };
 
 async function LinkRequest({ params, searchParams }: Props) {
@@ -30,7 +33,7 @@ async function LinkRequest({ params, searchParams }: Props) {
         <p className="text-muted-foreground">
           {approved
             ? "Your agent picks up its key the next time it checks, usually within seconds, and can post tasks for verified workers right away, within the limits you set."
-            : "The agent won't get a key from this request."}
+            : "The agent won't get a key from this request. If that was a mistake, ask it to connect again."}
         </p>
         {approved && agent && paymentRails().includes("paypal") && (await paypalAccounts()?.canSaveAccounts()) && (
           <div className="flex flex-col gap-2 rounded-xl border bg-muted/40 p-4">
@@ -65,7 +68,13 @@ async function LinkRequest({ params, searchParams }: Props) {
     return (
       <Alert variant="destructive">
         <AlertTitle>Can&apos;t approve this request</AlertTitle>
-        <AlertDescription>{error.message.charAt(0).toUpperCase() + error.message.slice(1)}.</AlertDescription>
+        <AlertDescription>
+          {sentence(error.message)} Ask your agent for a new link, or{" "}
+          <Link href="/link" className="underline underline-offset-2">
+            enter its code
+          </Link>
+          .
+        </AlertDescription>
       </Alert>
     );
   }

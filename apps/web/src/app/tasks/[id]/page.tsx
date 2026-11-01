@@ -16,6 +16,14 @@ import { attributeLabel, usd, when, WORKER_STATUS } from "@/lib/format";
 import { getDesk } from "@/server/desk";
 import { workerFromSession } from "@/server/session";
 
+function FindAnother() {
+  return (
+    <Link href="/tasks" className={buttonVariants({ variant: "outline", className: "w-full sm:w-fit" })}>
+      Find another task
+    </Link>
+  );
+}
+
 /** What the worker can do next, for each state. */
 function NextStep({
   task,
@@ -61,17 +69,27 @@ function NextStep({
           )}
           <SubmitForm action={submitResult.bind(null, task.id)} resultFormat={task.resultFormat} />
           <Separator />
-          <ActionButton action={releaseTask.bind(null, task.id)} variant="outline">
-            Release task
-          </ActionButton>
+          <div className="flex flex-col gap-2">
+            <p className="text-sm text-muted-foreground">
+              Can&apos;t do it? Release it so someone else can. Nothing is held against you.
+            </p>
+            <ActionButton action={releaseTask.bind(null, task.id)} variant="outline">
+              Release task
+            </ActionButton>
+          </div>
         </div>
       );
     case "submitted":
-      return <p className="text-muted-foreground">Submitted. A reviewer is checking it against the criteria.</p>;
+      return (
+        <p className="text-muted-foreground">
+          Submitted. A reviewer is checking it against the criteria above. You&apos;ll see the verdict here and on My
+          account.
+        </p>
+      );
     case "passed":
       return (
         <p className="text-muted-foreground">
-          Passed. You&apos;re paid {usd(task.budget)} when the objection window closes
+          Passed. Your {usd(task.budget)} is held for you and paid when the objection window closes
           {windowEnds ? ` on ${when(windowEnds)}` : ""}, or sooner if the requester accepts early.
         </p>
       );
@@ -89,15 +107,45 @@ function NextStep({
         </div>
       );
     case "disputed":
-      return <p className="text-muted-foreground">Disputed. The review panel is deciding.</p>;
+      return (
+        <p className="text-muted-foreground">
+          Disputed. A panel with a human reviewer is deciding, and its decision is final. The money stays held until then.
+        </p>
+      );
     case "final_pass":
       return (
         <p className="font-medium">
-          {task.test ? `Paid ${usd(task.budget)} in test money.` : `Paid ${usd(task.budget)} to your account.`}
+          {task.test
+            ? `Paid ${usd(task.budget)} in test money.`
+            : `Paid ${usd(task.budget)} to your ${task.paymentRail === "concordium" ? "Concordium account" : "PayPal"}.`}{" "}
+          <Link href="/me" className="font-normal text-primary underline-offset-4 hover:underline">
+            See your earnings
+          </Link>
         </p>
       );
     case "final_fail":
-      return <p className="text-muted-foreground">Not paid. The verdict stands.</p>;
+      return (
+        <div className="flex flex-col gap-3">
+          <p className="text-muted-foreground">Not paid. The verdict stands, and the money goes back to the requester.</p>
+          <FindAnother />
+        </div>
+      );
+    case "expired":
+    case "cancelled":
+    case "refused":
+      return (
+        <div className="flex flex-col gap-3">
+          <p className="text-muted-foreground">
+            {task.status === "expired"
+              ? "This task reached its deadline before anyone took it, so it's closed."
+              : task.status === "cancelled"
+                ? "The requester withdrew this task, so it's closed."
+                : "This task didn't pass boreal's checks, so it never opened."}{" "}
+            Nothing is held against you.
+          </p>
+          <FindAnother />
+        </div>
+      );
     default:
       return null;
   }
@@ -109,8 +157,8 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
   if (!worker || worker.role !== "worker") {
     return (
       <div className="flex flex-col items-start gap-4">
-        <p className="text-muted-foreground">Sign in to see this task.</p>
-        <Link href="/signin" className={buttonVariants()}>
+        <p className="text-muted-foreground">Sign in to see this task. You&apos;ll come straight back here.</p>
+        <Link href={`/signin?next=/tasks/${encodeURIComponent(id)}`} className={buttonVariants()}>
           Sign in
         </Link>
       </div>

@@ -1,3 +1,4 @@
+import { POLICY } from "@boreal/core";
 import { BadgeCheck, Bot, CheckCircle2, ShieldCheck, Wallet } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -58,7 +59,7 @@ async function Identity() {
           <BadgeCheck className="size-5" />
         </span>
         <div className="flex min-w-0 flex-col gap-1">
-          <p className="font-semibold">{profile.testMode ? "Tester" : "Your identities"}</p>
+          <p className="font-semibold">{profile.testMode ? "Test worker" : "Your identities"}</p>
           <p className="text-sm text-muted-foreground">
             <span className="font-mono">{workerHandle(profile.pseudonym)}</span> · worker since {since}
           </p>
@@ -155,7 +156,7 @@ async function Earnings() {
   after(kickMonitorSoon);
   const earnings = await getDesk().getWorkerEarnings(worker);
   const rows = [
-    { label: "Earnings", money: earnings.real, note: "Paid to your payout account." },
+    { label: "Paid to you", money: earnings.real, note: "Real money, paid to your PayPal or Concordium account." },
     { label: "Test money", money: earnings.test, note: "From test tasks. Not real money." },
   ].filter((r, i) => i === 0 || r.money.paid + r.money.settling + r.money.upcoming > 0);
   return (
@@ -170,12 +171,13 @@ async function Earnings() {
               <dd className="font-medium tabular-nums">{usd(money.settling)}</dd>
             </div>
             <div>
-              <dt className="text-muted-foreground">Passed, pending</dt>
+              <dt className="text-muted-foreground">Held for you</dt>
               <dd className="font-medium tabular-nums">{usd(money.upcoming)}</dd>
             </div>
           </dl>
           <p className="text-xs text-muted-foreground">
-            {note} A pass is paid 48 hours after the verdict, or sooner if the requester accepts it.
+            {note} A passed task is held for {POLICY.objectionWindowMs / 3_600_000} hours, then paid. It&apos;s paid
+            sooner if the requester accepts early.
           </p>
         </div>
       ))}
@@ -207,7 +209,7 @@ async function Payouts() {
             <div className="min-w-0 flex-1">
               <p className="font-medium">PayPal</p>
               <p className="truncate text-sm text-muted-foreground">
-                {profile.paypalEmail ?? (paypalLogin ? "Connect to get paid for PayPal tasks" : "Opening soon")}
+                {profile.paypalEmail ?? (paypalLogin ? "Connect to get paid for PayPal tasks" : "PayPal payouts open soon on this site")}
               </p>
             </div>
             {profile.paypalEmail && (
@@ -353,10 +355,10 @@ export default function MyTasksPage({ searchParams }: { searchParams: Promise<{ 
       <Suspense fallback={<div className="h-36 animate-pulse rounded-2xl bg-muted" />}>
         <Earnings />
       </Suspense>
-      <Suspense>
+      <Suspense fallback={<div className="h-32 animate-pulse rounded-2xl bg-muted" />}>
         <Payouts />
       </Suspense>
-      <Suspense>
+      <Suspense fallback={null}>
         <MyAgents />
       </Suspense>
       <Suspense fallback={<div className="h-40 animate-pulse rounded-2xl bg-muted" />}>

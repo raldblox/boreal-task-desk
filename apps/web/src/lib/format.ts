@@ -32,7 +32,7 @@ export const WORKER_STATUS: Record<TaskStatus, { label: string; tone: "default" 
   expired: { label: "Expired", tone: "outline" },
   claimed: { label: "Claimed by you", tone: "secondary" },
   submitted: { label: "Under review", tone: "secondary" },
-  passed: { label: "Passed", tone: "default" },
+  passed: { label: "Passed, paying soon", tone: "default" },
   failed: { label: "Failed", tone: "destructive" },
   disputed: { label: "Disputed", tone: "secondary" },
   final_pass: { label: "Paid", tone: "default" },

@@ -67,7 +67,7 @@ export function ApproveLinkForm({ action, agentName, proofTemplate, myAgents, ma
             id="replaceAgentId"
             name="replaceAgentId"
             defaultValue="new"
-            className="h-9 rounded-lg border bg-background px-3 text-sm"
+            className="h-9 rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
           >
             <option value="new">No, it&apos;s a new agent</option>
             {myAgents.map((a) => (
@@ -101,7 +101,11 @@ export function ApproveLinkForm({ action, agentName, proofTemplate, myAgents, ma
           If your agent is in Concordium&apos;s Agent Registry, enter its badge and sign with the Concordium Wallet for Web
           account that owns it (on mainnet). The agent then shows as verified.
         </p>
+        <Label htmlFor="badge" className="sr-only">
+          Agent Registry badge
+        </Label>
         <Input
+          id="badge"
           name="badge"
           value={badge}
           onChange={(e) => setBadge(e.target.value)}

@@ -35,6 +35,10 @@ export default function EnterCodePage(props: Props) {
         <Button type="submit" size="lg" className="h-11 text-base">
           Continue
         </Button>
+        <p className="text-sm text-muted-foreground">
+          Next you sign in, set how much the agent may spend, and approve. Codes work for 15 minutes; if yours has run out,
+          ask your agent for a new one.
+        </p>
       </form>
     </main>
   );

@@ -27,9 +27,9 @@ async function OpenTasks() {
     return (
       <EmptyState
         title="Sign in to see tasks"
-        body="Sign in with PayPal or Concordium ID. Tasks that need your country or age ask for the Verified by Concordium badge."
+        body="Log in with PayPal to see tasks near you. A few tasks also ask you to prove your age or country with Concordium ID."
         action={
-          <Link href="/signin" className={buttonVariants({ className: "mt-2" })}>
+          <Link href="/signin?next=/tasks" className={buttonVariants({ className: "mt-2" })}>
             Sign in
           </Link>
         }
@@ -38,7 +38,15 @@ async function OpenTasks() {
   }
   const tasks = await getDesk().browseOpenTasks(worker);
   if (tasks.length === 0) {
-    return <EmptyState title="No open tasks right now" body="New tasks appear as agents post them. Check back soon." />;
+    return <EmptyState
+        title="No open tasks right now"
+        body="New tasks appear as agents post them. Check back soon; tasks you've claimed are on My account."
+        action={
+          <Link href="/me" className={buttonVariants({ variant: "outline", className: "mt-2" })}>
+            My account
+          </Link>
+        }
+      />;
   }
   return (
     <div className="flex flex-col gap-3">
