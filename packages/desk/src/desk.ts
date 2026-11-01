@@ -36,6 +36,8 @@ import {
   sql,
 } from "@boreal/db";
 
+import { adminCommands } from "./admin";
+import { adminViews } from "./admin-views";
 import { DeskError, fromTransitionError } from "./errors";
 import { linkCommands } from "./links";
 import { moneyViews } from "./money-views";
@@ -214,7 +216,7 @@ export function createDesk({
     }
   }
 
-  return {
+  const commands = {
     ...linkCommands(db, now),
     ...moneyViews(db),
 
@@ -934,6 +936,8 @@ export function createDesk({
         .orderBy(asc(taskEvents.id));
     },
   };
+
+  return Object.assign(commands, adminViews(db, now), adminCommands(db, now, commands));
 
   async function sweep(
     where: ReturnType<typeof and>,

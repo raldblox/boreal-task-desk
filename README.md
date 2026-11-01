@@ -206,6 +206,20 @@ The monitor loop screens posted tasks (R1, R2) and reviews submissions (R3, R4) 
 
 Set `ANTHROPIC_API_KEY` for the worker to turn it on. Without it, tasks wait for human reviewers.
 
+## Admin
+
+`/admin` is boreal's operator area: an overview (queues, outbox, escrow per rail, activity), the review queue, task search with each task's trail and money, ledger totals and where the platform fee went, agents and owners, workers (pseudonym and proven attributes only), controls and light analytics.
+
+Admin is a role, not a page. An admin signs in like any worker, with Concordium ID, and their worker pseudonym must be in `ADMIN_PSEUDONYMS` (comma-separated). Testers never qualify. Everyone else gets a 404 on every `/admin` route and admin action; the check runs on the server in the layout, in every page and in every action (`apps/web/src/server/admin.ts`).
+
+Every change made there (screen, verdict, dispute decision, freeze or unfreeze an agent, retry an outbox row, run a monitor tick) needs a confirm and a reason, and is written to `admin_actions` with who, what, when and why. Reviews go through the desk's own reviewer and panel commands, as boreal's reviewer, so the state machine still decides. Without an AI reviewer key, the review queue is how live tasks get screened.
+
+Locally, start the app with an admin and sign in with that pseudonym on the development wallet:
+
+```bash
+ADMIN_PSEUDONYMS=dev-admin pnpm dev:local
+```
+
 ## Seeing the whole flow
 
 ```bash

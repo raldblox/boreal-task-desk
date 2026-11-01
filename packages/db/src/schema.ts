@@ -270,3 +270,24 @@ export const verificationRequests = pgTable(
   },
   (t) => [index("verification_requests_client_idx").on(t.clientHash, t.createdAt)],
 );
+
+/**
+ * Every change an operator makes from the admin area: who (their worker pseudonym), what,
+ * on which target, when and why. Append-only, written with the change it records.
+ */
+export const adminActions = pgTable(
+  "admin_actions",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    adminRef: text("admin_ref").notNull(),
+    action: text("action").notNull(),
+    /** What it acted on, like `task:<id>`, `agent:<id>` or `outbox:<id>`. */
+    target: text("target"),
+    reason: text("reason").notNull(),
+    /** `ok`, or the refusal the desk gave. */
+    outcome: text("outcome").notNull(),
+    detail: jsonb("detail"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("admin_actions_created_idx").on(t.createdAt)],
+);

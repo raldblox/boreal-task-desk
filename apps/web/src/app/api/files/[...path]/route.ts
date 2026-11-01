@@ -1,12 +1,14 @@
-import { type Caller, DeskError } from "@boreal/desk";
+import { BOREAL_REVIEWER, type Caller, DeskError } from "@boreal/desk";
 
+import { currentAdmin } from "@/server/admin";
 import { getDesk, requesterFrom } from "@/server/desk";
 import { readSubmissionFile } from "@/server/files";
 import { workerFromSession } from "@/server/session";
 
 /**
- * Serves a private submission file to the worker who submitted it (session cookie) or to
- * the task's requester agent (Bearer key). Anyone else gets 404, the same as a missing file.
+ * Serves a private submission file to the worker who submitted it (session cookie), to the
+ * task's requester agent (Bearer key), and to boreal's admins, who review it. Anyone else
+ * gets 404, the same as a missing file.
  */
 export async function GET(request: Request, ctx: RouteContext<"/api/files/[...path]">) {
   const { path: segments } = await ctx.params;
@@ -15,7 +17,9 @@ export async function GET(request: Request, ctx: RouteContext<"/api/files/[...pa
   const missing = () => new Response("Not found", { status: 404 });
   if (root !== "submissions" || !taskId) return missing();
 
-  const caller: Caller | null = (await workerFromSession()) ?? (await requesterFrom(request));
+  const caller: Caller | null = (await currentAdmin())
+    ? BOREAL_REVIEWER
+    : ((await workerFromSession()) ?? (await requesterFrom(request)));
   if (!caller) return missing();
 
   try {
