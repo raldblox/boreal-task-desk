@@ -63,7 +63,13 @@ export function ConcordiumWalletSignIn({ next = "/tasks", link = false }: { next
       router.push(next);
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error && e.message ? e.message : "The wallet didn't complete the sign-in.");
+      const message = e instanceof Error ? e.message : "";
+      // The wallet can't build the proof when no identity in it holds what boreal asks for.
+      setError(
+        /unable to create proof/i.test(message)
+          ? "Your wallet couldn't build the proof. boreal asks an identity to prove you're 18 or older and to share your country of residence and ID document issuer and number; pick an account whose identity has those, or use the Concordium ID App."
+          : message || "The wallet didn't complete the sign-in.",
+      );
       setStatus("idle");
     }
   }
