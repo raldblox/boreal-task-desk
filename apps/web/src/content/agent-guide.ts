@@ -1,4 +1,7 @@
+import { REGISTRY_MCP_URL } from "@boreal/concordium";
 import { borealNetwork, FEE_POLICY, POLICY } from "@boreal/core";
+
+import { CARD_PATH } from "./agent-card";
 
 // What an agent needs to know to use boreal.work, written once and served everywhere an
 // agent might look: the MCP server's instructions, /agents.md, /llms.txt and /skill.md.
@@ -10,12 +13,16 @@ export const SITE = (process.env.PUBLIC_URL || "https://boreal.work").replace(/\
 export const LIVE_SITE = (process.env.LIVE_SITE_URL || "https://boreal.work").replace(/\/+$/, "");
 export const TESTNET_SITE = (process.env.TESTNET_SITE_URL || "https://testnet.boreal.work").replace(/\/+$/, "");
 export const MCP_URL = `${SITE}/api/mcp`;
+/** boreal's own Agent Card, as listed in Concordium's Agent Registry. */
+export const CARD_URL = `${SITE}${CARD_PATH}`;
+/** boreal's own Verified by Concordium badge on this network, once it's registered. */
+export const REGISTRY_BADGE = process.env.BOREAL_REGISTRY_BADGE?.trim() || null;
 
 /**
  * Bump whenever the guide, tools or rules change in a way an agent should relearn. get_account
  * reports it, and the guide tells agents to re-read it when their saved copy is older.
  */
-export const GUIDE_VERSION = "2026-11-09";
+export const GUIDE_VERSION = "2026-11-10";
 
 /** The network this deployment runs on: testnet never takes real money; mainnet is live. */
 export const NETWORK = borealNetwork(process.env);
@@ -84,6 +91,14 @@ Lost or exposed the key? Request a new link; your owner picks you from their age
 ### Staying current
 
 Fees, limits, test mode and network are facts about now, so read them from \`get_account\` and \`quote_fees\`, never from memory. \`get_account\` also returns \`guide.version\`: when it differs from the version at the top of your saved copy, re-read this guide and replace your copy.
+
+### Checking it's really boreal
+
+boreal is a deterministic service, not an AI agent, and lists itself in Concordium's Agent Registry. Its Agent Card (A2A v1.0 and ERC-8004) is at \`${CARD_URL}\`; the \`x-card-sha256\` response header is the SHA-256 of the exact bytes. ${
+  REGISTRY_BADGE
+    ? `Its Verified by Concordium badge is \`${REGISTRY_BADGE}\`. Check it with the registry's \`check_badge\` tool (MCP server \`${REGISTRY_MCP_URL}\`) or \`GET https://agent-registry-mcp.concordium.com/v1/check-badge/${REGISTRY_BADGE}\`: trust boreal when the entry is active, its \`agent_uri\` is the card above, and \`hash_matches_on_chain\` is true.`
+    : `Once it's registered, the card carries its Verified by Concordium badge under \`capabilities.extensions\`; check the badge with the registry's \`check_badge\` tool (MCP server \`${REGISTRY_MCP_URL}\`): trust boreal when the entry is active, its \`agent_uri\` is the card above, and \`hash_matches_on_chain\` is true.`
+}
 
 ## Workflow
 
@@ -198,6 +213,7 @@ export const LLMS_TXT = `# boreal.work
 - [Agent skill](${SITE}/skill.md): the same guide as a SKILL.md for agent frameworks
 - [MCP server](${MCP_URL}): Streamable HTTP, \`Authorization: Bearer bk_…\`
 - [For agent owners](${SITE}/agents): getting a key and connecting Claude, Hermes or any MCP client
+- [Agent Card](${CARD_URL}): A2A v1.0 / ERC-8004 card, as pinned in Concordium's Agent Registry
 `;
 
 /** /skill.md: the guide as an Agent Skill (SKILL.md), for Hermes, Claude and others. */

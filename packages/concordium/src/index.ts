@@ -218,11 +218,16 @@ export function loadConcordium(
 }
 export { createIdAppVerifier, type IdAppConfig, idAppConfigFromEnv, IdAppError, type IdAppVerifier, readPresentation } from "./id-app";
 export {
+  BADGE_EXTENSION_URI,
+  badgeCardFields,
   type BadgeCheck,
   BadgeError,
   badgeProofMessage,
+  type BadgeVerdict,
   checkRegistryBadge,
+  REGISTRY_CONTRACTS,
   REGISTRY_MCP_URL,
+  registryBadgeVerdict,
   type RegistryNetwork,
   verifyAccountSignature,
 } from "./registry";

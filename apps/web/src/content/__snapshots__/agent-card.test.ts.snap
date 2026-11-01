@@ -1,0 +1,223 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`agent card > keeps the mainnet card byte-stable unless CARD_VERSION is bumped 1`] = `
+"{
+  "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
+  "name": "boreal.work",
+  "description": "boreal.work is a verified human task desk for AI agents. Hand off a step you can't do alone to a verified human: something in the physical world (visit a place, photograph a shelf, check a notice, buy an item) or a judgment only a person can give. Fund the task into escrow, a reviewer judges the result against your own acceptance criteria, and you pay only for work that passes. Every step lands in a hash-chained audit trail anchored on Concordium.\\n\\nboreal is a deterministic service, not an AI agent: its rulebook decides every state change. Connect over MCP or REST; an agent links itself with request_link and its owner approves the key.\\n\\nThis is the live site: money here is real. Guide: https://boreal.work/agents.md",
+  "version": "1.0.0",
+  "provider": {
+    "organization": "boreal.work",
+    "url": "https://boreal.work"
+  },
+  "documentationUrl": "https://boreal.work/agents.md",
+  "supportedInterfaces": [
+    {
+      "url": "https://boreal.work/api/mcp",
+      "protocolBinding": "MCP",
+      "protocolVersion": "2025-11-25"
+    },
+    {
+      "url": "https://boreal.work/api/v1",
+      "protocolBinding": "REST",
+      "protocolVersion": "v1"
+    }
+  ],
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": false
+  },
+  "defaultInputModes": [
+    "application/json",
+    "text/plain"
+  ],
+  "defaultOutputModes": [
+    "application/json",
+    "text/plain"
+  ],
+  "skills": [
+    {
+      "id": "hire-verified-human",
+      "name": "Hire a verified human",
+      "description": "Post a task for a step that needs a person: something in the physical world (visit, photograph, check, buy) or a judgment only a human can give. Limit it to workers who proved an attribute (18 or older, country of residence) with Concordium ID.",
+      "tags": [
+        "human-in-the-loop",
+        "physical-world",
+        "tasks",
+        "verified-humans"
+      ]
+    },
+    {
+      "id": "quote-fees",
+      "name": "Quote fees",
+      "description": "Get the exact total for a worker budget before posting: the budget plus boreal's platform and review fees, in US cents.",
+      "tags": [
+        "fees",
+        "pricing"
+      ]
+    },
+    {
+      "id": "fund-escrow",
+      "name": "Fund a task into escrow",
+      "description": "Pay a task's total into escrow with PayPal or, where it is switched on, a Concordium x402 token payment. The worker is paid only on a final pass; fails, expiries and cancellations are refunded.",
+      "tags": [
+        "escrow",
+        "payments",
+        "paypal",
+        "x402",
+        "concordium"
+      ]
+    },
+    {
+      "id": "review-results",
+      "name": "Review and accept results",
+      "description": "Read the worker's submission, pass or fail it against your acceptance criteria citing the rulebook, accept a pass early to pay at once, or dispute a verdict once before a panel with a human member.",
+      "tags": [
+        "review",
+        "acceptance",
+        "disputes"
+      ]
+    },
+    {
+      "id": "audit-trail",
+      "name": "Read the audit trail",
+      "description": "Get a task's hash-chained event trail, anchored on Concordium as salted hashes, to show what happened and when.",
+      "tags": [
+        "audit",
+        "provenance",
+        "concordium"
+      ]
+    }
+  ],
+  "services": [
+    {
+      "name": "MCP",
+      "endpoint": "https://boreal.work/api/mcp",
+      "version": "2025-11-25"
+    },
+    {
+      "name": "REST",
+      "endpoint": "https://boreal.work/api/v1",
+      "version": "v1"
+    },
+    {
+      "name": "web",
+      "endpoint": "https://boreal.work"
+    }
+  ],
+  "x402Support": false,
+  "active": true,
+  "registrations": []
+}"
+`;
+
+exports[`agent card > keeps the testnet card byte-stable unless CARD_VERSION is bumped 1`] = `
+"{
+  "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
+  "name": "boreal.work testnet",
+  "description": "boreal.work is a verified human task desk for AI agents. Hand off a step you can't do alone to a verified human: something in the physical world (visit a place, photograph a shelf, check a notice, buy an item) or a judgment only a person can give. Fund the task into escrow, a reviewer judges the result against your own acceptance criteria, and you pay only for work that passes. Every step lands in a hash-chained audit trail anchored on Concordium.\\n\\nboreal is a deterministic service, not an AI agent: its rulebook decides every state change. Connect over MCP or REST; an agent links itself with request_link and its owner approves the key.\\n\\nThis is boreal's testnet: money here is never real (PayPal sandbox, Concordium testnet tokens). The live site is https://boreal.work, with its own keys and accounts. Guide: https://testnet.boreal.work/agents.md",
+  "version": "1.0.0",
+  "provider": {
+    "organization": "boreal.work",
+    "url": "https://boreal.work"
+  },
+  "documentationUrl": "https://testnet.boreal.work/agents.md",
+  "supportedInterfaces": [
+    {
+      "url": "https://testnet.boreal.work/api/mcp",
+      "protocolBinding": "MCP",
+      "protocolVersion": "2025-11-25"
+    },
+    {
+      "url": "https://testnet.boreal.work/api/v1",
+      "protocolBinding": "REST",
+      "protocolVersion": "v1"
+    }
+  ],
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": false
+  },
+  "defaultInputModes": [
+    "application/json",
+    "text/plain"
+  ],
+  "defaultOutputModes": [
+    "application/json",
+    "text/plain"
+  ],
+  "skills": [
+    {
+      "id": "hire-verified-human",
+      "name": "Hire a verified human",
+      "description": "Post a task for a step that needs a person: something in the physical world (visit, photograph, check, buy) or a judgment only a human can give. Limit it to workers who proved an attribute (18 or older, country of residence) with Concordium ID.",
+      "tags": [
+        "human-in-the-loop",
+        "physical-world",
+        "tasks",
+        "verified-humans"
+      ]
+    },
+    {
+      "id": "quote-fees",
+      "name": "Quote fees",
+      "description": "Get the exact total for a worker budget before posting: the budget plus boreal's platform and review fees, in US cents.",
+      "tags": [
+        "fees",
+        "pricing"
+      ]
+    },
+    {
+      "id": "fund-escrow",
+      "name": "Fund a task into escrow",
+      "description": "Pay a task's total into escrow with PayPal or, where it is switched on, a Concordium x402 token payment. The worker is paid only on a final pass; fails, expiries and cancellations are refunded.",
+      "tags": [
+        "escrow",
+        "payments",
+        "paypal",
+        "x402",
+        "concordium"
+      ]
+    },
+    {
+      "id": "review-results",
+      "name": "Review and accept results",
+      "description": "Read the worker's submission, pass or fail it against your acceptance criteria citing the rulebook, accept a pass early to pay at once, or dispute a verdict once before a panel with a human member.",
+      "tags": [
+        "review",
+        "acceptance",
+        "disputes"
+      ]
+    },
+    {
+      "id": "audit-trail",
+      "name": "Read the audit trail",
+      "description": "Get a task's hash-chained event trail, anchored on Concordium as salted hashes, to show what happened and when.",
+      "tags": [
+        "audit",
+        "provenance",
+        "concordium"
+      ]
+    }
+  ],
+  "services": [
+    {
+      "name": "MCP",
+      "endpoint": "https://testnet.boreal.work/api/mcp",
+      "version": "2025-11-25"
+    },
+    {
+      "name": "REST",
+      "endpoint": "https://testnet.boreal.work/api/v1",
+      "version": "v1"
+    },
+    {
+      "name": "web",
+      "endpoint": "https://testnet.boreal.work"
+    }
+  ],
+  "x402Support": false,
+  "active": true,
+  "registrations": []
+}"
+`;

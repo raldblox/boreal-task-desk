@@ -3,6 +3,7 @@ import "server-only";
 import { and, gte, isNull, outbox, sql } from "@boreal/db";
 
 import { getDb } from "./db";
+import { registryListing } from "./registry";
 
 // Read-only checks behind the public /status page. Counts only: nothing about any task,
 // agent or worker leaves this file.
@@ -77,6 +78,22 @@ export async function queueCheck(anchoring: boolean): Promise<{ money: Check; an
     anchors,
     lastDoneAt: last?.at ? new Date(last.at) : null,
   };
+}
+
+/** boreal's own entry in Concordium's Agent Registry: is it active and pinning the card served here. */
+export async function registryCheck(): Promise<Check> {
+  const listing = await registryListing();
+  const name = "Registry listing";
+  switch (listing.state) {
+    case "unregistered":
+      return { name, health: "off", detail: "Not registered yet" };
+    case "verified":
+      return { name, health: "ok", detail: `Verified by Concordium (${listing.badge}); the card matches its on-chain hash` };
+    case "mismatch":
+      return { name, health: "degraded", detail: listing.detail };
+    case "unknown":
+      return { name, health: "degraded", detail: `Couldn't check ${listing.badge}: ${listing.detail}` };
+  }
 }
 
 /** The worst health among checks that are switched on. */
