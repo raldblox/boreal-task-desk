@@ -137,9 +137,39 @@ export function linkCommands(db: Database, now: () => Date) {
     async listOwnerAgents(workerId: string) {
       const owner = await ownerFor(workerId);
       return db
-        .select({ id: agents.id, name: agents.name, testMode: agents.testMode, badgeVerifiedAt: agents.badgeVerifiedAt })
+        .select({
+          id: agents.id,
+          name: agents.name,
+          testMode: agents.testMode,
+          badgeVerifiedAt: agents.badgeVerifiedAt,
+          paypalConnected: sql<boolean>`${agents.paymentVaultId} is not null`,
+        })
         .from(agents)
         .where(eq(agents.ownerId, owner.id));
+    },
+
+    /** One of the owner's agents, or a refusal: for pages that act on an agent. */
+    async ownerAgent(workerId: string, agentId: string) {
+      const owner = await ownerFor(workerId);
+      const [agent] = await db
+        .select({ id: agents.id, name: agents.name })
+        .from(agents)
+        .where(and(eq(agents.id, agentId), eq(agents.ownerId, owner.id)));
+      if (!agent) throw new DeskError("forbidden", "that agent isn't yours");
+      return agent;
+    },
+
+    /** The owner saved a PayPal account for the agent: its tasks fund from it with no approval page. */
+    async savePaymentMethod(workerId: string, agentId: string, vaultId: string) {
+      const owner = await ownerFor(workerId);
+      const [agent] = await db
+        .select({ id: agents.id, name: agents.name })
+        .from(agents)
+        .where(and(eq(agents.id, agentId), eq(agents.ownerId, owner.id)));
+      if (!agent) throw new DeskError("forbidden", "that agent isn't yours");
+      if (!vaultId) throw new DeskError("invalid", "PayPal returned no saved account");
+      await db.update(agents).set({ paymentVaultId: vaultId, updatedAt: now() }).where(eq(agents.id, agent.id));
+      return agent;
     },
 
     /** The owner approves: creates the agent (or picks one of theirs), and marks the link ready to collect. */
@@ -183,8 +213,8 @@ export function linkCommands(db: Database, now: () => Date) {
               name,
               maxTaskBudget,
               maxDailySpend,
-              // Beta: every agent runs on test money until live payments ship.
-              testMode: true,
+              // Approved by a verified owner, with limits: ready for real tasks at once.
+              testMode: false,
               ...badge,
               createdAt: at,
               updatedAt: at,

@@ -1,8 +1,10 @@
 import type { Concordium, PaymentRail, PaymentRails, Payments } from "@boreal/concordium";
 
-import { PAYPAL_SANDBOX_URL } from "./client";
+import { createPayPalAccounts, type PayPalAccounts } from "./accounts";
+import { createPayPalClient, PAYPAL_SANDBOX_URL } from "./client";
 import { createPayPalPayments, type PayPalPayments } from "./payments";
 
+export { createPayPalAccounts, type PayPalAccounts } from "./accounts";
 export { createPayPalClient, fromValue, PAYPAL_SANDBOX_URL, type PayPalClient, PayPalError, toValue } from "./client";
 export { createPayPalPayments, PayPalPaymentError, type PayPalOrder, type PayPalPayments, type PayPalPaymentsOptions } from "./payments";
 export { type PayoutUpdate, payoutUpdateFrom, type PayPalWebhookEvent, verifyWebhook, WebhookVerificationError } from "./webhooks";
@@ -41,6 +43,24 @@ export function loadPayPal(
     // Saving the payer's account needs the Vault option on the PayPal app.
     vault: env.PAYPAL_VAULT !== "off",
     escrowBalance: options.escrowBalance,
+  });
+}
+
+/**
+ * Connecting PayPal accounts (owners saving one for an agent, workers logging in for payouts),
+ * on the same app and with the same checks as the PayPal rail. Null when the rail is off.
+ */
+export function loadPayPalAccounts(env: Record<string, string | undefined>): PayPalAccounts | null {
+  if (!railsOn(env)?.has("paypal")) return null;
+  const clientId = env.PAYPAL_CLIENT_ID;
+  const clientSecret = env.PAYPAL_CLIENT_SECRET;
+  if (!clientId || !clientSecret) return null;
+  return createPayPalAccounts({
+    client: createPayPalClient({ clientId, clientSecret, baseUrl: PAYPAL_SANDBOX_URL }),
+    clientId,
+    clientSecret,
+    baseUrl: PAYPAL_SANDBOX_URL,
+    webUrl: "https://www.sandbox.paypal.com",
   });
 }
 

@@ -35,21 +35,22 @@ async function verifyBadge(code: string, form: FormData): Promise<VerifiedBadge 
 export async function approveLink(code: string, _prev: LinkActionState, form: FormData): Promise<LinkActionState> {
   const worker = await workerFromSession();
   if (!worker || worker.role !== "worker") return { error: "Your session has ended. Sign in again." };
+  let agentId: string;
   try {
     const replaceAgentId = String(form.get("replaceAgentId") ?? "");
-    await getDesk().approveAgentLink(worker.workerId, code, {
+    ({ agentId } = await getDesk().approveAgentLink(worker.workerId, code, {
       name: String(form.get("name") ?? ""),
       maxTaskBudget: cents(form.get("maxTaskBudget")),
       maxDailySpend: cents(form.get("maxDailySpend")),
       replaceAgentId: replaceAgentId && replaceAgentId !== "new" ? replaceAgentId : undefined,
       badge: await verifyBadge(code, form),
-    });
+    }));
   } catch (error) {
     if (error instanceof DeskError || error instanceof BadgeError) return { error: error.message };
     console.error("[link] approve failed", error);
     return { error: "Something went wrong. Try again." };
   }
-  redirect(`/link/${code}?done=approved`);
+  redirect(`/link/${code}?done=approved&agent=${agentId}`);
 }
 
 export async function denyLink(code: string): Promise<void> {

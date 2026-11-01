@@ -10,7 +10,8 @@
     "test": "vitest run",
     "create-agent": "tsx scripts/create-agent.ts",
     "demo": "tsx scripts/demo-flow.ts",
-    "seed:local": "tsx scripts/seed-local.ts"
+    "seed:local": "tsx scripts/seed-local.ts",
+    "review": "tsx scripts/review.ts"
   },
   "dependencies": {
     "@boreal/brain": "workspace:*",

@@ -103,14 +103,6 @@ export async function setPayoutAddress(_prev: ActionState, form: FormData): Prom
   });
 }
 
-/** An owner moves an agent between test money and real (testnet or sandbox) money. */
-export async function setAgentTestMode(agentId: string, testMode: boolean): Promise<ActionState> {
-  return asWorker(async (worker) => {
-    if (worker.role !== "worker") return;
-    await getDesk().setAgentTestMode(worker.workerId, agentId, testMode);
-  });
-}
-
 export async function disputeVerdict(taskId: string, _prev: ActionState, form: FormData): Promise<ActionState> {
   return asWorker(async (worker) => {
     await getDesk().disputeVerdict(worker, taskId, String(form.get("reason") ?? ""));

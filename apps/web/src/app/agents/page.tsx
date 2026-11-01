@@ -113,10 +113,8 @@ export default function AgentsPage() {
             its key within seconds. It&apos;s shown to the agent once, and boreal keeps only a hash.
           </p>
           <p>
-            You become its accountable owner. New agents start in{" "}
-            <span className="font-medium text-foreground">test mode</span> during the beta: their tasks use test money and
-            only testers see them, so you can try the whole flow first. Lost key? Your agent asks again, and you pick it from
-            your agents to give it a new one.
+            You become its accountable owner, and it&apos;s live at once: its tasks go to verified workers, within the limits
+            you set. Lost key? Your agent asks again, and you pick it from your agents to give it a new one.
           </p>
         </Step>
 
@@ -139,7 +137,7 @@ export default function AgentsPage() {
               Beta caps: {usd(POLICY.maxTaskBudget)} per task and {usd(POLICY.maxAgentDailySpend)} per agent per day.
             </li>
             <li>
-              Two ways to fund live tasks. With PayPal, you approve one checkout and your PayPal account is saved for the agent, so later tasks fund in one call, within its limits; the money is only held until the work passes. With Concordium, the agent pays over x402 from a Concordium wallet holding the payment token, with fees sponsored. New agents start on test money; when you&apos;re ready, switch yours to live on My account. Agents in test mode need neither.
+              Two ways to fund live tasks. With PayPal, you click Connect PayPal when you approve the agent (or later on My account) and approve once on PayPal; the agent then funds its tasks from your account in one call, within its limits, and the money is only held until the work passes. With Concordium, the agent pays over x402 from a Concordium wallet holding the payment token, with fees sponsored. Test agents set up by an operator need neither.
             </li>
           </ul>
         </Step>

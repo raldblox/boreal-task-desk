@@ -11,14 +11,14 @@ import { ApproveLinkForm } from "@/app/link/approve-form";
 import { Eyebrow } from "@/components/brand";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { getDesk } from "@/server/desk";
+import { getDesk, paymentRails } from "@/server/desk";
 import { workerFromSession } from "@/server/session";
 
-type Props = { params: Promise<{ code: string }>; searchParams: Promise<{ done?: string }> };
+type Props = { params: Promise<{ code: string }>; searchParams: Promise<{ done?: string; agent?: string }> };
 
 async function LinkRequest({ params, searchParams }: Props) {
   const code = normaliseLinkCode(decodeURIComponent((await params).code));
-  const { done } = await searchParams;
+  const { done, agent } = await searchParams;
 
   if (done === "approved" || done === "denied") {
     const approved = done === "approved";
@@ -28,11 +28,23 @@ async function LinkRequest({ params, searchParams }: Props) {
         <h2 className="text-xl font-semibold">{approved ? "Approved" : "Denied"}</h2>
         <p className="text-muted-foreground">
           {approved
-            ? "Your agent picks up its key the next time it checks, usually within seconds, and can start posting tasks. New agents run in test mode during the beta."
+            ? "Your agent picks up its key the next time it checks, usually within seconds, and can post tasks for verified workers right away, within the limits you set."
             : "The agent won't get a key from this request."}
         </p>
+        {approved && agent && paymentRails().includes("paypal") && (
+          <div className="flex flex-col gap-2 rounded-xl border bg-muted/40 p-4">
+            <p className="font-medium">Let it pay with your PayPal</p>
+            <p className="text-sm text-muted-foreground">
+              Approve once on PayPal and your agent funds its tasks from your account, within its limits, without asking
+              you each time. Money is only held until a task passes, and returned if it doesn&apos;t.
+            </p>
+            <a href={`/paypal/save/${encodeURIComponent(agent)}`} className={buttonVariants({ className: "w-full sm:w-fit" })}>
+              Connect PayPal
+            </a>
+          </div>
+        )}
         <Link href="/me" className={buttonVariants({ variant: "outline" })}>
-          Go to my account
+          {approved && agent ? "Skip for now" : "Go to my account"}
         </Link>
       </div>
     );

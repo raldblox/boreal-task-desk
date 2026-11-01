@@ -3,10 +3,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
-import { setAgentTestMode, setPayoutAddress } from "@/app/actions";
+import { setPayoutAddress } from "@/app/actions";
 import { Eyebrow } from "@/components/brand";
 import { TaskCard } from "@/components/task-card";
-import { ActionButton, PayoutForm } from "@/components/worker-forms";
+import { PayoutForm } from "@/components/worker-forms";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { attributeLabel, usd, workerHandle } from "@/lib/format";
@@ -107,7 +108,22 @@ async function Payouts() {
         </p>
       </div>
       {rails.includes("paypal") && (
-        <PayoutForm action={setPayoutAddress} current={profile.paypalEmail} paypal />
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* A route handler that redirects to PayPal, so a full navigation, not <Link>. */}
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+            <a href="/paypal/login" className={buttonVariants({ className: "w-full sm:w-fit" })}>
+              {profile.paypalEmail ? "Switch PayPal account" : "Connect PayPal"}
+            </a>
+            {profile.paypalEmail && <span className="text-sm text-muted-foreground">Paid to {profile.paypalEmail}</span>}
+          </div>
+          <details className="text-sm">
+            <summary className="cursor-pointer text-muted-foreground">Or type your PayPal email</summary>
+            <div className="pt-3">
+              <PayoutForm action={setPayoutAddress} current={profile.paypalEmail} paypal />
+            </div>
+          </details>
+        </div>
       )}
       {rails.includes("concordium") && (
         <PayoutForm action={setPayoutAddress} current={profile.payoutAddress} paypal={false} />
@@ -127,6 +143,7 @@ async function MyAgents() {
     .listOwnerAgents(worker.workerId)
     .catch(() => []); // testers can't own agents
   if (agents.length === 0) return null;
+  const paypal = paymentRails().includes("paypal");
   return (
     <section className="flex flex-col gap-3">
       <h2 className="text-sm font-semibold text-muted-foreground">Your agents · {agents.length}</h2>
@@ -135,10 +152,15 @@ async function MyAgents() {
           <Bot className="size-5 shrink-0 text-primary" />
           <p className="min-w-0 flex-1 truncate font-medium">{agent.name}</p>
           {agent.badgeVerifiedAt && <Badge>Verified by Concordium</Badge>}
-          <Badge variant="outline">{agent.testMode ? "Test money" : "Live"}</Badge>
-          <ActionButton action={setAgentTestMode.bind(null, agent.id, !agent.testMode)} variant="outline" size="sm">
-            {agent.testMode ? "Go live" : "Back to test"}
-          </ActionButton>
+          {agent.testMode && <Badge variant="outline">Test money</Badge>}
+          {paypal &&
+            (agent.paypalConnected ? (
+              <Badge variant="outline">PayPal connected</Badge>
+            ) : (
+              <a href={`/paypal/save/${agent.id}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+                Connect PayPal
+              </a>
+            ))}
         </div>
       ))}
     </section>
@@ -183,13 +205,35 @@ async function MyTasks() {
   );
 }
 
-export default function MyTasksPage() {
+const PAYPAL_NOTICES: Record<string, string> = {
+  saved: "PayPal connected. Your agent now funds tasks from it without asking you each time.",
+  connected: "PayPal connected. Passed tasks on PayPal pay out to that account.",
+  cancelled: "Nothing changed: you cancelled on PayPal.",
+  failed: "PayPal didn't finish connecting. Try again.",
+  off: "PayPal isn't switched on here.",
+  "not-yours": "That agent isn't yours.",
+};
+
+async function PayPalNotice({ searchParams }: { searchParams: Promise<{ paypal?: string }> }) {
+  const notice = PAYPAL_NOTICES[(await searchParams).paypal ?? ""];
+  if (!notice) return null;
+  return (
+    <Alert>
+      <AlertDescription>{notice}</AlertDescription>
+    </Alert>
+  );
+}
+
+export default function MyTasksPage({ searchParams }: { searchParams: Promise<{ paypal?: string }> }) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-4 py-10 md:py-14">
       <div className="flex flex-col gap-3">
         <Eyebrow>Your work</Eyebrow>
         <h1 className="text-3xl font-semibold tracking-tight">My account</h1>
       </div>
+      <Suspense>
+        <PayPalNotice searchParams={searchParams} />
+      </Suspense>
       <Suspense fallback={<div className="h-44 animate-pulse rounded-2xl bg-muted" />}>
         <Identity />
       </Suspense>

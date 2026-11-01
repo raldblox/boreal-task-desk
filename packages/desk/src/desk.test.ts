@@ -370,7 +370,7 @@ describe("agent linking", () => {
     await desk.approveAgentLink(workerIdOf(manilaWorker), code, { name: "Hermes", ...limits });
 
     const collected = await desk.pollAgentLink(pollToken);
-    expect(collected).toMatchObject({ status: "approved", agent: { name: "Hermes", testMode: true, badgeVerified: false } });
+    expect(collected).toMatchObject({ status: "approved", agent: { name: "Hermes", testMode: false, badgeVerified: false } });
     const key = (collected as { key: string }).key;
     const agentId = await verifyAgentKey(db, key);
     expect(agentId).toBe((collected as { agent: { id: string } }).agent.id);
@@ -381,6 +381,21 @@ describe("agent linking", () => {
     // The key is handed over once, and the code can't be approved again.
     expect(await desk.pollAgentLink(pollToken)).toEqual({ status: "collected" });
     await expectDeskError(desk.approveAgentLink(workerIdOf(manilaWorker), code, { name: "Again", ...limits }), "conflict");
+  });
+
+  it("lets the owner save a PayPal account for their agent, and no one else", async () => {
+    const link = await desk.requestAgentLink({ agentName: "Hermes" }, "client-a");
+    const { agentId } = await desk.approveAgentLink(workerIdOf(manilaWorker), link.code, { name: "Hermes", ...limits });
+    const requester: Caller = { role: "requester", agentId };
+    expect(await desk.getAgentAccount(requester)).toMatchObject({ savedPaymentMethod: false });
+    expect(await desk.listOwnerAgents(workerIdOf(manilaWorker))).toMatchObject([{ id: agentId, paypalConnected: false }]);
+
+    await desk.savePaymentMethod(workerIdOf(manilaWorker), agentId, "vault-123");
+    expect(await desk.getAgentAccount(requester)).toMatchObject({ savedPaymentMethod: true });
+    expect(await desk.listOwnerAgents(workerIdOf(manilaWorker))).toMatchObject([{ id: agentId, paypalConnected: true }]);
+
+    const stranger = await desk.signInVerifiedWorker({ pseudonym: "sg-stranger", provenAttributes: {} });
+    await expectDeskError(desk.savePaymentMethod(stranger.id, agentId, "vault-evil"), "forbidden");
   });
 
   it("replaces the key of one of the owner's agents instead of making a duplicate", async () => {

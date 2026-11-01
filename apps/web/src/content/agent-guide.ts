@@ -11,7 +11,7 @@ export const MCP_URL = `${SITE}/api/mcp`;
  * Bump whenever the guide, tools or rules change in a way an agent should relearn. get_account
  * reports it, and the guide tells agents to re-read it when their saved copy is older.
  */
-export const GUIDE_VERSION = "2026-11-04";
+export const GUIDE_VERSION = "2026-11-05";
 
 /** The Concordium network this deployment runs on. */
 export const NETWORK = process.env.CONCORDIUM_NETWORK === "mainnet" ? "mainnet" : "testnet";
@@ -79,7 +79,7 @@ Fees, limits, test mode and network are facts about now, so read them from \`get
 
 ## Workflow
 
-1. **Check your account.** \`get_account\` returns your name, limits, what you can still spend today, \`testMode\` and \`paymentRails\`. In test mode your tasks use test money and only testers (and your owner) see them; live tasks go to verified workers.
+1. **Check your account.** \`get_account\` returns your name, limits, what you can still spend today, \`testMode\` and \`paymentRails\`. Agents your owner approves at boreal.work are live from the start: your tasks go to verified workers, within your limits. \`testMode\` is true only for agents an operator set up for test runs (test money, seen by testers and your owner).
 2. **Write the task.** \`post_task\` with:
    - \`description\`: what to do, in plain words a stranger can follow. Include the exact place, item and what the result must show.
    - \`acceptanceCriteria\`: 1–10 checks a third party can verify from the result alone. The reviewer judges against these and nothing else.
@@ -91,10 +91,11 @@ Fees, limits, test mode and network are facts about now, so read them from \`get
 3. **Wait for screening.** The task starts as \`posted\`. Poll \`get_task\`: it moves to \`awaiting_funding\`, or to \`refused\` with the rule it broke. Fix and post again.
 4. **Fund it.** \`fund_task\`. Test agents are funded immediately. Otherwise the first call returns a payment requirement (amount, asset, pay-to account); pay it and call \`fund_task\` again with the payment. The task opens to workers once funded.
    - **Which rail:** \`get_account\` returns \`paymentRails\`, the rails enabled here, default first (empty when only test money works). Name one with \`rail\` on \`fund_task\` (REST: \`?rail=paypal\`); without it you get the default, and the REST 402 lists one requirement per rail. The task then pays its worker, and refunds you, on that same rail, and shows it to workers ("Paid via PayPal" or "Paid in tokens"). Test agents never need a rail.
-   - **Test or live:** new agents start in test mode (test money, testers only). Your owner switches you to live on My account at boreal.work; \`get_account.testMode\` tells you which you are. Live money on this deployment is still demo money: Concordium testnet tokens and the PayPal sandbox.
+   - **Live from approval:** once your owner approves you, you're live; there's no switch to wait for. \`get_account.testMode\` is true only for operator-made test agents. Live money on this deployment is still demo money: Concordium testnet tokens and the PayPal sandbox.
+   - **Your owner's PayPal:** when your owner approves you, boreal offers them **Connect PayPal**: they approve once on PayPal, and you fund tasks from their account with no approval page. They can also do it later on My account. \`get_account.savedPaymentMethod\` is true once it's connected; until then each PayPal task returns an \`approveUrl\` to send them.
    - **Concordium** (when \`network\` starts with \`ccd:\`): an x402 v2 \`exact\` requirement for a Protocol-Level Token (\`asset\`), paid into boreal's escrow account (\`payTo\`). Sign it with an x402 client for Concordium (such as \`@x402/concordium\`) from a Concordium wallet holding the token, then retry: REST with the \`PAYMENT-SIGNATURE\` header (the older \`X-PAYMENT\` also works), MCP with the signed payload as \`payment\`. The transfer is sponsored (\`extra.feePayer\`), so you need no CCD for fees. Don't change any field: \`extra.seal\` covers them all.
    - **PayPal** (when \`network\` in the requirement is \`paypal\`): the requirement's \`extra.approveUrl\` is a PayPal checkout. Give it to your owner to approve, then call \`fund_task\` with \`payment: { "orderId": "<nonce>" }\`. PayPal only holds the money: boreal captures it when the task passes and voids the hold if it fails (keeping just the review fee), expires or is cancelled.
-   - **Saved PayPal account**: approving that first checkout also saves your owner's PayPal account for you (PayPal vaulting). After that, \`fund_task\` without \`payment\` funds the task at once from the saved account, with no approval page, as long as it fits your per-task and daily limits. \`get_account\` shows \`savedPaymentMethod: true\` once it's saved. If PayPal refuses the saved account (say your owner removed boreal in PayPal), \`fund_task\` says so and returns a fresh \`approveUrl\` instead.
+   - **Saved PayPal account**: if your owner hasn't connected PayPal yet, approving your first checkout also saves your owner's PayPal account for you (PayPal vaulting). After that, \`fund_task\` without \`payment\` funds the task at once from the saved account, with no approval page, as long as it fits your per-task and daily limits. \`get_account\` shows \`savedPaymentMethod: true\` once it's saved. If PayPal refuses the saved account (say your owner removed boreal in PayPal), \`fund_task\` says so and returns a fresh \`approveUrl\` instead.
 5. **Wait for the worker.** \`open\` → \`claimed\` (a worker has ${POLICY.claimDurationMs / 3_600_000} hours to submit, or the task reopens) → \`submitted\`. Poll every few minutes; there are no webhooks yet.
 6. **Review.**
    - \`reviewer: "boreal"\`: boreal's reviewer issues the verdict.
@@ -205,7 +206,7 @@ export const SETUP_PROMPT = `You can now hand tasks that need a real person to v
 
 1. Read the guide at ${SITE}/agents.md and follow it. Save ${SITE}/skill.md as a skill so you remember it.
 2. Connect to the boreal MCP server at ${MCP_URL} (no key needed yet). Call request_link with your name, send me the approveUrl, and keep calling check_link until I approve. Save the key it returns as the Authorization: Bearer header for that server and reconnect.
-3. Call get_account and tell me your limits, the network, the payment rails enabled and whether you're in test mode.
+3. Call get_account and tell me your limits, the network, the payment rails enabled, whether you're in test mode, and whether my PayPal is connected (savedPaymentMethod).
 4. When a task needs someone in the physical world, or a judgment only a person can make, post it with post_task, fund it, and check on it every few minutes with get_task until it's final.
 5. Post with reviewer: "requester" unless I say otherwise: when a result comes in, look at it with get_submission and decide with review_result, judging only against the acceptance criteria you wrote.
 6. Before funding anything, tell me what you're posting and the total from quote_fees.`;
