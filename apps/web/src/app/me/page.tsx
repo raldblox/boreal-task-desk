@@ -1,4 +1,4 @@
-import { BadgeCheck, Bot } from "lucide-react";
+import { BadgeCheck, Bot, CheckCircle2, Wallet } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
@@ -99,41 +99,50 @@ async function Payouts() {
   if (!profile || profile.testMode) return null;
   const rails = paymentRails();
   if (rails.length === 0) return null;
+  const paypalLogin = paypalAccounts()?.loginEnabled ?? false;
   return (
     <section className="flex flex-col gap-4 rounded-2xl border bg-card p-6">
       <div className="flex flex-col gap-1">
         <h2 className="font-semibold">Getting paid</h2>
-        <p className="text-sm text-muted-foreground">
-          Each task pays on one rail, shown on the task. Add a payout for each rail you want to work on; boreal pays you
-          the moment a passed task is final.
-        </p>
+        <p className="text-sm text-muted-foreground">Passed tasks pay out here the moment they&apos;re final.</p>
       </div>
-      {rails.includes("paypal") && !paypalAccounts()?.loginEnabled && (
-        <PayoutForm action={setPayoutAddress} current={profile.paypalEmail} paypal />
-      )}
-      {rails.includes("paypal") && paypalAccounts()?.loginEnabled && (
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-3">
-            {/* A route handler that redirects to PayPal, so a full navigation, not <Link>. */}
-            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-            <a href="/paypal/login" className={buttonVariants({ className: "w-full sm:w-fit" })}>
-              {profile.paypalEmail ? "Switch PayPal account" : "Connect PayPal"}
-            </a>
-            {profile.paypalEmail && <span className="text-sm text-muted-foreground">Paid to {profile.paypalEmail}</span>}
-          </div>
-          <details className="text-sm">
-            <summary className="cursor-pointer text-muted-foreground">Or type your PayPal email</summary>
-            <div className="pt-3">
-              <PayoutForm action={setPayoutAddress} current={profile.paypalEmail} paypal />
+      <div className="flex flex-col divide-y rounded-xl border">
+        {rails.includes("paypal") && (
+          <div className="flex items-center gap-3 p-4">
+            <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary-soft text-primary-soft-foreground">
+              <Wallet className="size-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="font-medium">PayPal</p>
+              <p className="truncate text-sm text-muted-foreground">
+                {profile.paypalEmail ?? (paypalLogin ? "Connect to get paid for PayPal tasks" : "Opening soon")}
+              </p>
             </div>
-          </details>
-        </div>
-      )}
-      {rails.includes("concordium") && (
-        <PayoutForm action={setPayoutAddress} current={profile.payoutAddress} paypal={false} />
-      )}
+            {profile.paypalEmail && (
+              <Badge variant="outline" className="hidden gap-1 sm:inline-flex">
+                <CheckCircle2 className="size-3.5 text-primary" /> Connected
+              </Badge>
+            )}
+            {paypalLogin && (
+              // A route handler that redirects to PayPal, so a full navigation, not <Link>.
+              // eslint-disable-next-line @next/next/no-html-link-for-pages
+              <a
+                href="/paypal/login"
+                className={buttonVariants({ variant: profile.paypalEmail ? "ghost" : "default", size: "sm" })}
+              >
+                {profile.paypalEmail ? "Change" : "Connect"}
+              </a>
+            )}
+          </div>
+        )}
+        {rails.includes("concordium") && (
+          <div className="p-4">
+            <PayoutForm action={setPayoutAddress} current={profile.payoutAddress} paypal={false} />
+          </div>
+        )}
+      </div>
       <p className="text-xs text-muted-foreground">
-        Used only to pay you. Agents never see them, and your PayPal email never goes on-chain.
+        Used only to pay you. Agents never see it, and nothing about it goes on-chain.
       </p>
     </section>
   );
