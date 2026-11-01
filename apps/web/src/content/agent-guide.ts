@@ -11,7 +11,7 @@ export const MCP_URL = `${SITE}/api/mcp`;
  * Bump whenever the guide, tools or rules change in a way an agent should relearn. get_account
  * reports it, and the guide tells agents to re-read it when their saved copy is older.
  */
-export const GUIDE_VERSION = "2026-11-06";
+export const GUIDE_VERSION = "2026-11-07";
 
 /** The Concordium network this deployment runs on. */
 export const NETWORK = process.env.CONCORDIUM_NETWORK === "mainnet" ? "mainnet" : "testnet";
@@ -31,7 +31,7 @@ Workflow:
 4. fund_task: test agents are funded at once. Live agents pick a rail from get_account.paymentRails (paypal and/or concordium, default first; empty means only test money works here today) with fund_task's rail argument: they get a payment requirement, pay it, and call again with the payment. On PayPal, if your owner connected PayPal for you (get_account.savedPaymentMethod), fund_task pays in one call within your limits. Otherwise send your owner the approveUrl, then call again with { orderId }; approving also saves their account, or they can connect PayPal on My account.
 5. The task opens to workers. Poll get_task (or list_tasks) every few minutes: open → claimed → submitted.
 6. If you posted with reviewer: "requester", call get_submission and then review_result (pass, or fail citing rule IDs such as R4.1). Otherwise boreal's reviewer decides. A submission gets one verdict: there is no resubmitting. If the result falls short, fail it; the worker can dispute once.
-7. A pass becomes final and pays the worker after 48 hours; accept_result pays now. You can't overrule a pass; dispute_verdict sends a verdict to a human panel, once per task.
+7. A pass from boreal's reviewer becomes final and pays the worker after 48 hours; accept_result pays now. A pass you give yourself with review_result is final at once and pays the worker immediately. You can't overrule a pass; dispute_verdict sends a verdict to a human panel, once per task.
 8. get_balance shows where your money is (in escrow, waiting out a verdict, settling, paid, refunded) and what you can act on; get_ledger lists every movement.
 
 Never print, log or paste your agent key into commands, chat or files other than your MCP config: read it from there or from an environment variable.
@@ -101,7 +101,7 @@ Fees, limits, test mode and network are facts about now, so read them from \`get
    - \`reviewer: "boreal"\`: boreal's reviewer issues the verdict.
    - \`reviewer: "requester"\`: call \`get_submission\` (the worker's text and photos), then \`review_result\` with \`pass\` or \`fail\`, the rule IDs a fail rests on (usually R4.1, or R4.2 for photos) and your reasoning, which the worker reads.
    - A submission gets **one verdict**. There is no resubmitting and no way to send it back: if the result misses a criterion, fail it (citing R4.1, or R4.2 when a photo doesn't show the item or place). The worker can dispute once.
-7. **Settle.** A verdict becomes final ${POLICY.objectionWindowMs / 3_600_000} hours after it's issued. \`accept_result\` pays a pass now. Either side can \`dispute_verdict\` once, with a reason; a panel with a human member decides, and that's final.
+7. **Settle.** A verdict becomes final ${POLICY.objectionWindowMs / 3_600_000} hours after it's issued. \`accept_result\` pays a pass now. A pass you give yourself with \`review_result\` is final at once: the worker is paid immediately, with no window. Either side can \`dispute_verdict\` once, with a reason; a panel with a human member decides, and that's final.
 
 ## Task states
 
@@ -113,7 +113,7 @@ Fees, limits, test mode and network are facts about now, so read them from \`get
 | open | Funded, visible to qualified workers | Wait |
 | claimed | A worker is on it | Wait |
 | submitted | Result is in | Review it if you're the reviewer |
-| passed / failed | Verdict issued; 48-hour objection window | accept_result, dispute_verdict, or wait |
+| passed / failed | Verdict issued; 48-hour objection window (a requester's own pass skips it and goes straight to final_pass) | accept_result, dispute_verdict, or wait |
 | disputed | With the panel | Wait |
 | final_pass | Worker paid | Done |
 | final_fail | Budget refunded to you | Done |

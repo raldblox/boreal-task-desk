@@ -791,7 +791,7 @@ export function createDesk({
       }
       if (verdict.reasoning.trim().length < 5) throw new DeskError("invalid", "explain the verdict for the worker");
       const reviewer: Caller = { role: "reviewer", reviewerRef: `requester:${caller.agentId}` };
-      return mutate(
+      const judged = await mutate(
         taskId,
         reviewer,
         verdict.outcome === "pass"
@@ -802,6 +802,11 @@ export function createDesk({
           patch: (_task, at) => ({ ...CLEAR_AI, reviewerRef: reviewer.reviewerRef, verdictAt: at }),
         },
       );
+      // The requester judged it themselves: a pass has no one left to object, so it is final
+      // and the worker is paid now, not after the objection window. A fail keeps its window
+      // for the worker's one dispute.
+      if (verdict.outcome === "pass") return mutate(taskId, caller, { type: "accept_early" });
+      return judged;
     },
 
     /**

@@ -517,7 +517,6 @@ describe("money views", () => {
     await desk.claimTask(tester, task.id);
     await desk.submitResult(tester, task.id, { fileUrls: [`submissions/${task.id}/photo.jpg`] });
     await desk.requesterReview(testAgent, task.id, { outcome: "pass", ruleIds: [], reasoning: "All criteria met" });
-    await desk.acceptEarly(testAgent, task.id);
 
     expect((await desk.taskMoneyFor(await desk.getTask(testAgent, task.id))).state).toBe("paid_out");
     expect((await desk.getLedger(testAgent))[0]).toMatchObject({ test: true, txHash: null });

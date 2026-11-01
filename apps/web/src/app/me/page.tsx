@@ -1,6 +1,7 @@
 import { BadgeCheck, Bot, CheckCircle2, Wallet } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { Suspense } from "react";
 
 import { setPayoutAddress } from "@/app/actions";
@@ -12,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { attributeLabel, usd, workerHandle } from "@/lib/format";
 import { getDesk, paymentRails } from "@/server/desk";
+import { kickMonitorSoon } from "@/server/monitor";
 import { paypalAccounts } from "@/server/paypal-accounts";
 import { workerFromSession } from "@/server/session";
 
@@ -61,6 +63,8 @@ async function Identity() {
 async function Earnings() {
   const worker = await workerFromSession();
   if (!worker) return null;
+  // Someone is looking at their money: move anything waiting (payouts, closed windows) now.
+  after(kickMonitorSoon);
   const earnings = await getDesk().getWorkerEarnings(worker);
   const rows = [
     { label: "Earnings", money: earnings.real, note: "Paid to your payout account." },

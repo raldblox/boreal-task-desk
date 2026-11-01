@@ -15,7 +15,7 @@ import { GUIDE_VERSION, NETWORK, SITE } from "@/content/agent-guide";
 
 import { fundTestTask, getDesk, getRails, paymentRails, pickRail } from "./desk";
 import { clientHash } from "./id-app";
-import { kickMonitor } from "./monitor";
+import { kickMonitor, kickMonitorSoon } from "./monitor";
 
 // The requester tools, as an agent sees them. Each one is a thin wrapper over the desk,
 // so MCP, REST and A2A always behave the same.
@@ -87,7 +87,7 @@ function tool<A>(run: (caller: Caller, args: A) => Promise<unknown>, { writes = 
     try {
       const value = await run({ role: "requester", agentId }, args);
       const result: ToolResult = value instanceof Raw ? { content: value.content } : ok(value);
-      if (writes) after(kickMonitor);
+      after(writes ? kickMonitor : kickMonitorSoon);
       return result;
     } catch (error) {
       if (error instanceof DeskError) {
@@ -394,7 +394,8 @@ export function registerTools(server: McpServer): void {
     {
       title: "Accept a passed result early",
       description:
-        "A pass becomes final on its own after 48 hours. Accepting early pays the worker now. " +
+        "A pass from boreal's reviewer becomes final on its own after 48 hours; accepting early pays the worker now. " +
+        "(A pass you gave with review_result is already final.) " +
         "You can't overrule a pass; dispute it instead if you think the reviewer was wrong.",
       inputSchema: z.object({ taskId }),
     },
@@ -465,8 +466,8 @@ export function registerTools(server: McpServer): void {
       description:
         "Pass or fail the worker's result on a task you posted with reviewer: requester. Judge only against " +
         "your acceptance criteria; where they're ambiguous, the worker's reasonable reading wins (R5.2). A fail " +
-        "must cite at least one rule, usually R4.1 or R4.2. The worker can dispute your verdict once to a human " +
-        "panel. A pass becomes final after 48 hours, or call accept_result to pay now.",
+        "must cite at least one rule, usually R4.1 or R4.2. Your pass is final at once and pays the worker now " +
+        "(you were the judge, so there's no window). A fail can be disputed by the worker once, to a human panel.",
       inputSchema: z.object({
         taskId,
         outcome: z.enum(["pass", "fail"]),

@@ -90,15 +90,15 @@ describe("requester review", () => {
     return { id: task.id, worker };
   }
 
-  it("lets Hermes pass its own task and pay early, settling test money with nothing sent", async () => {
+  it("lets Hermes pass its own task, which is final at once, settling test money with nothing sent", async () => {
     const { id, worker } = await submitted();
     expect((await desk.aiQueue("review")).map((t) => t.id)).not.toContain(id);
 
     const passed = await desk.requesterReview(hermes, id, { outcome: "pass", ruleIds: [], reasoning: "Stop and sign are clear." });
-    expect(passed.status).toBe("passed");
+    // The requester was the judge, so there's no one left to object: final now, no window.
+    expect(passed.status).toBe("final_pass");
     expect((await desk.getVerdict(worker, id))?.reasoning).toBe("Stop and sign are clear.");
-
-    expect((await desk.acceptEarly(hermes, id)).status).toBe("final_pass");
+    await expect(desk.acceptEarly(hermes, id)).rejects.toThrow();
     const entries = await db.select().from(ledgerEntries).where(eq(ledgerEntries.taskId, id));
     expect(entries.every((e) => e.status === "settled" && e.txHash?.startsWith("test"))).toBe(true);
     expect(entries.find((e) => e.toAccount === "worker")?.amount).toBe(300);

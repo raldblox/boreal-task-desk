@@ -20,7 +20,7 @@ import { loadRails, type PayPalPayments } from "@boreal/paypal";
 import { after } from "next/server";
 
 import { getDb } from "./db";
-import { kickMonitor } from "./monitor";
+import { kickMonitor, kickMonitorSoon } from "./monitor";
 
 let desk: Desk | undefined;
 let concordium: Concordium | null | undefined;
@@ -145,6 +145,8 @@ export async function asRequester(
     const response = await action(caller);
     // A write may unblock screening, review or payouts; run them now rather than at the next cron.
     if (request.method !== "GET" && response.ok) after(kickMonitor);
+    // Reads keep timers (objection windows, deadlines) moving too, throttled.
+    else after(kickMonitorSoon);
     return response;
   } catch (error) {
     if (error instanceof DeskError) {
