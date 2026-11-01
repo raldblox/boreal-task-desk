@@ -156,7 +156,14 @@ async function Earnings() {
   after(kickMonitorSoon);
   const earnings = await getDesk().getWorkerEarnings(worker);
   const rows = [
-    { label: "Paid to you", money: earnings.real, note: "Real money, paid to your PayPal or Concordium account." },
+    {
+      label: "Paid to you",
+      money: earnings.real,
+      note:
+        NETWORK === "testnet"
+          ? "Paid to your PayPal sandbox or Concordium testnet account: practice money, never real."
+          : "Real money, paid to your PayPal or Concordium account.",
+    },
     { label: "Test money", money: earnings.test, note: "From test tasks. Not real money." },
   ].filter((r, i) => i === 0 || r.money.paid + r.money.settling + r.money.upcoming > 0);
   return (
