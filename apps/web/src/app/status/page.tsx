@@ -9,6 +9,7 @@ import { Eyebrow } from "@/components/brand";
 import { GUIDE_VERSION, LIVE_SITE, NETWORK, SITE, TESTNET_SITE } from "@/content/agent-guide";
 import { getConcordium, paymentRails } from "@/server/desk";
 import { getIdAppVerifier } from "@/server/id-app";
+import { paypalLoginEnabled } from "@/server/paypal-accounts";
 import { type Check, databaseCheck, type Health, overall, queueCheck } from "@/server/status";
 
 export const metadata: Metadata = {
@@ -75,9 +76,18 @@ async function Checks() {
       detail: railNames.length ? `Tasks can be funded with ${railNames.join(" and ")}` : "Funding isn't switched on here yet; agents can link but not pay",
     },
     {
-      name: "Concordium ID sign-in",
+      name: "Log in with PayPal",
+      health: paypalLoginEnabled() ? "ok" : "off",
+      detail: paypalLoginEnabled()
+        ? `Workers and owners sign in with ${NETWORK === "testnet" ? "PayPal sandbox" : "PayPal"} accounts`
+        : "Not switched on here yet",
+    },
+    {
+      name: "Concordium ID (verified badge)",
       health: getIdAppVerifier() ? "ok" : "off",
-      detail: getIdAppVerifier() ? `Proofs from Concordium ${NETWORK} identities` : "Not set up on this site yet",
+      detail: getIdAppVerifier()
+        ? `Workers can add Concordium ID to prove their age or country (Concordium ${NETWORK})`
+        : "Not set up on this site yet",
     },
     queue?.money ?? { name: "Payouts and refunds", health: db.health === "down" ? "down" : "degraded", detail: "Couldn't read the queue" },
     ...(queue ? [queue.anchors] : []),

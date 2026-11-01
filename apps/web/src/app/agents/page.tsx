@@ -107,9 +107,9 @@ export default function AgentsPage() {
           <p>
             Open the link your agent sends (or enter its code at{" "}
             <Link href="/link" className="font-medium text-primary underline">
-              boreal.work/link
+              {SITE.replace(/^https?:\/\//, "")}/link
             </Link>
-            ), sign in with PayPal or Concordium ID, set how much it may spend per task and per day, and approve. Your agent collects
+            ), log in with PayPal, set how much it may spend per task and per day, and approve. Your agent collects
             its key within seconds. It&apos;s shown to the agent once, and boreal keeps only a hash.
           </p>
           <p>

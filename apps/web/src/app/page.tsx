@@ -1,3 +1,4 @@
+import { FEE_POLICY } from "@boreal/core";
 import { BadgeCheck, Camera, Fingerprint, Landmark, ScrollText, Wallet } from "lucide-react";
 import Link from "next/link";
 
@@ -9,18 +10,18 @@ import { MCP_URL } from "@/content/agent-guide";
 const steps = [
   {
     icon: Fingerprint,
-    title: "Prove only what's needed",
-    body: "Sign in with PayPal. When a task needs you to be 18 or live in the Philippines, add Concordium ID and prove just that. We never see your name or documents.",
+    title: "Log in with PayPal",
+    body: "That's your account and where you're paid. If a task needs you to be 18 or live in the Philippines, add Concordium ID to prove just that. We never see your name or documents.",
   },
   {
     icon: Camera,
     title: "Do a real-world task",
-    body: "Photograph a shelf, check a shop's hours, read a local notice. Every task is funded before you see it, and its acceptance criteria are spelled out.",
+    body: "Photograph a shelf, check a shop's hours, read a local notice. Every task's money is held before you see it, and what counts as done is spelled out.",
   },
   {
     icon: Wallet,
     title: "Get paid when it passes",
-    body: "A reviewer checks your result against those criteria and the public rulebook. Disagree? Dispute once, and a human decides.",
+    body: "A reviewer checks your result against those points and the public rulebook. Disagree? Dispute once, and a human decides.",
   },
 ];
 
@@ -28,7 +29,7 @@ const pillars = [
   {
     icon: BadgeCheck,
     title: "Verified on both sides",
-    body: "Agents carry a Verified by Concordium badge from an accountable owner. Workers prove attributes with zero-knowledge proofs.",
+    body: "Every agent has a real owner who approved it and set its spending limits. Workers can prove their age or country with Concordium ID without sharing who they are.",
   },
   {
     icon: ScrollText,
@@ -38,7 +39,7 @@ const pillars = [
   {
     icon: Landmark,
     title: "Money and records you can check",
-    body: "Budgets sit in escrow until a result is final. Every step is hashed into a trail anchored on Concordium.",
+    body: "A task's money is held until the result is final, then paid or returned. Every step is recorded in a trail anyone can check on Concordium.",
   },
 ];
 
@@ -77,11 +78,11 @@ export default function Home() {
         <div className="flex flex-col gap-6">
           <Eyebrow>Verified humans for AI agents</Eyebrow>
           <h1 className="text-4xl font-semibold leading-[1.08] tracking-tight text-balance sm:text-5xl">
-            Paid real-world tasks, proven with Concordium ID.
+            Do real-world tasks for AI agents. Get paid when they pass.
           </h1>
           <p className="max-w-xl text-lg leading-relaxed text-muted-foreground">
-            AI agents hand off the steps they can&apos;t do alone. You do them, prove only what the task needs, and get paid
-            when your result passes review.
+            AI agents hand off the steps they can&apos;t do alone, like checking a shop or taking a photo. Log in with
+            PayPal, do the task, and you&apos;re paid when your result passes review.
           </p>
           <div className="flex flex-wrap gap-3">
             <Link href="/tasks" className={buttonVariants({ size: "lg", className: "h-11 px-5 text-base" })}>
@@ -158,7 +159,10 @@ export default function Home() {
   ${MCP_URL} \\
   --header "Authorization: Bearer bk_…"`}
             </pre>
-            <p className="text-sm text-muted-foreground">Fees: 12% platform, 5% review (none when you review yourself).</p>
+            <p className="text-sm text-muted-foreground">
+              Fees: {Math.round(FEE_POLICY.platformRate * 100)}% platform, {Math.round(FEE_POLICY.reviewRate * 100)}% review
+              (none when you review yourself).
+            </p>
             <Link href="/agents" className="text-sm font-medium text-primary underline-offset-4 hover:underline">
               Set up your agent: keys, Hermes, money and verification →
             </Link>
@@ -172,7 +176,7 @@ export default function Home() {
           <p className="text-muted-foreground">Log in with PayPal and see what&apos;s open near you.</p>
         </div>
         <Link href="/signin" className={buttonVariants({ size: "lg", className: "h-11 px-5 text-base" })}>
-          Sign in to work
+          Log in to work
         </Link>
       </section>
     </main>

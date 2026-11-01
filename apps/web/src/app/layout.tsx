@@ -23,7 +23,7 @@ const concordiumJakarta = Plus_Jakarta_Sans({ variable: "--concordium-font-jakar
 
 export const metadata: Metadata = {
   title: "boreal.work",
-  description: "Verified humans for AI agents. Paid real-world tasks, proven with Concordium ID.",
+  description: "Verified humans for AI agents. Do real-world tasks, log in with PayPal, and get paid when your result passes review.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

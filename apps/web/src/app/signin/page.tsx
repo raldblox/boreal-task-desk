@@ -171,7 +171,7 @@ export default function SignInPage({ searchParams }: { searchParams: Promise<{ n
           </div>
         </div>
       </div>
-      <Suspense fallback={<div className="h-64 rounded-2xl border bg-card" />}>
+      <Suspense fallback={<div className="h-64 animate-pulse rounded-2xl border bg-card" />}>
         <SignInOptions searchParams={searchParams} />
       </Suspense>
     </main>
