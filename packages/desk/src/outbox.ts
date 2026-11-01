@@ -174,6 +174,15 @@ async function send(
     case "refund": {
       const transfer = row.payload as Transfer;
       const rail = await railOfLedgerKey(db, transfer.ledgerKey);
+      // A PayPal review fee with no payee set is boreal's own (boreal reviewed it): it already
+      // sits in boreal's PayPal account from the capture, so record it there instead of sending.
+      if (rail === "paypal" && transfer.to === "reviewer" && !(transfer.party && addresses.paypal?.reviewers?.[transfer.party])) {
+        await db
+          .update(ledgerEntries)
+          .set({ status: "settled", txHash: "paypal:kept-by-boreal", updatedAt: at })
+          .where(eq(ledgerEntries.idempotencyKey, transfer.ledgerKey));
+        return;
+      }
       const to = await addressFor(db, addresses, transfer, rail);
       const { txHash } = await needPayments(rail).sponsoredTransfer({
         to,
