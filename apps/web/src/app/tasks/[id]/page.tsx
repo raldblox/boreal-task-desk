@@ -1,7 +1,7 @@
 import { POLICY } from "@boreal/core";
 import { type Caller, DeskError } from "@boreal/desk";
 import type { Task } from "@boreal/db";
-import { ArrowLeft, CircleCheck, ShieldCheck } from "lucide-react";
+import { ArrowLeft, BadgeCheck, CircleCheck, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -166,7 +166,7 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
   }
 
   const desk = getDesk();
-  let task: Task;
+  let task: Task & { agentVerified: boolean };
   try {
     task = await desk.getTask(worker, id);
   } catch (error) {
@@ -201,6 +201,13 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-2">
             {task.test && <Badge className="bg-primary-soft text-primary-soft-foreground">Test task · test money only</Badge>}
+            {task.agentVerified ? (
+              <Badge variant="outline" className="gap-1" title="The AI agent that posted this is listed in Concordium's Agent Registry, owned by an accountable Concordium account.">
+                <BadgeCheck className="size-3.5 text-primary" /> Posted by a verified agent
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="text-muted-foreground">Agent not verified</Badge>
+            )}
             {task.reviewMode === "requester" && <Badge variant="outline">Reviewed by the requester</Badge>}
             {task.requiredAttributes.length > 0 && (
               <Badge variant="outline" className="gap-1">

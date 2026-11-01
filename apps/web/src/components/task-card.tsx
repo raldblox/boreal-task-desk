@@ -1,5 +1,5 @@
 import type { Task } from "@boreal/db";
-import { Camera, Clock, FileText, PenLine, ShieldCheck } from "lucide-react";
+import { BadgeCheck, Camera, Clock, FileText, PenLine, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +11,8 @@ const FORMAT = {
   text: { icon: PenLine, label: "Written answer" },
 } as const;
 
-export function TaskCard({ task, showStatus = false }: { task: Task; showStatus?: boolean }) {
+/** A task, plus whether the agent that posted it is Verified by Concordium (from the desk). */
+export function TaskCard({ task, showStatus = false }: { task: Task & { agentVerified?: boolean }; showStatus?: boolean }) {
   const status = WORKER_STATUS[task.status];
   const format = FORMAT[task.resultFormat];
   return (
@@ -31,10 +32,16 @@ export function TaskCard({ task, showStatus = false }: { task: Task; showStatus?
           <Clock className="size-4" /> Due {when(task.deadline)}
         </span>
       </div>
-      {(showStatus || task.test || task.paymentRail || task.requiredAttributes.length > 0) && (
+      {(showStatus || task.test || task.paymentRail || task.agentVerified || task.requiredAttributes.length > 0) && (
         <div className="flex flex-wrap gap-2">
           {showStatus && <Badge variant={status.tone}>{status.label}</Badge>}
           {task.test && <Badge className="bg-primary-soft text-primary-soft-foreground">Test money</Badge>}
+          {task.agentVerified && (
+            // The posting agent's owner is an accountable Concordium account (Agent Registry badge).
+            <Badge variant="outline" className="gap-1">
+              <BadgeCheck className="size-3.5 text-primary" /> Verified agent
+            </Badge>
+          )}
           {task.paymentRail === "paypal" && <Badge variant="outline">Paid via PayPal</Badge>}
           {task.paymentRail === "concordium" && <Badge variant="outline">Paid in tokens</Badge>}
           {task.requiredAttributes.length > 0 && (

@@ -352,6 +352,30 @@ describe("agent account", () => {
     expect(after.leftToday).toBe(after.limits.maxDailySpend - quote.total);
   });
 
+  it("caps an agent without a Concordium badge below its owner's limits", async () => {
+    expect((await desk.getAgentAccount(requester)).limits).toEqual({
+      maxTaskBudget: POLICY.unverifiedTaskBudget,
+      maxDailySpend: POLICY.unverifiedDailySpend,
+    });
+    await expectDeskError(desk.postTask(requester, taskInput({ budget: POLICY.unverifiedTaskBudget + 500 })), "limit");
+  });
+
+  it("gives a Verified by Concordium agent its owner's full limits", async () => {
+    const agentId = (requester as { agentId: string }).agentId;
+    await db.update(agents).set({ badgeVerifiedAt: clock }).where(eq(agents.id, agentId));
+    expect((await desk.getAgentAccount(requester)).limits).toEqual({ maxTaskBudget: 5_000, maxDailySpend: 50_000 });
+    expect((await desk.postTask(requester, taskInput({ budget: POLICY.unverifiedTaskBudget + 500 }))).task.budget).toBe(
+      POLICY.unverifiedTaskBudget + 500,
+    );
+  });
+
+  it("tells workers whether the agent behind a task is verified", async () => {
+    const id = await openTask();
+    expect((await desk.browseOpenTasks(manilaWorker)).find((t) => t.id === id)?.agentVerified).toBe(false);
+    await db.update(agents).set({ badgeVerifiedAt: clock }).where(eq(agents.id, (requester as { agentId: string }).agentId));
+    expect((await desk.getTask(manilaWorker, id)).agentVerified).toBe(true);
+  });
+
   it("is only for requesters", async () => {
     await expectDeskError(desk.getAgentAccount(reviewer), "forbidden");
   });

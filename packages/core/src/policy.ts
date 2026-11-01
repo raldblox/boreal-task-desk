@@ -9,6 +9,12 @@ export const POLICY = {
   /** Beta ceilings, in minor units. */
   maxTaskBudget: 5_000,
   maxAgentDailySpend: 50_000,
+  /**
+   * Agents without a Verified by Concordium badge stay under these, whatever their owner sets.
+   * A badge ties the agent to an accountable Concordium account, so it unlocks the full caps.
+   */
+  unverifiedTaskBudget: 1_000,
+  unverifiedDailySpend: 5_000,
   claimDurationMs: 4 * HOUR,
   maxActiveClaimsPerNewWorker: 1,
   lostDisputesBeforePause: 3,

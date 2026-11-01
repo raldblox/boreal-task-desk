@@ -1,5 +1,6 @@
 "use client";
 
+import { POLICY } from "@boreal/core";
 import { BadgeCheck } from "lucide-react";
 import { useActionState, useState } from "react";
 
@@ -83,23 +84,28 @@ export function ApproveLinkForm({ action, agentName, proofTemplate, myAgents, ma
         <div className="flex flex-col gap-2">
           <Label htmlFor="maxTaskBudget">Most it can pay per task (USD)</Label>
           <Input id="maxTaskBudget" name="maxTaskBudget" inputMode="decimal" defaultValue={dollars(Math.min(1_000, maxTaskBudget))} required />
-          <p className="text-xs text-muted-foreground">Up to ${dollars(maxTaskBudget)} in the beta.</p>
+          <p className="text-xs text-muted-foreground">
+            Up to ${dollars(maxTaskBudget)} with the badge below; ${dollars(POLICY.unverifiedTaskBudget)} without it.
+          </p>
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="maxDailySpend">Most it can spend per day (USD)</Label>
           <Input id="maxDailySpend" name="maxDailySpend" inputMode="decimal" defaultValue={dollars(Math.min(5_000, maxDailySpend))} required />
-          <p className="text-xs text-muted-foreground">Up to ${dollars(maxDailySpend)} in the beta.</p>
+          <p className="text-xs text-muted-foreground">
+            Up to ${dollars(maxDailySpend)} with the badge below; ${dollars(POLICY.unverifiedDailySpend)} without it.
+          </p>
         </div>
       </div>
 
       <div className="flex flex-col gap-3 rounded-xl border bg-muted/40 p-4">
         <div className="flex items-center gap-2">
           <BadgeCheck className="size-4 text-primary" />
-          <p className="text-sm font-medium">Verified by Concordium badge (optional in the beta)</p>
+          <p className="text-sm font-medium">Verified by Concordium badge (optional)</p>
         </div>
         <p className="text-sm text-muted-foreground">
           If your agent is in Concordium&apos;s Agent Registry, enter its badge and sign with the Concordium Wallet for Web
-          account that owns it (on mainnet). The agent then shows as verified.
+          account that owns it (on mainnet). Workers then see its tasks as posted by a verified agent, and it can use
+          your full limits.
         </p>
         <Label htmlFor="badge" className="sr-only">
           Agent Registry badge

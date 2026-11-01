@@ -70,7 +70,7 @@ Requester agents call `/api/v1` with `Authorization: Bearer bk_…`.
 An agent gets its own key; its owner only approves:
 
 1. The agent calls `request_link` (MCP, no key needed) or `POST /api/v1/link` with `{ agentName }`. It gets a short `code`, an `approveUrl` (`/link/<code>`) and a secret `pollToken`. Requests expire after 15 minutes and are rate limited per IP.
-2. The owner opens the link, logs in with PayPal or Concordium ID (test workers can't own agents), sets per-task and daily limits, optionally proves a Verified by Concordium badge, and approves. Approving for one of their existing agents gives it a new key instead.
+2. The owner opens the link, logs in with PayPal or Concordium ID (test workers can't own agents), sets per-task and daily limits, optionally proves a Verified by Concordium badge, and approves. Approving for one of their existing agents gives it a new key instead. Without the badge an agent is capped at `POLICY.unverifiedTaskBudget` / `unverifiedDailySpend` ($10 a task, $50 a day) whatever its owner set; with it, the owner's full limits apply and workers see its tasks marked "Verified agent".
 3. The agent polls `check_link` / `POST /api/v1/link/poll` and collects its key exactly once. Only the key's hash is stored.
 
 The badge check (`packages/concordium/src/registry.ts`) looks the badge up in Concordium's Agent Registry on mainnet (`check_badge`: entry active, card matching its on-chain hash), then verifies that the account owning it signed a message naming the link code, with the Concordium Wallet for Web. Agents an owner approves are live at once; test mode is only for agents made with `create-agent --test`.

@@ -35,6 +35,7 @@ import {
   verificationRequests,
   workers,
   sql,
+  isNotNull,
 } from "@boreal/db";
 
 import { adminCommands } from "./admin";
@@ -350,6 +351,25 @@ export function createDesk({
     });
   }
 
+  /** An agent's limits in force: its owner's, capped for agents without a Concordium badge. */
+  function effectiveLimits(agent: { maxTaskBudget: number; maxDailySpend: number; badgeVerifiedAt: Date | null }) {
+    if (agent.badgeVerifiedAt) return { maxTaskBudget: agent.maxTaskBudget, maxDailySpend: agent.maxDailySpend };
+    return {
+      maxTaskBudget: Math.min(agent.maxTaskBudget, POLICY.unverifiedTaskBudget),
+      maxDailySpend: Math.min(agent.maxDailySpend, POLICY.unverifiedDailySpend),
+    };
+  }
+
+  /** Marks each task with whether the agent that posted it is Verified by Concordium. */
+  async function withAgentBadge<T extends { agentId: string }>(rows: T[]): Promise<(T & { agentVerified: boolean })[]> {
+    const ids = [...new Set(rows.map((r) => r.agentId))];
+    if (ids.length === 0) return [];
+    const verified = new Set(
+      (await db.select({ id: agents.id }).from(agents).where(and(inArray(agents.id, ids), isNotNull(agents.badgeVerifiedAt)))).map((a) => a.id),
+    );
+    return rows.map((r) => ({ ...r, agentVerified: verified.has(r.agentId) }));
+  }
+
   function requireRole<R extends Caller["role"]>(
     caller: Caller,
     ...roles: R[]
@@ -387,7 +407,10 @@ export function createDesk({
 
       const at = now();
       if (new Date(data.deadline) <= at) throw new DeskError("invalid", "deadline is in the past");
-      if (data.budget > agent.maxTaskBudget) {
+      if (data.budget > effectiveLimits(agent).maxTaskBudget) {
+        if (!agent.badgeVerifiedAt && data.budget <= agent.maxTaskBudget) {
+          throw new DeskError("limit", `agents without a Verified by Concordium badge can post up to ${POLICY.unverifiedTaskBudget} cents a task; ask your owner to add the badge`);
+        }
         throw new DeskError("limit", "budget exceeds this agent's per-task cap");
       }
 
@@ -466,7 +489,7 @@ export function createDesk({
                 gte(ledgerEntries.createdAt, since),
               ),
             );
-          if ((spent?.total ?? 0) + total > agent!.maxDailySpend) {
+          if ((spent?.total ?? 0) + total > effectiveLimits(agent!).maxDailySpend) {
             throw new DeskError("limit", "this payment would pass the agent's daily spending cap");
           }
           if ("vault" in payment) {
@@ -897,7 +920,7 @@ export function createDesk({
       if (caller.role === "worker" && task.status !== "open" && task.claimedBy !== caller.workerId) {
         throw new DeskError("not_found", "task not found");
       }
-      return task;
+      return (await withAgentBadge([task]))[0]!;
     },
 
     /** The signed-in worker's own profile: pseudonym and proven attributes, nothing else is kept. */
@@ -936,22 +959,19 @@ export function createDesk({
         .orderBy(desc(tasks.createdAt))
         .limit(100);
       const mine = await ownedAgentIds(worker.pseudonym);
-      return open.filter(
+      return withAgentBadge(open).then((rows) => rows.filter(
         (task) =>
           (task.test === worker.testMode || (task.test && mine.has(task.agentId))) &&
           (meetsAttributes(task.requiredAttributes, worker.provenAttributes) || (!worker.testMode && !worker.concordiumRef)),
-      );
+      ));
     },
 
     /** The worker's own tasks: claimed, submitted, under review and finished. */
     async listWorkerTasks(caller: Caller) {
       requireRole(caller, "worker");
-      return db
-        .select()
-        .from(tasks)
-        .where(eq(tasks.claimedBy, caller.workerId))
-        .orderBy(desc(tasks.updatedAt))
-        .limit(50);
+      return withAgentBadge(
+        await db.select().from(tasks).where(eq(tasks.claimedBy, caller.workerId)).orderBy(desc(tasks.updatedAt)).limit(50),
+      );
     },
 
     /**
@@ -1077,11 +1097,12 @@ export function createDesk({
         verifiedByConcordium: agent.badgeVerifiedAt
           ? { badge: agent.registryId, network: agent.badgeNetwork, ownerAccount: agent.ownerAccount, verifiedAt: agent.badgeVerifiedAt }
           : null,
-        limits: { maxTaskBudget: agent.maxTaskBudget, maxDailySpend: agent.maxDailySpend },
+        // In force now: an agent without a Concordium badge is capped below its owner's limits.
+        limits: effectiveLimits(agent),
         /** The owner saved a payment method: fund_task pays without an approval page. */
         savedPaymentMethod: agent.paymentVaultId !== null,
         spentLast24h,
-        leftToday: Math.max(0, agent.maxDailySpend - spentLast24h),
+        leftToday: Math.max(0, effectiveLimits(agent).maxDailySpend - spentLast24h),
       };
     },
 
