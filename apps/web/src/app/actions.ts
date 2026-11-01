@@ -58,7 +58,9 @@ export async function linkConcordium(_prev: ActionState, form: FormData): Promis
     const country = String(form.get("country") ?? "");
     if (country) attributes.residency = country;
     if (form.get("adult") === "on") attributes.age_over_18 = "true";
-    await getDesk().linkConcordium(worker, request, { pseudonym: String(form.get("pseudonym") ?? "").trim(), attributes });
+    const kept = await getDesk().linkConcordium(worker, request, { pseudonym: String(form.get("pseudonym") ?? "").trim(), attributes });
+    // An empty account folded into the one holding this ID: continue as that account.
+    if (worker.role === "worker" && kept.id !== worker.workerId) await startWorkerSession(kept.id);
   } catch (error) {
     if (error instanceof DeskError) return { error: error.message };
     console.error("[link concordium] failed", error);

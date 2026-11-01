@@ -46,7 +46,9 @@ export async function GET(request: Request) {
   try {
     const identity = paypalIdentity(await accounts.loggedIn({ code }));
     if (linking) {
-      await getDesk().linkPayPal(worker!, identity);
+      const kept = await getDesk().linkPayPal(worker!, identity);
+      // An empty account folded into the one holding this PayPal account: continue as that account.
+      if (worker?.role === "worker" && kept.id !== worker.workerId) await startWorkerSession(kept.id);
       outcome = "/me?paypal=connected";
     } else {
       const signedIn = await getDesk().signInWithPayPal(identity);

@@ -268,9 +268,25 @@ export function createDesk({
     if (!EMAIL.test(identity.email) || identity.email.length > 254) throw new DeskError("invalid", "PayPal didn't share a usable email");
   }
 
+  /** Whether a worker has done anything: claimed a task, submitted, been paid or owns an agent. */
+  async function hasHistory(tx: Pick<Database, "select">, worker: { id: string; pseudonym: string }) {
+    const [claimed] = await tx.select({ id: tasks.id }).from(tasks).where(eq(tasks.claimedBy, worker.id)).limit(1);
+    if (claimed) return true;
+    const [submitted] = await tx.select({ id: submissions.id }).from(submissions).where(eq(submissions.workerId, worker.id)).limit(1);
+    if (submitted) return true;
+    const [paid] = await tx.select({ id: ledgerEntries.id }).from(ledgerEntries).where(eq(ledgerEntries.party, worker.id)).limit(1);
+    if (paid) return true;
+    const [owner] = await tx.select({ id: owners.id }).from(owners).where(eq(owners.verifiedRef, worker.pseudonym)).limit(1);
+    return Boolean(owner);
+  }
+
   /**
-   * Adds an identity to a worker. Each identity belongs to one worker, and accounts are never
-   * merged: one already used by someone else is refused, and so is replacing a different one.
+   * Adds an identity to a worker, so PayPal and Concordium ID both land in one account. Each
+   * identity belongs to one worker. If it already belongs to another account and one of the
+   * two has never done anything (no claims, submissions, money or agents), the empty one is
+   * folded into the other: nobody's work or money can change hands this way. Two accounts
+   * that both have history are never merged. Returns the account the person ends up in,
+   * which is the other one when theirs was the empty one: sign them into it.
    */
   async function linkIdentity(
     workerId: string,
@@ -289,18 +305,45 @@ export function createDesk({
         throw new DeskError("conflict", `your account already has a different ${name}; boreal never swaps one for another`);
       }
       const [other] = await tx
-        .select({ id: workers.id })
+        .select()
         .from(workers)
-        .where(and(or(eq(column, ref), eq(workers.pseudonym, ref)), ne(workers.id, workerId)));
-      if (other) {
+        .where(and(or(eq(column, ref), eq(workers.pseudonym, ref)), ne(workers.id, workerId)))
+        .for("update");
+      const at = now();
+
+      if (other && !(await hasHistory(tx, other))) {
+        // The identity sits on an empty account (say, an accidental second sign-in): retire it.
+        await tx.delete(workers).where(eq(workers.id, other.id));
+      } else if (other && !(await hasHistory(tx, worker))) {
+        // Theirs is the empty one: fold it into the account that holds the identity.
+        const bring = kind === "paypal" ? "concordium" : "paypal";
+        const mine = bring === "paypal" ? worker.paypalRef : worker.concordiumRef;
+        const theirs = bring === "paypal" ? other.paypalRef : other.concordiumRef;
+        if (mine && theirs && mine !== theirs) {
+          throw new DeskError("conflict", `that account already has a different ${bring === "paypal" ? "PayPal account" : "Concordium ID"}; boreal never merges two of them`);
+        }
+        await tx.delete(workers).where(eq(workers.id, worker.id));
+        const carried: Partial<typeof workers.$inferInsert> =
+          !mine || theirs
+            ? {}
+            : bring === "paypal"
+              ? { paypalRef: worker.paypalRef, paypalEmail: worker.paypalEmail, paypalVerified: worker.paypalVerified }
+              : { concordiumRef: worker.concordiumRef, provenAttributes: worker.provenAttributes };
+        const [merged] = await tx
+          .update(workers)
+          .set({ ...set, ...carried, updatedAt: at })
+          .where(eq(workers.id, other.id))
+          .returning();
+        return merged!;
+      } else if (other) {
         throw new DeskError(
           "conflict",
-          `this ${name} already belongs to another boreal account. Sign out and sign in with it to use that account; boreal never merges accounts`,
+          `this ${name} already belongs to another boreal account that has its own tasks or money. Sign out and sign in with it to use that account; boreal never merges two accounts with history`,
         );
       }
       const [updated] = await tx
         .update(workers)
-        .set({ ...set, updatedAt: now() })
+        .set({ ...set, updatedAt: at })
         .where(eq(workers.id, workerId))
         .returning();
       return updated!;

@@ -113,19 +113,30 @@ describe("linking identities", () => {
     expect(await desk.getWorker(worker)).toMatchObject({ paypalVerified: false, paypalEmail: "again@personal.example.com" });
   });
 
-  it("refuses a PayPal account that already belongs to another worker, and merges nothing", async () => {
-    const paypalWorker = await desk.signInWithPayPal(paypal(1));
-    const ccdWorker = asWorker(await desk.signInVerifiedWorker(concordium(1)));
-    await expectDeskError(desk.linkPayPal(ccdWorker, paypal(1)), "conflict", /another boreal account/);
-    expect(await desk.getWorker(ccdWorker)).toMatchObject({ hasPayPal: false, paypalEmail: null });
-    expect((await desk.signInWithPayPal(paypal(1))).id).toBe(paypalWorker.id);
+  it("folds an empty account holding the identity into the current one", async () => {
+    await desk.signInVerifiedWorker(concordium(1)); // accidental second account, never used
+    const paypalWorker = asWorker(await desk.signInWithPayPal(paypal(1)));
+    const kept = await desk.linkVerifiedConcordium(paypalWorker, concordium(1));
+    expect(kept.id).toBe((paypalWorker as { workerId: string }).workerId);
+    expect((await desk.signInVerifiedWorker(concordium(1))).id).toBe(kept.id);
   });
 
-  it("refuses a Concordium ID that already belongs to another worker", async () => {
-    await desk.signInVerifiedWorker(concordium(1));
-    const paypalWorker = asWorker(await desk.signInWithPayPal(paypal(1)));
-    await expectDeskError(desk.linkVerifiedConcordium(paypalWorker, concordium(1)), "conflict", /another boreal account/);
-    expect(await desk.getWorker(paypalWorker)).toMatchObject({ hasConcordium: false, provenAttributes: {} });
+  it("folds the current empty account into the one with history that holds the identity", async () => {
+    const paypalWorker = await desk.signInWithPayPal(paypal(1));
+    await desk.claimTask(asWorker(paypalWorker), await openTask([]));
+    const ccdWorker = asWorker(await desk.signInVerifiedWorker(concordium(1)));
+    const kept = await desk.linkPayPal(ccdWorker, paypal(1));
+    expect(kept.id).toBe(paypalWorker.id);
+    expect((await desk.signInVerifiedWorker(concordium(1))).id).toBe(paypalWorker.id);
+  });
+
+  it("never merges two accounts that both have history", async () => {
+    const paypalWorker = await desk.signInWithPayPal(paypal(1));
+    await desk.claimTask(asWorker(paypalWorker), await openTask([]));
+    const ccdWorker = asWorker(await desk.signInVerifiedWorker(concordium(1)));
+    await desk.claimTask(ccdWorker, await openTask([]));
+    await expectDeskError(desk.linkPayPal(ccdWorker, paypal(1)), "conflict", /another boreal account/);
+    expect((await desk.signInWithPayPal(paypal(1))).id).toBe(paypalWorker.id);
   });
 
   it("refuses swapping in a different identity of the same kind", async () => {

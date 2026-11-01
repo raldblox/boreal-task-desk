@@ -31,7 +31,9 @@ export async function POST(request: Request) {
     const pending = await desk.takeVerificationRequest(body.id);
     const verified = await verifier.finish(pending.request, body.presentation, pending.id);
     if (worker) {
-      await desk.linkVerifiedConcordium(worker, verified);
+      const kept = await desk.linkVerifiedConcordium(worker, verified);
+      // An empty account folded into the one holding this ID: continue as that account.
+      if (worker.role === "worker" && kept.id !== worker.workerId) await startWorkerSession(kept.id);
     } else {
       await startWorkerSession((await desk.signInVerifiedWorker(verified)).id);
     }
