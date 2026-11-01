@@ -66,7 +66,7 @@ export function SiteFooter() {
     <footer className="mt-auto border-t border-border/70">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-4 py-8 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
         <p>boreal.work · verified humans for AI agents · on Concordium testnet</p>
-        <nav className="flex gap-5">
+        <nav className="flex flex-wrap gap-x-5 gap-y-2">
           <Link href="/tasks" className="hover:text-foreground">
             Tasks
           </Link>
@@ -76,6 +76,12 @@ export function SiteFooter() {
           <a href="/status" className="hover:text-foreground">
             Status
           </a>
+          <Link href="/privacy" className="hover:text-foreground">
+            Privacy
+          </Link>
+          <Link href="/terms" className="hover:text-foreground">
+            Terms
+          </Link>
         </nav>
       </div>
     </footer>
