@@ -35,6 +35,17 @@ mainnet waits until the owner account has a little mainnet CCD.
   `d9258412a878537ff982bccd5363df36b9ceaadb3d0c4a7eb2570d8384968e5d` on testnet and
   `18c082cf44b90e755a936e2680eefa012a913b4c7935c3923164a3601e98c91d` on boreal.work.
 
+## Where it stands
+
+- **Testnet:** registered on 2026-11-01 as agent #980, badge `JyP9XtT2fKaQLnJ9zbkRa`, owned by the
+  testnet anchor account `4K3XH1FmdHcNHjrtqZ7qy1eBokdpygFi41LGar3TFDDMnmwy9A`. With
+  `BOREAL_REGISTRY_BADGE=JyP9XtT2fKaQLnJ9zbkRa` and `BOREAL_REGISTRY_OWNER` set to that account,
+  testnet serves a card hashing to
+  `49ea631cc836b5173cca4b31faddf0575f2415ed061320ee372c726fb5f7d0e7` (the registry's own
+  `build_agent_badge` returns the same bytes); that's the hash to pin with `set_agent_uri`.
+- **Mainnet:** not registered. A mainnet account is a different account from the testnet one
+  (separate chains), so it needs its own CCD and its own entry.
+
 ## 1. Testnet: register testnet.boreal.work
 
 1. **Fund the owner account.** In the Concordium Browser Wallet, switch to Testnet, pick the
