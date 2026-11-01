@@ -18,9 +18,18 @@ export interface PayPalAccountsOptions {
   webUrl: string;
   brandName?: string;
   fetch?: typeof fetch;
+  /** Log in with PayPal is set up on the app (with boreal's return URL); PayPal can't be asked. */
+  loginEnabled?: boolean;
 }
 
+/** The scope PayPal grants an app once it may save payment methods (Vault v3). */
+const VAULT_SCOPE = "https://uri.paypal.com/services/vault/payment-tokens/readwrite";
+
 export interface PayPalAccounts {
+  /** Workers can log in with PayPal: only when the app is set up for it. */
+  readonly loginEnabled: boolean;
+  /** PayPal lets this app save accounts: read from the scopes on its token, so a button never dead-ends. */
+  canSaveAccounts(): Promise<boolean>;
   /** Starts saving the owner's PayPal account; send them to `approveUrl`. */
   startSaving(input: { returnUrl: string; cancelUrl: string }): Promise<{ setupTokenId: string; approveUrl: string }>;
   /** After approval: the vault id to pay from, and the account's email when PayPal shares it. */
@@ -53,8 +62,29 @@ export function createPayPalAccounts(options: PayPalAccountsOptions): PayPalAcco
   const http = options.fetch ?? fetch;
   const brand = options.brandName ?? "boreal.work";
   const basic = Buffer.from(`${options.clientId}:${options.clientSecret}`).toString("base64");
+  let saving: { value: boolean; until: number } | null = null;
 
   return {
+    loginEnabled: options.loginEnabled ?? false,
+
+    async canSaveAccounts() {
+      if (saving && saving.until > Date.now()) return saving.value;
+      let value = false;
+      try {
+        const res = await http(`${options.baseUrl}/v1/oauth2/token`, {
+          method: "POST",
+          headers: { Authorization: `Basic ${basic}`, "Content-Type": "application/x-www-form-urlencoded" },
+          body: "grant_type=client_credentials",
+        });
+        if (res.ok) value = ((await res.json()) as { scope?: string }).scope?.split(" ").includes(VAULT_SCOPE) ?? false;
+      } catch {
+        // PayPal unreachable: treat as unavailable for now and ask again soon.
+      }
+      // Re-checked every few minutes, so turning the option on in PayPal shows up without a deploy.
+      saving = { value, until: Date.now() + 5 * 60_000 };
+      return value;
+    },
+
     async startSaving({ returnUrl, cancelUrl }) {
       const token = await options.client.request<SetupToken>("POST", "/v3/vault/setup-tokens", {
         requestId: `setup:${crypto.randomUUID()}`,

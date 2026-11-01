@@ -14,8 +14,12 @@ const client: PayPalClient = {
   },
 };
 
-const fakeFetch: typeof fetch = async (input) => {
+let appScope = "openid https://uri.paypal.com/payments/payouts";
+const fakeFetch: typeof fetch = async (input, init) => {
   const url = String(input);
+  if (url.endsWith("/v1/oauth2/token") && String(init?.body).includes("client_credentials")) {
+    return Response.json({ access_token: "app-token", scope: appScope });
+  }
   if (url.endsWith("/v1/oauth2/token")) return Response.json({ access_token: "user-token" });
   if (url.includes("/v1/identity/oauth2/userinfo")) {
     return Response.json({ payer_id: "PAYER1", emails: [{ value: "old@example.com" }, { value: "maria@example.com", primary: true }] });
@@ -33,6 +37,14 @@ const accounts = createPayPalAccounts({
 });
 
 describe("connecting PayPal accounts", () => {
+  it("offers saving accounts only when PayPal granted the app the Vault scope", async () => {
+    expect(await accounts.canSaveAccounts()).toBe(false);
+    appScope += " https://uri.paypal.com/services/vault/payment-tokens/readwrite";
+    const fresh = createPayPalAccounts({ client, clientId: "c", clientSecret: "s", baseUrl: "https://api.paypal.test", webUrl: "https://www.paypal.test", fetch: fakeFetch });
+    expect(await fresh.canSaveAccounts()).toBe(true);
+    expect(fresh.loginEnabled).toBe(false);
+  });
+
   it("saves an owner's account without a purchase", async () => {
     const started = await accounts.startSaving({ returnUrl: "https://boreal.test/paypal/saved", cancelUrl: "https://boreal.test/me" });
     expect(started).toEqual({ setupTokenId: "SETUP-1", approveUrl: "https://paypal.test/approve/SETUP-1" });

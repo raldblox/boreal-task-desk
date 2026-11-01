@@ -12,6 +12,7 @@ import { Eyebrow } from "@/components/brand";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { getDesk, paymentRails } from "@/server/desk";
+import { paypalAccounts } from "@/server/paypal-accounts";
 import { workerFromSession } from "@/server/session";
 
 type Props = { params: Promise<{ code: string }>; searchParams: Promise<{ done?: string; agent?: string }> };
@@ -31,7 +32,7 @@ async function LinkRequest({ params, searchParams }: Props) {
             ? "Your agent picks up its key the next time it checks, usually within seconds, and can post tasks for verified workers right away, within the limits you set."
             : "The agent won't get a key from this request."}
         </p>
-        {approved && agent && paymentRails().includes("paypal") && (
+        {approved && agent && paymentRails().includes("paypal") && (await paypalAccounts()?.canSaveAccounts()) && (
           <div className="flex flex-col gap-2 rounded-xl border bg-muted/40 p-4">
             <p className="font-medium">Let it pay with your PayPal</p>
             <p className="text-sm text-muted-foreground">

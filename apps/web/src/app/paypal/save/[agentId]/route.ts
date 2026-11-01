@@ -11,7 +11,7 @@ export async function GET(request: Request, ctx: RouteContext<"/paypal/save/[age
   const worker = await workerFromSession();
   if (!worker || worker.role !== "worker") redirect(`/signin?next=/me`);
   const accounts = paypalAccounts();
-  if (!accounts) redirect("/me?paypal=off");
+  if (!accounts || !(await accounts.canSaveAccounts())) redirect("/me?paypal=unavailable");
   const agent = await getDesk().ownerAgent(worker.workerId, agentId).catch(() => null);
   if (!agent) redirect("/me?paypal=not-yours");
   const site = siteUrl(request);

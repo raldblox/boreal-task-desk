@@ -61,6 +61,8 @@ export function loadPayPalAccounts(env: Record<string, string | undefined>): Pay
     clientSecret,
     baseUrl: PAYPAL_SANDBOX_URL,
     webUrl: "https://www.sandbox.paypal.com",
+    // Set once Log in with PayPal is on for the app, with /paypal/login/done as its return URL.
+    loginEnabled: env.PAYPAL_LOGIN === "on",
   });
 }
 

@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { attributeLabel, usd, workerHandle } from "@/lib/format";
 import { getDesk, paymentRails } from "@/server/desk";
+import { paypalAccounts } from "@/server/paypal-accounts";
 import { workerFromSession } from "@/server/session";
 
 const ACTIVE = new Set(["claimed", "submitted", "passed", "failed", "disputed"]);
@@ -107,7 +108,10 @@ async function Payouts() {
           the moment a passed task is final.
         </p>
       </div>
-      {rails.includes("paypal") && (
+      {rails.includes("paypal") && !paypalAccounts()?.loginEnabled && (
+        <PayoutForm action={setPayoutAddress} current={profile.paypalEmail} paypal />
+      )}
+      {rails.includes("paypal") && paypalAccounts()?.loginEnabled && (
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-3">
             {/* A route handler that redirects to PayPal, so a full navigation, not <Link>. */}
@@ -143,7 +147,8 @@ async function MyAgents() {
     .listOwnerAgents(worker.workerId)
     .catch(() => []); // testers can't own agents
   if (agents.length === 0) return null;
-  const paypal = paymentRails().includes("paypal");
+  // Offer Connect PayPal only when PayPal lets boreal save accounts; otherwise each task sends a checkout link.
+  const paypal = paymentRails().includes("paypal") && ((await paypalAccounts()?.canSaveAccounts()) ?? false);
   return (
     <section className="flex flex-col gap-3">
       <h2 className="text-sm font-semibold text-muted-foreground">Your agents · {agents.length}</h2>
