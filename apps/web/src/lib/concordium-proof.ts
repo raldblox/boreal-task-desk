@@ -1,5 +1,6 @@
 // The two server calls every Concordium sign-in makes, whichever app holds the identity:
-// start builds and anchors the proof request, finish verifies the answer and signs in.
+// start builds and anchors the proof request, finish verifies the answer and signs in (or,
+// with `link`, adds the Concordium ID to the signed-in worker).
 
 export async function startProof(connectionId: string): Promise<{ id: string; request: unknown }> {
   const res = await fetch("/api/worker/verification/start", {
@@ -12,11 +13,11 @@ export async function startProof(connectionId: string): Promise<{ id: string; re
   return { id: body.id, request: body.request };
 }
 
-export async function finishProof(id: string | null, presentation: unknown): Promise<void> {
+export async function finishProof(id: string | null, presentation: unknown, link = false): Promise<void> {
   const res = await fetch("/api/worker/verification/finish", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ id, presentation }),
+    body: JSON.stringify({ id, presentation, link }),
   });
   const body = (await res.json().catch(() => ({}))) as { message?: string };
   if (!res.ok) throw new Error(body.message ?? "Your proof couldn't be verified.");

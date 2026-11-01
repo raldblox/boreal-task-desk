@@ -10,7 +10,7 @@ own database, file storage, secrets, keys and accounts. Nothing is shared betwee
 | Database (Neon, Singapore) | `boreal-testnet-db`: all history since the start | `boreal-mainnet-db`: started empty on 2026-11-01 |
 | Files (Vercel Blob) | `boreal-task-desk-submissions` | `boreal-mainnet-files` |
 | Money | PayPal sandbox, Concordium testnet tokens: never real | Live PayPal once approved; Concordium mainnet later |
-| Sign-in | Concordium ID on testnet | Concordium ID on mainnet (needs a mainnet anchor account) |
+| Sign-in | Log in with PayPal (sandbox) or Concordium ID on testnet | Log in with PayPal (live), or Concordium ID on mainnet (needs a mainnet anchor account) |
 | Banner | "Testnet … never real money", with a link to the live site | None |
 | Worker IDs | Testnet pseudonym secret | Its own secret, so IDs differ from testnet |
 
@@ -41,16 +41,19 @@ back, so keep their source (a local env file) or generate new ones.
   - `CONCORDIUM_ANCHOR_ACCOUNT`/`_KEY` for a **mainnet** account holding a little CCD. Sign-in
     anchors each proof request on-chain; without it boreal.work shows "sign-in opening soon".
   - Live PayPal: a live app on boreal's PayPal business account with Payouts, Save payment
-    methods and Log in with PayPal (return URL `https://boreal.work/paypal/login/done`), and a
-    webhook to `https://boreal.work/api/paypal/webhook`. Then set the PayPal variables above
-    (live values, no `PAYPAL_ENV` needed) and `PAYMENT_RAILS=paypal`.
+    methods and Log in with PayPal (return URL `https://boreal.work/paypal/login/done`; share
+    email, PayPal account ID and account verification status), and a webhook to
+    `https://boreal.work/api/paypal/webhook`. Then set the PayPal variables above (live values,
+    no `PAYPAL_ENV` needed), `PAYMENT_RAILS=paypal` and `PAYPAL_LOGIN=on`. Workers can then sign in
+    and be paid before boreal has CCD for Concordium ID.
   - `ADMIN_PSEUDONYMS`: your mainnet worker ID, after your first sign-in there.
   - Concordium escrow on mainnet needs mainnet adapters, which aren't built yet.
 
 ## Outside services, per site
 
 - PayPal sandbox app → webhook `https://testnet.boreal.work/api/paypal/webhook`, Log in with
-  PayPal return URL `https://testnet.boreal.work/paypal/login/done`.
+  PayPal return URL `https://testnet.boreal.work/paypal/login/done`, sharing email, PayPal
+  account ID and account verification status.
 - Reown (WalletConnect) project → allowed domains `boreal.work` and `testnet.boreal.work`.
 
 ## Copying variables between projects

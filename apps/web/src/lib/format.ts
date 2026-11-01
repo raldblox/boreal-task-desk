@@ -41,6 +41,6 @@ export const WORKER_STATUS: Record<TaskStatus, { label: string; tone: "default" 
 
 /** A worker's pseudonym, short enough to show: the first and last four of its hash. */
 export function workerHandle(pseudonym: string): string {
-  const hash = pseudonym.startsWith("ccdid:") ? pseudonym.slice(6) : null;
+  const hash = /^(ccdid|pp):/.test(pseudonym) ? pseudonym.slice(pseudonym.indexOf(":") + 1) : null;
   return hash ? `${hash.slice(0, 4)}…${hash.slice(-4)}` : pseudonym;
 }

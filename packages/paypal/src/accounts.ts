@@ -1,3 +1,5 @@
+import { createHmac } from "node:crypto";
+
 import type { PayPalClient } from "./client";
 import { PayPalError } from "./client";
 
@@ -5,8 +7,9 @@ import { PayPalError } from "./client";
 // - An owner saves their PayPal account for an agent (vault without purchase): a setup token
 //   the owner approves on PayPal, exchanged for a payment token. Its id is the vault id
 //   the desk already pays from, so the agent funds tasks with no approval page.
-// - A worker logs in with PayPal, so payouts go to an email PayPal vouches for instead of
-//   one typed by hand. Needs "Log in with PayPal" on the PayPal app, with the return URL.
+// - A worker logs in with PayPal: it signs them in (or adds PayPal to their account), and
+//   payouts go to the email PayPal vouches for. Needs "Log in with PayPal" on the PayPal app,
+//   with the return URL and the scopes below.
 
 export interface PayPalAccountsOptions {
   client: PayPalClient;
@@ -37,7 +40,27 @@ export interface PayPalAccounts {
   /** Log in with PayPal: where to send the worker. */
   loginUrl(input: { redirectUri: string; state: string }): string;
   /** The worker's PayPal account after they logged in, from the code PayPal sent back. */
-  loggedIn(input: { code: string }): Promise<{ email: string; payerId?: string }>;
+  loggedIn(input: { code: string }): Promise<PayPalLogin>;
+}
+
+export interface PayPalLogin {
+  /** The account's primary email: where payouts go. */
+  email: string;
+  /** PayPal's stable account id. Only its keyed hash (`paypalPseudonym`) is ever stored. */
+  payerId: string;
+  /** PayPal's `verified_account` claim: PayPal has verified the account holder. */
+  verified: boolean;
+}
+
+/**
+ * Log in with PayPal's scopes: who the account is (openid), its email for payouts, and its
+ * payer_id and verified_account (paypalattributes). The app must have the same options ticked.
+ */
+export const LOGIN_SCOPES = "openid email https://uri.paypal.com/services/paypalattributes";
+
+/** A worker's PayPal identity: a keyed hash of the payer_id, so the id itself is never kept. */
+export function paypalPseudonym(payerId: string, secret: string): string {
+  return `pp:${createHmac("sha256", secret).update(`paypal:${payerId}`).digest("hex")}`;
 }
 
 interface SetupToken {
@@ -56,6 +79,8 @@ interface UserInfo {
   payer_id?: string;
   email?: string;
   emails?: { value: string; primary?: boolean; confirmed?: boolean }[];
+  /** PayPal sends it as a string ("true") or a boolean. */
+  verified_account?: string | boolean;
 }
 
 export function createPayPalAccounts(options: PayPalAccountsOptions): PayPalAccounts {
@@ -126,7 +151,7 @@ export function createPayPalAccounts(options: PayPalAccountsOptions): PayPalAcco
         flowEntry: "static",
         client_id: options.clientId,
         response_type: "code",
-        scope: "openid email",
+        scope: LOGIN_SCOPES,
         redirect_uri: redirectUri,
         state,
       }).toString();
@@ -148,7 +173,10 @@ export function createPayPalAccounts(options: PayPalAccountsOptions): PayPalAcco
       const info = (await infoRes.json()) as UserInfo;
       const email = info.emails?.find((e) => e.primary)?.value ?? info.emails?.[0]?.value ?? info.email;
       if (!email) throw new PayPalError(400, "NO_EMAIL", [], "PayPal didn't share the account's email; allow email when you log in");
-      return { email, ...(info.payer_id ? { payerId: info.payer_id } : {}) };
+      if (!info.payer_id) {
+        throw new PayPalError(400, "NO_PAYER_ID", [], "PayPal didn't share the account ID; the app needs the PayPal account ID option in Log in with PayPal");
+      }
+      return { email, payerId: info.payer_id, verified: String(info.verified_account) === "true" };
     },
   };
 }

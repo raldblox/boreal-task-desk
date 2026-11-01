@@ -10,11 +10,18 @@ async function Workers() {
   await requireAdmin();
   const list = await getDesk().adminWorkers();
   return (
-    <Table head={["Pseudonym", "Proven attributes", "Payout set", "Claimed", "Paid / not paid", "Earned (live)", "Since"]} empty="No workers yet.">
+    <Table head={["Pseudonym", "Signs in with", "Proven attributes", "Payout set", "Claimed", "Paid / not paid", "Earned (live)", "Since"]} empty="No workers yet.">
       {list.map((w) => (
         <tr key={w.id}>
           <td>
             <Mono>{w.pseudonym}</Mono> {w.testMode && <Badge variant="outline">tester</Badge>}
+          </td>
+          <td>
+            <div className="flex flex-wrap gap-1">
+              {w.hasPayPal && <Badge variant="outline">PayPal{w.paypalVerified ? " · verified" : ""}</Badge>}
+              {w.hasConcordium && <Badge>Verified by Concordium</Badge>}
+              {!w.hasPayPal && !w.hasConcordium && "—"}
+            </div>
           </td>
           <td>
             <div className="flex flex-wrap gap-1">
@@ -46,7 +53,8 @@ export default function AdminWorkersPage() {
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold">Workers</h1>
         <p className="text-sm text-muted-foreground">
-          A pseudonym and proven attributes are all boreal keeps. Payout destinations show only whether one is set.
+          A pseudonym, which identities sign them in, and proven attributes are all boreal keeps. Identities and payout
+          destinations show only whether one is set.
         </p>
       </div>
       <Suspense fallback={<p className="text-sm text-muted-foreground">Loading…</p>}>

@@ -27,7 +27,7 @@ async function OpenTasks() {
     return (
       <EmptyState
         title="Sign in to see tasks"
-        body="Tasks are matched to what you've proven with Concordium ID, like your country or age."
+        body="Sign in with PayPal or Concordium ID. Tasks that need your country or age ask for the Verified by Concordium badge."
         action={
           <Link href="/signin" className={buttonVariants({ className: "mt-2" })}>
             Sign in
@@ -43,7 +43,7 @@ async function OpenTasks() {
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sm text-muted-foreground">
-        {tasks.length} open {tasks.length === 1 ? "task" : "tasks"} you qualify for
+        {tasks.length} open {tasks.length === 1 ? "task" : "tasks"} for you
       </p>
       {tasks.map((task) => (
         <TaskCard key={task.id} task={task} />

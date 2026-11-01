@@ -3,9 +3,10 @@ import { DeskError } from "@boreal/desk";
 
 import { getDesk } from "@/server/desk";
 import { getIdAppVerifier } from "@/server/id-app";
-import { startWorkerSession } from "@/server/session";
+import { startWorkerSession, workerFromSession } from "@/server/session";
 
-// Step 2: verify the ID App's proof against the anchored request and sign the worker in.
+// Step 2: verify the ID App's proof against the anchored request, then sign the worker in, or
+// (with `link`) add this Concordium ID to the signed-in worker: the badge and its attributes.
 export const maxDuration = 60;
 
 export async function POST(request: Request) {
@@ -14,17 +15,26 @@ export async function POST(request: Request) {
     return Response.json({ error: "unavailable", message: "Concordium ID sign-in isn't set up yet" }, { status: 503 });
   }
 
-  const body = (await request.json().catch(() => null)) as { id?: unknown; presentation?: unknown } | null;
+  const body = (await request.json().catch(() => null)) as { id?: unknown; presentation?: unknown; link?: unknown } | null;
   if (typeof body?.id !== "string" || !body.presentation) {
     return Response.json({ error: "invalid", message: "missing proof" }, { status: 400 });
+  }
+
+  const linking = body.link === true;
+  const worker = linking ? await workerFromSession() : null;
+  if (linking && worker?.role !== "worker") {
+    return Response.json({ error: "forbidden", message: "Your session has ended. Sign in again." }, { status: 401 });
   }
 
   const desk = getDesk();
   try {
     const pending = await desk.takeVerificationRequest(body.id);
     const verified = await verifier.finish(pending.request, body.presentation, pending.id);
-    const worker = await desk.signInVerifiedWorker(verified);
-    await startWorkerSession(worker.id);
+    if (worker) {
+      await desk.linkVerifiedConcordium(worker, verified);
+    } else {
+      await startWorkerSession((await desk.signInVerifiedWorker(verified)).id);
+    }
     return Response.json({ ok: true, attributes: verified.provenAttributes });
   } catch (error) {
     if (error instanceof IdAppError) {

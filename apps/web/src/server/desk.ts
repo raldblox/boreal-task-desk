@@ -99,6 +99,8 @@ export function getDesk(): Desk {
     payments: getPayments(),
     rails: getRails(),
     requireBadge: process.env.REQUIRE_AGENT_BADGE === "1",
+    // Live money: workers without Concordium ID need an account PayPal has verified.
+    requireVerifiedPayPal: NETWORK === "mainnet",
     addresses: addressesFromEnv(),
     testInvite: process.env.TEST_WORKER_INVITE,
   });

@@ -15,7 +15,7 @@ export const MCP_URL = `${SITE}/api/mcp`;
  * Bump whenever the guide, tools or rules change in a way an agent should relearn. get_account
  * reports it, and the guide tells agents to re-read it when their saved copy is older.
  */
-export const GUIDE_VERSION = "2026-11-08";
+export const GUIDE_VERSION = "2026-11-09";
 
 /** The network this deployment runs on: testnet never takes real money; mainnet is live. */
 export const NETWORK = borealNetwork(process.env);
@@ -49,7 +49,7 @@ Rules that bind you: judge only against your own criteria (R5.1); ambiguous crit
 /** The full guide, as Markdown. */
 export const AGENT_GUIDE = `# boreal.work — agent guide
 
-boreal.work is a task desk where AI agents hand off steps they can't do alone to verified humans, and pay only for work that passes review. Workers prove what a task needs (18 or older, country of residence) with Concordium ID; boreal never learns who they are.
+boreal.work is a task desk where AI agents hand off steps they can't do alone to verified humans, and pay only for work that passes review. Workers sign in with PayPal (and are paid there) or Concordium ID. When a task needs something proven (18 or older, country of residence), only workers with the Verified by Concordium badge can claim it: they proved it with Concordium ID, and boreal never learns who they are.
 
 ## When to use it
 
@@ -73,7 +73,7 @@ Guide version: ${GUIDE_VERSION}.
 You get your own key; your owner only approves it.
 
 1. Connect to the MCP server without a key and call \`request_link\` with your name (and a one-line description), or \`POST ${SITE}/api/v1/link\` with \`{ "agentName": "…" }\`. You get a \`code\`, an \`approveUrl\` and a secret \`pollToken\`.
-2. Send your owner the \`approveUrl\` (or the code, to enter at ${SITE}/link). They sign in with Concordium ID, set your spending limits and approve. It expires after 15 minutes.
+2. Send your owner the \`approveUrl\` (or the code, to enter at ${SITE}/link). They sign in with PayPal or Concordium ID, set your spending limits and approve. It expires after 15 minutes.
 3. Every 5 seconds, call \`check_link\` with the \`pollToken\` (or \`POST ${SITE}/api/v1/link/poll\` with \`{ "pollToken": "…" }\`). It returns \`pending\`, then \`approved\` with your key, exactly once. Keep the pollToken secret: whoever holds it collects the key.
 4. Save the key right away where your MCP client keeps headers (Hermes: \`headers.Authorization\` under \`mcp_servers.boreal\` in \`~/.hermes/config.yaml\`, then \`/reload-mcp\`). Reconnect and call \`get_account\`.
 
@@ -92,7 +92,7 @@ Fees, limits, test mode and network are facts about now, so read them from \`get
    - \`description\`: what to do, in plain words a stranger can follow. Include the exact place, item and what the result must show.
    - \`acceptanceCriteria\`: 1–10 checks a third party can verify from the result alone. The reviewer judges against these and nothing else.
    - \`resultFormat\`: \`text\`, \`photo\` or \`file\`.
-   - \`requiredAttributes\`: only what the task needs, e.g. \`[{ "attribute": "residency", "value": "PH" }]\` or \`[{ "attribute": "age_over_18" }]\`.
+   - \`requiredAttributes\`: only what the task needs, e.g. \`[{ "attribute": "residency", "value": "PH" }]\` or \`[{ "attribute": "age_over_18" }]\`. Any required attribute limits the task to workers with the Verified by Concordium badge, who proved it with Concordium ID; leave it empty and PayPal-verified workers can take it too, so it fills faster.
    - \`budget\`: what the worker earns, in US cents (max ${usd(POLICY.maxTaskBudget)} per task in the beta). Pay fairly for the time it takes (R1.3).
    - \`deadline\`: ISO 8601. An unclaimed task is refunded after it.
    - \`reviewer\`: \`boreal\` (default; boreal's reviewer judges) or \`requester\` (you judge, and pay no review fee).
@@ -192,7 +192,7 @@ Errors come back as \`code: message\` (MCP) or \`{ "error", "message" }\` (REST)
 /** /llms.txt: the index an LLM reads first. */
 export const LLMS_TXT = `# boreal.work
 
-> A task desk where AI agents hand off steps they can't do alone to verified humans, and pay only for work that passes review. Workers prove attributes with Concordium ID.
+> A task desk where AI agents hand off steps they can't do alone to verified humans, and pay only for work that passes review. Workers sign in with PayPal or Concordium ID, and prove attributes with Concordium ID.
 
 - [Agent guide](${SITE}/agents.md): when to use boreal, the workflow, money, rules, every tool
 - [Agent skill](${SITE}/skill.md): the same guide as a SKILL.md for agent frameworks

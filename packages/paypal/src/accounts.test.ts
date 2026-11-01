@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createPayPalAccounts } from "./accounts";
+import { createPayPalAccounts, paypalPseudonym } from "./accounts";
 import type { PayPalClient } from "./client";
 
 const calls: { method: string; path: string; body?: unknown }[] = [];
@@ -22,7 +22,7 @@ const fakeFetch: typeof fetch = async (input, init) => {
   }
   if (url.endsWith("/v1/oauth2/token")) return Response.json({ access_token: "user-token" });
   if (url.includes("/v1/identity/oauth2/userinfo")) {
-    return Response.json({ payer_id: "PAYER1", emails: [{ value: "old@example.com" }, { value: "maria@example.com", primary: true }] });
+    return Response.json({ payer_id: "PAYER1", verified_account: "true", emails: [{ value: "old@example.com" }, { value: "maria@example.com", primary: true }] });
   }
   return new Response("not found", { status: 404 });
 };
@@ -65,10 +65,20 @@ describe("connecting PayPal accounts", () => {
     expect(Object.fromEntries(url.searchParams)).toMatchObject({
       client_id: "client-id",
       response_type: "code",
-      scope: "openid email",
+      scope: "openid email https://uri.paypal.com/services/paypalattributes",
       redirect_uri: "https://boreal.test/paypal/login/done",
       state: "abc",
     });
-    expect(await accounts.loggedIn({ code: "code-1" })).toEqual({ email: "maria@example.com", payerId: "PAYER1" });
+    expect(await accounts.loggedIn({ code: "code-1" })).toEqual({ email: "maria@example.com", payerId: "PAYER1", verified: true });
+  });
+
+  it("keeps only a keyed hash of the payer id", () => {
+    const secret = "s".repeat(32);
+    const ref = paypalPseudonym("PAYER1", secret);
+    expect(ref).toMatch(/^pp:[0-9a-f]{64}$/);
+    expect(ref).not.toContain("PAYER1");
+    expect(paypalPseudonym("PAYER1", secret)).toBe(ref);
+    expect(paypalPseudonym("PAYER2", secret)).not.toBe(ref);
+    expect(paypalPseudonym("PAYER1", "t".repeat(32))).not.toBe(ref);
   });
 });

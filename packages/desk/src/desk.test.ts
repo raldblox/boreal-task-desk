@@ -61,7 +61,7 @@ async function seedAgent(name: string, maxDailySpend = 50_000) {
 async function seedWorker(pseudonym: string, attributes: Record<string, string>) {
   const [worker] = await db
     .insert(workers)
-    .values({ pseudonym, provenAttributes: attributes })
+    .values({ pseudonym, concordiumRef: pseudonym, provenAttributes: attributes })
     .returning();
   return worker!;
 }

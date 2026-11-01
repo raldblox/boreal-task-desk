@@ -143,7 +143,7 @@ export function DisputeForm({ action }: { action: Action }) {
 }
 
 /** Stands in for the Concordium ID wallet until the real proof flow lands. */
-export function DevWallet({ action, request }: { action: Action; request: string }) {
+export function DevWallet({ action, request, submitLabel = "Prove and sign in" }: { action: Action; request: string; submitLabel?: string }) {
   const [state, formAction, pending] = useActionState(action, null);
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -170,7 +170,7 @@ export function DevWallet({ action, request }: { action: Action; request: string
         <input type="checkbox" name="adult" defaultChecked /> I am 18 or older
       </label>
       <Button type="submit" disabled={pending} size="lg" className="w-full sm:w-fit">
-        {pending ? "Verifying…" : "Prove and sign in"}
+        {pending ? "Verifying…" : submitLabel}
       </Button>
       <FormError state={state} />
     </form>

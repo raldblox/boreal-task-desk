@@ -1,7 +1,7 @@
 import { POLICY } from "@boreal/core";
 import { type Caller, DeskError } from "@boreal/desk";
 import type { Task } from "@boreal/db";
-import { ArrowLeft, CircleCheck } from "lucide-react";
+import { ArrowLeft, CircleCheck, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -17,12 +17,33 @@ import { getDesk } from "@/server/desk";
 import { workerFromSession } from "@/server/session";
 
 /** What the worker can do next, for each state. */
-function NextStep({ task, worker }: { task: Task; worker: Extract<Caller, { role: "worker" }> }) {
+function NextStep({
+  task,
+  worker,
+  needsBadge,
+}: {
+  task: Task;
+  worker: Extract<Caller, { role: "worker" }>;
+  /** The task needs proven attributes and this worker hasn't added Concordium ID yet. */
+  needsBadge: boolean;
+}) {
   const mine = task.claimedBy === worker.workerId;
   const windowEnds = task.verdictAt ? new Date(task.verdictAt.getTime() + POLICY.objectionWindowMs) : null;
 
   switch (task.status) {
     case "open":
+      if (needsBadge) {
+        return (
+          <div className="flex flex-col gap-3">
+            <p className="text-sm text-muted-foreground">
+              This task needs the Verified by Concordium badge: add Concordium ID on My account to prove what it asks for ({task.requiredAttributes.map(attributeLabel).join(", ")}), then claim it.
+            </p>
+            <Link href="/me" className={buttonVariants({ className: "w-full" })}>
+              Add Concordium ID
+            </Link>
+          </div>
+        );
+      }
       return (
         <div className="flex flex-col gap-3">
           <p className="text-sm text-muted-foreground">
@@ -104,7 +125,12 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
     if (error instanceof DeskError && error.code === "not_found") notFound();
     throw error;
   }
-  const [submission, verdict] = await Promise.all([desk.getSubmission(worker, id), desk.getVerdict(worker, id)]);
+  const [submission, verdict, profile] = await Promise.all([
+    desk.getSubmission(worker, id),
+    desk.getVerdict(worker, id),
+    desk.getWorker(worker),
+  ]);
+  const needsBadge = task.requiredAttributes.length > 0 && !!profile && !profile.testMode && !profile.hasConcordium;
   const status = WORKER_STATUS[task.status];
 
   const verdictTitle =
@@ -119,7 +145,7 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
         </div>
         <TaskProgress status={task.status} />
         <div className="border-t pt-5">
-          <NextStep task={task} worker={worker} />
+          <NextStep task={task} worker={worker} needsBadge={needsBadge} />
         </div>
       </aside>
 
@@ -128,6 +154,11 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
           <div className="flex flex-wrap items-center gap-2">
             {task.test && <Badge className="bg-primary-soft text-primary-soft-foreground">Test task · test money only</Badge>}
             {task.reviewMode === "requester" && <Badge variant="outline">Reviewed by the requester</Badge>}
+            {task.requiredAttributes.length > 0 && (
+              <Badge variant="outline" className="gap-1">
+                <ShieldCheck className="size-3.5 text-primary" /> Needs Verified by Concordium
+              </Badge>
+            )}
             {task.requiredAttributes.map((a) => (
               <Badge key={a.attribute} variant="outline">
                 {attributeLabel(a)}

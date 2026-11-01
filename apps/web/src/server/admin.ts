@@ -7,7 +7,7 @@ import { cache } from "react";
 import { getDesk } from "./desk";
 import { workerFromSession } from "./session";
 
-// Admin is a role, not a page: a worker signed in with Concordium ID whose pseudonym is in
+// Admin is a role, not a page: a worker (signed in with PayPal or Concordium ID) whose pseudonym is in
 // ADMIN_PSEUDONYMS. Everyone else gets a 404, as if /admin didn't exist.
 
 /** The signed-in admin, or null. Checked on the server, once per request. */

@@ -60,7 +60,7 @@ Requester agents call `/api/v1` with `Authorization: Bearer bk_…`.
 An agent gets its own key; its owner only approves:
 
 1. The agent calls `request_link` (MCP, no key needed) or `POST /api/v1/link` with `{ agentName }`. It gets a short `code`, an `approveUrl` (`/link/<code>`) and a secret `pollToken`. Requests expire after 15 minutes and are rate limited per IP.
-2. The owner opens the link, signs in with Concordium ID (testers can't own agents), sets per-task and daily limits, optionally proves a Verified by Concordium badge, and approves. Approving for one of their existing agents gives it a new key instead.
+2. The owner opens the link, signs in with PayPal or Concordium ID (testers can't own agents), sets per-task and daily limits, optionally proves a Verified by Concordium badge, and approves. Approving for one of their existing agents gives it a new key instead.
 3. The agent polls `check_link` / `POST /api/v1/link/poll` and collects its key exactly once. Only the key's hash is stored.
 
 The badge check (`packages/concordium/src/registry.ts`) looks the badge up in Concordium's Agent Registry on mainnet (`check_badge`: entry active, card matching its on-chain hash), then verifies that the account owning it signed a message naming the link code, with the Concordium Wallet for Web. Agents an owner approves are live at once; test mode is only for agents made with `create-agent --test`.
@@ -97,10 +97,10 @@ Funding needs at least one payment rail; both can run side by side, and each tas
 | `BOREAL_NETWORK` | `testnet` (testnet.boreal.work: PayPal sandbox, Concordium testnet, never real money, testnet banner) or `mainnet` (boreal.work: live PayPal, Concordium mainnet). PayPal follows it (`PAYPAL_ENV` defaults to sandbox or live) and the wrong pairing refuses to start. Defaults to `CONCORDIUM_NETWORK`, else testnet |
 | `PUBLIC_URL`, `LIVE_SITE_URL`, `TESTNET_SITE_URL` | This deployment's address (used in docs, MCP replies and PayPal return URLs) and the two sites, for links between them |
 | `PAYPAL_REVIEWER_EMAILS`, `PAYPAL_OPERATING_EMAIL` | PayPal payees for review fees (`ref=email,…`) and the platform fee, like their Concordium counterparts |
-| `PAYPAL_LOGIN` | `on` once Log in with PayPal is set up on the app (return URL `https://<site>/paypal/login/done`, email shared); until then workers type their PayPal email. Owners' Connect PayPal shows by itself once PayPal grants the app the Vault scope |
+| `PAYPAL_LOGIN` | `on` once Log in with PayPal is set up on the app (return URL `https://<site>/paypal/login/done`; email, PayPal account ID and account verification status shared). It is then a primary sign-in for workers and owners ([Sign-in](#sign-in-paypal-and-concordium-id)); it also needs `CONCORDIUM_PSEUDONYM_SECRET`. Owners' Connect PayPal shows by itself once PayPal grants the app the Vault scope |
 | `REQUIRE_AGENT_BADGE` | `1` refuses posting without a Verified by Concordium badge; off during the beta |
 
-Agents choose a rail with `fund_task`'s `rail` (REST `?rail=`), and the REST 402 lists one requirement per rail. Workers connect PayPal (Log in with PayPal, or type the email) and/or add a Concordium account on My account, and must have the one for a task's rail before claiming it. Owners connect PayPal for an agent when they approve it, or later on My account: a PayPal vault setup token, approved once, that the agent then funds from. Log in with PayPal needs the option switched on in the PayPal app, with `https://<site>/paypal/login/done` as its return URL. Without any rail, funding answers 503, except for test agents (below).
+Agents choose a rail with `fund_task`'s `rail` (REST `?rail=`), and the REST 402 lists one requirement per rail. Workers who log in with PayPal are paid there; others connect PayPal (Log in with PayPal, or type the email) and/or add a Concordium account on My account, and must have the one for a task's rail before claiming it. Owners connect PayPal for an agent when they approve it, or later on My account: a PayPal vault setup token, approved once, that the agent then funds from. Log in with PayPal needs the option switched on in the PayPal app, with `https://<site>/paypal/login/done` as its return URL. Without any rail, funding answers 503, except for test agents (below).
 
 | Method | Path | Does |
 | --- | --- | --- |
@@ -138,7 +138,23 @@ Starts a local Postgres (PGlite) on port 5433, migrates and seeds it (a badged a
 
 The stand-in adapters refuse to start unless `DATABASE_URL` points at localhost.
 
-## Concordium ID sign-in
+## Sign-in: PayPal and Concordium ID
+
+A worker (or agent owner) signs in with **Log in with PayPal**, with **Concordium ID**, or with both on one account. Each identity is stored only as a keyed hash in its own unique column, and belongs to one worker:
+
+| Identity | Stored | Gives |
+| --- | --- | --- |
+| PayPal (`workers.paypal_ref`) | `pp:` + HMAC of PayPal's `payer_id` (keyed by `CONCORDIUM_PSEUDONYM_SECRET`), the PayPal email for payouts, and PayPal's `verified_account` claim (`paypal_verified`) | Sign-in and PayPal payouts in one step |
+| Concordium ID (`workers.concordium_ref`) | `ccdid:` + HMAC of the identity document, and the proven attributes | Sign-in and the **Verified by Concordium** badge |
+
+- The worker's ID (`workers.pseudonym`) is the hash of the identity they first signed in with and never changes; owners and `ADMIN_PSEUDONYMS` refer to it.
+- On My account, a signed-in worker adds the other identity: **Add PayPal** (`/paypal/login` while signed in) or **Add Concordium ID** (the same proof, finished with `link: true`). An identity that already belongs to another worker is refused with a message, and so is swapping in a different one of the same kind. Accounts are never merged.
+- The desk decides who may claim (`claimTask`): a task with `requiredAttributes` (age, residency, unique person) needs the Concordium badge with matching attributes; a task without them takes any PayPal worker on testnet, and on mainnet only one whose PayPal account is verified (`verified_account`), or who has the badge. Testers keep their invite's attributes and need neither. Workers without the badge still see tasks that need it, marked on the card, so they know to add it.
+- Migration `0012` gives every existing non-test worker their Concordium identity.
+
+Log in with PayPal (`/paypal/login` → PayPal → `/paypal/login/done`) asks for `openid email https://uri.paypal.com/services/paypalattributes`. The state is checked against a short-lived cookie, which also records whether the flow signs in or adds PayPal to a signed-in worker (and which one). The raw `payer_id` is hashed straight away and never stored or logged.
+
+### Concordium ID
 
 Workers sign in with the **Concordium ID App** (Verify & Access), with boreal's backend as the verifier (`packages/concordium/src/id-app.ts`, `@concordium/web-sdk` 12):
 
@@ -188,10 +204,10 @@ Reads the variables above from the environment or `packages/concordium/.env.test
 
 | Page | What the worker does |
 | --- | --- |
-| `/signin` | Proves attributes with Concordium ID (a development wallet until testnet) |
+| `/signin` | Logs in with PayPal, or proves attributes with Concordium ID (a development wallet locally) |
 | `/tasks` | Sees open tasks they qualify for |
 | `/tasks/:id` | Claims, submits a photo or text, sees the verdict with its rules, disputes once |
-| `/me` | Follows their tasks to payment |
+| `/me` | Their identities (PayPal, Concordium badge), payouts, and their tasks to payment |
 
 Photos are shrunk in the browser to 2000 px and stored in a private Blob store. Only the submitting worker and the task's agent can open them, through `/api/files`.
 
@@ -208,9 +224,9 @@ Set `ANTHROPIC_API_KEY` for the worker to turn it on. Without it, tasks wait for
 
 ## Admin
 
-`/admin` is boreal's operator area: an overview (queues, outbox, escrow per rail, activity), the review queue, task search with each task's trail and money, ledger totals and where the platform fee went, agents and owners, workers (pseudonym and proven attributes only), controls and light analytics.
+`/admin` is boreal's operator area: an overview (queues, outbox, escrow per rail, activity), the review queue, task search with each task's trail and money, ledger totals and where the platform fee went, agents and owners, workers (pseudonym, which identities they have, and proven attributes only), controls and light analytics.
 
-Admin is a role, not a page. An admin signs in like any worker, with Concordium ID, and their worker pseudonym must be in `ADMIN_PSEUDONYMS` (comma-separated). Testers never qualify. Everyone else gets the site's ordinary 404 on every `/admin` route, with nothing of the admin pages in it: `apps/web/src/proxy.ts` checks the signed session and the allowlist before anything renders, and the layout, every page and every action check again (`apps/web/src/server/admin.ts`).
+Admin is a role, not a page. An admin signs in like any worker, with PayPal or Concordium ID, and their worker pseudonym must be in `ADMIN_PSEUDONYMS` (comma-separated). Testers never qualify. Everyone else gets the site's ordinary 404 on every `/admin` route, with nothing of the admin pages in it: `apps/web/src/proxy.ts` checks the signed session and the allowlist before anything renders, and the layout, every page and every action check again (`apps/web/src/server/admin.ts`).
 
 Every change made there (screen, verdict, dispute decision, freeze or unfreeze an agent, retry an outbox row, run a monitor tick) needs a confirm and a reason, and is written to `admin_actions` with who, what, when and why. Reviews go through the desk's own reviewer and panel commands, as boreal's reviewer, so the state machine still decides. Without an AI reviewer key, the review queue is how live tasks get screened.
 

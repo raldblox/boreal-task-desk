@@ -44,7 +44,8 @@ The money is held on the payer's PayPal account until the task is final, so an a
   - MCP `fund_task` and `POST /api/v1/tasks/:id/fund` fund in one call when the agent has a saved account. If PayPal refuses it (the payer removed boreal in their PayPal settings), they fall back to a fresh approval link, whose approval saves a new vault id. `get_account` reports `savedPaymentMethod`.
   - Owners can also connect PayPal without a purchase: **Connect PayPal** on the link approval page and on My account (`/paypal/save/:agentId` → PayPal → `/paypal/saved`) creates a vault setup token (`POST /v3/vault/setup-tokens`), and after approval exchanges it for a payment token (`POST /v3/vault/payment-tokens`) whose id is saved as the agent's vault id. A cookie ties the return to the request, and ownership is checked both ways.
   - `PAYPAL_VAULT=off` turns vaulting off, for PayPal apps without the Vault option.
-- **Worker payouts:** workers connect with Log in with PayPal (`/paypal/login` → PayPal → `/paypal/login/done`, scopes `openid email`, state checked against a cookie); the primary email from userinfo becomes their PayPal payout. Typing the email stays as a fallback. Needs Log in with PayPal on the app, with `https://<site>/paypal/login/done` as a return URL.
+- **Log in with PayPal is a primary sign-in** (`/paypal/login` → PayPal → `/paypal/login/done`, scopes `openid email https://uri.paypal.com/services/paypalattributes`, state checked against a cookie). Signed out, it signs the worker in or creates them, keyed by `pp:` + an HMAC of PayPal's `payer_id` (the id itself is never stored); signed in, it adds PayPal to their account. Either way the primary email from userinfo becomes their PayPal payout in the same step, and PayPal's `verified_account` claim is recorded. On mainnet a worker without Concordium ID needs a verified PayPal account to claim; tasks with required attributes need the Verified by Concordium badge. Typing the email stays as a fallback for Concordium-only workers. See the README's "Sign-in" section.
+- **Owners** can sign in with PayPal to approve an agent at `/link/<code>`; the agent badge stays optional.
 - **Monitor**: drains the outbox whenever a payment rail is configured, so PayPal works without Concordium payments. Anchors wait if no anchor adapter is set.
 - **Tests**:
   - `packages/paypal/src/payments.test.ts` covers the adapter against an in-memory PayPal (`fake-paypal.ts`).
@@ -73,7 +74,7 @@ The money is held on the payer's PayPal account until the task is final, so an a
 
    With `-- --card` it pays with PayPal's sandbox test card instead of the approval page. This needs card processing, which sandbox business accounts normally have.
 
-4. To use the whole app locally on PayPal, run `pnpm dev:local`. It reads `.env.paypal`, and the seeded tasks wait for PayPal funding. An agent with the key in `.local/agent-key.txt` calls `fund_task` over MCP and gets the approval link. A worker signs in, sets a sandbox email on `/me`, and does the task.
+4. To use the whole app locally on PayPal, run `pnpm dev:local`. It reads `.env.paypal`, and the seeded tasks wait for PayPal funding. An agent with the key in `.local/agent-key.txt` calls `fund_task` over MCP and gets the approval link. A worker signs in, sets a sandbox email on `/me`, and does the task. With `PAYPAL_LOGIN=on` in `.env.paypal` (and `http://localhost:3000/paypal/login/done` among the sandbox app's return URLs), workers log in with a sandbox Personal account instead, and add Concordium ID with the development wallet on `/me`.
 
 5. Webhooks need a public URL. On a deployed preview, add a sandbox webhook for `https://<host>/api/paypal/webhook` with the `PAYMENT.PAYOUTS-ITEM.*` events and set `PAYPAL_WEBHOOK_ID`. Locally, the loop script reads the payout batch instead and applies the same update.
 
@@ -83,7 +84,17 @@ PayPal follows `BOREAL_NETWORK`: the sandbox on testnet (testnet.boreal.work), l
 
 boreal's MCP server (`/api/mcp`) is the agent's side of the desk: `post_task`, `fund_task`, `get_task`, `accept_result` and the rest. It runs alongside PayPal's own MCP server or Agent Toolkit, which an agent uses for its other PayPal work. Funding needs the owner to approve a PayPal checkout once. The approval link, the "held, not charged" wording and what the owner is agreeing to (later tasks funded without asking, up to the agent's per-task and daily limits) come back in `fund_task`'s answer, ready to send. After that, `fund_task` pays in one call.
 
+## Log in with PayPal settings, per site
+
+In the PayPal developer dashboard, under the app's **Log in with PayPal** options:
+
+- Return URL: `https://testnet.boreal.work/paypal/login/done` on the sandbox app, `https://boreal.work/paypal/login/done` on the live app (plus `http://localhost:3000/paypal/login/done` on the sandbox app for local runs).
+- Information requested: **Email**, **PayPal account ID (payer ID)** and **Account verification status**, matching the scopes above. Without the payer ID, sign-in is refused.
+- Then set `PAYPAL_LOGIN=on` on that site. `CONCORDIUM_PSEUDONYM_SECRET` (already set on both sites) keys the PayPal hash too.
+
 ## Known limits and next steps
+
+- **Workers who connected PayPal for payouts before Log in with PayPal became a sign-in** have only a payout email, not a PayPal identity (the old flow kept no `payer_id`). Logging in with PayPal while signed out makes them a new account; they should sign in with Concordium ID and use **Add PayPal** on My account instead.
 
 - **Vaulting, not yet checked on the sandbox.** The request and response fields follow PayPal's save-with-purchase guide. The AUTHORIZE-with-`vault_id` answer isn't documented, so both possible shapes are handled. PayPal's guide also mentions risk data (FraudNet) for payer-initiated vaulted payments. These are merchant-initiated within limits the owner set, so none is sent. Check all of this on the sandbox.
 - **No "forget my PayPal" button yet.** An owner can remove boreal from their PayPal account's automatic payments today, and the next funding then asks for approval again. A boreal-side control on the owner page (and deleting the vault token through PayPal's Payment Method Tokens API) is next.

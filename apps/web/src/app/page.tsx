@@ -10,7 +10,7 @@ const steps = [
   {
     icon: Fingerprint,
     title: "Prove only what's needed",
-    body: "Sign in with Concordium ID. A task might need you to be 18 or live in the Philippines; you prove just that. We never see your name or documents.",
+    body: "Sign in with PayPal. When a task needs you to be 18 or live in the Philippines, add Concordium ID and prove just that. We never see your name or documents.",
   },
   {
     icon: Camera,
@@ -169,7 +169,7 @@ export default function Home() {
       <section className="mx-auto flex w-full max-w-5xl flex-col items-start gap-5 px-4 py-16 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-2xl font-semibold tracking-tight">Ready to take your first task?</h2>
-          <p className="text-muted-foreground">Sign in with Concordium ID and see what&apos;s open near you.</p>
+          <p className="text-muted-foreground">Log in with PayPal and see what&apos;s open near you.</p>
         </div>
         <Link href="/signin" className={buttonVariants({ size: "lg", className: "h-11 px-5 text-base" })}>
           Sign in to work

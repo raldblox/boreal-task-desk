@@ -24,6 +24,7 @@ import {
   isNull,
   ledgerEntries,
   lte,
+  ne,
   or,
   owners,
   submissions,
@@ -67,7 +68,27 @@ export interface DeskOptions {
   rails?: PaymentRails;
   /** Refuse posting without a Verified by Concordium badge. Off during the beta. */
   requireBadge?: boolean;
+  /**
+   * Workers without Concordium ID claim only with a PayPal account PayPal has verified
+   * (`verified_account`). On for live money (mainnet); the sandbox's accounts are all test ones.
+   */
+  requireVerifiedPayPal?: boolean;
 }
+
+/** A PayPal identity read from Log in with PayPal; `ref` is the keyed hash of the payer_id. */
+export interface PayPalIdentity {
+  ref: string;
+  email: string;
+  verified: boolean;
+}
+
+/** A Concordium ID identity read from a verified proof. */
+export interface ConcordiumIdentity {
+  pseudonym: string;
+  provenAttributes: Record<string, string>;
+}
+
+const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 /**
  * A payment that has settled, one to settle once the task's checks pass, or `{ vault: true }`
@@ -123,6 +144,7 @@ export function createDesk({
   payments = concordium?.payments ?? null,
   rails = {},
   requireBadge = false,
+  requireVerifiedPayPal = false,
 }: DeskOptions) {
   // The rail a task funds on when none is named: the default rail's name.
   const defaultRail: PaymentRail | null = payments
@@ -205,6 +227,84 @@ export function createDesk({
       .innerJoin(owners, eq(owners.id, agents.ownerId))
       .where(eq(owners.verifiedRef, pseudonym));
     return new Set(rows.map((r) => r.id));
+  }
+
+  async function verifyProof(request: ProofRequest, presentation: unknown): Promise<ConcordiumIdentity> {
+    try {
+      return await requireConcordium().identity.verifyPresentation(request, presentation);
+    } catch (error) {
+      if (error instanceof DeskError) throw error;
+      throw new DeskError("forbidden", error instanceof Error ? error.message : "proof was not accepted");
+    }
+  }
+
+  /** One worker per Concordium identity; its proven attributes are refreshed from the latest proof. */
+  async function signInConcordium(verified: ConcordiumIdentity, payoutAddress?: string) {
+    const at = now();
+    const [worker] = await db
+      .insert(workers)
+      .values({
+        pseudonym: verified.pseudonym,
+        concordiumRef: verified.pseudonym,
+        provenAttributes: verified.provenAttributes,
+        payoutAddress: payoutAddress ?? null,
+        createdAt: at,
+        updatedAt: at,
+      })
+      .onConflictDoUpdate({
+        target: workers.concordiumRef,
+        set: {
+          provenAttributes: verified.provenAttributes,
+          ...(payoutAddress ? { payoutAddress } : {}),
+          updatedAt: at,
+        },
+      })
+      .returning();
+    return worker!;
+  }
+
+  function checkPayPalIdentity(identity: PayPalIdentity) {
+    if (!/^pp:[0-9a-f]{64}$/.test(identity.ref)) throw new DeskError("invalid", "that PayPal identity isn't a keyed hash");
+    if (!EMAIL.test(identity.email) || identity.email.length > 254) throw new DeskError("invalid", "PayPal didn't share a usable email");
+  }
+
+  /**
+   * Adds an identity to a worker. Each identity belongs to one worker, and accounts are never
+   * merged: one already used by someone else is refused, and so is replacing a different one.
+   */
+  async function linkIdentity(
+    workerId: string,
+    kind: "paypal" | "concordium",
+    ref: string,
+    set: Partial<typeof workers.$inferInsert>,
+  ) {
+    const name = kind === "paypal" ? "PayPal account" : "Concordium ID";
+    const column = kind === "paypal" ? workers.paypalRef : workers.concordiumRef;
+    return db.transaction(async (tx) => {
+      const [worker] = await tx.select().from(workers).where(eq(workers.id, workerId)).for("update");
+      if (!worker) throw new DeskError("not_found", "sign in again");
+      if (worker.testMode) throw new DeskError("forbidden", "tester accounts can't add a PayPal account or Concordium ID");
+      const current = kind === "paypal" ? worker.paypalRef : worker.concordiumRef;
+      if (current && current !== ref) {
+        throw new DeskError("conflict", `your account already has a different ${name}; boreal never swaps one for another`);
+      }
+      const [other] = await tx
+        .select({ id: workers.id })
+        .from(workers)
+        .where(and(or(eq(column, ref), eq(workers.pseudonym, ref)), ne(workers.id, workerId)));
+      if (other) {
+        throw new DeskError(
+          "conflict",
+          `this ${name} already belongs to another boreal account. Sign out and sign in with it to use that account; boreal never merges accounts`,
+        );
+      }
+      const [updated] = await tx
+        .update(workers)
+        .set({ ...set, updatedAt: now() })
+        .where(eq(workers.id, workerId))
+        .returning();
+      return updated!;
+    });
   }
 
   function requireRole<R extends Caller["role"]>(
@@ -377,6 +477,15 @@ export function createDesk({
           if (task.test !== worker.testMode && !(task.test && (await ownedAgentIds(worker.pseudonym, tx)).has(task.agentId))) {
             throw new DeskError("forbidden", task.test ? "this is a test task" : "test workers can only claim test tasks");
           }
+          // Testers keep their invite's attributes; everyone else proves them with Concordium ID.
+          if (!worker.testMode && !worker.concordiumRef) {
+            if (task.requiredAttributes.length > 0) {
+              throw new DeskError("forbidden", "this task needs the Verified by Concordium badge: add Concordium ID on My account");
+            }
+            if (requireVerifiedPayPal && !worker.paypalVerified) {
+              throw new DeskError("forbidden", "verify your PayPal account with PayPal, or add Concordium ID on My account, before claiming tasks");
+            }
+          }
           if (!meetsAttributes(task.requiredAttributes, worker.provenAttributes)) {
             throw new DeskError("forbidden", "you haven't proven the attributes this task requires");
           }
@@ -532,33 +641,8 @@ export function createDesk({
      * worker, and its proven attributes are refreshed from the latest proof.
      */
     async signInWorker(request: ProofRequest, presentation: unknown, payoutAddress?: string) {
-      let verified;
-      try {
-        verified = await requireConcordium().identity.verifyPresentation(request, presentation);
-      } catch (error) {
-        if (error instanceof DeskError) throw error;
-        throw new DeskError("forbidden", error instanceof Error ? error.message : "proof was not accepted");
-      }
-      const at = now();
-      const [worker] = await db
-        .insert(workers)
-        .values({
-          pseudonym: verified.pseudonym,
-          provenAttributes: verified.provenAttributes,
-          payoutAddress: payoutAddress ?? null,
-          createdAt: at,
-          updatedAt: at,
-        })
-        .onConflictDoUpdate({
-          target: workers.pseudonym,
-          set: {
-            provenAttributes: verified.provenAttributes,
-            ...(payoutAddress ? { payoutAddress } : {}),
-            updatedAt: at,
-          },
-        })
-        .returning();
-      return worker!;
+      const verified = await verifyProof(request, presentation);
+      return signInConcordium(verified, payoutAddress);
     },
 
     /** Tasks waiting on the AI reviewer: posted ones to screen, submitted ones to review. */
@@ -663,15 +747,61 @@ export function createDesk({
       return row;
     },
 
-    /** Signs in a worker whose Concordium proof has been verified; one worker per account credential. */
-    async signInVerifiedWorker(verified: { pseudonym: string; provenAttributes: Record<string, string> }) {
+    /** Signs in a worker whose Concordium proof has been verified; one worker per Concordium identity. */
+    async signInVerifiedWorker(verified: ConcordiumIdentity) {
+      return signInConcordium(verified);
+    },
+
+    /**
+     * Log in with PayPal: one worker per PayPal account. A new worker's ID is the PayPal hash,
+     * and their payout goes to the PayPal email in the same step.
+     */
+    async signInWithPayPal(identity: PayPalIdentity) {
+      checkPayPalIdentity(identity);
       const at = now();
       const [worker] = await db
         .insert(workers)
-        .values({ pseudonym: verified.pseudonym, provenAttributes: verified.provenAttributes, createdAt: at, updatedAt: at })
-        .onConflictDoUpdate({ target: workers.pseudonym, set: { provenAttributes: verified.provenAttributes, updatedAt: at } })
+        .values({
+          pseudonym: identity.ref,
+          paypalRef: identity.ref,
+          paypalEmail: identity.email,
+          paypalVerified: identity.verified,
+          provenAttributes: {},
+          createdAt: at,
+          updatedAt: at,
+        })
+        .onConflictDoUpdate({
+          target: workers.paypalRef,
+          set: { paypalEmail: identity.email, paypalVerified: identity.verified, updatedAt: at },
+        })
         .returning();
       return worker!;
+    },
+
+    /** Adds PayPal to the signed-in worker: their sign-in, payout email and verified status. */
+    async linkPayPal(caller: Caller, identity: PayPalIdentity) {
+      requireRole(caller, "worker");
+      checkPayPalIdentity(identity);
+      return linkIdentity(caller.workerId, "paypal", identity.ref, {
+        paypalRef: identity.ref,
+        paypalEmail: identity.email,
+        paypalVerified: identity.verified,
+      });
+    },
+
+    /** Adds Concordium ID to the signed-in worker (development wallet): the badge and proven attributes. */
+    async linkConcordium(caller: Caller, request: ProofRequest, presentation: unknown) {
+      requireRole(caller, "worker");
+      return this.linkVerifiedConcordium(caller, await verifyProof(request, presentation));
+    },
+
+    /** Adds a verified Concordium ID to the signed-in worker: the badge and proven attributes. */
+    async linkVerifiedConcordium(caller: Caller, verified: ConcordiumIdentity) {
+      requireRole(caller, "worker");
+      return linkIdentity(caller.workerId, "concordium", verified.pseudonym, {
+        concordiumRef: verified.pseudonym,
+        provenAttributes: verified.provenAttributes,
+      });
     },
 
     /** Sends due anchors, payouts, refunds, captures and releases. Run by the monitor loop. */
@@ -709,7 +839,7 @@ export function createDesk({
     /** An owner moves one of their agents between test money and real (testnet or sandbox) money. */
     async setAgentTestMode(workerId: string, agentId: string, testMode: boolean) {
       const [worker] = await db.select().from(workers).where(eq(workers.id, workerId));
-      if (!worker || worker.testMode) throw new DeskError("forbidden", "sign in with Concordium ID to manage agents");
+      if (!worker || worker.testMode) throw new DeskError("forbidden", "tester accounts can't manage agents");
       const mine = await ownedAgentIds(worker.pseudonym);
       if (!mine.has(agentId)) throw new DeskError("forbidden", "that agent isn't yours");
       await db.update(agents).set({ testMode, updatedAt: now() }).where(eq(agents.id, agentId));
@@ -737,6 +867,10 @@ export function createDesk({
           testMode: workers.testMode,
           payoutAddress: workers.payoutAddress,
           paypalEmail: workers.paypalEmail,
+          // Which identities sign this worker in; the hashes themselves stay in the database.
+          hasPayPal: sql<boolean>`${workers.paypalRef} is not null`,
+          paypalVerified: workers.paypalVerified,
+          hasConcordium: sql<boolean>`${workers.concordiumRef} is not null`,
           createdAt: workers.createdAt,
         })
         .from(workers)
@@ -744,7 +878,10 @@ export function createDesk({
       return worker ?? null;
     },
 
-    /** Open tasks this worker has proven the attributes for, newest first. */
+    /**
+     * Open tasks this worker has proven the attributes for, newest first. Without Concordium ID
+     * a worker also sees tasks that need it (marked on the card), so they know to add it.
+     */
     async browseOpenTasks(caller: Caller) {
       requireRole(caller, "worker");
       const [worker] = await db.select().from(workers).where(eq(workers.id, caller.workerId));
@@ -759,7 +896,7 @@ export function createDesk({
       return open.filter(
         (task) =>
           (task.test === worker.testMode || (task.test && mine.has(task.agentId))) &&
-          meetsAttributes(task.requiredAttributes, worker.provenAttributes),
+          (meetsAttributes(task.requiredAttributes, worker.provenAttributes) || (!worker.testMode && !worker.concordiumRef)),
       );
     },
 

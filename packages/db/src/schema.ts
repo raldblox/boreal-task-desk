@@ -110,11 +110,22 @@ export const agentLinks = pgTable(
   (t) => [index("agent_links_client_idx").on(t.clientHash, t.createdAt)],
 );
 
-/** Workers are known only by a pseudonym and the attributes they proved. */
+/**
+ * Workers are known only by a pseudonym and the attributes they proved. A worker signs in with
+ * PayPal and/or Concordium ID; each identity is a keyed hash, and each belongs to one worker.
+ */
 export const workers = pgTable("workers", {
   id: uuid("id").primaryKey().defaultRandom(),
+  /** The worker's ID: the hash of whichever identity they first signed in with. Never changes. */
   pseudonym: text("pseudonym").notNull().unique(),
+  /** Proven by Concordium ID (age, residency, …); empty until the worker adds Concordium ID. */
   provenAttributes: jsonb("proven_attributes").$type<Record<string, string>>().notNull(),
+  /** Concordium ID identity (`ccdid:<hmac>`): set means the Verified by Concordium badge. */
+  concordiumRef: text("concordium_ref").unique(),
+  /** PayPal identity: `pp:<hmac>` of the PayPal payer_id, which is never stored itself. */
+  paypalRef: text("paypal_ref").unique(),
+  /** PayPal's `verified_account` claim, from the worker's latest Log in with PayPal. */
+  paypalVerified: boolean("paypal_verified").notNull().default(false),
   maxActiveClaims: integer("max_active_claims").notNull().default(1),
   /** Concordium account that payouts go to. */
   payoutAddress: text("payout_address"),

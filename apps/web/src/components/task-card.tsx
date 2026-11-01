@@ -1,5 +1,5 @@
 import type { Task } from "@boreal/db";
-import { Camera, Clock, FileText, PenLine } from "lucide-react";
+import { Camera, Clock, FileText, PenLine, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +37,12 @@ export function TaskCard({ task, showStatus = false }: { task: Task; showStatus?
           {task.test && <Badge className="bg-primary-soft text-primary-soft-foreground">Test money</Badge>}
           {task.paymentRail === "paypal" && <Badge variant="outline">Paid via PayPal</Badge>}
           {task.paymentRail === "concordium" && <Badge variant="outline">Paid in tokens</Badge>}
+          {task.requiredAttributes.length > 0 && (
+            // Required attributes are proven with Concordium ID, so the task needs its badge.
+            <Badge variant="outline" className="gap-1">
+              <ShieldCheck className="size-3.5 text-primary" /> Needs Verified by Concordium
+            </Badge>
+          )}
           {task.requiredAttributes.map((a) => (
             <Badge key={a.attribute} variant="outline">
               {attributeLabel(a)}

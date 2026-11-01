@@ -56,6 +56,8 @@ const env = {
   CONCORDIUM_MODE: "dev",
   DEV_CONCORDIUM_SECRET: persistentSecret("dev-concordium-secret"),
   SESSION_SECRET: persistentSecret("session-secret"),
+  // Keys the PayPal identity hash for Log in with PayPal (PAYPAL_LOGIN=on in .env.paypal).
+  CONCORDIUM_PSEUDONYM_SECRET: persistentSecret("pseudonym-secret"),
   OPERATING_ACCOUNT_ADDRESS: "dev-acct-boreal",
   // On PayPal the AI reviewer's fee is paid out like any other; point it at a sandbox account.
   REVIEWER_ADDRESSES: paypal

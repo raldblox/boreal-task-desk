@@ -59,7 +59,7 @@ beforeEach(async () => {
   requester = { role: "requester", agentId };
   const [w] = await db
     .insert(workers)
-    .values({ pseudonym: "ccdid:worker-1", provenAttributes: { residency: "PH" }, paypalEmail: "w@example.com", payoutAddress: "acct-w" })
+    .values({ pseudonym: "ccdid:worker-1", concordiumRef: "ccdid:worker-1", provenAttributes: { residency: "PH" }, paypalEmail: "w@example.com", payoutAddress: "acct-w" })
     .returning();
   worker = { role: "worker", workerId: w!.id };
 });

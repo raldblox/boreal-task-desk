@@ -303,7 +303,7 @@ export function adminViews(db: Database, now: () => Date) {
       }));
     },
 
-    /** Workers as the desk knows them: pseudonym and proven attributes, plus their task record. */
+    /** Workers as the desk knows them: pseudonym, identities and proven attributes, plus their task record. */
     async adminWorkers() {
       const rows = await db
         .select({
@@ -312,6 +312,10 @@ export function adminViews(db: Database, now: () => Date) {
           provenAttributes: workers.provenAttributes,
           testMode: workers.testMode,
           maxActiveClaims: workers.maxActiveClaims,
+          // Which identities sign them in, never the hashes or anything behind them.
+          hasPayPal: sql<boolean>`${workers.paypalRef} is not null`,
+          paypalVerified: workers.paypalVerified,
+          hasConcordium: sql<boolean>`${workers.concordiumRef} is not null`,
           // Whether a payout destination is set, never what it is.
           paypalSet: isNotNull(workers.paypalEmail),
           concordiumSet: isNotNull(workers.payoutAddress),

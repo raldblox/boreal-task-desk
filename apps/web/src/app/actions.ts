@@ -48,7 +48,24 @@ export async function signIn(_prev: ActionState, form: FormData): Promise<Action
   redirect("/tasks");
 }
 
-/** Invite-only test sign-in while Concordium ID isn't live; test workers only see test tasks. */
+/** The development wallet adds Concordium ID to the signed-in worker: the badge and its attributes. */
+export async function linkConcordium(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const worker = await workerFromSession();
+  if (!worker) return { error: "Your session has ended. Sign in again." };
+  try {
+    const request = JSON.parse(String(form.get("request"))) as ProofRequest;
+    const attributes: Record<string, string> = {};
+    const country = String(form.get("country") ?? "");
+    if (country) attributes.residency = country;
+    if (form.get("adult") === "on") attributes.age_over_18 = "true";
+    await getDesk().linkConcordium(worker, request, { pseudonym: String(form.get("pseudonym") ?? "").trim(), attributes });
+  } catch (error) {
+    if (error instanceof DeskError) return { error: error.message };
+    console.error("[link concordium] failed", error);
+    return { error: "Couldn't add Concordium ID. Try again." };
+  }
+  redirect("/me?concordium=added");
+}
 
 export async function signOut(): Promise<void> {
   await endWorkerSession();

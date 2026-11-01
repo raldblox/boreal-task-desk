@@ -5,7 +5,7 @@ import { createPayPalAccounts, type PayPalAccounts } from "./accounts";
 import { createPayPalClient, PAYPAL_LIVE_URL, PAYPAL_SANDBOX_URL } from "./client";
 import { createPayPalPayments, type PayPalPayments } from "./payments";
 
-export { createPayPalAccounts, type PayPalAccounts } from "./accounts";
+export { createPayPalAccounts, LOGIN_SCOPES, type PayPalAccounts, type PayPalLogin, paypalPseudonym } from "./accounts";
 export { createPayPalClient, fromValue, PAYPAL_LIVE_URL, PAYPAL_SANDBOX_URL, type PayPalClient, PayPalError, toValue } from "./client";
 export { createPayPalPayments, PayPalPaymentError, type PayPalOrder, type PayPalPayments, type PayPalPaymentsOptions } from "./payments";
 export { type PayoutUpdate, payoutUpdateFrom, type PayPalWebhookEvent, verifyWebhook, WebhookVerificationError } from "./webhooks";

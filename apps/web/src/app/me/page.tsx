@@ -1,31 +1,56 @@
-import { BadgeCheck, Bot, CheckCircle2, Wallet } from "lucide-react";
+import { BadgeCheck, Bot, CheckCircle2, ShieldCheck, Wallet } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { Suspense } from "react";
 
-import { setPayoutAddress } from "@/app/actions";
+import { linkConcordium, setPayoutAddress } from "@/app/actions";
 import { Eyebrow } from "@/components/brand";
+import { ConcordiumSignIn } from "@/components/concordium-sign-in";
+import { ConcordiumWalletSignIn } from "@/components/concordium-wallet-sign-in";
 import { TaskCard } from "@/components/task-card";
-import { PayoutForm } from "@/components/worker-forms";
+import { DevWallet, PayoutForm } from "@/components/worker-forms";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { attributeLabel, usd, workerHandle } from "@/lib/format";
-import { getDesk, paymentRails } from "@/server/desk";
+import { NETWORK } from "@/content/agent-guide";
+import { getConcordium, getDesk, paymentRails } from "@/server/desk";
+import { getIdAppVerifier } from "@/server/id-app";
 import { kickMonitorSoon } from "@/server/monitor";
-import { paypalAccounts } from "@/server/paypal-accounts";
+import { paypalAccounts, paypalLoginEnabled } from "@/server/paypal-accounts";
 import { workerFromSession } from "@/server/session";
 
 const ACTIVE = new Set(["claimed", "submitted", "passed", "failed", "disputed"]);
 
-/** Who the desk knows you as: a pseudonym and what you proved, nothing more. */
+/** How a worker adds Concordium ID here: the ID App and Wallet for Web, or the development wallet locally. */
+async function AddConcordium() {
+  if (getIdAppVerifier()) {
+    const network = process.env.CONCORDIUM_NETWORK === "mainnet" ? "mainnet" : "testnet";
+    return (
+      <div className="flex flex-col gap-3">
+        <ConcordiumSignIn projectId={process.env.NEXT_PUBLIC_REOWN_PROJECT_ID!} network={network} next="/me?concordium=added" link />
+        <ConcordiumWalletSignIn next="/me?concordium=added" link />
+      </div>
+    );
+  }
+  if (getConcordium() && process.env.CONCORDIUM_MODE === "dev") {
+    const request = await getDesk().workerProofRequest([]);
+    return <DevWallet action={linkConcordium} request={JSON.stringify(request)} submitLabel="Add Concordium ID" />;
+  }
+  return <p className="text-sm text-muted-foreground">Adding Concordium ID opens soon.</p>;
+}
+
+/** Who the desk knows you as: a pseudonym, the identities that sign you in, and what you proved. */
 async function Identity() {
   const worker = await workerFromSession();
   if (!worker) redirect("/signin");
   const profile = await getDesk().getWorker(worker);
   if (!profile) redirect("/signin");
   const since = new Intl.DateTimeFormat("en-PH", { dateStyle: "medium", timeZone: "Asia/Manila" }).format(profile.createdAt);
+  const paypalLogin = paypalLoginEnabled();
+  // On live money, a worker with only PayPal claims once PayPal has verified their account.
+  const needsVerifiedPayPal = NETWORK === "mainnet" && !profile.hasConcordium && !profile.paypalVerified;
   return (
     <section className="flex flex-col gap-4 rounded-2xl border bg-card p-6">
       <div className="flex items-start gap-3">
@@ -33,26 +58,89 @@ async function Identity() {
           <BadgeCheck className="size-5" />
         </span>
         <div className="flex min-w-0 flex-col gap-1">
-          <p className="font-semibold">{profile.testMode ? "Tester" : "Verified with Concordium ID"}</p>
+          <p className="font-semibold">{profile.testMode ? "Tester" : "Your identities"}</p>
           <p className="text-sm text-muted-foreground">
             <span className="font-mono">{workerHandle(profile.pseudonym)}</span> · worker since {since}
           </p>
         </div>
       </div>
-      <div className="flex flex-wrap gap-2">
-        {Object.entries(profile.provenAttributes).map(([attribute, value]) => (
-          <Badge key={attribute} variant="outline">
-            {attributeLabel({ attribute, value })}
-          </Badge>
-        ))}
-      </div>
+
+      {profile.testMode ? (
+        <div className="flex flex-wrap gap-2">
+          {Object.entries(profile.provenAttributes).map(([attribute, value]) => (
+            <Badge key={attribute} variant="outline">
+              {attributeLabel({ attribute, value })}
+            </Badge>
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col divide-y rounded-xl border">
+          <div className="flex flex-wrap items-center gap-3 p-4">
+            <Wallet className="size-5 shrink-0 text-primary" />
+            <div className="min-w-0 flex-1">
+              <p className="font-medium">PayPal</p>
+              <p className="text-sm text-muted-foreground">
+                {profile.hasPayPal
+                  ? profile.paypalVerified
+                    ? "Signs you in. Verified by PayPal."
+                    : "Signs you in. PayPal hasn't verified this account."
+                  : "Sign in with PayPal and get paid there."}
+              </p>
+            </div>
+            {profile.hasPayPal ? (
+              <Badge variant="outline" className="gap-1">
+                <CheckCircle2 className="size-3.5 text-primary" /> Connected
+              </Badge>
+            ) : (
+              paypalLogin && (
+                // A route handler that redirects to PayPal, so a full navigation, not <Link>.
+                // eslint-disable-next-line @next/next/no-html-link-for-pages
+                <a href="/paypal/login" className={buttonVariants({ variant: "outline", size: "sm" })}>
+                  Add PayPal
+                </a>
+              )
+            )}
+          </div>
+          <div className="flex flex-col gap-3 p-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <ShieldCheck className="size-5 shrink-0 text-primary" />
+              <div className="min-w-0 flex-1">
+                <p className="font-medium">Concordium ID</p>
+                <p className="text-sm text-muted-foreground">
+                  {profile.hasConcordium
+                    ? "Signs you in, and proves what tasks ask for."
+                    : "Optional. Proves your age or country with a zero-knowledge proof, for tasks that need it."}
+                </p>
+              </div>
+              {profile.hasConcordium && <Badge>Verified by Concordium</Badge>}
+            </div>
+            {profile.hasConcordium ? (
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(profile.provenAttributes).map(([attribute, value]) => (
+                  <Badge key={attribute} variant="outline">
+                    {attributeLabel({ attribute, value })}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <AddConcordium />
+            )}
+          </div>
+        </div>
+      )}
+      {needsVerifiedPayPal && (
+        <Alert>
+          <AlertDescription>To claim tasks, verify your account with PayPal and log in again, or add Concordium ID.</AlertDescription>
+        </Alert>
+      )}
+
       <div className="flex flex-col gap-1">
         <p className="text-xs font-medium text-muted-foreground">Your worker ID</p>
         <code className="break-all rounded-lg bg-muted px-3 py-2 font-mono text-xs">{profile.pseudonym}</code>
         <p className="text-xs text-muted-foreground">
           {profile.testMode
             ? "Test workers see and do only test tasks."
-            : "A one-way code made from your ID document. It's the same every time you sign in, and it can't be turned back into who you are."}
+            : "A one-way code made from the identity you first signed in with. It never changes, and it can't be turned back into who you are. Each PayPal account and Concordium ID belongs to one boreal account, and accounts are never merged."}
         </p>
       </div>
     </section>
@@ -103,7 +191,7 @@ async function Payouts() {
   if (!profile || profile.testMode) return null;
   const rails = paymentRails();
   if (rails.length === 0) return null;
-  const paypalLogin = paypalAccounts()?.loginEnabled ?? false;
+  const paypalLogin = paypalLoginEnabled();
   return (
     <section className="flex flex-col gap-4 rounded-2xl border bg-card p-6">
       <div className="flex flex-col gap-1">
@@ -127,14 +215,12 @@ async function Payouts() {
                 <CheckCircle2 className="size-3.5 text-primary" /> Connected
               </Badge>
             )}
-            {paypalLogin && (
+            {/* Log in with PayPal sets the payout, and a worker has one PayPal account: no "Change". */}
+            {paypalLogin && !profile.hasPayPal && (
               // A route handler that redirects to PayPal, so a full navigation, not <Link>.
               // eslint-disable-next-line @next/next/no-html-link-for-pages
-              <a
-                href="/paypal/login"
-                className={buttonVariants({ variant: profile.paypalEmail ? "ghost" : "default", size: "sm" })}
-              >
-                {profile.paypalEmail ? "Change" : "Connect"}
+              <a href="/paypal/login" className={buttonVariants({ size: "sm" })}>
+                Connect
               </a>
             )}
           </div>
@@ -225,7 +311,10 @@ async function MyTasks() {
 
 const PAYPAL_NOTICES: Record<string, string> = {
   saved: "PayPal connected. Your agent now funds tasks from it without asking you each time.",
-  connected: "PayPal connected. Passed tasks on PayPal pay out to that account.",
+  connected: "PayPal connected. It signs you in, and passed tasks on PayPal pay out to it.",
+  taken:
+    "That PayPal account already belongs to another boreal account. Sign out and log in with PayPal to use it; boreal never merges accounts.",
+  different: "Your account already has a different PayPal account, and boreal never swaps one for another.",
   cancelled: "Nothing changed: you cancelled on PayPal.",
   failed: "PayPal didn't finish connecting. Try again.",
   unavailable:
@@ -234,8 +323,12 @@ const PAYPAL_NOTICES: Record<string, string> = {
   "not-yours": "That agent isn't yours.",
 };
 
-async function PayPalNotice({ searchParams }: { searchParams: Promise<{ paypal?: string }> }) {
-  const notice = PAYPAL_NOTICES[(await searchParams).paypal ?? ""];
+async function PayPalNotice({ searchParams }: { searchParams: Promise<{ paypal?: string; concordium?: string }> }) {
+  const params = await searchParams;
+  const notice =
+    params.concordium === "added"
+      ? "Concordium ID added. You carry the Verified by Concordium badge and can claim tasks that need what you proved."
+      : PAYPAL_NOTICES[params.paypal ?? ""];
   if (!notice) return null;
   return (
     <Alert>
@@ -244,7 +337,7 @@ async function PayPalNotice({ searchParams }: { searchParams: Promise<{ paypal?:
   );
 }
 
-export default function MyTasksPage({ searchParams }: { searchParams: Promise<{ paypal?: string }> }) {
+export default function MyTasksPage({ searchParams }: { searchParams: Promise<{ paypal?: string; concordium?: string }> }) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-4 py-10 md:py-14">
       <div className="flex flex-col gap-3">

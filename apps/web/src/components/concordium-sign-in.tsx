@@ -24,10 +24,13 @@ export function ConcordiumSignIn({
   projectId,
   network,
   next = "/tasks",
+  link = false,
 }: {
   projectId: string;
   network: "testnet" | "mainnet";
   next?: string;
+  /** Add the Concordium ID to the signed-in worker instead of signing in. */
+  link?: boolean;
 }) {
   const router = useRouter();
   const [status, setStatus] = useState<Status>("idle");
@@ -97,7 +100,7 @@ export function ConcordiumSignIn({
       } else if (type === "presentation_received") {
         setStatus("verifying");
         try {
-          await finishProof(requestId, data);
+          await finishProof(requestId, data, link);
         } catch (e) {
           return fail((e as Error).message);
         }
@@ -127,7 +130,7 @@ export function ConcordiumSignIn({
         size="lg"
         className="h-auto min-h-11 w-full whitespace-normal text-base"
       >
-        {LABEL[status]}
+        {link && status === "idle" ? "Add Concordium ID" : LABEL[status]}
       </Button>
       {status !== "idle" && status !== "verifying" && (
         <Button variant="ghost" onClick={() => cancel.current?.()} className="self-center text-muted-foreground">

@@ -44,11 +44,11 @@ export interface ApproveLinkInput {
 }
 
 export function linkCommands(db: Database, now: () => Date) {
-  /** The signed-in person approving, who must have verified with Concordium ID. */
+  /** The signed-in person approving: any real worker (PayPal or Concordium ID), never a tester. */
   async function ownerFor(workerId: string) {
     const [worker] = await db.select().from(workers).where(eq(workers.id, workerId));
     if (!worker) throw new DeskError("not_found", "sign in again");
-    if (worker.testMode) throw new DeskError("forbidden", "sign in with Concordium ID to own an agent; tester accounts can't");
+    if (worker.testMode) throw new DeskError("forbidden", "sign in with PayPal or Concordium ID to own an agent; tester accounts can't");
     const at = now();
     const [owner] = await db
       .insert(owners)

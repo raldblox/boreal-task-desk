@@ -41,7 +41,7 @@ const LABEL: Record<Status, string> = {
  * Sign-in with the Concordium Wallet for Web browser extension. It answers the same anchored
  * proof request as the ID App, so the server side and the worker's pseudonym are the same.
  */
-export function ConcordiumWalletSignIn({ next = "/tasks" }: { next?: string }) {
+export function ConcordiumWalletSignIn({ next = "/tasks", link = false }: { next?: string; link?: boolean }) {
   const router = useRouter();
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +59,7 @@ export function ConcordiumWalletSignIn({ next = "/tasks" }: { next?: string }) {
       const { id, request } = await startProof(connectionId);
       const presentation = await wallet.requestVerifiablePresentationV1(request);
       setStatus("verifying");
-      await finishProof(id, presentation);
+      await finishProof(id, presentation, link);
       router.push(next);
       router.refresh();
     } catch (e) {
