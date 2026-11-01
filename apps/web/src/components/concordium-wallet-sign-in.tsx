@@ -45,11 +45,12 @@ export async function oncePromptCloses<T>(ask: () => Promise<T>, timeoutMs = 400
   }
 }
 
-type Status = "idle" | "connecting" | "proving" | "verifying" | "missing";
+type Status = "idle" | "connecting" | "preparing" | "proving" | "verifying" | "missing";
 
 const LABEL: Record<Status, string> = {
   idle: "Use Concordium Wallet for Web",
   connecting: "Connect in the wallet…",
+  preparing: "Preparing the request…",
   proving: "Approve the proof in the wallet…",
   verifying: "Checking your proof…",
   missing: "Use Concordium Wallet for Web",
@@ -71,10 +72,11 @@ export function ConcordiumWalletSignIn({ next = "/tasks", link = false }: { next
     if (!wallet) return setStatus("missing");
     try {
       await oncePromptCloses(() => wallet.connect());
-      setStatus("proving");
+      setStatus("preparing");
       // The request's context names a connection; this one is the browser tab.
       const connectionId = Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
       const { id, request } = await startProof(connectionId);
+      setStatus("proving");
       const presentation = await oncePromptCloses(() => wallet.requestVerifiablePresentationV1(request));
       setStatus("verifying");
       await finishProof(id, presentation, link);
@@ -94,7 +96,7 @@ export function ConcordiumWalletSignIn({ next = "/tasks", link = false }: { next
     }
   }
 
-  const busy = status === "connecting" || status === "proving" || status === "verifying";
+  const busy = status === "connecting" || status === "preparing" || status === "proving" || status === "verifying";
   return (
     <div className="flex flex-col gap-3">
       <Button

@@ -118,6 +118,9 @@ export function createIdAppVerifier(config: IdAppConfig, grpc?: ConcordiumGRPCCl
       const request = await VerificationRequestV1.createAndAnchor(client, { sender, signer }, context, claims, {
         app: "boreal.work",
       });
+      // Wallets check the anchor before building a proof and refuse one that isn't finalized
+      // yet, so hand the request out only once it is (a few seconds on either network).
+      await client.waitForTransactionFinalization(request.transactionRef, 45_000);
       return { request: request.toJSON() };
     },
 
