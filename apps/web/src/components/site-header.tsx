@@ -73,7 +73,7 @@ export function SiteFooter() {
           <Link href="/agents" className="hover:text-foreground">
             For agents
           </Link>
-          <a href="/api/v1/health" className="hover:text-foreground">
+          <a href="/status" className="hover:text-foreground">
             Status
           </a>
         </nav>
