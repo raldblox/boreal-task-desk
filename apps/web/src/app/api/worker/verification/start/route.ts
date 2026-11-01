@@ -29,6 +29,13 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof DeskError) return Response.json({ error: error.code, message: error.message }, { status: 429 });
     console.error("[id-app] start failed", error);
+    // The anchor account pays a small CCD fee per sign-in; when it runs dry, say so plainly.
+    if (error instanceof Error && /enough funds/i.test(error.message)) {
+      return Response.json(
+        { error: "unfunded", message: "Sign-in is paused: boreal's Concordium account needs topping up with CCD. Try again later." },
+        { status: 503 },
+      );
+    }
     return Response.json({ error: "chain", message: "Couldn't reach Concordium. Try again." }, { status: 502 });
   }
 }
