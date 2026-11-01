@@ -112,7 +112,7 @@ const KEY = /^[0-9a-fA-F]{64}$/;
  * escrow account that doubles as the sponsor or anchor account: escrow never mixes with boreal's funds.
  */
 export function testnetConfigFromEnv(env: Record<string, string | undefined> = process.env): TestnetConfig {
-  if (env.CONCORDIUM_NETWORK && env.CONCORDIUM_NETWORK !== "testnet") {
+  if ((env.CONCORDIUM_NETWORK && env.CONCORDIUM_NETWORK !== "testnet") || env.BOREAL_NETWORK === "mainnet") {
     throw new TestnetConcordiumError("CONCORDIUM_MODE=testnet runs on testnet only; unset CONCORDIUM_NETWORK or set it to testnet");
   }
   const anchorAccount = env.CONCORDIUM_ANCHOR_ACCOUNT ?? "";

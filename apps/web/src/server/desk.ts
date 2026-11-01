@@ -21,6 +21,7 @@ import { after } from "next/server";
 
 import { getDb } from "./db";
 import { kickMonitor, kickMonitorSoon } from "./monitor";
+import { NETWORK } from "@/content/agent-guide";
 
 let desk: Desk | undefined;
 let concordium: Concordium | null | undefined;
@@ -88,7 +89,7 @@ export function pickRail(named: string | undefined, payment?: unknown): { rail: 
 
 /** True when the site runs on demo money: Concordium testnet tokens or the PayPal sandbox. */
 export function demoMoney(): boolean {
-  return process.env.CONCORDIUM_NETWORK !== "mainnet" || process.env.PAYPAL_SANDBOX_ON_PRODUCTION === "demo";
+  return NETWORK === "testnet";
 }
 
 export function getDesk(): Desk {

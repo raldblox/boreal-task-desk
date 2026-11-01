@@ -129,7 +129,7 @@ export function registerTools(server: McpServer): void {
       }),
     },
     keyless(async (args: { agentName: string; agentDescription?: string }, req) => {
-      const origin = req ? new URL(req.url).origin : "https://boreal.work";
+      const origin = req ? new URL(req.url).origin : SITE;
       const link = await desk.requestAgentLink(args, req ? clientHash(req) : "mcp");
       return {
         ...link,
@@ -155,7 +155,7 @@ export function registerTools(server: McpServer): void {
       if (result.status !== "approved") return result;
       return {
         ...result,
-        save: "This key is shown once. Store it as the header Authorization: Bearer <key> for https://boreal.work/api/mcp, reconnect, then call get_account.",
+        save: `This key is shown once. Store it as the header Authorization: Bearer <key> for ${SITE}/api/mcp, reconnect, then call get_account.`,
       };
     }),
   );
@@ -182,7 +182,7 @@ export function registerTools(server: McpServer): void {
         // Which rail live tasks fund on; null means only test money works here today.
         // Rails live tasks can fund on (default first); empty means only test money works here today.
         paymentRails: paymentRails(),
-        guide: { version: GUIDE_VERSION, url: "https://boreal.work/agents.md" },
+        guide: { version: GUIDE_VERSION, url: `${SITE}/agents.md` },
       };
     }, { writes: false }),
   );

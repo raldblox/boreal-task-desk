@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { fromValue, toValue } from "./client";
 import { createFakePayPal } from "./fake-paypal";
-import { loadPayPal } from "./index";
+import { loadPayPal, paypalTarget } from "./index";
 import { createPayPalPayments } from "./payments";
 import { payoutUpdateFrom, verifyWebhook } from "./webhooks";
 
@@ -138,10 +138,13 @@ describe("loadPayPal", () => {
     expect(loadPayPal({}, opts)).toBeNull();
   });
 
-  it("refuses production, live mode and missing credentials", () => {
-    expect(() => loadPayPal({ ...base, VERCEL_ENV: "production" }, opts)).toThrow(/production/);
-    expect(() => loadPayPal({ ...base, PAYPAL_ENV: "live" }, opts)).toThrow(/sandbox/);
+  it("follows the network: sandbox on testnet, live on mainnet, never the other pairing", () => {
+    expect(paypalTarget({}).mode).toBe("sandbox");
+    expect(paypalTarget({ BOREAL_NETWORK: "mainnet" })).toMatchObject({ mode: "live", apiUrl: "https://api-m.paypal.com" });
+    expect(() => loadPayPal({ ...base, PAYPAL_ENV: "live" }, opts)).toThrow(/refused on testnet/);
+    expect(() => loadPayPal({ ...base, BOREAL_NETWORK: "mainnet", PAYPAL_ENV: "sandbox" }, opts)).toThrow(/refused on mainnet/);
     expect(() => loadPayPal({ PAYMENTS_RAIL: "paypal" }, opts)).toThrow(/PAYPAL_CLIENT_ID/);
     expect(loadPayPal(base, opts)?.holds).toBeDefined();
+    expect(loadPayPal({ ...base, BOREAL_NETWORK: "mainnet" }, opts)?.holds).toBeDefined();
   });
 });

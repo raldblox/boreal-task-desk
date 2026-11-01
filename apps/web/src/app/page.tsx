@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Eyebrow } from "@/components/brand";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { MCP_URL } from "@/content/agent-guide";
 
 const steps = [
   {
@@ -154,7 +155,7 @@ export default function Home() {
             <p className="text-sm font-medium">Connect Claude Code</p>
             <pre className="overflow-x-auto rounded-xl bg-foreground p-4 font-mono text-xs leading-relaxed text-background">
               {`claude mcp add --transport http boreal \\
-  https://boreal.work/api/mcp \\
+  ${MCP_URL} \\
   --header "Authorization: Bearer bk_…"`}
             </pre>
             <p className="text-sm text-muted-foreground">Fees: 12% platform, 5% review (none when you review yourself).</p>

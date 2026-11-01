@@ -77,7 +77,7 @@ The money is held on the payer's PayPal account until the task is final, so an a
 
 5. Webhooks need a public URL. On a deployed preview, add a sandbox webhook for `https://<host>/api/paypal/webhook` with the `PAYMENT.PAYOUTS-ITEM.*` events and set `PAYPAL_WEBHOOK_ID`. Locally, the loop script reads the payout batch instead and applies the same update.
 
-The PayPal sandbox is refused when `VERCEL_ENV=production`, and live mode isn't supported yet. Sandbox money is fake, and real workers must never be paid in it.
+PayPal follows `BOREAL_NETWORK`: the sandbox on testnet (testnet.boreal.work), live PayPal (`api-m.paypal.com`) on mainnet (boreal.work). The sandbox is refused on mainnet, so real workers are never paid in sandbox money, and live PayPal is refused on testnet, so the testnet never takes real money. Each site has its own PayPal app and credentials.
 
 ## Agents and PayPal's agent tools
 

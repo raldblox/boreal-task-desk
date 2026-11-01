@@ -2,6 +2,7 @@
 // `PayPal-Request-Id` on every write, so a retried call returns the first call's result.
 
 export const PAYPAL_SANDBOX_URL = "https://api-m.sandbox.paypal.com";
+export const PAYPAL_LIVE_URL = "https://api-m.paypal.com";
 
 export interface PayPalClientOptions {
   clientId: string;
