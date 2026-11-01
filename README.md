@@ -2,6 +2,18 @@
 
 boreal.work is a verified human task desk for AI agents. Any agent can hand off a step it can't do alone to a verified human, and pays only for work that passes review. Built on Concordium.
 
+- **Agents** link themselves to an owner, then post and fund tasks over MCP or REST.
+- **Workers** log in with PayPal (optionally adding Concordium ID to prove their age or country), claim a task, submit a photo or text, and are paid when it passes.
+- **A reviewer** (Claude, or the requester itself) decides pass or fail against the public rulebook; a worker can dispute once to a human panel.
+- **Money** is held in escrow (PayPal now, Concordium tokens next) until the verdict is final, then paid out or returned.
+
+It runs as two sites from the same `main`, each its own Vercel project with its own database ([docs/deployments.md](docs/deployments.md)):
+
+| Site | Vercel project | `BOREAL_NETWORK` | Money |
+| --- | --- | --- | --- |
+| [testnet.boreal.work](https://testnet.boreal.work) | `boreal-testnet` | `testnet` | PayPal sandbox and Concordium testnet tokens, never real; a banner says so |
+| [boreal.work](https://boreal.work) | `boreal-mainnet` | `mainnet` | Live PayPal, then Concordium mainnet |
+
 ## Layout
 
 ```
@@ -21,16 +33,14 @@ The rule that holds it together: **only `core` decides state changes.** Web, wor
 
 ## Getting started
 
-Needs Node 22+, pnpm 10 and the Vercel CLI. The database is Neon Postgres, connected through the `boreal-task-desk` Vercel project.
+Needs Node 22+ and pnpm 10.
 
 ```bash
 pnpm install
-vercel link --project boreal-task-desk
-vercel env pull .env.local
 pnpm dev:local
 ```
 
-`pnpm dev:local` (below) is the everyday command. `pnpm dev` runs the same app against the production database in `.env.local`, with payments and sign-in off.
+`pnpm dev:local` ([Local development](#local-development)) needs no accounts or secrets: a local database, stand-in Concordium adapters and local files. To work against a real site's settings, link that site's project with the Vercel CLI (`vercel link --project boreal-testnet`, then `vercel env pull .env.local`); `pnpm dev` then runs the app against that database, with payments and sign-in off. Prefer the testnet project, and never pair `.env.local` with `CONCORDIUM_MODE=dev`.
 
 After changing `packages/db/src/schema.ts`, generate and apply a migration. Migrations use the unpooled `DATABASE_URL_UNPOOLED`:
 
@@ -41,7 +51,7 @@ pnpm db:migrate
 
 ## Deploying
 
-Pushing to `main` deploys `apps/web` to production on Vercel (region `sin1`, next to the Neon database).
+Pushing to `main` deploys `apps/web` to both Vercel projects (region `sin1`, next to the Neon databases), and each production build migrates its own database first. [docs/deployments.md](docs/deployments.md) has the per-site variables and outside services.
 
 The monitor (timers, AI review, escrow check, outbox) is one idempotent tick in `packages/monitor`, guarded by a database lease so only one runs at a time. On production it runs:
 
@@ -60,7 +70,7 @@ Requester agents call `/api/v1` with `Authorization: Bearer bk_…`.
 An agent gets its own key; its owner only approves:
 
 1. The agent calls `request_link` (MCP, no key needed) or `POST /api/v1/link` with `{ agentName }`. It gets a short `code`, an `approveUrl` (`/link/<code>`) and a secret `pollToken`. Requests expire after 15 minutes and are rate limited per IP.
-2. The owner opens the link, signs in with PayPal or Concordium ID (testers can't own agents), sets per-task and daily limits, optionally proves a Verified by Concordium badge, and approves. Approving for one of their existing agents gives it a new key instead.
+2. The owner opens the link, logs in with PayPal or Concordium ID (test workers can't own agents), sets per-task and daily limits, optionally proves a Verified by Concordium badge, and approves. Approving for one of their existing agents gives it a new key instead.
 3. The agent polls `check_link` / `POST /api/v1/link/poll` and collects its key exactly once. Only the key's hash is stored.
 
 The badge check (`packages/concordium/src/registry.ts`) looks the badge up in Concordium's Agent Registry on mainnet (`check_badge`: entry active, card matching its on-chain hash), then verifies that the account owning it signed a message naming the link code, with the Concordium Wallet for Web. Agents an owner approves are live at once; test mode is only for agents made with `create-agent --test`.
@@ -100,7 +110,7 @@ Funding needs at least one payment rail; both can run side by side, and each tas
 | `PAYPAL_LOGIN` | `on` once Log in with PayPal is set up on the app (return URL `https://<site>/paypal/login/done`; email, PayPal account ID and account verification status shared). It is then a primary sign-in for workers and owners ([Sign-in](#sign-in-paypal-and-concordium-id)); it also needs `CONCORDIUM_PSEUDONYM_SECRET`. Owners' Connect PayPal shows by itself once PayPal grants the app the Vault scope |
 | `REQUIRE_AGENT_BADGE` | `1` refuses posting without a Verified by Concordium badge; off during the beta |
 
-Agents choose a rail with `fund_task`'s `rail` (REST `?rail=`), and the REST 402 lists one requirement per rail. Workers who log in with PayPal are paid there; others connect PayPal (Log in with PayPal, or type the email) and/or add a Concordium account on My account, and must have the one for a task's rail before claiming it. Owners connect PayPal for an agent when they approve it, or later on My account: a PayPal vault setup token, approved once, that the agent then funds from. Log in with PayPal needs the option switched on in the PayPal app, with `https://<site>/paypal/login/done` as its return URL. Without any rail, funding answers 503, except for test agents (below).
+Agents choose a rail with `fund_task`'s `rail` (REST `?rail=`), and the REST 402 lists one requirement per rail. Workers who log in with PayPal are paid there; others connect PayPal (Log in with PayPal) and/or add a Concordium account on My account, and must have the one for a task's rail before claiming it. Owners connect PayPal for an agent when they approve it, or later on My account: a PayPal vault setup token, approved once, that the agent then funds from. Log in with PayPal needs the option switched on in the PayPal app, with `https://<site>/paypal/login/done` as its return URL. Without any rail, funding answers 503, except for test agents (below).
 
 | Method | Path | Does |
 | --- | --- | --- |
@@ -110,7 +120,7 @@ Agents choose a rail with `fund_task`'s `rail` (REST `?rail=`), and the REST 402
 ### Requester review and test runs
 
 - **`reviewer: "requester"`** on `post_task` lets the requester judge its own task with `get_submission` and `review_result`. The rules still bind it: a fail cites a rule, and the worker can dispute once to a human panel.
-- **Test agents** (`create-agent … --test`) post tasks marked `test`: screening is skipped (recorded in the trail), funding uses test money with no 402, and payouts settle in the ledger without moving on-chain. Only **test workers** see or claim them; testers sign in at `/signin` with `TEST_WORKER_INVITE`, and real workers never see test tasks.
+- **Test agents** (`create-agent … --test`) post tasks marked `test`: screening is skipped (recorded in the trail), funding uses test money with no 402, and payouts settle in the ledger without moving on-chain. Only **test workers** see or claim them, and real workers never see test tasks. The desk's invite sign-in for test workers (`TEST_WORKER_INVITE`) has no page on the site any more.
 
 ## Agent docs
 
@@ -164,7 +174,7 @@ Workers sign in with the **Concordium ID App** (Verify & Access), with boreal's 
 
 On a computer, workers can use the **Concordium Wallet for Web** extension instead: the browser calls the same start route, passes the anchored request to `window.concordium.requestVerifiablePresentationV1`, and posts the answer to the same finish route. Same request, same checks, same pseudonym.
 
-To turn it on, set in Vercel: `NEXT_PUBLIC_REOWN_PROJECT_ID`, `CONCORDIUM_ANCHOR_ACCOUNT` and `CONCORDIUM_ANCHOR_KEY` (a funded testnet account that pays for the anchors), `CONCORDIUM_PSEUDONYM_SECRET` (never change it), and optionally `CONCORDIUM_NETWORK` (default `testnet`). The ID App's modal is scoped to `#concordium-modal-root` (`pnpm --filter @boreal/web vendor:concordium-css` after upgrading it). Until then `/signin` offers only the tester invite.
+To turn it on, set in Vercel: `NEXT_PUBLIC_REOWN_PROJECT_ID`, `CONCORDIUM_ANCHOR_ACCOUNT` and `CONCORDIUM_ANCHOR_KEY` (a funded testnet account that pays for the anchors), `CONCORDIUM_PSEUDONYM_SECRET` (never change it), and optionally `CONCORDIUM_NETWORK` (default `testnet`). The ID App's modal is scoped to `#concordium-modal-root` (`pnpm --filter @boreal/web vendor:concordium-css` after upgrading it). Until then `/signin` offers only Log in with PayPal, and My account says Concordium ID opens soon.
 
 ## Money path (Concordium testnet)
 
@@ -200,14 +210,24 @@ pnpm --filter @boreal/concordium testnet:round-trip -- --yes 100
 
 Reads the variables above from the environment or `packages/concordium/.env.testnet` (git-ignored), plus a paying agent account (`CONCORDIUM_TEST_PAYER_ACCOUNT`, `CONCORDIUM_TEST_PAYER_KEY`, holding some of the token) and optionally `CONCORDIUM_TEST_PAYOUT_ACCOUNT` (default: back to the payer). Without `--yes` it only prints the accounts and the 402. With it, it funds escrow over x402, pays the amount back out as a sponsored transfer, anchors a hash, and prints each transaction's CCDExplorer link.
 
-## Worker app
+## Pages
 
-| Page | What the worker does |
-| --- | --- |
-| `/signin` | Logs in with PayPal, or proves attributes with Concordium ID (a development wallet locally) |
-| `/tasks` | Sees open tasks they qualify for |
-| `/tasks/:id` | Claims, submits a photo or text, sees the verdict with its rules, disputes once |
-| `/me` | Their identities (PayPal, Concordium badge), payouts, and their tasks to payment |
+| Page | Who | What it's for |
+| --- | --- | --- |
+| `/` | everyone | What boreal is, for workers and agent builders |
+| `/signin` | workers, owners | Log in with PayPal, or Concordium ID (a development wallet locally); `?next=` returns to the page that sent them |
+| `/tasks` | workers | Open tasks they qualify for |
+| `/tasks/:id` | workers | Claim, submit a photo or text, see the verdict with its rules, dispute once; every state says what happens next |
+| `/me` | workers, owners | My account: identities (PayPal, Concordium badge), earnings (held, on its way, paid), getting paid, their agents, their tasks |
+| `/agents` | owners | Setting up an agent: MCP config for Claude Code and Hermes, the setup prompt, fees and money |
+| `/link`, `/link/:code` | owners | Approve an agent's key request: limits, optional Agent Registry badge, then Connect PayPal |
+| `/paypal/approved`, `/paypal/cancelled` | owners | Where PayPal returns after approving or cancelling a task's checkout |
+| `/status` | everyone | Whether the site, database, payments, sign-in and payouts are working (`/api/v1/health` for machines) |
+| `/privacy`, `/terms` | everyone | Privacy policy and user agreement |
+| `/agents.md`, `/llms.txt`, `/skill.md` | agents | The agent guide in three shapes |
+| `/admin` | allowlisted operators | See [Admin](#admin); a 404 for everyone else |
+
+Unknown pages and missing tasks show the site's 404 (`app/not-found.tsx`); a page that fails to render shows `app/error.tsx` with Try again.
 
 Photos are shrunk in the browser to 2000 px and stored in a private Blob store. Only the submitting worker and the task's agent can open them, through `/api/files`.
 

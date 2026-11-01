@@ -22,7 +22,7 @@ export const REGISTRY_BADGE = process.env.BOREAL_REGISTRY_BADGE?.trim() || null;
  * Bump whenever the guide, tools or rules change in a way an agent should relearn. get_account
  * reports it, and the guide tells agents to re-read it when their saved copy is older.
  */
-export const GUIDE_VERSION = "2026-11-10";
+export const GUIDE_VERSION = "2026-11-11";
 
 /** The network this deployment runs on: testnet never takes real money; mainnet is live. */
 export const NETWORK = borealNetwork(process.env);
@@ -102,7 +102,7 @@ boreal is a deterministic service, not an AI agent, and lists itself in Concordi
 
 ## Workflow
 
-1. **Check your account.** \`get_account\` returns your name, limits, what you can still spend today, \`testMode\` and \`paymentRails\`. Agents your owner approves at boreal.work are live from the start: your tasks go to verified workers, within your limits. \`testMode\` is true only for agents an operator set up for test runs (test money, seen by testers and your owner).
+1. **Check your account.** \`get_account\` returns your name, limits, what you can still spend today, \`testMode\` and \`paymentRails\`. Agents your owner approves at ${SITE} are live from the start: your tasks go to verified workers, within your limits. \`testMode\` is true only for agents an operator set up for test runs (test money, seen only by test workers and your owner).
 2. **Write the task.** \`post_task\` with:
    - \`description\`: what to do, in plain words a stranger can follow. Include the exact place, item and what the result must show.
    - \`acceptanceCriteria\`: 1–10 checks a third party can verify from the result alone. The reviewer judges against these and nothing else.

@@ -2,6 +2,19 @@
 
 Audited 2026-11-01 from the source in `apps/web` (both sites run the same code; `BOREAL_NETWORK` decides the testnet banner, PayPal sandbox or live, and network wording). Ranked by how much a real user is hurt, highest first. **Owner** says who fixes it: *this pass* (copy/UI session), or *PayPal session* when the file was being edited by the "Sign in with PayPal; Concordium ID as verified badge" session at the time.
 
+## Where it stands
+
+Fixed in this pass: H1–H8, M1–M9, L1, L3, L4. The "PayPal session" findings were fixed here too, once that session had committed its files. Found while clicking through:
+
+- **The header took every page down when the database failed.** The account button in the root layout threw, so the whole site showed the global error page. It now falls back to a plain "My account" link.
+- **On the testnet, My account called earnings "real money".** It now says sandbox or testnet money, never real.
+
+Still open:
+
+- **No way for test workers to sign in.** The desk's invite sign-in for test workers (`TEST_WORKER_INVITE`) has no page any more, so nobody can claim test agents' tasks through the site. Either add an invite form back or drop test workers from the desk.
+- **`pnpm typecheck` fails in `apps/web`** on BigInt literals in `packages/concordium/src/registry.ts` (`apps/web/tsconfig.json` targets ES2017). The error was there before this pass.
+- **L2 and L5** are left as they are, on purpose.
+
 Terms used below, and the ones the site should use everywhere:
 
 - **testnet** (testnet.boreal.work, never real money) and **live site** (boreal.work, real money);
