@@ -1,4 +1,4 @@
-import { type Concordium, createDevConcordium, signDevPayment } from "@boreal/concordium";
+import { createDevConcordium, type PayingConcordium, signDevPayment } from "@boreal/concordium";
 import { agents, asc, type Database, eq, ledgerEntries, outbox, owners, taskEvents } from "@boreal/db";
 import { createTestDb } from "@boreal/db/testing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -14,7 +14,7 @@ const reviewer: Caller = { role: "reviewer", reviewerRef: "boreal-ai-reviewer" }
 let db: Database;
 let close: () => Promise<void>;
 let clock: Date;
-let concordium: Concordium;
+let concordium: PayingConcordium;
 let desk: Desk;
 let requester: Caller;
 

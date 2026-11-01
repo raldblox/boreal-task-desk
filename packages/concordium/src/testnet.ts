@@ -37,7 +37,7 @@ export interface TestnetConfig {
   network: string;
   grpcHost: string;
   grpcPort: number;
-  /** The dedicated escrow account: every open task's money, nothing else. */
+  /** The dedicated escrow account: every open task's money, nothing else. Empty runs anchor-only. */
   escrowAccount: string;
   escrowKey: string;
   /** Pays the CCD fees for funding, payouts and refunds (the x402 fee payer). */
@@ -131,8 +131,11 @@ export function testnetConfigFromEnv(env: Record<string, string | undefined> = p
     paymentSecret: env.CONCORDIUM_PAYMENT_SECRET ?? "",
   };
   const problems: string[] = [];
+  // With no escrow settings at all, testnet mode runs anchor-only: anchors, the registry and
+  // sign-in work, and Concordium stays off as a payment rail.
+  const paying = Boolean(env.CONCORDIUM_ESCROW_ACCOUNT || env.CONCORDIUM_ESCROW_KEY || env.CONCORDIUM_PAYMENT_SECRET);
   for (const [name, account, key] of [
-    ["CONCORDIUM_ESCROW", config.escrowAccount, config.escrowKey],
+    ...(paying ? [["CONCORDIUM_ESCROW", config.escrowAccount, config.escrowKey] as const] : []),
     ["CONCORDIUM_SPONSOR", config.sponsorAccount, config.sponsorKey],
     ["CONCORDIUM_ANCHOR", config.anchorAccount, config.anchorKey],
   ] as const) {
@@ -142,7 +145,7 @@ export function testnetConfigFromEnv(env: Record<string, string | undefined> = p
   if (config.escrowAccount && [config.sponsorAccount, config.anchorAccount].includes(config.escrowAccount)) {
     problems.push("CONCORDIUM_ESCROW_ACCOUNT must be its own account, not the sponsor or anchor account");
   }
-  if (config.paymentSecret.length < 32) problems.push("CONCORDIUM_PAYMENT_SECRET must be at least 32 characters");
+  if (paying && config.paymentSecret.length < 32) problems.push("CONCORDIUM_PAYMENT_SECRET must be at least 32 characters");
   if (problems.length) throw new TestnetConcordiumError(`CONCORDIUM_MODE=testnet: ${problems.join("; ")}`);
   return config;
 }
@@ -217,7 +220,8 @@ export function createTestnetConcordium(config: TestnetConfig, options: TestnetO
       },
     },
 
-    payments: {
+    // Without an escrow account (anchor-only), there is no Concordium payment rail.
+    payments: config.escrowAccount ? {
       async createPaymentRequest(taskId, amount) {
         if (!Number.isSafeInteger(amount) || amount <= 0) throw new TestnetConcordiumError("amount must be a positive integer in minor units");
         const requirement: X402PaymentRequirement = {
@@ -298,7 +302,7 @@ export function createTestnetConcordium(config: TestnetConfig, options: TestnetO
         const [balance, unit] = await Promise.all([chain.tokenBalance(config.escrowAccount), scale()]);
         return Number(balance / unit);
       },
-    },
+    } : null,
 
     anchor: {
       // Anchoring twice is harmless (the hash is public), so a retry simply sends again.
@@ -350,10 +354,10 @@ export function grpcChain(
 ): Chain {
   const { now = () => new Date(), finalizationTimeoutMs = 60_000 } = options;
   const tokenId = TokenId.fromString(config.tokenId);
-  const escrow = AccountAddress.fromBase58(config.escrowAccount);
+  const escrow = config.escrowAccount ? AccountAddress.fromBase58(config.escrowAccount) : null;
   const sponsor = AccountAddress.fromBase58(config.sponsorAccount);
   const anchorAccount = AccountAddress.fromBase58(config.anchorAccount);
-  const escrowSigner = buildBasicAccountSigner(config.escrowKey);
+  const escrowSigner = config.escrowKey ? buildBasicAccountSigner(config.escrowKey) : null;
   const sponsorSigner = buildBasicAccountSigner(config.sponsorKey);
   const anchorSigner = buildBasicAccountSigner(config.anchorKey);
   let decimals: Promise<number> | undefined;
@@ -414,6 +418,7 @@ export function grpcChain(
           },
         },
       ]);
+      if (!escrow || !escrowSigner) throw new TestnetConcordiumError("no escrow account: this deployment runs anchor-only");
       return signed(Transaction.tokenUpdate({ tokenId, operations }), escrow, escrowSigner, true);
     },
 

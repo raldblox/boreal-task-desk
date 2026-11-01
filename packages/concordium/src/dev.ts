@@ -1,6 +1,6 @@
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
-import type { Concordium, X402PaymentRequirement, ProofRequest, VerifiedWorker } from "./index";
+import type { PayingConcordium, X402PaymentRequirement, ProofRequest, VerifiedWorker } from "./index";
 
 // Stand-in adapters so the whole flow runs with no chain. Stateless: challenges and payment
 // requests are HMAC-signed, so they verify on any server instance. Never for production.
@@ -35,7 +35,7 @@ function equalStrings(a: string, b: string): boolean {
   return x.length === y.length && timingSafeEqual(x, y);
 }
 
-export function createDevConcordium(options: DevConcordiumOptions): Concordium {
+export function createDevConcordium(options: DevConcordiumOptions): PayingConcordium {
   const { secret, now = () => new Date() } = options;
   const verifiedAgents = options.verifiedAgents ?? ((id) => id.startsWith("dev-"));
   const sign = (body: string) => createHmac("sha256", secret).update(body).digest("base64url");

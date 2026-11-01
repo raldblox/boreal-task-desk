@@ -34,9 +34,15 @@ back, so keep their source (a local env file) or generate new ones.
   `CRON_SECRET`, `CONCORDIUM_PSEUDONYM_SECRET` (never change it, or every worker gets a new
   ID), `NEXT_PUBLIC_REOWN_PROJECT_ID`, `ADMIN_PSEUDONYMS` (that site's worker IDs), the Neon
   connection (`DATABASE_URL`, …) and `BLOB_READ_WRITE_TOKEN` from their Vercel integrations.
-- **Testnet only:** `CONCORDIUM_ANCHOR_ACCOUNT`/`_KEY` (a testnet account), `PAYMENT_RAILS=paypal`,
-  `PAYPAL_ENV=sandbox` and the sandbox app's `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`,
-  `PAYPAL_WEBHOOK_ID`, `PAYPAL_REVIEWER_EMAILS`, `PAYPAL_LOGIN=on`.
+- **Testnet only:** `CONCORDIUM_MODE=testnet`, `CONCORDIUM_ANCHOR_ACCOUNT`/`_KEY` (a testnet
+  account), `PAYMENT_RAILS=paypal`, `PAYPAL_ENV=sandbox` and the sandbox app's `PAYPAL_CLIENT_ID`,
+  `PAYPAL_CLIENT_SECRET`, `PAYPAL_WEBHOOK_ID`, `PAYPAL_REVIEWER_EMAILS`, `PAYPAL_LOGIN=on`, plus
+  `BOREAL_REGISTRY_BADGE`/`_OWNER` (docs/registry.md).
+  - Without `CONCORDIUM_ESCROW_ACCOUNT`/`_KEY` and `CONCORDIUM_PAYMENT_SECRET`, testnet mode runs
+    anchor-only: anchors and the registry work, and Concordium isn't a payment rail. Adding the
+    escrow account (its own account, holding the test token) and a 32+ character payment secret,
+    and dropping `PAYMENT_RAILS=paypal`, turns on x402 funding; that flips the card's
+    `x402Support`, so pin the new card hash afterwards.
 - **Mainnet, still to add:**
   - `CONCORDIUM_ANCHOR_ACCOUNT`/`_KEY` for a **mainnet** account holding a little CCD. Sign-in
     anchors each proof request on-chain; without it boreal.work shows "sign-in opening soon".

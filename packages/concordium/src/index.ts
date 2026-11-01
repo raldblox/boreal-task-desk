@@ -160,9 +160,13 @@ export interface Anchor {
 export interface Concordium {
   registry: AgentRegistry;
   identity: IdentityVerifier;
-  payments: Payments<X402PaymentRequirement>;
+  /** Null when the adapters run anchor-only (no escrow account configured). */
+  payments: Payments<X402PaymentRequirement> | null;
   anchor: Anchor;
 }
+
+/** Adapters that always have a payment rail (the dev stand-ins, or testnet with an escrow account). */
+export type PayingConcordium = Concordium & { payments: Payments<X402PaymentRequirement> };
 
 export { createDevConcordium, DevConcordiumError, type DevConcordiumOptions, signDevPayment } from "./dev";
 export {

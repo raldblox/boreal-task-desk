@@ -11,7 +11,8 @@ import { type Caller, createDesk } from "../src/desk";
 import { issueAgentKey } from "../src/keys";
 
 const concordium = loadConcordium(); // throws unless CONCORDIUM_MODE=dev with a local database
-if (!concordium) throw new Error("seed-local needs CONCORDIUM_MODE=dev; run `pnpm dev:local`");
+if (!concordium?.payments) throw new Error("seed-local needs CONCORDIUM_MODE=dev; run `pnpm dev:local`");
+const payments = concordium.payments;
 
 const db = createDb();
 const desk = createDesk({ db, concordium });
@@ -66,9 +67,9 @@ for (const input of tasks) {
   const { task, quote } = await desk.postTask(hermes, input);
   await desk.screenTask(reviewer, task.id, { outcome: "ok" });
   if (paypal) continue;
-  const requirement = await concordium.payments.createPaymentRequest(task.id, quote.total);
+  const requirement = await payments.createPaymentRequest(task.id, quote.total);
   const payment = { requirement, signature: signDevPayment(secret, requirement) };
-  await desk.fundTask(hermes, task.id, { confirm: () => concordium.payments.confirmPayment(task.id, payment) });
+  await desk.fundTask(hermes, task.id, { confirm: () => payments.confirmPayment(task.id, payment) });
 }
 
 const key = await issueAgentKey(db, agent!.id);

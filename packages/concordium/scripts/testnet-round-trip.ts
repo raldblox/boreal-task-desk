@@ -50,6 +50,8 @@ const journal: TransferJournal = {
 };
 
 const concordium = createTestnetConcordium(config, { journal });
+if (!concordium.payments) throw new Error("set CONCORDIUM_ESCROW_ACCOUNT, _KEY and CONCORDIUM_PAYMENT_SECRET: the round trip needs the payment rail");
+const payments = concordium.payments;
 const taskId = `round-trip-${randomUUID()}`;
 const tx = (hash: string) => `${EXPLORER}/transaction/${hash}`;
 
@@ -58,9 +60,9 @@ console.log(`Escrow  ${EXPLORER}/account/${config.escrowAccount}`);
 console.log(`Sponsor ${EXPLORER}/account/${config.sponsorAccount} (pays every fee)`);
 console.log(`Payer   ${EXPLORER}/account/${payerAccount}`);
 console.log(`Payout  ${EXPLORER}/account/${payoutAccount}`);
-console.log(`Escrow holds ${await concordium.payments.escrowBalance()} cents`);
+console.log(`Escrow holds ${await payments.escrowBalance()} cents`);
 
-const requirement = await concordium.payments.createPaymentRequest(taskId, cents);
+const requirement = await payments.createPaymentRequest(taskId, cents);
 console.log(`\n1. 402: pay ${requirement.amount} ${requirement.asset} units (${cents} cents) to escrow, sponsored by ${requirement.extra.feePayer}`);
 if (!confirmed) {
   console.log("\nDry run: nothing sent. Run again with --yes to fund, pay out and anchor on testnet.");
@@ -73,13 +75,13 @@ const client = new ExactConcordiumScheme(
   { grpcUrl: `${config.grpcHost}:${config.grpcPort}` },
 );
 const signed = await client.createPaymentPayload(2, requirement as unknown as PaymentRequirements);
-const funded = await concordium.payments.confirmPayment(taskId, { ...signed, accepted: requirement });
+const funded = await payments.confirmPayment(taskId, { ...signed, accepted: requirement });
 console.log(`   funded ${funded.amount} cents: ${tx(funded.txHash)}`);
-console.log(`   escrow holds ${await concordium.payments.escrowBalance()} cents`);
+console.log(`   escrow holds ${await payments.escrowBalance()} cents`);
 
-const payout = await concordium.payments.sponsoredTransfer({ to: payoutAccount, amount: cents, idempotencyKey: `${taskId}:refund` });
+const payout = await payments.sponsoredTransfer({ to: payoutAccount, amount: cents, idempotencyKey: `${taskId}:refund` });
 console.log(`\n2. paid ${cents} cents out of escrow: ${tx(payout.txHash)}`);
-console.log(`   escrow holds ${await concordium.payments.escrowBalance()} cents`);
+console.log(`   escrow holds ${await payments.escrowBalance()} cents`);
 
 const hash = createHash("sha256").update(`${taskId}:round-trip`).digest("hex");
 const anchored = await concordium.anchor.anchor(hash);

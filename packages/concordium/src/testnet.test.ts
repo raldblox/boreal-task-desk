@@ -17,7 +17,7 @@ import { ExactConcordiumScheme } from "@x402/concordium/exact/facilitator";
 import type { PaymentPayload, PaymentRequirements } from "@x402/core/types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { Concordium, X402PaymentRequirement, SentTransfer, TransferJournal } from "./index";
+import type { PayingConcordium, X402PaymentRequirement, SentTransfer, TransferJournal } from "./index";
 import { loadConcordium } from "./index";
 import {
   type Chain,
@@ -130,7 +130,7 @@ let cfg: TestnetConfig;
 let fake: ReturnType<typeof fakeChain>;
 let journal: ReturnType<typeof memoryJournal>;
 let facilitator: Facilitator & { settle: ReturnType<typeof vi.fn> };
-let c: Concordium;
+let c: PayingConcordium;
 
 beforeEach(() => {
   clock = new Date("2026-11-02T00:00:00Z");
@@ -145,7 +145,7 @@ beforeEach(() => {
       payer: "payer",
     })),
   };
-  c = createTestnetConcordium(cfg, { journal, chain: fake.chain, facilitator, registry: { lookup: async () => null }, now: () => clock });
+  c = createTestnetConcordium(cfg, { journal, chain: fake.chain, facilitator, registry: { lookup: async () => null }, now: () => clock }) as PayingConcordium;
 });
 
 describe("testnet funding over x402", () => {
@@ -284,6 +284,16 @@ describe("testnet config", () => {
     expect(() => testnetConfigFromEnv({ ...e, CONCORDIUM_ESCROW_ACCOUNT: e.CONCORDIUM_ANCHOR_ACCOUNT })).toThrow(/its own account/);
   });
 
+  it("runs anchor-only, with no payment rail, when no escrow settings are given", () => {
+    const { CONCORDIUM_ESCROW_ACCOUNT: _a, CONCORDIUM_ESCROW_KEY: _k, CONCORDIUM_PAYMENT_SECRET: _s, ...anchorOnly } = env();
+    expect(testnetConfigFromEnv(anchorOnly)).toMatchObject({ escrowAccount: "", paymentSecret: "" });
+    const loaded = loadConcordium(anchorOnly, { journal: memoryJournal() });
+    expect(loaded?.payments).toBeNull();
+    expect(loaded?.anchor).toBeDefined();
+    // Half an escrow setup is still refused.
+    expect(() => testnetConfigFromEnv({ ...anchorOnly, CONCORDIUM_ESCROW_ACCOUNT: env().CONCORDIUM_ESCROW_ACCOUNT })).toThrow(/CONCORDIUM_ESCROW_KEY/);
+  });
+
   it("needs a durable journal to load", () => {
     expect(() => loadConcordium(env())).toThrow(/journal/);
     expect(loadConcordium(env(), { journal: memoryJournal() })).not.toBeNull();
@@ -347,7 +357,7 @@ describe("x402 facilitator on a signed agent transfer", () => {
 
   it("settles the exact transfer and refuses a short one", async () => {
     const submitted: string[] = [];
-    const real = createTestnetConcordium(cfg, { journal, chain: fake.chain, facilitator: facilitatorWith(submitted), registry: { lookup: async () => null } });
+    const real = createTestnetConcordium(cfg, { journal, chain: fake.chain, facilitator: facilitatorWith(submitted), registry: { lookup: async () => null } }) as PayingConcordium;
     const r = await real.payments.createPaymentRequest("task-1", 1_170);
 
     await expect(real.payments.confirmPayment("task-1", paymentFor(r, await signedTransfer(r, 1n)))).rejects.toThrow(/amount_mismatch/);

@@ -1,4 +1,4 @@
-import { type Chain, type Concordium, createTestnetConcordium, type PaymentRequirement } from "@boreal/concordium";
+import { type Chain, createTestnetConcordium, type PayingConcordium, type PaymentRequirement } from "@boreal/concordium";
 import { agents, type Database, eq, ledgerEntries, outbox, owners, workers } from "@boreal/db";
 import { createTestDb } from "@boreal/db/testing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -18,7 +18,7 @@ let db: Database;
 let close: () => Promise<void>;
 let clock: Date;
 let desk: Desk;
-let concordium: Concordium;
+let concordium: PayingConcordium;
 let requester: Caller;
 let balances: Map<string, bigint>;
 let sent: string[];
@@ -97,7 +97,7 @@ beforeEach(async () => {
       registry: { lookup: async (registryId) => ({ registryId, verified: true, ownerRef: null }) },
       now: () => clock,
     },
-  );
+  ) as PayingConcordium;
   desk = createDesk({
     db,
     now: () => clock,
