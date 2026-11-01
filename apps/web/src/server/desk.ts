@@ -2,7 +2,7 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 
-import { type Concordium, loadConcordium, type Payments } from "@boreal/concordium";
+import { type Concordium, loadConcordium, type PaymentRail, type PaymentRails, type Payments } from "@boreal/concordium";
 import type { Task } from "@boreal/db";
 import {
   addressesFromEnv,
@@ -16,7 +16,7 @@ import {
   verifyAgentKey,
 } from "@boreal/desk";
 
-import { loadPayments, type PayPalPayments } from "@boreal/paypal";
+import { loadRails, type PayPalPayments } from "@boreal/paypal";
 import { after } from "next/server";
 
 import { getDb } from "./db";
@@ -24,31 +24,71 @@ import { kickMonitor } from "./monitor";
 
 let desk: Desk | undefined;
 let concordium: Concordium | null | undefined;
-let payments: Payments | null | undefined;
+let loaded: { rails: PaymentRails; payments: Payments | null } | undefined;
 
 /** The configured adapters, or null when `CONCORDIUM_MODE` is unset (payments and sign-in off). */
 export function getConcordium(): Concordium | null {
   if (concordium === undefined) {
     concordium = loadConcordium(process.env, {
-      escrowBalance: () => ledgerEscrowBalance(getDb()),
+      escrowBalance: () => ledgerEscrowBalance(getDb(), "concordium"),
       journal: outboxTransferJournal(getDb()),
     });
   }
   return concordium;
 }
 
-/** The payment rail: PayPal when `PAYMENTS_RAIL=paypal`, else Concordium's, else null (payments off). */
-export function getPayments(): Payments | null {
-  if (payments === undefined) {
-    payments = loadPayments(process.env, getConcordium(), { escrowBalance: () => ledgerEscrowBalance(getDb()) });
-  }
-  return payments;
+function rails() {
+  loaded ??= loadRails(process.env, getConcordium(), { escrowBalance: (rail) => ledgerEscrowBalance(getDb(), rail) });
+  return loaded;
 }
 
-/** Which payment rail live (non-test) agents fund on here, or null when only test money works. */
-export function paymentRail(): "paypal" | "concordium" | null {
-  const rail = getPayments();
-  return rail ? (rail.holds ? "paypal" : "concordium") : null;
+/** The default payment rail, or null when only test money works here. */
+export function getPayments(): Payments | null {
+  return rails().payments;
+}
+
+/** Every rail switched on, by name. */
+export function getRails(): PaymentRails {
+  return rails().rails;
+}
+
+/** The rails live (non-test) agents can fund on here, the default first; empty when only test money works. */
+export function paymentRails(): PaymentRail[] {
+  const { rails: on, payments } = rails();
+  const names = Object.keys(on) as PaymentRail[];
+  return names.sort((a, b) => Number(on[b] === payments) - Number(on[a] === payments));
+}
+
+/** Kept for callers that want one name: the default rail. */
+export function paymentRail(): PaymentRail | null {
+  return paymentRails()[0] ?? null;
+}
+
+/**
+ * The rail a fund_task call pays on: the one the agent named, else the one its payment implies
+ * (a PayPal `{ orderId }` or a Concordium x402 payload), else the default.
+ */
+export function pickRail(named: string | undefined, payment?: unknown): { rail: PaymentRail; payments: Payments } {
+  const on = getRails();
+  const enabled = paymentRails();
+  if (enabled.length === 0) throw new DeskError("unavailable", "payments are not enabled yet; only test money works here");
+  let rail: PaymentRail;
+  if (named) {
+    if (named !== "paypal" && named !== "concordium") throw new DeskError("invalid", "rail must be paypal or concordium");
+    rail = named;
+  } else if (payment !== undefined) {
+    rail = typeof payment === "object" && payment !== null && "orderId" in payment ? "paypal" : "concordium";
+  } else {
+    rail = enabled[0]!;
+  }
+  const found = on[rail];
+  if (!found) throw new DeskError("unavailable", `the ${rail} rail isn't enabled here; use ${enabled.join(" or ")}`);
+  return { rail, payments: found };
+}
+
+/** True when the site runs on demo money: Concordium testnet tokens or the PayPal sandbox. */
+export function demoMoney(): boolean {
+  return process.env.CONCORDIUM_NETWORK !== "mainnet" || process.env.PAYPAL_SANDBOX_ON_PRODUCTION === "demo";
 }
 
 export function getDesk(): Desk {
@@ -56,6 +96,8 @@ export function getDesk(): Desk {
     db: getDb(),
     concordium: getConcordium(),
     payments: getPayments(),
+    rails: getRails(),
+    requireBadge: process.env.REQUIRE_AGENT_BADGE === "1",
     addresses: addressesFromEnv(),
     testInvite: process.env.TEST_WORKER_INVITE,
   });

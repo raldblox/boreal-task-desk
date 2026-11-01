@@ -37,6 +37,7 @@ export const outboxKind = pgEnum("outbox_kind", [
   "reconcile",
 ]);
 export const reviewMode = pgEnum("review_mode", ["boreal", "requester"]);
+export const paymentRail = pgEnum("payment_rail", ["concordium", "paypal"]);
 export const agentLinkStatus = pgEnum("agent_link_status", ["pending", "approved", "denied", "collected"]);
 
 const timestamps = {
@@ -117,6 +118,8 @@ export const workers = pgTable("workers", {
   maxActiveClaims: integer("max_active_claims").notNull().default(1),
   /** Concordium account that payouts go to. */
   payoutAddress: text("payout_address"),
+  /** PayPal email for payouts on the PayPal rail; never on-chain, never shown to agents. */
+  paypalEmail: text("paypal_email"),
   /** Signed in with a test invite; sees and claims only test tasks. */
   testMode: boolean("test_mode").notNull().default(false),
   ...timestamps,
@@ -145,6 +148,8 @@ export const tasks = pgTable(
     fundingTxHash: text("funding_tx_hash"),
     /** On rails that hold funds (a PayPal authorization id): captured or released once the task is final. */
     fundingHold: text("funding_hold"),
+    /** The rail the task was funded on; its payouts and refunds settle on the same rail. Null for test money. */
+    paymentRail: paymentRail("payment_rail"),
     claimedBy: uuid("claimed_by").references(() => workers.id),
     claimExpiresAt: timestamp("claim_expires_at", { withTimezone: true }),
     /** Reviewer whose verdict stands; paid the review fee once the task is final. */

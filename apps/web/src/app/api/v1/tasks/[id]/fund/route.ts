@@ -1,6 +1,6 @@
 import { DeskError, taskTotal } from "@boreal/desk";
 
-import { asRequester, fundTestTask, getDesk, getPayments } from "@/server/desk";
+import { asRequester, fundTestTask, getDesk, getRails, paymentRails, pickRail } from "@/server/desk";
 
 /**
  * fund_task over x402 v2. Without a payment header the reply is 402 with what to pay (in the
@@ -10,6 +10,8 @@ import { asRequester, fundTestTask, getDesk, getPayments } from "@/server/desk";
  * where the payer approves, and the header carries `{ orderId }`; the money is then held, and
  * taken only when the task is final. Once the owner has approved one PayPal order, their
  * account is saved for the agent, and a call without the header funds at once from it.
+ * With several rails on, the 402 lists one requirement per rail (`?rail=` asks for one);
+ * the payment sent back says which rail it is.
  */
 export async function POST(request: Request, ctx: RouteContext<"/api/v1/tasks/[id]/fund">) {
   const { id } = await ctx.params;
@@ -22,25 +24,29 @@ export async function POST(request: Request, ctx: RouteContext<"/api/v1/tasks/[i
     // Test agents fund with test money: no 402 round trip, nothing moved on-chain.
     if (task.test) return Response.json(await fundTestTask(caller, task));
 
-    const payments = getPayments();
-    if (!payments) throw new DeskError("unavailable", "payments are not enabled yet");
+    const named = new URL(request.url).searchParams.get("rail") ?? undefined;
+    if (paymentRails().length === 0) throw new DeskError("unavailable", "payments are not enabled yet; only test money works here");
 
     const header = request.headers.get("payment-signature") ?? request.headers.get("x-payment");
-    if (!header && payments.vault && (await desk.getAgentAccount(caller)).savedPaymentMethod) {
+    const paypal = getRails().paypal;
+    if (!header && (!named || named === "paypal") && paypal?.vault && (await desk.getAgentAccount(caller)).savedPaymentMethod) {
       try {
-        return Response.json(await desk.fundTask(caller, id, { vault: true }));
+        return Response.json(await desk.fundTask(caller, id, { vault: true }, { rail: "paypal" }));
       } catch (error) {
         // A refused saved account falls back to a fresh approval below; any other refusal stands.
         if (!(error instanceof DeskError && error.code === "invalid")) throw error;
       }
     }
     if (!header) {
-      const requirement = await payments.createPaymentRequest(task.id, taskTotal(task));
+      // One requirement per rail the agent may pay on, the default first.
+      const rails = named ? [pickRail(named).rail] : paymentRails();
+      const on = getRails();
+      const accepts = await Promise.all(rails.map((rail) => on[rail]!.createPaymentRequest(task.id, taskTotal(task))));
       const required = {
         x402Version: 2,
         error: "payment required",
         resource: { url: request.url, description: `Fund task ${task.id} into escrow`, mimeType: "application/json" },
-        accepts: [requirement],
+        accepts,
       };
       return Response.json(required, { status: 402, headers: { "PAYMENT-REQUIRED": encode(required) } });
     }
@@ -52,6 +58,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/v1/tasks/[i
       throw new DeskError("invalid", "PAYMENT-SIGNATURE must be base64-encoded JSON");
     }
 
+    const { rail, payments } = pickRail(named, payment);
     const funded = await desk.fundTask(caller, id, {
       async confirm() {
         try {
@@ -60,7 +67,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/v1/tasks/[i
           throw new DeskError("invalid", error instanceof Error ? error.message : "payment was not accepted");
         }
       },
-    });
+    }, { rail });
     const receipt = encode({ success: true, transaction: funded.fundingTxHash });
     return Response.json(funded, { headers: { "PAYMENT-RESPONSE": receipt, "X-PAYMENT-RESPONSE": receipt } });
   });

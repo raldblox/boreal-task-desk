@@ -119,6 +119,13 @@ export interface PaymentVault {
   pay(taskId: string, amount: number, vaultId: string): Promise<ConfirmedPayment>;
 }
 
+/** The money rails boreal can run, side by side; each task settles on the one it was funded on. */
+export type PaymentRail = "concordium" | "paypal";
+export const PAYMENT_RAILS: readonly PaymentRail[] = ["concordium", "paypal"];
+
+/** The rails configured on this deployment. */
+export type PaymentRails = Partial<Record<PaymentRail, Payments>>;
+
 /** x402 funding in, sponsored token transfers out of escrow. */
 export interface Payments<R extends PaymentRequirement = PaymentRequirement> {
   createPaymentRequest(taskId: string, amount: number): Promise<R>;

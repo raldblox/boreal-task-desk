@@ -25,15 +25,17 @@ export function ActionButton({
   action,
   children,
   variant = "default",
+  size = "lg",
 }: {
   action: Action;
   children: React.ReactNode;
   variant?: "default" | "outline";
+  size?: "sm" | "lg";
 }) {
   const [state, formAction, pending] = useActionState(action, null);
   return (
     <form action={formAction} className="flex flex-col gap-3">
-      <Button type="submit" variant={variant} disabled={pending} size="lg" className="w-full sm:w-fit">
+      <Button type="submit" variant={variant} disabled={pending} size={size} className="w-full sm:w-fit">
         {pending ? "Working…" : children}
       </Button>
       <FormError state={state} />
@@ -41,15 +43,17 @@ export function ActionButton({
   );
 }
 
-/** Where the worker is paid: their PayPal email on the PayPal rail. */
+/** Where the worker is paid on one rail: their PayPal email, or their Concordium account. */
 export function PayoutForm({ action, current, paypal }: { action: Action; current: string | null; paypal: boolean }) {
   const [state, formAction, pending] = useActionState(action, null);
+  const id = paypal ? "payoutPaypal" : "payoutConcordium";
   return (
     <form action={formAction} className="flex flex-col gap-3">
+      <input type="hidden" name="rail" value={paypal ? "paypal" : "concordium"} />
       <div className="flex flex-col gap-2">
-        <Label htmlFor="payoutAddress">{paypal ? "PayPal email for payouts" : "Payout account"}</Label>
+        <Label htmlFor={id}>{paypal ? "PayPal email" : "Concordium account"}</Label>
         <Input
-          id="payoutAddress"
+          id={id}
           name="payoutAddress"
           type={paypal ? "email" : "text"}
           defaultValue={current ?? ""}

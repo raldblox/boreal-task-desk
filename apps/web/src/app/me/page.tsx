@@ -3,14 +3,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
-import { setPayoutAddress } from "@/app/actions";
+import { setAgentTestMode, setPayoutAddress } from "@/app/actions";
 import { Eyebrow } from "@/components/brand";
 import { TaskCard } from "@/components/task-card";
-import { PayoutForm } from "@/components/worker-forms";
+import { ActionButton, PayoutForm } from "@/components/worker-forms";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { attributeLabel, usd, workerHandle } from "@/lib/format";
-import { getDesk, getPayments } from "@/server/desk";
+import { getDesk, paymentRails } from "@/server/desk";
 import { workerFromSession } from "@/server/session";
 
 const ACTIVE = new Set(["claimed", "submitted", "passed", "failed", "disputed"]);
@@ -89,26 +89,31 @@ async function Earnings() {
   );
 }
 
-/** Where passed tasks pay out. On the PayPal rail, the worker's PayPal email; it never goes on-chain. */
+/** Where passed tasks pay out, per rail: a PayPal email (never on-chain) and/or a Concordium account. */
 async function Payouts() {
   const worker = await workerFromSession();
   if (!worker) redirect("/signin");
   const profile = await getDesk().getWorker(worker);
   if (!profile || profile.testMode) return null;
-  const paypal = Boolean(getPayments()?.holds);
+  const rails = paymentRails();
+  if (rails.length === 0) return null;
   return (
-    <section className="flex flex-col gap-3 rounded-2xl border bg-card p-6">
-      <h2 className="font-semibold">Getting paid</h2>
-      <p className="text-sm text-muted-foreground">
-        {paypal
-          ? "When your result passes review, boreal pays you with PayPal Payouts the moment the task is final."
-          : "When your result passes review, boreal pays this account the moment the task is final."}
-      </p>
-      <PayoutForm action={setPayoutAddress} current={profile.payoutAddress} paypal={paypal} />
+    <section className="flex flex-col gap-4 rounded-2xl border bg-card p-6">
+      <div className="flex flex-col gap-1">
+        <h2 className="font-semibold">Getting paid</h2>
+        <p className="text-sm text-muted-foreground">
+          Each task pays on one rail, shown on the task. Add a payout for each rail you want to work on; boreal pays you
+          the moment a passed task is final.
+        </p>
+      </div>
+      {rails.includes("paypal") && (
+        <PayoutForm action={setPayoutAddress} current={profile.paypalEmail} paypal />
+      )}
+      {rails.includes("concordium") && (
+        <PayoutForm action={setPayoutAddress} current={profile.payoutAddress} paypal={false} />
+      )}
       <p className="text-xs text-muted-foreground">
-        {paypal
-          ? "Your PayPal email is used only to pay you. Agents never see it, and it never goes on-chain."
-          : "Your account address is used only to pay you. Agents never see it."}
+        Used only to pay you. Agents never see them, and your PayPal email never goes on-chain.
       </p>
     </section>
   );
@@ -130,7 +135,10 @@ async function MyAgents() {
           <Bot className="size-5 shrink-0 text-primary" />
           <p className="min-w-0 flex-1 truncate font-medium">{agent.name}</p>
           {agent.badgeVerifiedAt && <Badge>Verified by Concordium</Badge>}
-          {agent.testMode && <Badge variant="outline">Test mode</Badge>}
+          <Badge variant="outline">{agent.testMode ? "Test money" : "Live"}</Badge>
+          <ActionButton action={setAgentTestMode.bind(null, agent.id, !agent.testMode)} variant="outline" size="sm">
+            {agent.testMode ? "Go live" : "Back to test"}
+          </ActionButton>
         </div>
       ))}
     </section>

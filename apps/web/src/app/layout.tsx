@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono, Manrope, Plus_Jakarta_Sans } from "next/font/goo
 import "./globals.css";
 
 import { SiteFooter, SiteHeader } from "@/components/site-header";
+import { demoMoney } from "@/server/desk";
 
 // Brand typography (brand.md): Manrope for text, JetBrains Mono for IDs, hashes and code.
 const manrope = Manrope({
@@ -32,6 +33,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
         <SiteHeader />
+        {demoMoney() && (
+          <p className="border-b border-border/70 bg-primary-soft px-4 py-2 text-center text-xs font-medium text-primary-soft-foreground">
+            Demo money only: payments here use Concordium testnet tokens and the PayPal sandbox. Nothing is real money yet.
+          </p>
+        )}
         {children}
         <SiteFooter />
       </body>

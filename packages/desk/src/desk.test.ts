@@ -510,3 +510,76 @@ describe("money views", () => {
     await expectDeskError(desk.getBalance(tester), "forbidden");
   });
 });
+
+describe("payment rails side by side", () => {
+  /** A rail that settles at once and records what it sends. */
+  function fakeRail(name: string) {
+    const sent: { to: string; amount: number }[] = [];
+    let counter = 0;
+    const rail = {
+      sent,
+      async createPaymentRequest(taskId: string, amount: number) {
+        return { scheme: "exact" as const, network: name, asset: "USD", payTo: name, amount: String(amount), maxTimeoutSeconds: 60, extra: { resource: taskId, minorUnits: amount, nonce: "n", expiresAt: "2099-01-01T00:00:00Z" } };
+      },
+      async confirmPayment(_taskId: string, payment: unknown) {
+        return { txHash: `${name}-fund-${++counter}`, amount: (payment as { amount: number }).amount };
+      },
+      async sponsoredTransfer(t: { to: string; amount: number }) {
+        sent.push({ to: t.to, amount: t.amount });
+        return { txHash: `${name}-pay-${++counter}` };
+      },
+      async escrowBalance() {
+        return 0;
+      },
+    };
+    return rail;
+  }
+
+  it("settles each task on the rail it was funded on, paying the worker there", async () => {
+    const concordiumRail = fakeRail("concordium");
+    const paypalRail = fakeRail("paypal");
+    const railDesk = createDesk({
+      db,
+      now: () => clock,
+      payments: concordiumRail,
+      rails: { concordium: concordiumRail, paypal: paypalRail },
+      addresses: { reviewers: { [reviewer.reviewerRef]: "ccd-reviewer" }, paypal: { reviewers: { [reviewer.reviewerRef]: "reviewer@paypal.test" } } },
+    });
+    expect(railDesk.defaultRail).toBe("concordium");
+
+    const { task, quote } = await railDesk.postTask(requester, taskInput());
+    await railDesk.screenTask(reviewer, task.id, { outcome: "ok" });
+    const funded = await railDesk.fundTask(requester, task.id, { confirm: async () => paypalRail.confirmPayment(task.id, { amount: quote.total }) }, { rail: "paypal" });
+    expect(funded.paymentRail).toBe("paypal");
+
+    // The worker has to be payable on that rail first.
+    await expectDeskError(railDesk.claimTask(manilaWorker, task.id), "forbidden");
+    await railDesk.setPayoutAddress(manilaWorker, "maria@paypal.test", "paypal");
+    await railDesk.claimTask(manilaWorker, task.id);
+    await railDesk.submitResult(manilaWorker, task.id, { fileUrls: [`submissions/${task.id}/photo.jpg`] });
+    await railDesk.recordVerdict(reviewer, task.id, { outcome: "pass", ruleIds: ["R4.1"], reasoning: "Shows item and tag" });
+    await railDesk.acceptEarly(requester, task.id);
+    await railDesk.drainOutbox();
+
+    expect(paypalRail.sent).toEqual(
+      expect.arrayContaining([
+        { to: "maria@paypal.test", amount: quote.budget },
+        { to: "reviewer@paypal.test", amount: quote.reviewFee },
+      ]),
+    );
+    expect(concordiumRail.sent).toEqual([]);
+    await expectDeskError(railDesk.setPayoutAddress(manilaWorker, "not-an-email", "paypal"), "invalid");
+  });
+
+  it("lets an owner move their agent between test and live money, and no one else", async () => {
+    const [owner] = await db.insert(owners).values({ kind: "individual", verifiedRef: "ph-live-owner" }).returning();
+    const [agent] = await db
+      .insert(agents)
+      .values({ ownerId: owner!.id, registryId: "registry-live", name: "live", maxTaskBudget: 5_000, maxDailySpend: 50_000, testMode: true })
+      .returning();
+    const ownerWorker = await seedWorker("ph-live-owner", {});
+    await desk.setAgentTestMode(ownerWorker.id, agent!.id, false);
+    expect((await desk.getAgentAccount({ role: "requester", agentId: agent!.id })).testMode).toBe(false);
+    await expectDeskError(desk.setAgentTestMode((manilaWorker as Extract<Caller, { role: "worker" }>).workerId, agent!.id, true), "forbidden");
+  });
+});

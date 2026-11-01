@@ -6,7 +6,7 @@ import { refresh } from "next/cache";
 import { after } from "next/server";
 import { redirect } from "next/navigation";
 
-import { getDesk, getPayments } from "@/server/desk";
+import { getDesk } from "@/server/desk";
 import { FileRejected, saveSubmissionFile } from "@/server/files";
 import { kickMonitor } from "@/server/monitor";
 import { endWorkerSession, startWorkerSession, workerFromSession } from "@/server/session";
@@ -95,14 +95,19 @@ export async function submitResult(taskId: string, _prev: ActionState, form: For
   });
 }
 
-/** Where the worker is paid. On the PayPal rail it's the email of their PayPal account. */
+/** Where the worker is paid on one rail: a PayPal email, or a Concordium account. */
 export async function setPayoutAddress(_prev: ActionState, form: FormData): Promise<ActionState> {
   return asWorker(async (worker) => {
-    const address = String(form.get("payoutAddress") ?? "").trim();
-    if (getPayments()?.holds && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(address)) {
-      throw new DeskError("invalid", "Enter the email address of your PayPal account.");
-    }
-    await getDesk().setPayoutAddress(worker, address);
+    const rail = form.get("rail") === "paypal" ? "paypal" : "concordium";
+    await getDesk().setPayoutAddress(worker, String(form.get("payoutAddress") ?? ""), rail);
+  });
+}
+
+/** An owner moves an agent between test money and real (testnet or sandbox) money. */
+export async function setAgentTestMode(agentId: string, testMode: boolean): Promise<ActionState> {
+  return asWorker(async (worker) => {
+    if (worker.role !== "worker") return;
+    await getDesk().setAgentTestMode(worker.workerId, agentId, testMode);
   });
 }
 

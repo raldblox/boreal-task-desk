@@ -71,9 +71,12 @@ beforeEach(async () => {
 afterEach(() => close());
 
 describe("registry badge", () => {
-  it("refuses tasks from an agent without the badge", async () => {
+  it("refuses tasks from an agent without the badge when the badge is required", async () => {
     const unbadged: Caller = { role: "requester", agentId: (await seedAgent("script-no-badge")).id };
-    await expect(desk.postTask(unbadged, taskInput())).rejects.toSatisfy(
+    // Optional during the beta: posting works without a badge.
+    await desk.postTask(unbadged, taskInput());
+    const strict = createDesk({ db, now: () => clock, concordium, requireBadge: true });
+    await expect(strict.postTask(unbadged, taskInput())).rejects.toSatisfy(
       (e: unknown) => e instanceof DeskError && e.code === "forbidden" && /badge/.test(e.message),
     );
   });

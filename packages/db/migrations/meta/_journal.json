@@ -71,6 +71,13 @@
       "when": 1793478643564,
       "tag": "0009_paypal_vault",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793482089485,
+      "tag": "0010_crazy_cannonball",
+      "breakpoints": true
     }
   ]
 }

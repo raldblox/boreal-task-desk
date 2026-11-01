@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { loadReviewer, type Reviewer } from "@boreal/brain";
-import { type Concordium, loadConcordium, type Payments } from "@boreal/concordium";
+import { type Concordium, loadConcordium, type PaymentRail, type Payments } from "@boreal/concordium";
 import { and, type Database, eq, leases, lt } from "@boreal/db";
 import {
   addressesFromEnv,
@@ -13,7 +13,7 @@ import {
   runAiReview,
 } from "@boreal/desk";
 import { readSubmissionBytes } from "@boreal/files";
-import { loadPayments } from "@boreal/paypal";
+import { loadRails } from "@boreal/paypal";
 
 // The monitor tick: everything time-driven in the task lifecycle, in one idempotent pass.
 // The local worker loops it; production runs it from cron and after user actions. A lease
@@ -115,7 +115,17 @@ export function createMonitor({
         }
         if (payments) {
           await step("reconcile-escrow", async () => {
-            report.escrowGap = (await desk.reconcileEscrow()).gap;
+            // Each rail's escrow against its own ledger; any gap on any rail pauses the outbox.
+            const names = Object.keys(desk.rails) as PaymentRail[];
+            let gap = 0;
+            for (const rail of names.length > 0 ? names : [undefined]) {
+              const result = await desk.reconcileEscrow(rail);
+              if (result.gap !== 0) {
+                gap += Math.abs(result.gap);
+                report.errors.push(`${rail ?? "escrow"} is off the ledger by ${result.gap}`);
+              }
+            }
+            report.escrowGap = gap;
           });
           // Money stops moving while escrow and the ledger disagree.
           if (report.escrowGap === 0) {
@@ -136,10 +146,10 @@ export function createMonitor({
 
 /** The monitor wired from the environment: Concordium and the AI reviewer turn on when configured. */
 export async function loadMonitor(db: Database, env: Record<string, string | undefined> = process.env): Promise<Monitor> {
-  const escrowBalance = () => ledgerEscrowBalance(db);
+  const escrowBalance = () => ledgerEscrowBalance(db, "concordium");
   const concordium = loadConcordium(env, { escrowBalance, journal: outboxTransferJournal(db) });
-  const payments = loadPayments(env, concordium, { escrowBalance });
-  const desk = createDesk({ db, concordium, payments, addresses: addressesFromEnv(env) });
+  const { rails, payments } = loadRails(env, concordium, { escrowBalance: (rail) => ledgerEscrowBalance(db, rail) });
+  const desk = createDesk({ db, concordium, payments, rails, addresses: addressesFromEnv(env), requireBadge: env.REQUIRE_AGENT_BADGE === "1" });
   const reviewer = await loadReviewer(env);
   return createMonitor({ db, desk, concordium, payments, reviewer, readFile: readSubmissionBytes });
 }

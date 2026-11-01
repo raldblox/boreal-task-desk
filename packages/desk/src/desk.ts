@@ -10,7 +10,7 @@ import {
   transition,
   TransitionError,
 } from "@boreal/core";
-import type { Concordium, ConfirmedPayment, Payments, ProofRequest } from "@boreal/concordium";
+import type { Concordium, ConfirmedPayment, Payments, ProofRequest, PaymentRail, PaymentRails } from "@boreal/concordium";
 import {
   agents,
   and,
@@ -59,8 +59,12 @@ export interface DeskOptions {
   concordium?: Concordium | null;
   /** Payout accounts for the platform and reviewers; workers and agents carry their own. */
   addresses?: PayoutAddresses;
-  /** The payment rail, when it isn't Concordium's (PayPal). Defaults to `concordium.payments`. */
+  /** The default payment rail. Defaults to `concordium.payments`. */
   payments?: Payments | null;
+  /** Every configured rail; a task settles on the one it was funded on. */
+  rails?: PaymentRails;
+  /** Refuse posting without a Verified by Concordium badge. Off during the beta. */
+  requireBadge?: boolean;
 }
 
 /**
@@ -115,15 +119,25 @@ export function createDesk({
   addresses = {},
   testInvite,
   payments = concordium?.payments ?? null,
+  rails = {},
+  requireBadge = false,
 }: DeskOptions) {
+  // The rail a task funds on when none is named: the default rail's name.
+  const defaultRail: PaymentRail | null = payments
+    ? ((Object.entries(rails) as [PaymentRail, Payments][]).find(([, r]) => r === payments)?.[0] ??
+      (payments.holds ? "paypal" : "concordium"))
+    : null;
+  // Every rail by name, the default included.
+  const allRails: PaymentRails = { ...(defaultRail && payments ? { [defaultRail]: payments } : {}), ...rails };
   function requireConcordium(): Concordium {
     if (!concordium) throw new DeskError("unavailable", "Concordium adapters are not configured");
     return concordium;
   }
 
-  function requirePayments(): Payments {
-    if (!payments) throw new DeskError("unavailable", "payments are not configured");
-    return payments;
+  function requirePayments(rail?: PaymentRail | null): Payments {
+    const found = rail ? allRails[rail] : payments;
+    if (!found) throw new DeskError("unavailable", rail ? `the ${rail} payment rail is not enabled here` : "payments are not configured");
+    return found;
   }
 
   async function mutate(
@@ -212,7 +226,7 @@ export function createDesk({
       const [agent] = await db.select().from(agents).where(eq(agents.id, caller.agentId));
       if (!agent) throw new DeskError("not_found", "agent not found");
       if (agent.status !== "active") throw new DeskError("forbidden", "agent is frozen");
-      if (concordium) {
+      if (concordium && requireBadge) {
         const entry = await concordium.registry.lookup(agent.registryId);
         if (!entry?.verified) {
           throw new DeskError("forbidden", "agent has no Verified by Concordium badge in the Agent Registry");
@@ -285,7 +299,7 @@ export function createDesk({
      * fund_task. With `confirm`, the payment settles only after the task's own checks pass,
      * so a refused task never takes money. The amount must match the quote exactly.
      */
-    async fundTask(caller: Caller, taskId: string, payment: FundingPayment) {
+    async fundTask(caller: Caller, taskId: string, payment: FundingPayment, options: { rail?: PaymentRail } = {}) {
       requireRole(caller, "requester");
       let settled: ConfirmedPayment | undefined;
       return mutate(taskId, caller, { type: "fund" }, {
@@ -311,7 +325,7 @@ export function createDesk({
             throw new DeskError("limit", "this payment would pass the agent's daily spending cap");
           }
           if ("vault" in payment) {
-            const vault = requirePayments().vault;
+            const vault = requirePayments(options.rail ?? "paypal").vault;
             if (!vault) throw new DeskError("unavailable", "this payment rail can't save payment methods");
             if (!agent!.paymentVaultId) throw new DeskError("conflict", "your owner hasn't saved a payment method for you yet");
             try {
@@ -329,7 +343,13 @@ export function createDesk({
             throw new DeskError("invalid", `payment must be exactly ${total}`);
           }
         },
-        patch: (_task, at) => ({ fundedAt: at, fundingTxHash: settled!.txHash, fundingHold: settled!.hold ?? null }),
+        patch: (task, at) => ({
+          fundedAt: at,
+          fundingTxHash: settled!.txHash,
+          fundingHold: settled!.hold ?? null,
+          // Test money has no rail; real money settles where it came in.
+          paymentRail: task.test ? null : ("vault" in payment ? "paypal" : (options.rail ?? defaultRail)),
+        }),
         async after(tx, task, at) {
           await recordFunding(tx, task, settled!, at);
           // The owner approved saving the payment method: later tasks fund without asking.
@@ -357,6 +377,12 @@ export function createDesk({
           }
           if (!meetsAttributes(task.requiredAttributes, worker.provenAttributes)) {
             throw new DeskError("forbidden", "you haven't proven the attributes this task requires");
+          }
+          if (task.paymentRail === "paypal" && !worker.paypalEmail) {
+            throw new DeskError("forbidden", "this task pays with PayPal: add your PayPal email on My account first");
+          }
+          if (task.paymentRail === "concordium" && !worker.payoutAddress) {
+            throw new DeskError("forbidden", "this task pays in tokens on Concordium: add your Concordium account on My account first");
           }
           const [active] = await tx
             .select({ n: sql<number>`count(*)::int` })
@@ -648,15 +674,18 @@ export function createDesk({
 
     /** Sends due anchors, payouts, refunds, captures and releases. Run by the monitor loop. */
     async drainOutbox(limit?: number) {
-      return drainOutbox(db, { payments: requirePayments(), anchor: concordium?.anchor ?? null }, { now, addresses, limit });
+      return drainOutbox(db, { payments: requirePayments(), rails: allRails, anchor: concordium?.anchor ?? null }, { now, addresses, limit });
     },
 
-    async reconcileEscrow() {
-      return reconcileEscrow(db, requirePayments());
+    async reconcileEscrow(rail?: PaymentRail) {
+      return reconcileEscrow(db, requirePayments(rail), rail);
     },
 
-    /** The payment rail in use, or null when payments are off. */
+    /** The default payment rail, or null when payments are off. */
     payments,
+    /** Every configured rail, by name. */
+    rails: allRails,
+    defaultRail,
 
     /** A provider's report on a payout (a verified PayPal webhook), applied to the ledger by the outbox. */
     async queuePaymentUpdate(update: PaymentStatusUpdate) {
@@ -664,11 +693,24 @@ export function createDesk({
     },
 
     /** Where this worker is paid: a Concordium account, or a PayPal email on the PayPal rail. */
-    async setPayoutAddress(caller: Caller, address: string) {
+    async setPayoutAddress(caller: Caller, address: string, rail: PaymentRail = "concordium") {
       requireRole(caller, "worker");
       const value = address.trim();
+      if (rail === "paypal" && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value)) throw new DeskError("invalid", "enter the email address of your PayPal account");
       if (value.length < 3 || value.length > 254 || /\s/.test(value)) throw new DeskError("invalid", "that payout address doesn't look right");
-      await db.update(workers).set({ payoutAddress: value, updatedAt: now() }).where(eq(workers.id, caller.workerId));
+      await db
+        .update(workers)
+        .set({ ...(rail === "paypal" ? { paypalEmail: value } : { payoutAddress: value }), updatedAt: now() })
+        .where(eq(workers.id, caller.workerId));
+    },
+
+    /** An owner moves one of their agents between test money and real (testnet or sandbox) money. */
+    async setAgentTestMode(workerId: string, agentId: string, testMode: boolean) {
+      const [worker] = await db.select().from(workers).where(eq(workers.id, workerId));
+      if (!worker || worker.testMode) throw new DeskError("forbidden", "sign in with Concordium ID to manage agents");
+      const mine = await ownedAgentIds(worker.pseudonym);
+      if (!mine.has(agentId)) throw new DeskError("forbidden", "that agent isn't yours");
+      await db.update(agents).set({ testMode, updatedAt: now() }).where(eq(agents.id, agentId));
     },
 
     async getTask(caller: Caller, taskId: string) {
@@ -692,6 +734,7 @@ export function createDesk({
           provenAttributes: workers.provenAttributes,
           testMode: workers.testMode,
           payoutAddress: workers.payoutAddress,
+          paypalEmail: workers.paypalEmail,
           createdAt: workers.createdAt,
         })
         .from(workers)

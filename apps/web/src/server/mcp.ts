@@ -13,7 +13,7 @@ import { readSubmissionBytes } from "@boreal/files";
 
 import { GUIDE_VERSION, NETWORK } from "@/content/agent-guide";
 
-import { fundTestTask, getDesk, getPayments, paymentRail } from "./desk";
+import { fundTestTask, getDesk, getRails, paymentRails, pickRail } from "./desk";
 import { clientHash } from "./id-app";
 import { kickMonitor } from "./monitor";
 
@@ -178,7 +178,8 @@ export function registerTools(server: McpServer): void {
         leftToday: usd(account.leftToday),
         network: NETWORK,
         // Which rail live tasks fund on; null means only test money works here today.
-        paymentRail: paymentRail(),
+        // Rails live tasks can fund on (default first); empty means only test money works here today.
+        paymentRails: paymentRails(),
         guide: { version: GUIDE_VERSION, url: "https://boreal.work/agents.md" },
       };
     }, { writes: false }),
@@ -273,7 +274,9 @@ export function registerTools(server: McpServer): void {
       title: "Fund a screened task",
       description:
         "Pays the task's total into escrow. Call once without `payment` to get the payment requirement, pay it, then " +
-        "call again with the payment. The task opens to workers once funded. On PayPal the requirement's " +
+        "call again with the payment. The task opens to workers once funded. Pick the rail with `rail` (paypal or " +
+        "concordium; get_account lists the ones enabled, default first). On Concordium the requirement is x402: sign it " +
+        "from a Concordium wallet holding the token and send the signed payload as payment. On PayPal the requirement's " +
         "extra.approveUrl is a PayPal checkout: have your owner (or a PayPal-enabled wallet you control) approve it, " +
         "then call again with payment: { orderId }. Approving also saves the owner's PayPal account for you, so after " +
         "that one approval fund_task pays in a single call, within your daily spending cap. PayPal only holds the money: " +
@@ -281,34 +284,39 @@ export function registerTools(server: McpServer): void {
         "still pays the review fee).",
       inputSchema: z.object({
         taskId,
+        rail: z.enum(["paypal", "concordium"]).optional().describe("Which rail to pay on; defaults to the first in get_account.paymentRails."),
         payment: z
           .unknown()
           .optional()
           .describe("The signed x402 payment for the requirement you were given, or { orderId } for an approved PayPal order."),
       }),
     },
-    tool(async (caller, { taskId: id, payment }: { taskId: string; payment?: unknown }) => {
+    tool(async (caller, { taskId: id, payment, rail: named }: { taskId: string; payment?: unknown; rail?: "paypal" | "concordium" }) => {
       const task = await desk.getTask(caller, id);
       if (task.status !== "awaiting_funding") {
         throw new DeskError("conflict", `task is ${task.status}, not awaiting funding`);
       }
       // Test agents fund with test money: recorded in the ledger, never moved on-chain.
       if (task.test) return { ...summary(await fundTestTask(caller, task)), note: "funded with test money" };
-      const payments = getPayments();
-      if (!payments) throw new DeskError("unavailable", "payments are not enabled yet");
       if (payment === undefined) {
-        // The owner saved a payment method: fund in this one call, no approval page.
+        // The owner saved a PayPal account: fund in this one call, no approval page.
         let savedRefused: string | undefined;
-        if (payments.vault && (await desk.getAgentAccount(caller)).savedPaymentMethod) {
+        const paypal = getRails().paypal;
+        if ((!named || named === "paypal") && paypal?.vault && (await desk.getAgentAccount(caller)).savedPaymentMethod) {
           try {
-            return { ...summary(await desk.fundTask(caller, id, { vault: true })), paidWith: "your owner's saved PayPal account" };
+            return {
+              ...summary(await desk.fundTask(caller, id, { vault: true }, { rail: "paypal" })),
+              paidWith: "your owner's saved PayPal account",
+            };
           } catch (error) {
             // A refused saved account falls back to an approval; any other refusal stands.
             if (!(error instanceof DeskError && error.code === "invalid")) throw error;
             savedRefused = error.message;
           }
         }
+        const { rail, payments } = pickRail(named);
         const requirement = await payments.createPaymentRequest(task.id, taskTotal(task));
+        const others = paymentRails().filter((r) => r !== rail);
         if (isPayPalRequirement(requirement)) {
           const { limits } = await desk.getAgentAccount(caller);
           const saves = payments.vault
@@ -322,10 +330,17 @@ export function registerTools(server: McpServer): void {
               `Please approve ${usd(requirement.amount)} for this boreal task on PayPal: ${requirement.extra.approveUrl} ` +
               `(held, not charged, until the work passes review).${saves}`,
             next: `once approved, call fund_task with payment: { "orderId": "${requirement.nonce}" }`,
+            ...(others.length ? { otherRails: others } : {}),
           };
         }
-        return { paymentRequired: requirement };
+        return {
+          rail,
+          paymentRequired: requirement,
+          next: "sign this x402 requirement from a Concordium wallet holding the token, then call fund_task with the signed payload as payment",
+          ...(others.length ? { otherRails: others } : {}),
+        };
       }
+      const { rail, payments } = pickRail(named, payment);
       const funded = await desk.fundTask(caller, id, {
         async confirm() {
           try {
@@ -334,8 +349,8 @@ export function registerTools(server: McpServer): void {
             throw new DeskError("invalid", error instanceof Error ? error.message : "payment was not accepted");
           }
         },
-      });
-      return summary(funded);
+      }, { rail });
+      return { ...summary(funded), rail };
     }),
   );
 

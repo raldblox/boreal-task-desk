@@ -31,10 +31,12 @@ export function TaskCard({ task, showStatus = false }: { task: Task; showStatus?
           <Clock className="size-4" /> Due {when(task.deadline)}
         </span>
       </div>
-      {(showStatus || task.test || task.requiredAttributes.length > 0) && (
+      {(showStatus || task.test || task.paymentRail || task.requiredAttributes.length > 0) && (
         <div className="flex flex-wrap gap-2">
           {showStatus && <Badge variant={status.tone}>{status.label}</Badge>}
           {task.test && <Badge className="bg-primary-soft text-primary-soft-foreground">Test money</Badge>}
+          {task.paymentRail === "paypal" && <Badge variant="outline">Paid via PayPal</Badge>}
+          {task.paymentRail === "concordium" && <Badge variant="outline">Paid in tokens</Badge>}
           {task.requiredAttributes.map((a) => (
             <Badge key={a.attribute} variant="outline">
               {attributeLabel(a)}

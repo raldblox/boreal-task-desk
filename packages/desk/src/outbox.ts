@@ -1,4 +1,4 @@
-import type { Anchor, Concordium, Payments, SentTransfer, TransferJournal } from "@boreal/concordium";
+import type { Anchor, Concordium, PaymentRail, PaymentRails, Payments, SentTransfer, TransferJournal } from "@boreal/concordium";
 import {
   agents,
   and,
@@ -24,6 +24,8 @@ export interface PayoutAddresses {
   operating?: string;
   /** Reviewer ref to Concordium account. */
   reviewers?: Record<string, string>;
+  /** The same on the PayPal rail: PayPal emails. */
+  paypal?: { operating?: string; reviewers?: Record<string, string> };
 }
 
 type OutboxRow = typeof outbox.$inferSelect;
@@ -38,22 +40,45 @@ export interface PaymentStatusUpdate {
   detail: string;
 }
 
-/** What the outbox sends with: payments for money, the anchor for event hashes. */
+/** What the outbox sends with: each task's money on its own rail, the anchor for event hashes. */
 export interface OutboxAdapters {
+  /** The rail for items whose task has none recorded (funded before rails were per task). */
   payments: Payments | null;
+  rails?: PaymentRails;
   anchor: Anchor | null;
+}
+
+/** The rail a task settles on; tasks funded before rails were recorded count as Concordium. */
+async function railOfTask(db: Database, taskId: string | null | undefined): Promise<PaymentRail | null> {
+  if (!taskId) return null;
+  const [row] = await db.select({ rail: tasks.paymentRail }).from(tasks).where(eq(tasks.id, taskId));
+  return row?.rail ?? null;
+}
+
+async function railOfLedgerKey(db: Database, key: string): Promise<PaymentRail | null> {
+  const [row] = await db
+    .select({ rail: tasks.paymentRail })
+    .from(ledgerEntries)
+    .innerJoin(tasks, eq(tasks.id, ledgerEntries.taskId))
+    .where(eq(ledgerEntries.idempotencyKey, key));
+  return row?.rail ?? null;
 }
 
 const LEASE_MS = 5 * 60 * 1000;
 const MAX_BACKOFF_MS = 60 * 60 * 1000;
 
-async function addressFor(db: Database, addresses: PayoutAddresses, t: Transfer): Promise<string> {
+async function addressFor(db: Database, addresses: PayoutAddresses, t: Transfer, rail: PaymentRail | null): Promise<string> {
   let address: string | null | undefined;
+  const paypal = rail === "paypal";
   if (t.to === "worker" && t.party) {
     [{ address } = { address: null }] = await db
-      .select({ address: workers.payoutAddress })
+      .select({ address: paypal ? workers.paypalEmail : workers.payoutAddress })
       .from(workers)
       .where(eq(workers.id, t.party));
+  } else if (paypal && t.to === "reviewer" && t.party) {
+    address = addresses.paypal?.reviewers?.[t.party];
+  } else if (paypal && t.to === "operating") {
+    address = addresses.paypal?.operating;
   } else if (t.to === "requester" && t.party) {
     [{ address } = { address: null }] = await db
       .select({ address: agents.refundAddress })
@@ -127,14 +152,15 @@ export async function drainOutbox(
 
 async function send(
   db: Database,
-  { payments, anchor }: OutboxAdapters,
+  { payments, rails, anchor }: OutboxAdapters,
   addresses: PayoutAddresses,
   row: OutboxRow,
   at: Date,
 ): Promise<void> {
-  const needPayments = () => {
-    if (!payments) throw new Error("payments are not configured");
-    return payments;
+  const needPayments = (rail: PaymentRail | null) => {
+    const found = (rail && rails?.[rail]) || (rail ? null : payments);
+    if (!found) throw new Error(`the ${rail ?? "default"} payment rail is not configured`);
+    return found;
   };
   switch (row.kind) {
     case "anchor": {
@@ -147,8 +173,9 @@ async function send(
     case "payout":
     case "refund": {
       const transfer = row.payload as Transfer;
-      const to = await addressFor(db, addresses, transfer);
-      const { txHash } = await needPayments().sponsoredTransfer({
+      const rail = await railOfLedgerKey(db, transfer.ledgerKey);
+      const to = await addressFor(db, addresses, transfer, rail);
+      const { txHash } = await needPayments(rail).sponsoredTransfer({
         to,
         amount: transfer.amount,
         idempotencyKey: transfer.ledgerKey,
@@ -162,7 +189,7 @@ async function send(
     case "capture":
     case "release": {
       const action = row.payload as HoldAction;
-      const holds = needPayments().holds;
+      const holds = needPayments(await railOfTask(db, action.taskId)).holds;
       if (!holds) throw new Error("this payment rail can't capture or release holds");
       let txHash: string;
       if (row.kind === "capture") {
@@ -264,7 +291,7 @@ export async function queuePaymentUpdate(db: Database, update: PaymentStatusUpda
 }
 
 /** What escrow should hold on-chain: money settled in, minus money settled out. */
-export async function ledgerEscrowBalance(db: Database): Promise<number> {
+export async function ledgerEscrowBalance(db: Database, rail?: PaymentRail): Promise<number> {
   const [row] = await db
     .select({
       balance: sql<number>`coalesce(sum(case
@@ -274,8 +301,15 @@ export async function ledgerEscrowBalance(db: Database): Promise<number> {
     })
     .from(ledgerEntries)
     .innerJoin(tasks, eq(tasks.id, ledgerEntries.taskId))
-    // Test money never reaches the chain, so it stays out of the escrow comparison.
-    .where(and(eq(ledgerEntries.status, "settled"), eq(tasks.test, false)));
+    // Test money never reaches the chain, so it stays out of the escrow comparison. With a
+    // rail, only that rail's tasks (unrecorded rails count as Concordium).
+    .where(
+      and(
+        eq(ledgerEntries.status, "settled"),
+        eq(tasks.test, false),
+        rail ? sql`coalesce(${tasks.paymentRail}, 'concordium') = ${rail}` : undefined,
+      ),
+    );
   return row?.balance ?? 0;
 }
 
@@ -283,8 +317,9 @@ export async function ledgerEscrowBalance(db: Database): Promise<number> {
 export async function reconcileEscrow(
   db: Database,
   payments: Payments,
+  rail?: PaymentRail,
 ): Promise<{ expected: number; actual: number; gap: number }> {
-  const [expected, actual] = await Promise.all([ledgerEscrowBalance(db), payments.escrowBalance()]);
+  const [expected, actual] = await Promise.all([ledgerEscrowBalance(db, rail), payments.escrowBalance()]);
   return { expected, actual, gap: actual - expected };
 }
 
@@ -296,5 +331,15 @@ export function addressesFromEnv(env: Record<string, string | undefined> = proce
       .map((pair) => pair.split("=").map((part) => part.trim()))
       .filter((pair): pair is [string, string] => pair.length === 2 && !!pair[0] && !!pair[1]),
   );
-  return { operating: env.OPERATING_ACCOUNT_ADDRESS || undefined, reviewers };
+  const paypalReviewers = Object.fromEntries(
+    (env.PAYPAL_REVIEWER_EMAILS ?? "")
+      .split(",")
+      .map((pair) => pair.split("=").map((part) => part.trim()))
+      .filter((pair): pair is [string, string] => pair.length === 2 && !!pair[0] && !!pair[1]),
+  );
+  return {
+    operating: env.OPERATING_ACCOUNT_ADDRESS || undefined,
+    reviewers,
+    paypal: { operating: env.PAYPAL_OPERATING_EMAIL || undefined, reviewers: paypalReviewers },
+  };
 }

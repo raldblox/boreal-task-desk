@@ -42,7 +42,7 @@ beforeEach(async () => {
     now: () => clock,
     concordium,
     payments,
-    addresses: { reviewers: { "boreal-ai-reviewer": "reviews@boreal.example" } },
+    addresses: { paypal: { reviewers: { "boreal-ai-reviewer": "reviews@boreal.example" } } },
   });
 
   const [owner] = await db.insert(owners).values({ kind: "individual", verifiedRef: "owner-hermes" }).returning();
@@ -54,7 +54,7 @@ beforeEach(async () => {
   const request = await desk.workerProofRequest([]);
   const signedIn = await desk.signInWorker(request, { pseudonym: "ph-maria", attributes: { residency: "PH" } });
   worker = { role: "worker", workerId: signedIn.id };
-  await desk.setPayoutAddress(worker, "maria@example.com");
+  await desk.setPayoutAddress(worker, "maria@example.com", "paypal");
 });
 
 afterEach(() => close());
