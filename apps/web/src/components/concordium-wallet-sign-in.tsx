@@ -27,6 +27,24 @@ export async function detectWallet(timeoutMs = 1500): Promise<WalletApi | null> 
   return null;
 }
 
+const PROMPT_OPEN = /another prompt is already open/i;
+
+/**
+ * The wallet allows one prompt at a time and frees the slot only once its window has closed, a
+ * moment after the previous prompt resolves. Ask again for a few seconds before giving up.
+ */
+export async function oncePromptCloses<T>(ask: () => Promise<T>, timeoutMs = 4000): Promise<T> {
+  const started = Date.now();
+  for (;;) {
+    try {
+      return await ask();
+    } catch (e) {
+      if (!(e instanceof Error && PROMPT_OPEN.test(e.message)) || Date.now() - started > timeoutMs) throw e;
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+  }
+}
+
 type Status = "idle" | "connecting" | "proving" | "verifying" | "missing";
 
 const LABEL: Record<Status, string> = {
@@ -52,12 +70,12 @@ export function ConcordiumWalletSignIn({ next = "/tasks", link = false }: { next
     const wallet = await detectWallet();
     if (!wallet) return setStatus("missing");
     try {
-      await wallet.connect();
+      await oncePromptCloses(() => wallet.connect());
       setStatus("proving");
       // The request's context names a connection; this one is the browser tab.
       const connectionId = Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
       const { id, request } = await startProof(connectionId);
-      const presentation = await wallet.requestVerifiablePresentationV1(request);
+      const presentation = await oncePromptCloses(() => wallet.requestVerifiablePresentationV1(request));
       setStatus("verifying");
       await finishProof(id, presentation, link);
       router.push(next);
@@ -68,7 +86,9 @@ export function ConcordiumWalletSignIn({ next = "/tasks", link = false }: { next
       setError(
         /unable to create proof/i.test(message)
           ? "Your wallet couldn't build the proof. boreal asks an identity to prove you're 18 or older and to share your country of residence and ID document issuer and number; pick an account whose identity has those, or use the Concordium ID App."
-          : message || "The wallet didn't complete the sign-in.",
+          : PROMPT_OPEN.test(message)
+            ? "The wallet still has an earlier window open. Finish or close that window, then try again."
+            : message || "The wallet didn't complete the sign-in.",
       );
       setStatus("idle");
     }
