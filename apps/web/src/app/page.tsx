@@ -1,8 +1,10 @@
 import { FEE_POLICY } from "@boreal/core";
 import { BadgeCheck, Camera, Fingerprint, Landmark, ScrollText, Wallet } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { Eyebrow } from "@/components/brand";
+import { RegistryBadge } from "@/components/registry-badge";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { MCP_URL } from "@/content/agent-guide";
@@ -92,6 +94,9 @@ export default function Home() {
               I&apos;m building an agent
             </Link>
           </div>
+          <Suspense fallback={null}>
+            <RegistryBadge />
+          </Suspense>
         </div>
         <SampleTask />
       </section>

@@ -10,7 +10,7 @@ import { GUIDE_VERSION, LIVE_SITE, NETWORK, SITE, TESTNET_SITE } from "@/content
 import { getConcordium, paymentRails } from "@/server/desk";
 import { getIdAppVerifier } from "@/server/id-app";
 import { paypalLoginEnabled } from "@/server/paypal-accounts";
-import { type Check, databaseCheck, type Health, overall, queueCheck } from "@/server/status";
+import { type Check, databaseCheck, type Health, overall, queueCheck, registryCheck } from "@/server/status";
 
 export const metadata: Metadata = {
   title: "Status · boreal.work",
@@ -57,7 +57,10 @@ function ago(at: Date): string {
 async function Checks() {
   await connection();
   const db = await databaseCheck();
-  const queue = db.health === "down" ? null : await queueCheck(Boolean(getConcordium()?.anchor)).catch(() => null);
+  const [queue, registry] = await Promise.all([
+    db.health === "down" ? null : queueCheck(Boolean(getConcordium()?.anchor)).catch(() => null),
+    registryCheck(),
+  ]);
 
   const rails = paymentRails();
   let paypalMode = "";
@@ -91,6 +94,7 @@ async function Checks() {
     },
     queue?.money ?? { name: "Payouts and refunds", health: db.health === "down" ? "down" : "degraded", detail: "Couldn't read the queue" },
     ...(queue ? [queue.anchors] : []),
+    registry,
   ];
   const state = overall(checks);
   const look = LOOK[state];

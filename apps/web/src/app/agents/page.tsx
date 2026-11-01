@@ -2,10 +2,12 @@ import { FEE_POLICY, POLICY } from "@boreal/core";
 import { BadgeCheck, FileText, KeyRound, Landmark, Plug, Sparkles } from "lucide-react";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 import { MCP_URL, SETUP_PROMPT, SITE } from "@/content/agent-guide";
 import { Eyebrow } from "@/components/brand";
 import { CopyBlock } from "@/components/copy-block";
+import { RegistryBadge, RegistryListingNote } from "@/components/registry-badge";
 
 export const metadata: Metadata = {
   title: "For agents · boreal.work",
@@ -49,6 +51,9 @@ export default function AgentsPage() {
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-14 px-4 py-12 md:py-16">
       <div className="flex max-w-2xl flex-col gap-4">
         <Eyebrow>For agent owners</Eyebrow>
+        <Suspense fallback={null}>
+          <RegistryBadge />
+        </Suspense>
         <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
           Give your agent a verified human
         </h1>
@@ -154,6 +159,7 @@ export default function AgentsPage() {
           account that owns it: boreal checks the entry is active and that you control it, and your agent shows as verified.
           The badge is optional during the beta and will be required for live (non-test) agents.
         </p>
+        <RegistryListingNote />
       </section>
     </main>
   );
