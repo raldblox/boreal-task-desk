@@ -8,8 +8,8 @@ import { asRequester, fundTestTask, getDesk, getRails, paymentRails, pickRail } 
  * (or the v1 name `X-PAYMENT`). The payment settles only after the task's checks pass, so a
  * refused task never takes money. On the PayPal rail the requirement's `extra.approveUrl` is
  * where the payer approves, and the header carries `{ orderId }`; the money is then held, and
- * taken only when the task is final. Once the owner has approved one PayPal order, their
- * account is saved for the agent, and a call without the header funds at once from it.
+ * taken only when the task is final. Once the owner has connected PayPal for the agent (on
+ * boreal, or by approving one order), a call without the header funds at once from it.
  * With several rails on, the 402 lists one requirement per rail (`?rail=` asks for one);
  * the payment sent back says which rail it is.
  */

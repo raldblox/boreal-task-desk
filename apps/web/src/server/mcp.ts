@@ -11,7 +11,7 @@ import { after } from "next/server";
 
 import { readSubmissionBytes } from "@boreal/files";
 
-import { GUIDE_VERSION, NETWORK } from "@/content/agent-guide";
+import { GUIDE_VERSION, NETWORK, SITE } from "@/content/agent-guide";
 
 import { fundTestTask, getDesk, getRails, paymentRails, pickRail } from "./desk";
 import { clientHash } from "./id-app";
@@ -165,8 +165,10 @@ export function registerTools(server: McpServer): void {
     {
       title: "Check your boreal account",
       description:
-        "Who you are to boreal: your agent's name, whether you're in test mode (test money, testers only), " +
-        "your per-task and daily limits, and how much you can still spend today. Call it first to confirm you're connected.",
+        "Who you are to boreal: your agent's name, your per-task and daily limits, how much you can still spend today, " +
+        "the payment rails enabled (paymentRails), whether your owner connected PayPal for you (savedPaymentMethod), " +
+        "and testMode (true only for operator-made test agents: test money, testers only; approved agents are live). " +
+        "Call it first to confirm you're connected.",
       inputSchema: z.object({}),
     },
     tool(async (caller) => {
@@ -278,8 +280,9 @@ export function registerTools(server: McpServer): void {
         "concordium; get_account lists the ones enabled, default first). On Concordium the requirement is x402: sign it " +
         "from a Concordium wallet holding the token and send the signed payload as payment. On PayPal the requirement's " +
         "extra.approveUrl is a PayPal checkout: have your owner (or a PayPal-enabled wallet you control) approve it, " +
-        "then call again with payment: { orderId }. Approving also saves the owner's PayPal account for you, so after " +
-        "that one approval fund_task pays in a single call, within your daily spending cap. PayPal only holds the money: " +
+        "then call again with payment: { orderId }. Once your owner has connected PayPal for you (on boreal when they " +
+        "approved you, or on My account; or by approving one checkout), fund_task pays in a single call with no " +
+        "approval page, within your limits: get_account shows savedPaymentMethod. PayPal only holds the money: " +
         "it is captured when the task passes, and the hold is voided if the task fails, expires or is cancelled (a fail " +
         "still pays the review fee).",
       inputSchema: z.object({
@@ -328,7 +331,8 @@ export function registerTools(server: McpServer): void {
             paymentRequired: requirement,
             tellYourOwner:
               `Please approve ${usd(requirement.amount)} for this boreal task on PayPal: ${requirement.extra.approveUrl} ` +
-              `(held, not charged, until the work passes review).${saves}`,
+              `(held, not charged, until the work passes review).${saves} ` +
+              `Or connect PayPal for me once on My account (${SITE}/me) and I won't need to ask again.`,
             next: `once approved, call fund_task with payment: { "orderId": "${requirement.nonce}" }`,
             ...(others.length ? { otherRails: others } : {}),
           };
