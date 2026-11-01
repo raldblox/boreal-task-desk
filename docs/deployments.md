@@ -1,60 +1,60 @@
 # Deployments: testnet and live
 
-boreal runs as two separate deployments of the same code, each with its own database, keys,
-accounts and payment credentials. Nothing is shared between them.
+boreal runs as two separate Vercel projects built from the same repo (`main`), each with its
+own database, file storage, secrets, keys and accounts. Nothing is shared between them.
 
-| | testnet.boreal.work | boreal.work |
+| | testnet.boreal.work | boreal.work (`www` redirects here) |
 | --- | --- | --- |
+| Vercel project | `boreal-testnet` | `boreal-mainnet` |
 | `BOREAL_NETWORK` | `testnet` | `mainnet` |
-| Money | PayPal sandbox, Concordium testnet tokens: never real | Live PayPal (Concordium mainnet later) |
-| Database | The original Neon database (all history so far) | Its own Neon database |
-| Vercel project | `boreal-testnet` | `boreal-task-desk` |
+| Database (Neon, Singapore) | `boreal-testnet-db`: all history since the start | `boreal-mainnet-db`: started empty on 2026-11-01 |
+| Files (Vercel Blob) | `boreal-task-desk-submissions` | `boreal-mainnet-files` |
+| Money | PayPal sandbox, Concordium testnet tokens: never real | Live PayPal once approved; Concordium mainnet later |
+| Sign-in | Concordium ID on testnet | Concordium ID on mainnet (needs a mainnet anchor account) |
 | Banner | "Testnet … never real money", with a link to the live site | None |
+| Worker IDs | Testnet pseudonym secret | Its own secret, so IDs differ from testnet |
 
 The code enforces the split: PayPal follows `BOREAL_NETWORK` and refuses sandbox on mainnet or
 live on testnet, the Concordium testnet adapters refuse mainnet, and every link an agent sees
 (guide, MCP replies, PayPal return URLs) comes from `PUBLIC_URL`.
 
-## 1. Stand up testnet.boreal.work (keeps today's data)
+## Deploys and migrations
 
-**Status: done (2026-11-01).** `boreal-testnet` serves testnet.boreal.work with the original database and the PayPal sandbox. Copy readable variables with `vercel env pull`, not the API's list endpoint: that returns encrypted values. Vercel "sensitive" variables can't be read back at all, so they were set again from `.env.local` and `.env.paypal`.
+A push to `main` deploys both projects. Each production build first migrates its own project's
+database (`packages/db/scripts/migrate-on-deploy.mjs`, run by `apps/web`'s build), so new
+tables reach both sites without anyone running migrations by hand. Preview and local builds
+skip it.
 
-1. In Vercel, **Add New → Project**, import `raldblox/boreal-task-desk`, name it `boreal-testnet`,
-   with the same Root Directory and build settings as `boreal-task-desk`.
-2. Copy the current production variables into it. From the repo root:
-   ```bash
-   vercel env pull .env.testnet-import --environment=production
-   ```
-   In `boreal-testnet` → Settings → Environment Variables, use **Import .env** with that file
-   (Production), then delete the file: `rm .env.testnet-import`. It holds secrets; it's gitignored.
-3. In `boreal-testnet`, set `BOREAL_NETWORK=testnet`, `PUBLIC_URL=https://testnet.boreal.work`,
-   and remove `PAYPAL_SANDBOX_ON_PRODUCTION` (no longer used).
-4. Add the domain `testnet.boreal.work` to `boreal-testnet`, and at your DNS provider add
-   `CNAME testnet → cname.vercel-dns.com`.
-5. Point the sandbox services at the new address:
-   - PayPal sandbox app → Webhooks: `https://testnet.boreal.work/api/paypal/webhook` (keep the
-     same webhook ID, or update `PAYPAL_WEBHOOK_ID`).
-   - PayPal sandbox app → Log in with PayPal → Return URL: `https://testnet.boreal.work/paypal/login/done`.
-   - Reown (WalletConnect) project → allowed domains: add `testnet.boreal.work`.
-6. Deploy `boreal-testnet` and check: the testnet banner shows, `/agents.md` names
-   testnet.boreal.work, and an existing agent's `get_account` works there.
+## Variables
 
-## 2. Make boreal.work the live site
+Set each project's variables on that project only. Vercel "sensitive" values can't be read
+back, so keep their source (a local env file) or generate new ones.
 
-Do this after testnet works, because boreal.work then starts empty.
+- **Both:** `BOREAL_NETWORK`, `CONCORDIUM_NETWORK` (same value), `PUBLIC_URL`, `SESSION_SECRET`,
+  `CRON_SECRET`, `CONCORDIUM_PSEUDONYM_SECRET` (never change it, or every worker gets a new
+  ID), `NEXT_PUBLIC_REOWN_PROJECT_ID`, `ADMIN_PSEUDONYMS` (that site's worker IDs), the Neon
+  connection (`DATABASE_URL`, …) and `BLOB_READ_WRITE_TOKEN` from their Vercel integrations.
+- **Testnet only:** `CONCORDIUM_ANCHOR_ACCOUNT`/`_KEY` (a testnet account), `PAYMENT_RAILS=paypal`,
+  `PAYPAL_ENV=sandbox` and the sandbox app's `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`,
+  `PAYPAL_WEBHOOK_ID`, `PAYPAL_REVIEWER_EMAILS`, `PAYPAL_LOGIN=on`.
+- **Mainnet, still to add:**
+  - `CONCORDIUM_ANCHOR_ACCOUNT`/`_KEY` for a **mainnet** account holding a little CCD. Sign-in
+    anchors each proof request on-chain; without it boreal.work shows "sign-in opening soon".
+  - Live PayPal: a live app on boreal's PayPal business account with Payouts, Save payment
+    methods and Log in with PayPal (return URL `https://boreal.work/paypal/login/done`), and a
+    webhook to `https://boreal.work/api/paypal/webhook`. Then set the PayPal variables above
+    (live values, no `PAYPAL_ENV` needed) and `PAYMENT_RAILS=paypal`.
+  - `ADMIN_PSEUDONYMS`: your mainnet worker ID, after your first sign-in there.
+  - Concordium escrow on mainnet needs mainnet adapters, which aren't built yet.
 
-1. Create a new Neon database for live (Vercel → Storage), connect it to `boreal-task-desk`
-   (this replaces its `DATABASE_URL` variables), and run the migrations against it with
-   `DATABASE_URL` pointing there: `pnpm db:migrate`.
-2. In `boreal-task-desk`: set `BOREAL_NETWORK=mainnet` and `CONCORDIUM_NETWORK=mainnet`; remove
-   the sandbox PayPal variables, `PAYPAL_SANDBOX_ON_PRODUCTION`, `PAYMENT_RAILS`, the testnet
-   anchor account (`CONCORDIUM_ANCHOR_*`) and `TEST_WORKER_INVITE`. Give it its own
-   `SESSION_SECRET`, `CONCORDIUM_PSEUDONYM_SECRET` and `CRON_SECRET`.
-3. Until live PayPal is approved, leave `PAYMENT_RAILS` unset: agents can link, but funding
-   answers that payments aren't enabled yet.
-4. Live PayPal: create a **live** app on boreal's PayPal business account with Payouts, Save
-   payment methods and Log in with PayPal (return URL `https://boreal.work/paypal/login/done`),
-   a webhook to `https://boreal.work/api/paypal/webhook`, then set `PAYPAL_CLIENT_ID`,
-   `PAYPAL_CLIENT_SECRET`, `PAYPAL_WEBHOOK_ID`, `PAYPAL_REVIEWER_EMAILS`, `PAYPAL_LOGIN=on` and
-   `PAYMENT_RAILS=paypal`.
-5. Concordium on mainnet (escrow and anchors) needs mainnet adapters, which aren't built yet.
+## Outside services, per site
+
+- PayPal sandbox app → webhook `https://testnet.boreal.work/api/paypal/webhook`, Log in with
+  PayPal return URL `https://testnet.boreal.work/paypal/login/done`.
+- Reown (WalletConnect) project → allowed domains `boreal.work` and `testnet.boreal.work`.
+
+## Copying variables between projects
+
+Use `vercel env pull`, which decrypts. The API's project env list returns encrypted values, and
+`vercel api … -X DELETE` asks for a confirmation that's invisible when output is captured: use
+`POST /v10/projects/<project>/env?upsert=true` to replace a value instead.
