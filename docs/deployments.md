@@ -17,6 +17,8 @@ live on testnet, the Concordium testnet adapters refuse mainnet, and every link 
 
 ## 1. Stand up testnet.boreal.work (keeps today's data)
 
+**Status: done (2026-11-01).** `boreal-testnet` serves testnet.boreal.work with the original database and the PayPal sandbox. Copy readable variables with `vercel env pull`, not the API's list endpoint: that returns encrypted values. Vercel "sensitive" variables can't be read back at all, so they were set again from `.env.local` and `.env.paypal`.
+
 1. In Vercel, **Add New → Project**, import `raldblox/boreal-task-desk`, name it `boreal-testnet`,
    with the same Root Directory and build settings as `boreal-task-desk`.
 2. Copy the current production variables into it. From the repo root:
