@@ -11,7 +11,8 @@ import { asRequester, fundTestTask, getDesk, getRails, paymentRails, pickRail } 
  * taken only when the task is final. Once the owner has connected PayPal for the agent (on
  * boreal, or by approving one order), a call without the header funds at once from it.
  * With several rails on, the 402 lists one requirement per rail (`?rail=` asks for one);
- * the payment sent back says which rail it is.
+ * the payment sent back says which rail it is. The payment may also come as a JSON body,
+ * `{ "payment": … }` or a bare `{ "orderId": … }`, for clients that can't set headers.
  */
 export async function POST(request: Request, ctx: RouteContext<"/api/v1/tasks/[id]/fund">) {
   const { id } = await ctx.params;
@@ -28,8 +29,9 @@ export async function POST(request: Request, ctx: RouteContext<"/api/v1/tasks/[i
     if (paymentRails().length === 0) throw new DeskError("unavailable", "payments are not enabled yet; only test money works here");
 
     const header = request.headers.get("payment-signature") ?? request.headers.get("x-payment");
+    const fromBody = header ? undefined : await paymentFromBody(request);
     const paypal = getRails().paypal;
-    if (!header && (!named || named === "paypal") && paypal?.vault && (await desk.getAgentAccount(caller)).savedPaymentMethod) {
+    if (!header && !fromBody && (!named || named === "paypal") && paypal?.vault && (await desk.getAgentAccount(caller)).savedPaymentMethod) {
       try {
         return Response.json(await desk.fundTask(caller, id, { vault: true }, { rail: "paypal" }));
       } catch (error) {
@@ -37,7 +39,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/v1/tasks/[i
         if (!(error instanceof DeskError && error.code === "invalid")) throw error;
       }
     }
-    if (!header) {
+    if (!header && !fromBody) {
       // One requirement per rail the agent may pay on, the default first.
       const rails = named ? [pickRail(named).rail] : paymentRails();
       const on = getRails();
@@ -47,15 +49,21 @@ export async function POST(request: Request, ctx: RouteContext<"/api/v1/tasks/[i
         error: "payment required",
         resource: { url: request.url, description: `Fund task ${task.id} into escrow`, mimeType: "application/json" },
         accepts,
+        retry:
+          "PayPal: once the payer approves extra.approveUrl, POST here again with header PAYMENT-SIGNATURE: " +
+          'base64({"orderId":"<extra.orderId>"}), or with JSON body {"orderId":"<extra.orderId>"}. ' +
+          "Concordium: send the signed x402 payload the same way.",
       };
       return Response.json(required, { status: 402, headers: { "PAYMENT-REQUIRED": encode(required) } });
     }
 
-    let payment: unknown;
-    try {
-      payment = JSON.parse(Buffer.from(header, "base64").toString("utf8"));
-    } catch {
-      throw new DeskError("invalid", "PAYMENT-SIGNATURE must be base64-encoded JSON");
+    let payment: unknown = fromBody;
+    if (header) {
+      try {
+        payment = JSON.parse(Buffer.from(header, "base64").toString("utf8"));
+      } catch {
+        throw new DeskError("invalid", "PAYMENT-SIGNATURE must be base64-encoded JSON");
+      }
     }
 
     const { rail, payments } = pickRail(named, payment);
@@ -71,6 +79,22 @@ export async function POST(request: Request, ctx: RouteContext<"/api/v1/tasks/[i
     const receipt = encode({ success: true, transaction: funded.fundingTxHash });
     return Response.json(funded, { headers: { "PAYMENT-RESPONSE": receipt, "X-PAYMENT-RESPONSE": receipt } });
   });
+}
+
+/** A payment sent as the JSON body: `{ payment }`, or a bare PayPal `{ orderId }`. */
+async function paymentFromBody(request: Request): Promise<unknown> {
+  const text = await request.text();
+  if (!text.trim()) return undefined;
+  let body: unknown;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    throw new DeskError("invalid", "request body must be JSON");
+  }
+  if (!body || typeof body !== "object") return undefined;
+  const b = body as { payment?: unknown; orderId?: unknown };
+  if (b.payment !== undefined) return b.payment;
+  return typeof b.orderId === "string" ? { orderId: b.orderId } : undefined;
 }
 
 const encode = (value: unknown) => Buffer.from(JSON.stringify(value)).toString("base64");
