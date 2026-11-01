@@ -15,10 +15,14 @@ export async function GET(request: Request, ctx: RouteContext<"/paypal/save/[age
   const agent = await getDesk().ownerAgent(worker.workerId, agentId).catch(() => null);
   if (!agent) redirect("/me?paypal=not-yours");
   const site = siteUrl(request);
-  const { setupTokenId, approveUrl } = await accounts.startSaving({
-    returnUrl: `${site}/paypal/saved`,
-    cancelUrl: `${site}/me?paypal=cancelled`,
-  });
-  (await cookies()).set("paypal_save", `${agent.id}:${setupTokenId}`, PAYPAL_COOKIE);
-  redirect(approveUrl);
+  let started: { setupTokenId: string; approveUrl: string } | null = null;
+  try {
+    started = await accounts.startSaving({ returnUrl: `${site}/paypal/saved`, cancelUrl: `${site}/me?paypal=cancelled` });
+  } catch (error) {
+    // e.g. 403 NOT_AUTHORIZED when the PayPal app doesn't have "Save payment methods" on.
+    console.error("[paypal] starting to save an agent's account failed", error);
+  }
+  if (!started) redirect("/me?paypal=unavailable");
+  (await cookies()).set("paypal_save", `${agent.id}:${started.setupTokenId}`, PAYPAL_COOKIE);
+  redirect(started.approveUrl);
 }

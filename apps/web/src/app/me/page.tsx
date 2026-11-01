@@ -210,6 +210,8 @@ const PAYPAL_NOTICES: Record<string, string> = {
   connected: "PayPal connected. Passed tasks on PayPal pay out to that account.",
   cancelled: "Nothing changed: you cancelled on PayPal.",
   failed: "PayPal didn't finish connecting. Try again.",
+  unavailable:
+    "PayPal can't save accounts for boreal yet, so your agent will send you a PayPal link to approve for each task instead.",
   off: "PayPal isn't switched on here.",
   "not-yours": "That agent isn't yours.",
 };
