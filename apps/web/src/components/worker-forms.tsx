@@ -142,39 +142,6 @@ export function DisputeForm({ action }: { action: Action }) {
   );
 }
 
-/** Invite-only sign-in for testers while Concordium ID isn't live. */
-export function TestSignIn({ action }: { action: Action }) {
-  const [state, formAction, pending] = useActionState(action, null);
-  return (
-    <form action={formAction} className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="invite">Invite code</Label>
-        <Input id="invite" name="invite" required autoComplete="off" />
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="pseudonym">Pseudonym</Label>
-        <Input id="pseudonym" name="pseudonym" required minLength={3} pattern="[a-z0-9-]{3,32}" placeholder="ph-maria" />
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="country">Country of residence</Label>
-        <select id="country" name="country" defaultValue="PH" className="h-8 rounded-lg border border-input bg-background px-2.5 text-sm">
-          <option value="PH">Philippines</option>
-          <option value="SG">Singapore</option>
-          <option value="US">United States</option>
-          <option value="">Don&apos;t share</option>
-        </select>
-      </div>
-      <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" name="adult" defaultChecked /> I am 18 or older
-      </label>
-      <Button type="submit" disabled={pending} size="lg" className="w-full sm:w-fit">
-        {pending ? "Signing in…" : "Sign in as tester"}
-      </Button>
-      <FormError state={state} />
-    </form>
-  );
-}
-
 /** Stands in for the Concordium ID wallet until the real proof flow lands. */
 export function DevWallet({ action, request }: { action: Action; request: string }) {
   const [state, formAction, pending] = useActionState(action, null);

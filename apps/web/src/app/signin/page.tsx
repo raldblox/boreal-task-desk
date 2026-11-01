@@ -2,35 +2,15 @@ import { Check, EyeOff } from "lucide-react";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
-import { signIn, signInTest } from "@/app/actions";
+import { signIn } from "@/app/actions";
 import { BorealMark, Eyebrow } from "@/components/brand";
 import { ConcordiumSignIn } from "@/components/concordium-sign-in";
 import { ConcordiumWalletSignIn } from "@/components/concordium-wallet-sign-in";
-import { DevWallet, TestSignIn } from "@/components/worker-forms";
+import { DevWallet } from "@/components/worker-forms";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getConcordium, getDesk } from "@/server/desk";
 import { getIdAppVerifier } from "@/server/id-app";
 import { workerFromSession } from "@/server/session";
-
-function TesterInvite() {
-  if (!process.env.TEST_WORKER_INVITE) return null;
-  return (
-    <details className="group rounded-xl border bg-card">
-      <summary className="cursor-pointer list-none px-5 py-4 text-sm font-medium marker:hidden">
-        <span className="flex items-center justify-between">
-          I have a tester invite
-          <span className="text-muted-foreground transition-transform group-open:rotate-45">+</span>
-        </span>
-      </summary>
-      <div className="flex flex-col gap-4 border-t px-5 py-5">
-        <p className="text-sm text-muted-foreground">
-          Testers run test tasks paid in test money. Attributes are self-declared until you use Concordium ID.
-        </p>
-        <TestSignIn action={signInTest} />
-      </div>
-    </details>
-  );
-}
 
 /** Where to go after signing in: only a path on this site. */
 function safeNext(next: string | undefined): string {
@@ -69,7 +49,6 @@ async function SignInOptions({ searchParams }: { searchParams: Promise<{ next?: 
           </div>
           <ConcordiumWalletSignIn next={next} />
         </div>
-        <TesterInvite />
       </div>
     );
   }
@@ -92,7 +71,6 @@ async function SignInOptions({ searchParams }: { searchParams: Promise<{ next?: 
         <AlertTitle>Concordium ID sign-in is opening soon</AlertTitle>
         <AlertDescription>Workers will sign in by proving only what tasks need, like residency or age.</AlertDescription>
       </Alert>
-      <TesterInvite />
     </div>
   );
 }

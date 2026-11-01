@@ -49,25 +49,6 @@ export async function signIn(_prev: ActionState, form: FormData): Promise<Action
 }
 
 /** Invite-only test sign-in while Concordium ID isn't live; test workers only see test tasks. */
-export async function signInTest(_prev: ActionState, form: FormData): Promise<ActionState> {
-  try {
-    const attributes: Record<string, string> = {};
-    const country = String(form.get("country") ?? "");
-    if (country) attributes.residency = country;
-    if (form.get("adult") === "on") attributes.age_over_18 = "true";
-    const worker = await getDesk().signInTestWorker(
-      String(form.get("invite") ?? "").trim(),
-      String(form.get("pseudonym") ?? ""),
-      attributes,
-    );
-    await startWorkerSession(worker.id);
-  } catch (error) {
-    if (error instanceof DeskError) return { error: error.message };
-    console.error("[test sign-in] failed", error);
-    return { error: "Sign-in failed. Try again." };
-  }
-  redirect("/tasks");
-}
 
 export async function signOut(): Promise<void> {
   await endWorkerSession();
