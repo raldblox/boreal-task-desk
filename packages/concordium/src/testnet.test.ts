@@ -1,4 +1,4 @@
-import { generateKeyPairSync, randomBytes } from "node:crypto";
+import { createHash, generateKeyPairSync, randomBytes } from "node:crypto";
 
 import {
   AccountAddress,
@@ -10,6 +10,7 @@ import {
   TokenAmount,
   TokenId,
   TransactionExpiry,
+  TransactionHash,
 } from "@concordium/web-sdk";
 import { Transaction } from "@concordium/web-sdk/transactions";
 import { CONCORDIUM_TESTNET_CAIP2, type FacilitatorConcordiumSigner } from "@x402/concordium";
@@ -379,8 +380,10 @@ describe("grpc chain", () => {
       async getTokenInfo() {
         return { state: { decimals: 6 } };
       },
+      // Like a real node: the transaction's hash is the SHA-256 of its block item.
       async sendTransaction(tx: Transaction.Finalized) {
         sent.push(tx);
+        return TransactionHash.fromHexString(createHash("sha256").update(Transaction.serializeBlockItem(tx)).digest("hex"));
       },
       async getAccountInfo() {
         return { accountTokens: [{ id: TokenId.fromString("USDR"), state: { balance: TokenAmount.create(5_000_000n, 6) } }] };
@@ -403,7 +406,8 @@ describe("grpc chain", () => {
     await tx.send();
     expect(sent).toHaveLength(1);
     const finalized = sent[0]!;
-    expect(Buffer.from(Transaction.getAccountTransactionHash(finalized)).toString("hex")).toBe(tx.txHash);
+    // The node names a transaction by its block item's SHA-256 (the SDK's getAccountTransactionHash doesn't).
+    expect(createHash("sha256").update(Transaction.serializeBlockItem(finalized)).digest("hex")).toBe(tx.txHash);
     const json = JSON.stringify(finalized, (_k, v) => (typeof v === "bigint" ? v.toString() : v));
     // Sent by escrow, with the sponsor's signature alongside the sender's.
     expect(json).toContain(cfg.sponsorAccount);

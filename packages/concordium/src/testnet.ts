@@ -376,11 +376,16 @@ export function grpcChain(
   const expiryNow = () => Math.floor(now().getTime() / 1000) + MAX_TIMEOUT_SECONDS;
 
   function prepared(finalized: Transaction.Finalized, expiry: number): PreparedTransaction {
+    // The node names a transaction by the SHA-256 of its block item. The SDK's
+    // getAccountTransactionHash gets v0 (unsponsored) transactions wrong, so anchors were
+    // waited on under a hash the chain never had.
+    const txHash = createHash("sha256").update(Transaction.serializeBlockItem(finalized)).digest("hex");
     return {
-      txHash: Buffer.from(Transaction.getAccountTransactionHash(finalized)).toString("hex"),
+      txHash,
       expiry,
       async send() {
-        await client.sendTransaction(finalized);
+        const sent = TransactionHash.toHexString(await client.sendTransaction(finalized));
+        if (sent !== txHash) throw new TestnetConcordiumError(`the node named transaction ${txHash} as ${sent}`);
       },
     };
   }
