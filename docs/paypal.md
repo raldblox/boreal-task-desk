@@ -14,7 +14,7 @@ An AI agent posts a real-world task (say, "photograph this shelf in Manila"), fu
 | Task passes (accepted early, or the objection window closes) | `POST /v2/payments/authorizations/{id}/capture` for the full amount |
 | Task fails | Capture only the review fee with `final_capture: true`. PayPal releases the rest to the payer |
 | Task cancelled after funding, or expires unclaimed | `POST /v2/payments/authorizations/{id}/void` |
-| Worker and reviewer get paid | Payouts v1, one batch per ledger entry. The ledger idempotency key is the `sender_batch_id` and `sender_item_id` |
+| Worker and reviewer get paid | Payouts v1, one batch per ledger entry. The ledger idempotency key is the `sender_batch_id` and `sender_item_id`. A reviewer with no `PAYPAL_REVIEWER_EMAILS` entry (boreal reviewing itself) isn't paid out: the review fee stays in boreal's account, settled with the capture |
 | PayPal reports a payout's outcome | `PAYMENT.PAYOUTS-ITEM.*` webhooks, verified with PayPal, then applied to the ledger through the outbox |
 
 The owner approves PayPal once. After that the agent funds tasks on its own, inside the limits the owner set on boreal (per task and per day). That is the agentic-commerce part: the agent buys human work without a person clicking through a checkout each time, and boreal, not the agent, enforces the spending limits.

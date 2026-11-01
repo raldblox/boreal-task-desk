@@ -36,7 +36,7 @@ back, so keep their source (a local env file) or generate new ones.
   connection (`DATABASE_URL`, …) and `BLOB_READ_WRITE_TOKEN` from their Vercel integrations.
 - **Testnet only:** `CONCORDIUM_MODE=testnet`, `CONCORDIUM_ANCHOR_ACCOUNT`/`_KEY` (a testnet
   account), `PAYMENT_RAILS=paypal`, `PAYPAL_ENV=sandbox` and the sandbox app's `PAYPAL_CLIENT_ID`,
-  `PAYPAL_CLIENT_SECRET`, `PAYPAL_WEBHOOK_ID`, `PAYPAL_REVIEWER_EMAILS`, `PAYPAL_LOGIN=on`, plus
+  `PAYPAL_CLIENT_SECRET`, `PAYPAL_WEBHOOK_ID`, `PAYPAL_LOGIN=on` (optional `PAYPAL_REVIEWER_EMAILS`: unset, boreal's review fee stays in its own PayPal account), plus
   `BOREAL_REGISTRY_BADGE`/`_OWNER` (docs/registry.md).
   - Without `CONCORDIUM_ESCROW_ACCOUNT`/`_KEY` and `CONCORDIUM_PAYMENT_SECRET`, testnet mode runs
     anchor-only: anchors and the registry work, and Concordium isn't a payment rail. Adding the

@@ -198,7 +198,7 @@ async function send(
         await holds.release(action.hold, action.key);
         txHash = `released:${action.hold}`;
       }
-      await settleHold(db, action.taskId, txHash, at);
+      await settleHold(db, action.taskId, txHash, at, addresses);
       return;
     }
     case "reconcile": {
@@ -248,10 +248,12 @@ export function outboxTransferJournal(db: Database): TransferJournal {
 /**
  * After a hold is captured or released, in one transaction: the funding entry settles, the
  * entries the hold itself settled (refunds back to the payer, boreal's fee kept in its own
- * account) settle with it, and payouts to workers and reviewers are queued. Only the first
- * run does any of this, so a repeated capture never queues a payout twice.
+ * account) settle with it, and payouts to workers and reviewers are queued. A review fee
+ * for a reviewer with no PayPal email set (boreal reviewing itself) also stays in boreal's
+ * account, like the platform fee. Only the first run does any of this, so a repeated
+ * capture never queues a payout twice.
  */
-async function settleHold(db: Database, taskId: string, txHash: string, at: Date): Promise<void> {
+async function settleHold(db: Database, taskId: string, txHash: string, at: Date, addresses: PayoutAddresses): Promise<void> {
   await db.transaction(async (tx) => {
     const [funding] = await tx
       .update(ledgerEntries)
@@ -264,14 +266,16 @@ async function settleHold(db: Database, taskId: string, txHash: string, at: Date
       .select()
       .from(ledgerEntries)
       .where(and(eq(ledgerEntries.taskId, taskId), eq(ledgerEntries.fromAccount, "escrow"), eq(ledgerEntries.status, "pending")));
-    const inPlace = pending.filter((e) => e.toAccount === "requester" || e.toAccount === "operating");
+    const keptByBoreal = (e: (typeof pending)[number]) =>
+      e.toAccount === "reviewer" && !(e.party && addresses.paypal?.reviewers?.[e.party]);
+    const inPlace = pending.filter((e) => e.toAccount === "requester" || e.toAccount === "operating" || keptByBoreal(e));
     if (inPlace.length > 0) {
       await tx
         .update(ledgerEntries)
         .set({ status: "settled", txHash, updatedAt: at })
         .where(inArray(ledgerEntries.id, inPlace.map((e) => e.id)));
     }
-    const payouts = pending.filter((e) => e.toAccount === "worker" || e.toAccount === "reviewer");
+    const payouts = pending.filter((e) => e.toAccount === "worker" || (e.toAccount === "reviewer" && !keptByBoreal(e)));
     if (payouts.length > 0) {
       await tx.insert(outbox).values(
         payouts.map((e) => ({

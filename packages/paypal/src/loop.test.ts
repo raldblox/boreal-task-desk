@@ -137,6 +137,23 @@ describe("PayPal rail", () => {
     expect(pay).toMatchObject({ status: "settled", txHash: "paypal:txn:TXN42" });
   });
 
+  it("keeps the review fee in boreal's PayPal when no reviewer email is set", async () => {
+    // boreal reviewing itself: no PayPal payee for its reviewer, so the fee stays put.
+    desk = createDesk({ db, now: () => clock, payments });
+    const { task, quote } = await fundedTask();
+    await submitted(task.id);
+    await desk.recordVerdict(reviewer, task.id, { outcome: "pass", ruleIds: ["R5.2"], reasoning: "Shelf and tag visible" });
+    await desk.acceptEarly(requester, task.id);
+
+    await desk.drainOutbox();
+    expect(await desk.drainOutbox()).toEqual({ sent: 1, failed: 0 });
+    expect(paypal.payouts.map((p) => p.senderBatchId)).toEqual([`${task.id}:pay-worker`]);
+    const fee = (await ledger(task.id)).find((e) => e.toAccount === "reviewer");
+    expect(fee).toMatchObject({ status: "settled", amount: quote.reviewFee });
+    expect(fee?.txHash).toMatch(/^paypal:capture:/);
+    expect(await ledgerEscrowBalance(db)).toBe(0);
+  });
+
   it("captures only the review fee on a fail and lets the rest of the hold go", async () => {
     const { task, quote } = await fundedTask();
     await submitted(task.id);
