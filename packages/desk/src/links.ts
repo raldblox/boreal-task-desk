@@ -198,7 +198,11 @@ export function linkCommands(db: Database, now: () => Date) {
             .from(agents)
             .where(and(eq(agents.id, input.replaceAgentId), eq(agents.ownerId, owner.id)));
           if (!mine) throw new DeskError("forbidden", "that agent isn't yours");
-          await tx.update(agents).set({ name, maxTaskBudget, maxDailySpend, ...badge, updatedAt: at }).where(eq(agents.id, mine.id));
+          // A fresh approval by its verified owner makes the agent live, like a new one.
+          await tx
+            .update(agents)
+            .set({ name, maxTaskBudget, maxDailySpend, testMode: false, ...badge, updatedAt: at })
+            .where(eq(agents.id, mine.id));
           agentId = mine.id;
         } else {
           if (input.badge) {

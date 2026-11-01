@@ -403,13 +403,15 @@ describe("agent linking", () => {
     await desk.approveAgentLink(workerIdOf(manilaWorker), first.code, { name: "Hermes", ...limits });
     const oldKey = ((await desk.pollAgentLink(first.pollToken)) as { key: string }).key;
     const [mine] = await desk.listOwnerAgents(workerIdOf(manilaWorker));
+    // Agents linked in the early beta started on test money; a fresh approval makes them live.
+    await db.update(agents).set({ testMode: true }).where(eq(agents.id, mine!.id));
 
     const second = await desk.requestAgentLink({ agentName: "Hermes" }, "client-a");
     await desk.approveAgentLink(workerIdOf(manilaWorker), second.code, { name: "Hermes", ...limits, replaceAgentId: mine!.id });
     const newKey = ((await desk.pollAgentLink(second.pollToken)) as { key: string }).key;
     expect(await verifyAgentKey(db, newKey)).toBe(mine!.id);
     expect(await verifyAgentKey(db, oldKey)).toBeNull();
-    expect(await desk.listOwnerAgents(workerIdOf(manilaWorker))).toHaveLength(1);
+    expect(await desk.listOwnerAgents(workerIdOf(manilaWorker))).toMatchObject([{ id: mine!.id, testMode: false }]);
 
     // Someone else can't take over that agent.
     const third = await desk.requestAgentLink({ agentName: "Hermes" }, "client-b");
