@@ -7,6 +7,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
+    "test": "vitest run",
     "vendor:concordium-css": "node scripts/vendor-concordium-css.mjs"
   },
   "dependencies": {

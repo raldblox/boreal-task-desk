@@ -72,6 +72,7 @@ describe("admin gate", () => {
     expect(await desk.adminFor(workerId, "ccdid:someone-else")).toBeNull();
     expect(await desk.adminFor(workerId, "ccdid:someone-else, ccdid:worker-1")).toEqual({ ref: "ccdid:worker-1" });
     expect(await desk.adminFor(crypto.randomUUID(), "ccdid:worker-1")).toBeNull();
+    expect(await desk.adminFor("not-a-worker-id", "ccdid:worker-1")).toBeNull();
     // A prefix or a near match is not the pseudonym.
     expect(await desk.adminFor(workerId, "ccdid:worker")).toBeNull();
 

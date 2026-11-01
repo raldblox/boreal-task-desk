@@ -41,6 +41,22 @@ export function parseAdminList(value: string | undefined): Set<string> {
   return new Set((value ?? "").split(/[\s,]+/).filter(Boolean));
 }
 
+/**
+ * The admin a worker is, or null. Only workers who signed in with Concordium ID qualify
+ * (never testers), and only when their pseudonym is on the allowlist. Standalone, so the
+ * web app's proxy can check it before anything renders.
+ */
+export async function adminForWorker(db: Database, workerId: string, allowlist: string | undefined): Promise<Admin | null> {
+  const list = parseAdminList(allowlist);
+  if (list.size === 0 || !/^[0-9a-f-]{36}$/i.test(workerId)) return null;
+  const [worker] = await db
+    .select({ pseudonym: workers.pseudonym, testMode: workers.testMode })
+    .from(workers)
+    .where(eq(workers.id, workerId));
+  if (!worker || worker.testMode || !list.has(worker.pseudonym)) return null;
+  return { ref: worker.pseudonym };
+}
+
 function requireReason(reason: string): string {
   const trimmed = reason.trim();
   if (trimmed.length < 5) throw new DeskError("invalid", "give a reason of at least 5 characters");
@@ -78,19 +94,9 @@ export function adminCommands(db: Database, now: () => Date, review: ReviewComma
   }
 
   return {
-    /**
-     * The admin a signed-in worker is, or null. Only workers who signed in with Concordium ID
-     * qualify (never testers), and only when their pseudonym is on the allowlist.
-     */
+    /** The admin a signed-in worker is, or null: see adminForWorker. */
     async adminFor(workerId: string, allowlist: string | undefined): Promise<Admin | null> {
-      const list = parseAdminList(allowlist);
-      if (list.size === 0) return null;
-      const [worker] = await db
-        .select({ pseudonym: workers.pseudonym, testMode: workers.testMode })
-        .from(workers)
-        .where(eq(workers.id, workerId));
-      if (!worker || worker.testMode || !list.has(worker.pseudonym)) return null;
-      return { ref: worker.pseudonym };
+      return adminForWorker(db, workerId, allowlist);
     },
 
     /** Screens a posted task as boreal's reviewer. */
