@@ -1,7 +1,7 @@
 import { createHash, randomBytes, randomInt } from "node:crypto";
 
 import { POLICY } from "@boreal/core";
-import { agentLinks, agents, and, type Database, eq, gt, owners, sql, workers } from "@boreal/db";
+import { agentLinks, agents, and, type Database, eq, gt, ne, owners, sql, workers } from "@boreal/db";
 
 import { DeskError } from "./errors";
 import { issueAgentKey } from "./keys";
@@ -152,7 +152,7 @@ export function linkCommands(db: Database, now: () => Date) {
           maxTaskBudget: POLICY.maxTaskBudget,
           maxDailySpend: POLICY.maxAgentDailySpend,
           testMode: false,
-          personal: true,
+          kind: "personal",
           createdAt: at,
           updatedAt: at,
         })
@@ -168,7 +168,7 @@ export function linkCommands(db: Database, now: () => Date) {
         .from(agents)
         .innerJoin(owners, eq(owners.id, agents.ownerId))
         .innerJoin(workers, eq(workers.pseudonym, owners.verifiedRef))
-        .where(and(eq(workers.id, workerId), eq(agents.personal, true)));
+        .where(and(eq(workers.id, workerId), eq(agents.kind, "personal")));
       return found?.agent ?? null;
     },
 
@@ -184,7 +184,7 @@ export function linkCommands(db: Database, now: () => Date) {
           paypalConnected: sql<boolean>`${agents.paymentVaultId} is not null`,
         })
         .from(agents)
-        .where(and(eq(agents.ownerId, owner.id), eq(agents.personal, false)));
+        .where(and(eq(agents.ownerId, owner.id), ne(agents.kind, "personal")));
     },
 
     /** One of the owner's agents, or a refusal: for pages that act on an agent. */
@@ -193,7 +193,7 @@ export function linkCommands(db: Database, now: () => Date) {
       const [agent] = await db
         .select({ id: agents.id, name: agents.name })
         .from(agents)
-        .where(and(eq(agents.id, agentId), eq(agents.ownerId, owner.id), eq(agents.personal, false)));
+        .where(and(eq(agents.id, agentId), eq(agents.ownerId, owner.id), ne(agents.kind, "personal")));
       if (!agent) throw new DeskError("forbidden", "that agent isn't yours");
       return agent;
     },
@@ -204,7 +204,7 @@ export function linkCommands(db: Database, now: () => Date) {
       const [agent] = await db
         .select({ id: agents.id, name: agents.name })
         .from(agents)
-        .where(and(eq(agents.id, agentId), eq(agents.ownerId, owner.id), eq(agents.personal, false)));
+        .where(and(eq(agents.id, agentId), eq(agents.ownerId, owner.id), ne(agents.kind, "personal")));
       if (!agent) throw new DeskError("forbidden", "that agent isn't yours");
       if (!vaultId) throw new DeskError("invalid", "PayPal returned no saved account");
       await db.update(agents).set({ paymentVaultId: vaultId, updatedAt: now() }).where(eq(agents.id, agent.id));
@@ -236,7 +236,7 @@ export function linkCommands(db: Database, now: () => Date) {
             .select({ id: agents.id })
             .from(agents)
             // A person's own requester never gets a key.
-            .where(and(eq(agents.id, input.replaceAgentId), eq(agents.ownerId, owner.id), eq(agents.personal, false)));
+            .where(and(eq(agents.id, input.replaceAgentId), eq(agents.ownerId, owner.id), ne(agents.kind, "personal")));
           if (!mine) throw new DeskError("forbidden", "that agent isn't yours");
           // A fresh approval by its verified owner makes the agent live, like a new one.
           await tx

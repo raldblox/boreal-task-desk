@@ -113,6 +113,20 @@
       "when": 1793579438064,
       "tag": "0015_near_rail",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793593175663,
+      "tag": "0016_agent_kind",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793593197469,
+      "tag": "0017_drop_agent_personal",
+      "breakpoints": true
     }
   ]
 }

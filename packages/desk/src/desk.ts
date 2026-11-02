@@ -77,10 +77,10 @@ export interface DeskOptions {
 }
 
 /**
- * Who posted a task, as workers see it: an agent (Verified by Concordium or not) or a person
- * posting for themselves (with Concordium ID or not).
+ * Who posted a task, as workers see it: an agent (Verified by Concordium or not), a person
+ * posting for themselves (with Concordium ID or not), or a NEAR Agent Market buyer.
  */
-export type RequesterKind = "verified_agent" | "agent" | "verified_person" | "person";
+export type RequesterKind = "verified_agent" | "agent" | "verified_person" | "person" | "market";
 
 /** A PayPal identity read from Log in with PayPal; `ref` is the keyed hash of the payer_id. */
 export interface PayPalIdentity {
@@ -384,10 +384,10 @@ export function createDesk({
    * requester by the Concordium ID on their account.
    */
   async function requesterVerified(
-    agent: { personal: boolean; ownerId: string; badgeVerifiedAt: Date | null },
+    agent: { kind: "agent" | "personal" | "market"; ownerId: string; badgeVerifiedAt: Date | null },
     q: Pick<Database, "select"> = db,
   ): Promise<boolean> {
-    if (!agent.personal) return agent.badgeVerifiedAt !== null;
+    if (agent.kind !== "personal") return agent.badgeVerifiedAt !== null;
     const [person] = await q
       .select({ id: workers.id })
       .from(owners)
@@ -407,7 +407,8 @@ export function createDesk({
 
   /**
    * Marks each task with who's behind it, for workers: a Verified by Concordium agent
-   * (`agentVerified`), a person who posted it themselves with Concordium ID, or neither.
+   * (`agentVerified`), a person who posted it themselves with Concordium ID, a NEAR Agent Market
+   * buyer, or none of these.
    */
   async function withAgentBadge<T extends { agentId: string }>(
     rows: T[],
@@ -415,7 +416,7 @@ export function createDesk({
     const ids = [...new Set(rows.map((r) => r.agentId))];
     if (ids.length === 0) return [];
     const found = await db
-      .select({ id: agents.id, personal: agents.personal, badge: agents.badgeVerifiedAt, person: workers.concordiumRef })
+      .select({ id: agents.id, kind: agents.kind, badge: agents.badgeVerifiedAt, person: workers.concordiumRef })
       .from(agents)
       .innerJoin(owners, eq(owners.id, agents.ownerId))
       .leftJoin(workers, eq(workers.pseudonym, owners.verifiedRef))
@@ -423,7 +424,15 @@ export function createDesk({
     const kinds = new Map(
       found.map((a): [string, RequesterKind] => [
         a.id,
-        a.personal ? (a.person ? "verified_person" : "person") : a.badge ? "verified_agent" : "agent",
+        a.kind === "market"
+          ? "market"
+          : a.kind === "personal"
+            ? a.person
+              ? "verified_person"
+              : "person"
+            : a.badge
+              ? "verified_agent"
+              : "agent",
       ]),
     );
     return rows.map((r) => {
@@ -452,13 +461,14 @@ export function createDesk({
       // Flow step 2 comes first: who is asking, before what they ask.
       const [agent] = await db.select().from(agents).where(eq(agents.id, caller.agentId));
       if (!agent) throw new DeskError("not_found", "agent not found");
-      if (agent.status !== "active") throw new DeskError("forbidden", agent.personal ? "posting is paused on your account" : "agent is frozen");
+      if (agent.status !== "active") throw new DeskError("forbidden", agent.kind === "personal" ? "posting is paused on your account" : "agent is frozen");
       const verified = await requesterVerified(agent);
       if (concordium && requireBadge) {
         // A person proves themselves with Concordium ID; an agent with its registry badge.
-        if (agent.personal && !verified) throw new DeskError("forbidden", "add Concordium ID on My account before posting");
-        const entry = agent.personal ? null : await concordium.registry.lookup(agent.registryId);
-        if (!agent.personal && !entry?.verified) {
+        const personal = agent.kind === "personal";
+        if (personal && !verified) throw new DeskError("forbidden", "add Concordium ID on My account before posting");
+        const entry = personal ? null : await concordium.registry.lookup(agent.registryId);
+        if (!personal && !entry?.verified) {
           throw new DeskError("forbidden", "agent has no Verified by Concordium badge in the Agent Registry");
         }
       }
@@ -476,7 +486,7 @@ export function createDesk({
         if (!verified && data.budget <= agent.maxTaskBudget) {
           throw new DeskError(
             "limit",
-            agent.personal
+            agent.kind === "personal"
               ? `without Concordium ID you can post up to ${POLICY.unverifiedTaskBudget} cents a task; add Concordium ID on My account for more`
               : `agents without a Verified by Concordium badge can post up to ${POLICY.unverifiedTaskBudget} cents a task; ask your owner to add the badge`,
           );
@@ -562,7 +572,7 @@ export function createDesk({
           if ((spent?.total ?? 0) + total > effectiveLimits(agent!, await requesterVerified(agent!, tx)).maxDailySpend) {
             throw new DeskError(
               "limit",
-              agent!.personal
+              agent!.kind === "personal"
                 ? "this payment would pass your daily spending cap (add Concordium ID on My account to raise it)"
                 : "this payment would pass the agent's daily spending cap",
             );
@@ -1225,8 +1235,8 @@ export function createDesk({
         name: agent.name,
         status: agent.status,
         testMode: agent.testMode,
-        /** A person's own requester (posting on the website), not an agent. */
-        personal: agent.personal,
+        /** agent, market, or personal: a person's own requester (posting on the website). */
+        kind: agent.kind,
         registryId: agent.registryId,
         refundAddress: agent.refundAddress,
         verifiedByConcordium: agent.badgeVerifiedAt

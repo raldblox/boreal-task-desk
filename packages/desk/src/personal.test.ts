@@ -64,9 +64,9 @@ describe("a person's own requester", () => {
     const first = await desk.personalRequester(worker.id);
     const again = await desk.personalRequester(worker.id);
     expect(again.id).toBe(first.id);
-    expect(first).toMatchObject({ personal: true, name: worker.pseudonym, apiKeyHash: null, testMode: false });
+    expect(first).toMatchObject({ kind: "personal", name: worker.pseudonym, apiKeyHash: null, testMode: false });
     expect((await desk.findPersonalRequester(worker.id))?.id).toBe(first.id);
-    expect(await db.select().from(agents).where(eq(agents.personal, true))).toHaveLength(1);
+    expect(await db.select().from(agents).where(eq(agents.kind, "personal"))).toHaveLength(1);
   });
 
   it("isn't listed among the owner's agents and never gets a key", async () => {
@@ -114,7 +114,7 @@ describe("posting as a person", () => {
       /Concordium ID/,
     );
     let account = await desk.getAgentAccount(poster.asRequester);
-    expect(account).toMatchObject({ personal: true, limits: { maxTaskBudget: POLICY.unverifiedTaskBudget, maxDailySpend: POLICY.unverifiedDailySpend } });
+    expect(account).toMatchObject({ kind: "personal", limits: { maxTaskBudget: POLICY.unverifiedTaskBudget, maxDailySpend: POLICY.unverifiedDailySpend } });
 
     // Five $10 tasks with requester review cost $11.20 each: the fifth passes the $50 day.
     for (let i = 0; i < 4; i++) await postAndFund(poster.asRequester, { budget: 1_000 });

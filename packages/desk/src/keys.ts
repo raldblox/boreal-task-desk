@@ -1,6 +1,6 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 
-import { agents, and, type Database, eq } from "@boreal/db";
+import { agents, and, type Database, eq, ne } from "@boreal/db";
 
 // Agent API keys look like `bk_<agent id>.<secret>`. Only a hash of the secret is stored.
 
@@ -19,7 +19,7 @@ export async function issueAgentKey(db: Database, agentId: string): Promise<stri
   const [agent] = await db
     .update(agents)
     .set({ apiKeyHash: hashSecret(secret), updatedAt: new Date() })
-    .where(and(eq(agents.id, agentId), eq(agents.personal, false)))
+    .where(and(eq(agents.id, agentId), ne(agents.kind, "personal")))
     .returning({ id: agents.id });
   if (!agent) throw new Error(`agent ${agentId} not found, or it's a person's own requester`);
   return `${PREFIX}${agent.id}.${secret}`;

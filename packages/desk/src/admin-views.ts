@@ -188,7 +188,7 @@ export function adminViews(db: Database, now: () => Date) {
     async adminTasks(filter: { q?: string; status?: TaskStatus; test?: boolean; limit?: number } = {}) {
       const q = filter.q?.trim();
       return db
-        .select({ task: tasks, agentName: agents.name, personal: agents.personal })
+        .select({ task: tasks, agentName: agents.name, kind: agents.kind })
         .from(tasks)
         .innerJoin(agents, eq(agents.id, tasks.agentId))
         .where(
@@ -206,7 +206,7 @@ export function adminViews(db: Database, now: () => Date) {
     async adminTask(taskId: string) {
       if (!/^[0-9a-f-]{36}$/i.test(taskId)) throw new DeskError("not_found", "task not found");
       const [row] = await db
-        .select({ task: tasks, agent: { id: agents.id, name: agents.name, status: agents.status, testMode: agents.testMode, personal: agents.personal } })
+        .select({ task: tasks, agent: { id: agents.id, name: agents.name, status: agents.status, testMode: agents.testMode, kind: agents.kind } })
         .from(tasks)
         .innerJoin(agents, eq(agents.id, tasks.agentId))
         .where(eq(tasks.id, taskId));
@@ -290,8 +290,8 @@ export function adminViews(db: Database, now: () => Date) {
         name: agent.name,
         status: agent.status,
         testMode: agent.testMode,
-        /** A person posting on the website, not an agent: no key, limits follow their Concordium ID. */
-        personal: agent.personal,
+        /** agent, market, or personal: a person posting on the website (no key; limits follow their Concordium ID). */
+        kind: agent.kind,
         registryId: agent.registryId,
         badge: agent.badgeVerifiedAt ? { network: agent.badgeNetwork, verifiedAt: agent.badgeVerifiedAt } : null,
         paypalConnected: agent.paymentVaultId !== null,

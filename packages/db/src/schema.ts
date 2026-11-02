@@ -39,6 +39,11 @@ export const outboxKind = pgEnum("outbox_kind", [
 export const reviewMode = pgEnum("review_mode", ["boreal", "requester"]);
 export const paymentRail = pgEnum("payment_rail", ["concordium", "paypal", "near"]);
 export const marketJobState = pgEnum("market_job_state", ["posted", "started", "delivered", "closed"]);
+/**
+ * Who a requester is: an AI agent acting for its owner, a person posting on the website
+ * themselves (their own requester, made on their first post), or a NEAR Agent Market buyer.
+ */
+export const agentKind = pgEnum("agent_kind", ["agent", "personal", "market"]);
 export const agentLinkStatus = pgEnum("agent_link_status", ["pending", "approved", "denied", "collected"]);
 
 const timestamps = {
@@ -83,10 +88,10 @@ export const agents = pgTable("agents", {
    */
   paymentVaultId: text("payment_vault_id"),
   /**
-   * A person's own requester: made the first time they post on the website, owned by them,
-   * named after their pseudonym. It never gets a key and isn't listed among their agents.
+   * `personal` is a person's own requester: made the first time they post on the website, owned
+   * by them, named after their pseudonym. It never gets a key and isn't listed among their agents.
    */
-  personal: boolean("personal").notNull().default(false),
+  kind: agentKind("kind").notNull().default("agent"),
   ...timestamps,
 });
 
