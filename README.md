@@ -174,6 +174,8 @@ Workers sign in with the **Concordium ID App** (Verify & Access), with boreal's 
 
 On a computer, workers can use the **Concordium Wallet for Web** extension instead: the browser calls the same start route, passes the anchored request to `window.concordium.requestVerifiablePresentationV1`, and posts the answer to the same finish route. Same request, same checks, same pseudonym.
 
+Every proof costs boreal an anchor, so the Wallet for Web signs in for free after the first time. The wallet account first signs a one-time message (`POST /api/worker/wallet/challenge`, then `/api/worker/wallet/sign-in`, which checks the signature against the account's keys on-chain). If that account answered an earlier proof, the worker is signed in with no proof and nothing on-chain. Otherwise the proof runs as above, waits for its anchor to finalize, and the worker's record keeps `cw:` plus an HMAC of the account address (`concordium_wallet_ref`, never the address), so next time the signature is enough. An account answers for one worker: proving another identity with it moves it there.
+
 To turn it on, set in Vercel: `NEXT_PUBLIC_REOWN_PROJECT_ID`, `CONCORDIUM_ANCHOR_ACCOUNT` and `CONCORDIUM_ANCHOR_KEY` (a funded testnet account that pays for the anchors), `CONCORDIUM_PSEUDONYM_SECRET` (never change it), and optionally `CONCORDIUM_NETWORK` (default `testnet`). The ID App's modal is scoped to `#concordium-modal-root` (`pnpm --filter @boreal/web vendor:concordium-css` after upgrading it). Until then `/signin` offers only Log in with PayPal, and My account says Concordium ID opens soon.
 
 ## Money path (Concordium testnet)

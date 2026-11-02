@@ -92,6 +92,13 @@
       "when": 1793531189689,
       "tag": "0012_worker_identities",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793578017440,
+      "tag": "0013_worker_wallet",
+      "breakpoints": true
     }
   ]
 }

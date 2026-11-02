@@ -95,6 +95,36 @@ describe("signing in", () => {
   });
 });
 
+describe("quick sign-in with a remembered wallet", () => {
+  const wallet = (n: number) => `cw:${n.toString(16).padStart(64, "b")}`;
+
+  it("signs in by the wallet account that answered the last proof, without a new proof", async () => {
+    expect(await desk.signInWithWallet(wallet(1))).toBeNull();
+    const worker = await desk.signInVerifiedWorker(concordium(1), wallet(1));
+    expect((await desk.signInWithWallet(wallet(1)))?.id).toBe(worker.id);
+    expect(await desk.signInWithWallet(wallet(2))).toBeNull();
+  });
+
+  it("moves a wallet account to the worker whose identity it last proved", async () => {
+    const first = await desk.signInVerifiedWorker(concordium(1), wallet(1));
+    const second = await desk.signInVerifiedWorker(concordium(2), wallet(1));
+    expect((await desk.signInWithWallet(wallet(1)))?.id).toBe(second.id);
+    const [old] = await db.select().from(workers).where(eq(workers.id, first.id));
+    expect(old?.concordiumWalletRef).toBeNull();
+  });
+
+  it("remembers the wallet when Concordium ID is added to a PayPal worker", async () => {
+    const worker = await desk.signInWithPayPal(paypal(1));
+    const kept = await desk.linkVerifiedConcordium(asWorker(worker), concordium(1), wallet(3));
+    expect((await desk.signInWithWallet(wallet(3)))?.id).toBe(kept.id);
+  });
+
+  it("refuses a wallet that isn't a keyed hash", async () => {
+    await expectDeskError(desk.signInWithWallet("3kBx2h5Y2veb4hZgAJWPrr8RyQESKm5TjzF3ti1QQ4VSYLwK1G"), "invalid");
+    await expectDeskError(desk.signInVerifiedWorker(concordium(1), "cw:nope"), "invalid");
+  });
+});
+
 describe("linking identities", () => {
   it("adds Concordium ID to a PayPal worker: the badge and proven attributes", async () => {
     useDesk({ devWallet: true });

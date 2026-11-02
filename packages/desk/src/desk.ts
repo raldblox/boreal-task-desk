@@ -264,6 +264,26 @@ export function createDesk({
     return worker!;
   }
 
+  const WALLET_REF = /^cw:[0-9a-f]{64}$/;
+
+  /**
+   * Remembers the wallet account that answered a worker's proof, so a signed message signs
+   * them in next time. An account answers for one worker: it moves off any other.
+   */
+  function checkWalletRef(walletRef: string | undefined) {
+    if (walletRef !== undefined && !WALLET_REF.test(walletRef)) throw new DeskError("invalid", "that wallet isn't a keyed hash");
+  }
+
+  async function rememberWallet(workerId: string, walletRef: string) {
+    await db.transaction(async (tx) => {
+      await tx
+        .update(workers)
+        .set({ concordiumWalletRef: null })
+        .where(and(eq(workers.concordiumWalletRef, walletRef), ne(workers.id, workerId)));
+      await tx.update(workers).set({ concordiumWalletRef: walletRef }).where(eq(workers.id, workerId));
+    });
+  }
+
   function checkPayPalIdentity(identity: PayPalIdentity) {
     if (!/^pp:[0-9a-f]{64}$/.test(identity.ref)) throw new DeskError("invalid", "that PayPal identity isn't a keyed hash");
     if (!EMAIL.test(identity.email) || identity.email.length > 254) throw new DeskError("invalid", "PayPal didn't share a usable email");
@@ -813,9 +833,28 @@ export function createDesk({
       return row;
     },
 
-    /** Signs in a worker whose Concordium proof has been verified; one worker per Concordium identity. */
-    async signInVerifiedWorker(verified: ConcordiumIdentity) {
-      return signInConcordium(verified);
+    /**
+     * Signs in a worker whose Concordium proof has been verified; one worker per Concordium
+     * identity. With `walletRef`, the wallet account that answered is remembered for next time.
+     */
+    async signInVerifiedWorker(verified: ConcordiumIdentity, walletRef?: string) {
+      checkWalletRef(walletRef);
+      const worker = await signInConcordium(verified);
+      if (walletRef) await rememberWallet(worker.id, walletRef);
+      return worker;
+    },
+
+    /**
+     * Signs in by a wallet account that answered an earlier proof, once the caller has checked
+     * that account signed this sign-in's challenge. Null when no worker has it yet: prove first.
+     */
+    async signInWithWallet(walletRef: string) {
+      checkWalletRef(walletRef);
+      const [worker] = await db
+        .select()
+        .from(workers)
+        .where(and(eq(workers.concordiumWalletRef, walletRef), isNotNull(workers.concordiumRef)));
+      return worker ?? null;
     },
 
     /**
@@ -862,12 +901,15 @@ export function createDesk({
     },
 
     /** Adds a verified Concordium ID to the signed-in worker: the badge and proven attributes. */
-    async linkVerifiedConcordium(caller: Caller, verified: ConcordiumIdentity) {
+    async linkVerifiedConcordium(caller: Caller, verified: ConcordiumIdentity, walletRef?: string) {
       requireRole(caller, "worker");
-      return linkIdentity(caller.workerId, "concordium", verified.pseudonym, {
+      checkWalletRef(walletRef);
+      const kept = await linkIdentity(caller.workerId, "concordium", verified.pseudonym, {
         concordiumRef: verified.pseudonym,
         provenAttributes: verified.provenAttributes,
       });
+      if (walletRef) await rememberWallet(kept.id, walletRef);
+      return kept;
     },
 
     /** Sends due anchors, payouts, refunds, captures and releases. Run by the monitor loop. */

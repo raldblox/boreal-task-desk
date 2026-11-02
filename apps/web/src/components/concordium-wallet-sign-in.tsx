@@ -5,7 +5,7 @@ import { useState } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { finishProof, startProof } from "@/lib/concordium-proof";
+import { finishProof, startProof, walletSignIn } from "@/lib/concordium-proof";
 
 export const STORE_URL = "https://chromewebstore.google.com/detail/concordium-wallet/mnnkpffndmickbiakofclnpoiajlegmg";
 
@@ -45,11 +45,12 @@ export async function oncePromptCloses<T>(ask: () => Promise<T>, timeoutMs = 400
   }
 }
 
-type Status = "idle" | "connecting" | "preparing" | "proving" | "verifying" | "missing";
+type Status = "idle" | "connecting" | "signing" | "preparing" | "proving" | "verifying" | "missing";
 
 const LABEL: Record<Status, string> = {
   idle: "Use Concordium Wallet for Web",
   connecting: "Connect in the wallet…",
+  signing: "Sign the message in the wallet (free)…",
   preparing: "Preparing the request…",
   proving: "Approve the proof in the wallet…",
   verifying: "Checking your proof…",
@@ -71,7 +72,16 @@ export function ConcordiumWalletSignIn({ next = "/tasks", link = false }: { next
     const wallet = await detectWallet();
     if (!wallet) return setStatus("missing");
     try {
-      await oncePromptCloses(() => wallet.connect());
+      const account = await oncePromptCloses(() => wallet.connect());
+      if (!account) throw new Error("The wallet didn't share an account.");
+      // A wallet account that answered an earlier proof signs in with a free signature.
+      setStatus("signing");
+      const quick = await walletSignIn((message) => oncePromptCloses(() => wallet.signMessage(account, message)), account, link);
+      if (quick.signedIn) {
+        router.push(next);
+        router.refresh();
+        return;
+      }
       setStatus("preparing");
       // The request's context names a connection; this one is the browser tab.
       const connectionId = Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
@@ -79,7 +89,7 @@ export function ConcordiumWalletSignIn({ next = "/tasks", link = false }: { next
       setStatus("proving");
       const presentation = await oncePromptCloses(() => wallet.requestVerifiablePresentationV1(request));
       setStatus("verifying");
-      await finishProof(id, presentation, link);
+      await finishProof(id, presentation, link, true);
       router.push(next);
       router.refresh();
     } catch (e) {
@@ -96,7 +106,7 @@ export function ConcordiumWalletSignIn({ next = "/tasks", link = false }: { next
     }
   }
 
-  const busy = status === "connecting" || status === "preparing" || status === "proving" || status === "verifying";
+  const busy = status === "connecting" || status === "signing" || status === "preparing" || status === "proving" || status === "verifying";
   return (
     <div className="flex flex-col gap-3">
       <Button

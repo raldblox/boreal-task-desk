@@ -1,6 +1,7 @@
 import { IdAppError } from "@boreal/concordium";
 import { DeskError } from "@boreal/desk";
 
+import { takePendingWallet } from "@/server/concordium-wallet";
 import { getDesk } from "@/server/desk";
 import { getIdAppVerifier } from "@/server/id-app";
 import { startWorkerSession, workerFromSession } from "@/server/session";
@@ -15,7 +16,12 @@ export async function POST(request: Request) {
     return Response.json({ error: "unavailable", message: "Concordium ID sign-in isn't set up yet" }, { status: 503 });
   }
 
-  const body = (await request.json().catch(() => null)) as { id?: unknown; presentation?: unknown; link?: unknown } | null;
+  const body = (await request.json().catch(() => null)) as {
+    id?: unknown;
+    presentation?: unknown;
+    link?: unknown;
+    wallet?: unknown;
+  } | null;
   if (typeof body?.id !== "string" || !body.presentation) {
     return Response.json({ error: "invalid", message: "missing proof" }, { status: 400 });
   }
@@ -30,12 +36,14 @@ export async function POST(request: Request) {
   try {
     const pending = await desk.takeVerificationRequest(body.id);
     const verified = await verifier.finish(pending.request, body.presentation, pending.id);
+    // A Wallet for Web sign-in signed for its account first: remember it for quick sign-in.
+    const wallet = body.wallet === true ? ((await takePendingWallet()) ?? undefined) : undefined;
     if (worker) {
-      const kept = await desk.linkVerifiedConcordium(worker, verified);
+      const kept = await desk.linkVerifiedConcordium(worker, verified, wallet);
       // An empty account folded into the one holding this ID: continue as that account.
       if (worker.role === "worker" && kept.id !== worker.workerId) await startWorkerSession(kept.id);
     } else {
-      await startWorkerSession((await desk.signInVerifiedWorker(verified)).id);
+      await startWorkerSession((await desk.signInVerifiedWorker(verified, wallet)).id);
     }
     return Response.json({ ok: true, attributes: verified.provenAttributes });
   } catch (error) {

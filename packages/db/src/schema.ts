@@ -126,6 +126,12 @@ export const workers = pgTable("workers", {
   paypalRef: text("paypal_ref").unique(),
   /** PayPal's `verified_account` claim, from the worker's latest Log in with PayPal. */
   paypalVerified: boolean("paypal_verified").notNull().default(false),
+  /**
+   * `cw:` plus a keyed hash of the Concordium wallet account that answered the worker's
+   * latest identity proof. Signing a message with that account signs them in again without a
+   * new proof (and its on-chain anchor). Never the account address itself.
+   */
+  concordiumWalletRef: text("concordium_wallet_ref").unique(),
   maxActiveClaims: integer("max_active_claims").notNull().default(1),
   /** Concordium account that payouts go to. */
   payoutAddress: text("payout_address"),

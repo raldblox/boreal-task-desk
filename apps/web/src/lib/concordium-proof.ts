@@ -2,6 +2,29 @@
 // start builds and anchors the proof request, finish verifies the answer and signs in (or,
 // with `link`, adds the Concordium ID to the signed-in worker).
 
+/**
+ * Quick sign-in with a wallet account that answered an earlier proof: it signs a one-time
+ * message, nothing goes on-chain. `signedIn` is false when the account still needs a proof.
+ */
+export async function walletSignIn(
+  sign: (message: string) => Promise<unknown>,
+  account: string,
+  link: boolean,
+): Promise<{ signedIn: boolean }> {
+  const challenge = await fetch("/api/worker/wallet/challenge", { method: "POST" });
+  const { message } = (await challenge.json().catch(() => ({}))) as { message?: string };
+  if (!challenge.ok || !message) throw new Error("Couldn't start the sign-in. Try again.");
+  const signature = await sign(message);
+  const res = await fetch("/api/worker/wallet/sign-in", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ account, signature, link }),
+  });
+  const body = (await res.json().catch(() => ({}))) as { signedIn?: boolean; message?: string };
+  if (!res.ok) throw new Error(body.message ?? "Couldn't sign you in with the wallet.");
+  return { signedIn: body.signedIn === true };
+}
+
 export async function startProof(connectionId: string): Promise<{ id: string; request: unknown }> {
   const res = await fetch("/api/worker/verification/start", {
     method: "POST",
@@ -13,11 +36,11 @@ export async function startProof(connectionId: string): Promise<{ id: string; re
   return { id: body.id, request: body.request };
 }
 
-export async function finishProof(id: string | null, presentation: unknown, link = false): Promise<void> {
+export async function finishProof(id: string | null, presentation: unknown, link = false, wallet = false): Promise<void> {
   const res = await fetch("/api/worker/verification/finish", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ id, presentation, link }),
+    body: JSON.stringify({ id, presentation, link, wallet }),
   });
   const body = (await res.json().catch(() => ({}))) as { message?: string };
   if (!res.ok) throw new Error(body.message ?? "Your proof couldn't be verified.");
