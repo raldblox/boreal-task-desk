@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { attributeLabel, usd, when, WORKER_STATUS } from "@/lib/format";
+import { canBePaidOn, RAIL_LABEL } from "@/lib/rails";
 import { getDesk } from "@/server/desk";
 import { workerFromSession } from "@/server/session";
 
@@ -29,12 +30,15 @@ function NextStep({
   task,
   worker,
   needsBadge,
+  needsPayout,
   postedByMe,
 }: {
   task: Task;
   worker: Extract<Caller, { role: "worker" }>;
   /** The task needs proven attributes and this worker hasn't added Concordium ID yet. */
   needsBadge: boolean;
+  /** The task pays on a rail this worker has no payout account for yet. */
+  needsPayout: boolean;
   /** The signed-in person posted this task themselves: they manage it, they can't claim it. */
   postedByMe: boolean;
 }) {
@@ -62,6 +66,23 @@ function NextStep({
             </p>
             <Link href="/me" className={buttonVariants({ className: "w-full" })}>
               Add Concordium ID
+            </Link>
+          </div>
+        );
+      }
+      if (needsPayout) {
+        // No claim without a way to be paid: a guided setup instead, which claims once it is done.
+        return (
+          <div className="flex flex-col gap-3">
+            <p className="text-sm text-muted-foreground">
+              {task.paymentRail === "near"
+                ? "This task pays in USDC on NEAR. Create a free NEAR account (about 2 minutes) and you’re paid the moment it passes."
+                : task.paymentRail === "concordium"
+                  ? "This task pays in tokens on Concordium. Set up the Concordium ID App and add your account: you’re paid there the moment it passes."
+                  : "This task pays via PayPal. Log in with PayPal so you’re paid the moment it passes."}
+            </p>
+            <Link href={`/tasks/${task.id}/payout`} className={buttonVariants({ className: "w-full" })}>
+              Set up and claim
             </Link>
           </div>
         );
@@ -194,6 +215,7 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
     desk.findPersonalRequester(worker.workerId),
   ]);
   const needsBadge = task.requiredAttributes.length > 0 && !!profile && !profile.testMode && !profile.hasConcordium;
+  const needsPayout = !task.test && !canBePaidOn(profile, task.paymentRail);
   const status = WORKER_STATUS[task.status];
 
   const verdictTitle =
@@ -208,7 +230,7 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
         </div>
         <TaskProgress status={task.status} />
         <div className="border-t pt-5">
-          <NextStep task={task} worker={worker} needsBadge={needsBadge} postedByMe={mine?.id === task.agentId} />
+          <NextStep task={task} worker={worker} needsBadge={needsBadge} needsPayout={needsPayout} postedByMe={mine?.id === task.agentId} />
         </div>
       </aside>
 
@@ -231,6 +253,7 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
                 <Store className="size-3.5 text-primary" /> NEAR market buyer
               </Badge>
             )}
+            {task.paymentRail && <Badge variant="outline">{RAIL_LABEL[task.paymentRail]}</Badge>}
             {task.reviewMode === "requester" && <Badge variant="outline">Reviewed by the requester</Badge>}
             {task.fulfilledBy === "agent" && (
               <Badge variant="outline" className="gap-1" title="An AI agent did this task, signed in with its NEAR account. Its requester opened the task to agents; the review was the same.">

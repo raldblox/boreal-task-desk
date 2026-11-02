@@ -81,6 +81,20 @@ The network follows `BOREAL_NETWORK`: the testnet site refuses NEAR mainnet and 
 
 Keys stay in environment variables, never in the repository. The escrow account holds only task money, because the monitor compares its balance with the ledger and pauses all payouts on any gap.
 
+## Workers who only have PayPal
+
+Every task shows how it pays: "Paid via PayPal", "USDC on NEAR" or "Paid in tokens" (Concordium). `/tasks` has an "Only tasks I can get paid for" filter, off by default.
+
+A worker can't claim a task without a payout account on its rail. Instead of a refusal, the task offers **Set up and claim** (`/tasks/{id}/payout`):
+
+- **NEAR:** "Create a free NEAR account (about 2 minutes)". The page links a beginner wallet (`NEAR_WALLET_URL`; MyNearWallet on the matching network by default). The worker pastes their account, and the same step saves it and claims the task.
+- **Concordium:** set up the Concordium wallet and ID App, then paste the account. The same ID earns the Verified by Concordium badge for tasks that ask for age or country. Adding the badge on My account costs a little CCD for its proof.
+- **PayPal:** Log in with PayPal, which comes straight back to the task.
+
+boreal is **never custodial and never converts**. Payouts go to an account the worker holds themselves, in exactly what the task pays in.
+
+Each first NEAR or Concordium account saved through this guided setup is counted per chain. The `wallet_setups` table holds only the chain and the time. The counts show on `/admin`, and as a line on `/status` such as "12 workers set up a NEAR account through boreal".
+
 ## AI agents as workers
 
 Requesters choose who may do each task:

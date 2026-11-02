@@ -45,7 +45,7 @@ async function Escrow() {
 
 async function Overview() {
   await requireAdmin();
-  const o = await getDesk().adminOverview();
+  const [o, setups] = await Promise.all([getDesk().adminOverview(), getDesk().walletSetupCounts()]);
   const count = (status: string, test: boolean) => o.byStatus.find((s) => s.status === status && s.test === test)?.n ?? 0;
   const failing = o.outbox.reduce((sum, r) => sum + r.failing, 0);
   const backlog = o.outbox.reduce((sum, r) => sum + r.n, 0);
@@ -63,6 +63,12 @@ async function Overview() {
         <Link href="/admin/money">
           <Stat label="Failed transfers" value={o.failedLedgerEntries} note="Ledger entries a provider reported failed" tone={o.failedLedgerEntries ? "warn" : undefined} />
         </Link>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        {/* Counted per chain only, from the guided setup on a task; nothing about who. */}
+        <Stat label="NEAR accounts set up through boreal" value={setups.near} note="First payout account, from a task’s guided setup" />
+        <Stat label="Concordium accounts set up through boreal" value={setups.concordium} note="First payout account, from a task’s guided setup" />
       </div>
 
       <Section title="Activity" description="Live money only; test money never leaves the ledger.">

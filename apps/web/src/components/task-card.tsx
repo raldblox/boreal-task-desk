@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { attributeLabel, usd, when, WORKER_STATUS } from "@/lib/format";
+import { RAIL_LABEL } from "@/lib/rails";
 
 const FORMAT = {
   photo: { icon: Camera, label: "Photo" },
@@ -62,9 +63,7 @@ export function TaskCard({
               <Store className="size-3.5 text-primary" /> NEAR market buyer
             </Badge>
           )}
-          {task.paymentRail === "paypal" && <Badge variant="outline">Paid via PayPal</Badge>}
-          {task.paymentRail === "concordium" && <Badge variant="outline">Paid in tokens</Badge>}
-          {task.paymentRail === "near" && <Badge variant="outline">Paid in USDC on NEAR</Badge>}
+          {task.paymentRail && <Badge variant="outline">{RAIL_LABEL[task.paymentRail]}</Badge>}
           {task.fulfillers === "people_or_agents" && !task.fulfilledBy && (
             // The requester let AI agents take it too, under the same review.
             <Badge variant="outline" className="gap-1">

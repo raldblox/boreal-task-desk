@@ -50,7 +50,20 @@ const PAYOUT_FIELD = {
 } as const;
 
 /** Where the worker is paid on one rail: their PayPal email, NEAR account or Concordium account. */
-export function PayoutForm({ action, current, paypal, near = false }: { action: Action; current: string | null; paypal: boolean; near?: boolean }) {
+export function PayoutForm({
+  action,
+  current,
+  paypal,
+  near = false,
+  submitLabel = "Save",
+}: {
+  action: Action;
+  current: string | null;
+  paypal: boolean;
+  near?: boolean;
+  /** The guided setup saves and claims in one step. */
+  submitLabel?: string;
+}) {
   const [state, formAction, pending] = useActionState(action, null);
   const rail = paypal ? "paypal" : near ? "near" : "concordium";
   const field = PAYOUT_FIELD[rail];
@@ -69,8 +82,8 @@ export function PayoutForm({ action, current, paypal, near = false }: { action: 
           required
         />
       </div>
-      <Button type="submit" variant="outline" disabled={pending} className="w-full sm:w-fit">
-        {pending ? "Saving…" : "Save"}
+      <Button type="submit" variant={submitLabel === "Save" ? "outline" : "default"} disabled={pending} className="w-full sm:w-fit">
+        {pending ? "Saving…" : submitLabel}
       </Button>
       <FormError state={state} />
     </form>

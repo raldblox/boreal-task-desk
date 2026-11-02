@@ -109,3 +109,28 @@ export async function disputeVerdict(taskId: string, _prev: ActionState, form: F
     await getDesk().disputeVerdict(worker, taskId, String(form.get("reason") ?? ""));
   });
 }
+
+/**
+ * The guided payout setup on a task: saves the worker's own account on the task's rail (counted
+ * as a first setup through boreal), then claims the task and goes back to it. boreal never holds
+ * a wallet for anyone and never converts between rails: the account is the worker's.
+ */
+export async function setUpPayoutAndClaim(taskId: string, rail: "near" | "concordium", _prev: ActionState, form: FormData): Promise<ActionState> {
+  const worker = await workerFromSession();
+  if (!worker) return { error: "Your session has ended. Sign in again." };
+  try {
+    await getDesk().setPayoutAddress(worker, String(form.get("payoutAddress") ?? ""), rail, { guided: true });
+  } catch (error) {
+    if (error instanceof DeskError) return { error: error.message };
+    console.error("[payout setup] failed", error);
+    return { error: "Something went wrong. Try again." };
+  }
+  try {
+    await getDesk().claimTask(worker, taskId);
+    after(kickMonitor);
+  } catch (error) {
+    // The account is saved either way; the task page says why the claim didn't go through.
+    if (!(error instanceof DeskError)) throw error;
+  }
+  redirect(`/tasks/${taskId}`);
+}

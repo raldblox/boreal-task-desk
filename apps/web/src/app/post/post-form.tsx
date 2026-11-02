@@ -228,6 +228,10 @@ export function PostForm({ action, maxTask, verified }: { action: Action; maxTas
           the money until the work passes. If it fails, expires or you cancel before anyone claims it, the hold is released
           {reviewer === "boreal" ? " (a fail still pays the review fee)" : ""}.
         </p>
+        <p className="text-xs text-muted-foreground">
+          PayPal tasks reach the most workers today, since every worker can be paid there. Tasks paid in crypto (USDC on NEAR, or
+          tokens on Concordium) help grow that chain&apos;s workforce: workers set up their own wallet to take them.
+        </p>
       </section>
 
       {state?.error && (

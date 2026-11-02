@@ -33,6 +33,7 @@ import {
   tasks,
   type Transaction,
   verificationRequests,
+  walletSetups,
   workers,
   sql,
   isNotNull,
@@ -1062,18 +1063,44 @@ export function createDesk({
       await queuePaymentUpdate(db, update, now());
     },
 
-    /** Where this worker is paid: a Concordium account, or a PayPal email on the PayPal rail. */
-    async setPayoutAddress(caller: Caller, address: string, rail: PaymentRail = "concordium") {
+    /**
+     * Where this worker is paid: a Concordium account, a NEAR account, or a PayPal email. The
+     * account is always the worker's own: boreal never holds a wallet for anyone and never
+     * converts between rails. With `guided`, a first account on a chain set up through boreal's
+     * guided setup is counted (the chain only; nothing about the worker).
+     */
+    async setPayoutAddress(caller: Caller, address: string, rail: PaymentRail = "concordium", options: { guided?: boolean } = {}) {
       requireRole(caller, "worker");
       const value = address.trim();
       if (rail === "paypal" && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value)) throw new DeskError("invalid", "enter the email address of your PayPal account");
       if (rail === "near" && !NEAR_ACCOUNT.test(value)) throw new DeskError("invalid", "enter a NEAR account id, such as you.near or a 64-character implicit account");
       if (value.length < 3 || value.length > 254 || /\s/.test(value)) throw new DeskError("invalid", "that payout address doesn't look right");
       const column = rail === "paypal" ? { paypalEmail: value } : rail === "near" ? { nearAccount: value } : { payoutAddress: value };
-      await db
-        .update(workers)
-        .set({ ...column, updatedAt: now() })
-        .where(eq(workers.id, caller.workerId));
+      await db.transaction(async (tx) => {
+        const [before] = await tx.select().from(workers).where(eq(workers.id, caller.workerId)).for("update");
+        if (!before) throw new DeskError("not_found", "worker not found");
+        const at = now();
+        await tx.update(workers).set({ ...column, updatedAt: at }).where(eq(workers.id, caller.workerId));
+        const first = rail === "near" ? !before.nearAccount : rail === "concordium" ? !before.payoutAddress : false;
+        if (options.guided && first && (rail === "near" || rail === "concordium")) {
+          await tx.insert(walletSetups).values({ chain: rail, createdAt: at });
+        }
+      });
+    },
+
+    /** First wallet setups through boreal's guided setup, per chain: a headline, with nothing personal. */
+    async walletSetupCounts(): Promise<{ near: number; concordium: number }> {
+      const rows = await db.select({ chain: walletSetups.chain, n: sql<number>`count(*)::int` }).from(walletSetups).groupBy(walletSetups.chain);
+      return { near: rows.find((r) => r.chain === "near")?.n ?? 0, concordium: rows.find((r) => r.chain === "concordium")?.n ?? 0 };
+    },
+
+    /** Whether this worker has a payout account on the task's rail, so a claim can go through. */
+    async payoutReady(caller: Caller, rail: PaymentRail | null): Promise<boolean> {
+      requireRole(caller, "worker");
+      if (!rail) return true;
+      const [worker] = await db.select().from(workers).where(eq(workers.id, caller.workerId));
+      if (!worker) return false;
+      return rail === "paypal" ? !!worker.paypalEmail : rail === "near" ? !!worker.nearAccount : !!worker.payoutAddress;
     },
 
     /** An owner moves one of their agents between test money and real (testnet or sandbox) money. */

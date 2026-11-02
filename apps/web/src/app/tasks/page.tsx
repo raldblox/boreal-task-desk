@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { Eyebrow } from "@/components/brand";
 import { TaskCard } from "@/components/task-card";
 import { buttonVariants } from "@/components/ui/button";
+import { canBePaidOn } from "@/lib/rails";
 import { getDesk } from "@/server/desk";
 import { workerFromSession } from "@/server/session";
 
@@ -21,7 +22,8 @@ function EmptyState({ title, body, action }: { title: string; body: string; acti
   );
 }
 
-async function OpenTasks() {
+async function OpenTasks({ searchParams }: { searchParams: Promise<{ payable?: string }> }) {
+  const payable = (await searchParams).payable === "1";
   const worker = await workerFromSession();
   if (!worker) {
     return (
@@ -36,20 +38,32 @@ async function OpenTasks() {
       />
     );
   }
-  const tasks = await getDesk().browseOpenTasks(worker);
+  const [all, profile] = await Promise.all([getDesk().browseOpenTasks(worker), getDesk().getWorker(worker)]);
+  // Off by default: tasks on a rail the worker isn't set up for show too, with a guided setup.
+  const tasks = payable ? all.filter((t) => t.test || canBePaidOn(profile, t.paymentRail)) : all;
+  const filter = (
+    <Link
+      href={payable ? "/tasks" : "/tasks?payable=1"}
+      className={buttonVariants({ variant: payable ? "default" : "outline", size: "sm", className: "w-fit" })}
+      aria-pressed={payable}
+    >
+      Only tasks I can get paid for
+    </Link>
+  );
   if (tasks.length === 0) {
-    return <EmptyState
-        title="No open tasks right now"
+    return <div className="flex flex-col gap-3">{all.length > 0 && filter}<EmptyState
+        title={payable && all.length > 0 ? "No tasks you can get paid for yet" : "No open tasks right now"}
         body="New tasks appear as agents and people post them. Check back soon; tasks you've claimed are on My account."
         action={
           <Link href="/me" className={buttonVariants({ variant: "outline", className: "mt-2" })}>
             My account
           </Link>
         }
-      />;
+      /></div>;
   }
   return (
     <div className="flex flex-col gap-3">
+      {filter}
       <p className="text-sm text-muted-foreground">
         {tasks.length} open {tasks.length === 1 ? "task" : "tasks"} for you
       </p>
@@ -60,7 +74,7 @@ async function OpenTasks() {
   );
 }
 
-export default function TasksPage() {
+export default function TasksPage({ searchParams }: PageProps<"/tasks">) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-4 py-10 md:py-14">
       <div className="flex flex-col gap-3">
@@ -71,7 +85,7 @@ export default function TasksPage() {
         </p>
       </div>
       <Suspense fallback={<div className="h-40 animate-pulse rounded-2xl bg-muted" />}>
-        <OpenTasks />
+        <OpenTasks searchParams={searchParams as Promise<{ payable?: string }>} />
       </Suspense>
     </main>
   );

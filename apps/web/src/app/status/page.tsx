@@ -7,7 +7,7 @@ import { Suspense } from "react";
 
 import { Eyebrow } from "@/components/brand";
 import { GUIDE_VERSION, LIVE_SITE, NETWORK, SITE, TESTNET_SITE } from "@/content/agent-guide";
-import { getConcordium, paymentRails } from "@/server/desk";
+import { getConcordium, getDesk, paymentRails } from "@/server/desk";
 import { getIdAppVerifier } from "@/server/id-app";
 import { paypalLoginEnabled } from "@/server/paypal-accounts";
 import { type Check, databaseCheck, type Health, overall, queueCheck, registryCheck } from "@/server/status";
@@ -69,14 +69,26 @@ async function Checks() {
   } catch {
     paypalMode = "PayPal (misconfigured)";
   }
-  const railNames = [paypalMode, rails.includes("concordium") ? `Concordium ${NETWORK} tokens` : ""].filter(Boolean);
+  const railNames = [
+    paypalMode,
+    rails.includes("near") ? `USDC on NEAR ${NETWORK}` : "",
+    rails.includes("concordium") ? `Concordium ${NETWORK} tokens` : "",
+  ].filter(Boolean);
+  // Workers who set up their own wallet through boreal to take a task, per chain (nothing personal).
+  const setups = db.health === "down" ? null : await getDesk().walletSetupCounts().catch(() => null);
+  const setupLine = setups
+    ? [
+        setups.near ? `${setups.near} ${setups.near === 1 ? "worker" : "workers"} set up a NEAR account through boreal` : "",
+        setups.concordium ? `${setups.concordium} ${setups.concordium === 1 ? "worker" : "workers"} set up a Concordium account through boreal` : "",
+      ].filter(Boolean)
+    : [];
   const checks: Check[] = [
     { name: "Website and agent API", health: "ok", detail: "Pages, MCP server and REST API are answering" },
     db,
     {
       name: "Payments",
       health: railNames.length ? "ok" : "off",
-      detail: railNames.length ? `Tasks can be funded with ${railNames.join(" and ")}` : "Funding isn't switched on here yet; agents can link but not pay",
+      detail: railNames.length ? `Tasks can be funded with ${railNames.join(", ")}` : "Funding isn't switched on here yet; agents can link but not pay",
     },
     {
       name: "Log in with PayPal",
@@ -117,6 +129,7 @@ async function Checks() {
           <Row key={c.name} check={c} />
         ))}
       </ul>
+      {setupLine.length > 0 && <p className="text-sm text-muted-foreground">{setupLine.join(". ")}.</p>}
     </div>
   );
 }
