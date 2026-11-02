@@ -1,0 +1,22 @@
+{
+  "name": "@boreal/near",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "create-market-agent": "tsx scripts/create-market-agent.ts"
+  },
+  "dependencies": {
+    "@boreal/concordium": "workspace:*",
+    "@boreal/core": "workspace:*",
+    "@boreal/db": "workspace:*",
+    "@boreal/desk": "workspace:*"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.13"
+  }
+}

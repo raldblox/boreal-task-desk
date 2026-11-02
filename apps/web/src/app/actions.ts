@@ -95,10 +95,11 @@ export async function submitResult(taskId: string, _prev: ActionState, form: For
   });
 }
 
-/** Where the worker is paid on one rail: a PayPal email, or a Concordium account. */
+/** Where the worker is paid on one rail: a PayPal email, a NEAR account or a Concordium account. */
 export async function setPayoutAddress(_prev: ActionState, form: FormData): Promise<ActionState> {
   return asWorker(async (worker) => {
-    const rail = form.get("rail") === "paypal" ? "paypal" : "concordium";
+    const named = form.get("rail");
+    const rail = named === "paypal" || named === "near" ? named : "concordium";
     await getDesk().setPayoutAddress(worker, String(form.get("payoutAddress") ?? ""), rail);
   });
 }

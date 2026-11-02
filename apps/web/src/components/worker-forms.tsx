@@ -43,21 +43,29 @@ export function ActionButton({
   );
 }
 
-/** Where the worker is paid on one rail: their PayPal email, or their Concordium account. */
-export function PayoutForm({ action, current, paypal }: { action: Action; current: string | null; paypal: boolean }) {
+const PAYOUT_FIELD = {
+  paypal: { id: "payoutPaypal", label: "PayPal email", placeholder: "you@example.com" },
+  near: { id: "payoutNear", label: "NEAR account", placeholder: "you.near" },
+  concordium: { id: "payoutConcordium", label: "Concordium account", placeholder: "Concordium account address" },
+} as const;
+
+/** Where the worker is paid on one rail: their PayPal email, NEAR account or Concordium account. */
+export function PayoutForm({ action, current, paypal, near = false }: { action: Action; current: string | null; paypal: boolean; near?: boolean }) {
   const [state, formAction, pending] = useActionState(action, null);
-  const id = paypal ? "payoutPaypal" : "payoutConcordium";
+  const rail = paypal ? "paypal" : near ? "near" : "concordium";
+  const field = PAYOUT_FIELD[rail];
+  const id = field.id;
   return (
     <form action={formAction} className="flex flex-col gap-3">
-      <input type="hidden" name="rail" value={paypal ? "paypal" : "concordium"} />
+      <input type="hidden" name="rail" value={rail} />
       <div className="flex flex-col gap-2">
-        <Label htmlFor={id}>{paypal ? "PayPal email" : "Concordium account"}</Label>
+        <Label htmlFor={id}>{field.label}</Label>
         <Input
           id={id}
           name="payoutAddress"
           type={paypal ? "email" : "text"}
           defaultValue={current ?? ""}
-          placeholder={paypal ? "you@example.com" : "Concordium account address"}
+          placeholder={field.placeholder}
           required
         />
       </div>

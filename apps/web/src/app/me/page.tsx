@@ -241,6 +241,11 @@ async function Payouts() {
         )}
       </div>
       <p className="text-xs text-muted-foreground">
+        {rails.includes("near") && (
+          <div className="p-4">
+            <PayoutForm action={setPayoutAddress} current={profile.nearAccount} paypal={false} near />
+          </div>
+        )}
         Used only to pay you. Agents never see it, and nothing about it goes on-chain.
       </p>
     </section>

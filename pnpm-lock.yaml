@@ -47,6 +47,9 @@ importers:
       '@boreal/monitor':
         specifier: workspace:*
         version: link:../../packages/monitor
+      '@boreal/near':
+        specifier: workspace:*
+        version: link:../../packages/near
       '@boreal/paypal':
         specifier: workspace:*
         version: link:../../packages/paypal
@@ -224,9 +227,31 @@ importers:
       '@boreal/files':
         specifier: workspace:*
         version: link:../files
+      '@boreal/near':
+        specifier: workspace:*
+        version: link:../near
       '@boreal/paypal':
         specifier: workspace:*
         version: link:../paypal
+
+  packages/near:
+    dependencies:
+      '@boreal/concordium':
+        specifier: workspace:*
+        version: link:../concordium
+      '@boreal/core':
+        specifier: workspace:*
+        version: link:../core
+      '@boreal/db':
+        specifier: workspace:*
+        version: link:../db
+      '@boreal/desk':
+        specifier: workspace:*
+        version: link:../desk
+    devDependencies:
+      '@electric-sql/pglite':
+        specifier: ^0.5.13
+        version: 0.5.13
 
   packages/paypal:
     dependencies:

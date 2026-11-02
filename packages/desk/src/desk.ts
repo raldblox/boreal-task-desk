@@ -96,6 +96,8 @@ export interface ConcordiumIdentity {
 }
 
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+/** NEAR account ids: named (`you.near`) or implicit (64 hex characters), 2–64 characters. */
+const NEAR_ACCOUNT = /^(?=.{2,64}$)(([a-z\d]+[-_])*[a-z\d]+\.)*([a-z\d]+[-_])*[a-z\d]+$/;
 
 /**
  * A payment that has settled, one to settle once the task's checks pass, or `{ vault: true }`
@@ -638,6 +640,9 @@ export function createDesk({
           if (task.paymentRail === "concordium" && !worker.payoutAddress) {
             throw new DeskError("forbidden", "this task pays in tokens on Concordium: add your Concordium account on My account first");
           }
+          if (task.paymentRail === "near" && !worker.nearAccount) {
+            throw new DeskError("forbidden", "this task pays in USDC on NEAR: add your NEAR account on My account first");
+          }
           const [active] = await tx
             .select({ n: sql<number>`count(*)::int` })
             .from(tasks)
@@ -994,10 +999,12 @@ export function createDesk({
       requireRole(caller, "worker");
       const value = address.trim();
       if (rail === "paypal" && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value)) throw new DeskError("invalid", "enter the email address of your PayPal account");
+      if (rail === "near" && !NEAR_ACCOUNT.test(value)) throw new DeskError("invalid", "enter a NEAR account id, such as you.near or a 64-character implicit account");
       if (value.length < 3 || value.length > 254 || /\s/.test(value)) throw new DeskError("invalid", "that payout address doesn't look right");
+      const column = rail === "paypal" ? { paypalEmail: value } : rail === "near" ? { nearAccount: value } : { payoutAddress: value };
       await db
         .update(workers)
-        .set({ ...(rail === "paypal" ? { paypalEmail: value } : { payoutAddress: value }), updatedAt: now() })
+        .set({ ...column, updatedAt: now() })
         .where(eq(workers.id, caller.workerId));
     },
 
@@ -1032,6 +1039,7 @@ export function createDesk({
           testMode: workers.testMode,
           payoutAddress: workers.payoutAddress,
           paypalEmail: workers.paypalEmail,
+          nearAccount: workers.nearAccount,
           // Which identities sign this worker in; the hashes themselves stay in the database.
           hasPayPal: sql<boolean>`${workers.paypalRef} is not null`,
           paypalVerified: workers.paypalVerified,

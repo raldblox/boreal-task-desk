@@ -37,7 +37,8 @@ export const outboxKind = pgEnum("outbox_kind", [
   "reconcile",
 ]);
 export const reviewMode = pgEnum("review_mode", ["boreal", "requester"]);
-export const paymentRail = pgEnum("payment_rail", ["concordium", "paypal"]);
+export const paymentRail = pgEnum("payment_rail", ["concordium", "paypal", "near"]);
+export const marketJobState = pgEnum("market_job_state", ["posted", "started", "delivered", "closed"]);
 export const agentLinkStatus = pgEnum("agent_link_status", ["pending", "approved", "denied", "collected"]);
 
 const timestamps = {
@@ -142,6 +143,8 @@ export const workers = pgTable("workers", {
   payoutAddress: text("payout_address"),
   /** PayPal email for payouts on the PayPal rail; never on-chain, never shown to agents. */
   paypalEmail: text("paypal_email"),
+  /** NEAR account that payouts go to on the NEAR rail. */
+  nearAccount: text("near_account"),
   /** Signed in with a test invite; sees and claims only test tasks. */
   testMode: boolean("test_mode").notNull().default(false),
   ...timestamps,
@@ -270,6 +273,19 @@ export const outbox = pgTable(
   },
   (t) => [index("outbox_due_idx").on(t.doneAt, t.nextAttemptAt)],
 );
+
+/**
+ * Hires of boreal's listing on NEAR Agent Market, each turned into a boreal task posted by
+ * boreal's market agent. The treasury's funding transfer is journaled here before it is sent.
+ */
+export const marketJobs = pgTable("market_jobs", {
+  assignmentId: text("assignment_id").primaryKey(),
+  taskId: uuid("task_id").references(() => tasks.id),
+  state: marketJobState("state").notNull().default("posted"),
+  fundingSent: jsonb("funding_sent").$type<{ txHash: string; expiry: number }>(),
+  note: text("note"),
+  ...timestamps,
+});
 
 /** Named leases, so only one monitor tick runs at a time across the worker, cron and the app. */
 export const leases = pgTable("leases", {

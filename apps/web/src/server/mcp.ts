@@ -1,6 +1,6 @@
 import "server-only";
 
-import { isPayPalRequirement } from "@boreal/concordium";
+import { isNearRequirement, isPayPalRequirement } from "@boreal/concordium";
 import { postTaskInput, quoteFees, TASK_STATUSES } from "@boreal/core";
 import type { Task } from "@boreal/db";
 import { type Caller, DeskError, taskTotal } from "@boreal/desk";
@@ -276,7 +276,7 @@ export function registerTools(server: McpServer): void {
       title: "Fund a screened task",
       description:
         "Pays the task's total into escrow. Call once without `payment` to get the payment requirement, pay it, then " +
-        "call again with the payment. The task opens to workers once funded. Pick the rail with `rail` (paypal or " +
+        "call again with the payment. The task opens to workers once funded. Pick the rail with `rail` (paypal, near or " +
         "concordium; get_account lists the ones enabled, default first). On Concordium the requirement is x402: sign it " +
         "from a Concordium wallet holding the token and send the signed payload as payment. On PayPal the requirement's " +
         "extra.approveUrl is a PayPal checkout: have your owner (or a PayPal-enabled wallet you control) approve it, " +
@@ -287,14 +287,17 @@ export function registerTools(server: McpServer): void {
         "still pays the review fee).",
       inputSchema: z.object({
         taskId,
-        rail: z.enum(["paypal", "concordium"]).optional().describe("Which rail to pay on; defaults to the first in get_account.paymentRails."),
+        rail: z.enum(["paypal", "concordium", "near"]).optional().describe("Which rail to pay on; defaults to the first in get_account.paymentRails."),
         payment: z
           .unknown()
           .optional()
-          .describe("The signed x402 payment for the requirement you were given, or { orderId } for an approved PayPal order."),
+          .describe(
+            "The signed x402 payment for the requirement you were given, { orderId } for an approved PayPal order, " +
+              "or { txHash, signerId } for your NEAR ft_transfer to escrow (memo from the requirement).",
+          ),
       }),
     },
-    tool(async (caller, { taskId: id, payment, rail: named }: { taskId: string; payment?: unknown; rail?: "paypal" | "concordium" }) => {
+    tool(async (caller, { taskId: id, payment, rail: named }: { taskId: string; payment?: unknown; rail?: "paypal" | "concordium" | "near" }) => {
       const task = await desk.getTask(caller, id);
       if (task.status !== "awaiting_funding") {
         throw new DeskError("conflict", `task is ${task.status}, not awaiting funding`);
@@ -334,6 +337,17 @@ export function registerTools(server: McpServer): void {
               `(held, not charged, until the work passes review).${saves} ` +
               `Or connect PayPal for me once on My account (${SITE}/me) and I won't need to ask again.`,
             next: `once approved, call fund_task with payment: { "orderId": "${requirement.nonce}" }`,
+            ...(others.length ? { otherRails: others } : {}),
+          };
+        }
+        if (isNearRequirement(requirement)) {
+          return {
+            rail,
+            paymentRequired: requirement,
+            next:
+              `from your NEAR account, call ft_transfer on ${requirement.asset} with receiver_id "${requirement.payTo}", ` +
+              `amount "${requirement.amount}" and memo "${requirement.extra.memo}" (attach 1 yoctoNEAR), then call fund_task ` +
+              `with payment: { "txHash": "<the transaction hash>", "signerId": "<your NEAR account>" }`,
             ...(others.length ? { otherRails: others } : {}),
           };
         }

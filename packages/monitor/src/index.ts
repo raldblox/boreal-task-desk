@@ -13,6 +13,7 @@ import {
   runAiReview,
 } from "@boreal/desk";
 import { readSubmissionBytes } from "@boreal/files";
+import { type BridgeReport, loadMarketBridge, loadNear, type MarketBridge } from "@boreal/near";
 import { loadRails } from "@boreal/paypal";
 
 // The monitor tick: everything time-driven in the task lifecycle, in one idempotent pass.
@@ -30,6 +31,8 @@ export interface TickReport {
   closedWindows: number;
   ai: { screened: number; reviewed: number; toHumans: number; deferred: number } | null;
   outbox: { sent: number; failed: number } | null;
+  /** NEAR Agent Market hires, when the bridge is on. */
+  market: BridgeReport | null;
   escrowGap: number | null;
   errors: string[];
 }
@@ -42,6 +45,8 @@ export interface MonitorDeps {
   payments?: Payments | null;
   reviewer: Reviewer | null;
   readFile: ReadFile;
+  /** boreal on NEAR Agent Market: hires in, deliverables out. */
+  market?: MarketBridge | null;
   now?: () => Date;
 }
 
@@ -71,6 +76,7 @@ export function createMonitor({
   payments = concordium?.payments ?? null,
   reviewer,
   readFile,
+  market = null,
   now = () => new Date(),
 }: MonitorDeps): Monitor {
   return {
@@ -82,6 +88,7 @@ export function createMonitor({
         closedWindows: 0,
         ai: null,
         outbox: null,
+        market: null,
         escrowGap: null,
         errors: [],
       };
@@ -111,6 +118,12 @@ export function createMonitor({
         if (reviewer) {
           await step("ai-review", async () => {
             report.ai = await runAiReview(desk, reviewer, { readFile, limit: aiLimit });
+          });
+        }
+        if (market) {
+          await step("near-market", async () => {
+            report.market = await market.tick();
+            report.errors.push(...report.market.errors.map((e) => `near-market ${e}`));
           });
         }
         if (payments) {
@@ -148,10 +161,12 @@ export function createMonitor({
 export async function loadMonitor(db: Database, env: Record<string, string | undefined> = process.env): Promise<Monitor> {
   const escrowBalance = () => ledgerEscrowBalance(db, "concordium");
   const concordium = loadConcordium(env, { escrowBalance, journal: outboxTransferJournal(db) });
-  const { rails, payments } = loadRails(env, concordium, { escrowBalance: (rail) => ledgerEscrowBalance(db, rail) });
+  const near = loadNear(env, { journal: outboxTransferJournal(db) });
+  const { rails, payments } = loadRails(env, concordium, { escrowBalance: (rail) => ledgerEscrowBalance(db, rail), near });
   const desk = createDesk({ db, concordium, payments, rails, addresses: addressesFromEnv(env), requireBadge: env.REQUIRE_AGENT_BADGE === "1" });
   const reviewer = await loadReviewer(env);
-  return createMonitor({ db, desk, concordium, payments, reviewer, readFile: readSubmissionBytes });
+  const market = loadMarketBridge(db, desk, env, { near });
+  return createMonitor({ db, desk, concordium, payments, reviewer, readFile: readSubmissionBytes, market });
 }
 
 /** A one-line summary for logs, or null when the tick did nothing worth saying. */
@@ -164,6 +179,8 @@ export function describeTick(r: TickReport): string | null {
     r.ai && (r.ai.screened || r.ai.reviewed || r.ai.toHumans || r.ai.deferred) &&
       `AI: ${r.ai.screened} screened, ${r.ai.reviewed} reviewed, ${r.ai.toHumans} to humans, ${r.ai.deferred} deferred`,
     r.outbox && (r.outbox.sent || r.outbox.failed) && `outbox: ${r.outbox.sent} sent, ${r.outbox.failed} failed`,
+    r.market && (r.market.taken || r.market.funded || r.market.delivered || r.market.closed) &&
+      `NEAR market: ${r.market.taken} hired, ${r.market.funded} funded, ${r.market.delivered} delivered, ${r.market.closed} closed`,
     ...r.errors,
   ].filter(Boolean);
   return parts.length ? parts.join("; ") : null;

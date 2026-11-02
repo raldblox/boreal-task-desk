@@ -26,6 +26,7 @@ packages/
   desk/         Task service: every command in one transaction with its audit event, ledger and outbox
   concordium/   Interfaces for Agent Registry, Concordium ID, x402 payments, anchoring
   paypal/       PayPal rail for the payments port: authorize at funding, capture or void when final, Payouts to workers
+  near/         NEAR rail (USDC on NEAR) and boreal's listing on NEAR Agent Market (docs/near.md)
   brain/        AI jobs (intake, safety, review, dispute summary), each with a non-AI fallback
 ```
 

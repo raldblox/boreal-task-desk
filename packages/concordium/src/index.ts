@@ -84,7 +84,40 @@ export interface PayPalPaymentRequirement {
   extra: { rail: "paypal"; orderId: string; approveUrl: string };
 }
 
-export type PaymentRequirement = X402PaymentRequirement | PayPalPaymentRequirement;
+/**
+ * What the NEAR rail asks for: an NEP-141 `ft_transfer` of `amount` to `payTo` on the token
+ * contract `asset`, with `extra.memo` as its memo. The payer sends it, then hands boreal the
+ * transaction hash and its own account id.
+ */
+export interface NearPaymentRequirement {
+  scheme: "exact";
+  /** `near:testnet` or `near:mainnet`. */
+  network: `near:${string}`;
+  /** The token contract, such as USDC. */
+  asset: string;
+  payTo: string;
+  /** In the token's smallest units, as a decimal string. */
+  amount: string;
+  maxTimeoutSeconds: number;
+  extra: {
+    rail: "near";
+    /** The task being funded. */
+    resource: string;
+    /** `amount` in boreal's minor units (US cents). */
+    minorUnits: number;
+    decimals: number;
+    /** The memo the transfer must carry; it ties the transfer to this one task. */
+    memo: string;
+    nonce: string;
+    expiresAt: string;
+  };
+}
+
+export type PaymentRequirement = X402PaymentRequirement | PayPalPaymentRequirement | NearPaymentRequirement;
+
+export function isNearRequirement(r: PaymentRequirement): r is NearPaymentRequirement {
+  return r.network.startsWith("near:");
+}
 
 export function isPayPalRequirement(r: PaymentRequirement): r is PayPalPaymentRequirement {
   return r.network === "paypal";
@@ -120,8 +153,8 @@ export interface PaymentVault {
 }
 
 /** The money rails boreal can run, side by side; each task settles on the one it was funded on. */
-export type PaymentRail = "concordium" | "paypal";
-export const PAYMENT_RAILS: readonly PaymentRail[] = ["concordium", "paypal"];
+export type PaymentRail = "concordium" | "paypal" | "near";
+export const PAYMENT_RAILS: readonly PaymentRail[] = ["concordium", "paypal", "near"];
 
 /** The rails configured on this deployment. */
 export type PaymentRails = Partial<Record<PaymentRail, Payments>>;

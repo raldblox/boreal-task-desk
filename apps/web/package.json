@@ -19,6 +19,7 @@
     "@boreal/desk": "workspace:*",
     "@boreal/files": "workspace:*",
     "@boreal/monitor": "workspace:*",
+    "@boreal/near": "workspace:*",
     "@boreal/paypal": "workspace:*",
     "@concordium/verification-web-ui": "0.2.1",
     "@modelcontextprotocol/server": "^2.4.0",

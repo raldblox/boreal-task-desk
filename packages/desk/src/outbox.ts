@@ -26,6 +26,8 @@ export interface PayoutAddresses {
   reviewers?: Record<string, string>;
   /** The same on the PayPal rail: PayPal emails. */
   paypal?: { operating?: string; reviewers?: Record<string, string> };
+  /** The same on the NEAR rail: NEAR account ids. */
+  near?: { operating?: string; reviewers?: Record<string, string> };
 }
 
 type OutboxRow = typeof outbox.$inferSelect;
@@ -72,13 +74,16 @@ async function addressFor(db: Database, addresses: PayoutAddresses, t: Transfer,
   const paypal = rail === "paypal";
   if (t.to === "worker" && t.party) {
     [{ address } = { address: null }] = await db
-      .select({ address: paypal ? workers.paypalEmail : workers.payoutAddress })
+      .select({ address: paypal ? workers.paypalEmail : rail === "near" ? workers.nearAccount : workers.payoutAddress })
       .from(workers)
       .where(eq(workers.id, t.party));
   } else if (paypal && t.to === "reviewer" && t.party) {
     address = addresses.paypal?.reviewers?.[t.party];
   } else if (paypal && t.to === "operating") {
     address = addresses.paypal?.operating;
+  } else if (rail === "near" && (t.to === "reviewer" || t.to === "operating")) {
+    // A review fee with no NEAR account for its reviewer (boreal's own reviewer) goes to boreal.
+    address = (t.to === "reviewer" && t.party && addresses.near?.reviewers?.[t.party]) || addresses.near?.operating;
   } else if (t.to === "requester" && t.party) {
     [{ address } = { address: null }] = await db
       .select({ address: agents.refundAddress })
@@ -336,7 +341,10 @@ export async function reconcileEscrow(
   return { expected, actual, gap: actual - expected };
 }
 
-/** Reads `OPERATING_ACCOUNT_ADDRESS` and `REVIEWER_ADDRESSES` ("ref=address,ref=address"). */
+/**
+ * Reads `OPERATING_ACCOUNT_ADDRESS` and `REVIEWER_ADDRESSES` ("ref=address,ref=address"), their
+ * PayPal counterparts, and `NEAR_OPERATING_ACCOUNT`.
+ */
 export function addressesFromEnv(env: Record<string, string | undefined> = process.env): PayoutAddresses {
   const reviewers = Object.fromEntries(
     (env.REVIEWER_ADDRESSES ?? "")
@@ -354,5 +362,6 @@ export function addressesFromEnv(env: Record<string, string | undefined> = proce
     operating: env.OPERATING_ACCOUNT_ADDRESS || undefined,
     reviewers,
     paypal: { operating: env.PAYPAL_OPERATING_EMAIL || undefined, reviewers: paypalReviewers },
+    near: { operating: env.NEAR_OPERATING_ACCOUNT || undefined },
   };
 }

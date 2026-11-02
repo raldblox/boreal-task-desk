@@ -2,7 +2,7 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 
-import { type Concordium, loadConcordium, type PaymentRail, type PaymentRails, type Payments } from "@boreal/concordium";
+import { type Concordium, loadConcordium, PAYMENT_RAILS, type PaymentRail, type PaymentRails, type Payments } from "@boreal/concordium";
 import type { Task } from "@boreal/db";
 import {
   addressesFromEnv,
@@ -16,6 +16,7 @@ import {
   verifyAgentKey,
 } from "@boreal/desk";
 
+import { loadNear } from "@boreal/near";
 import { loadRails, type PayPalPayments } from "@boreal/paypal";
 import { after } from "next/server";
 
@@ -39,7 +40,10 @@ export function getConcordium(): Concordium | null {
 }
 
 function rails() {
-  loaded ??= loadRails(process.env, getConcordium(), { escrowBalance: (rail) => ledgerEscrowBalance(getDb(), rail) });
+  loaded ??= loadRails(process.env, getConcordium(), {
+    escrowBalance: (rail) => ledgerEscrowBalance(getDb(), rail),
+    near: loadNear(process.env, { journal: outboxTransferJournal(getDb()) }),
+  });
   return loaded;
 }
 
@@ -67,7 +71,7 @@ export function paymentRail(): PaymentRail | null {
 
 /**
  * The rail a fund_task call pays on: the one the agent named, else the one its payment implies
- * (a PayPal `{ orderId }` or a Concordium x402 payload), else the default.
+ * (a PayPal `{ orderId }`, a NEAR `{ txHash, signerId }` or a Concordium x402 payload), else the default.
  */
 export function pickRail(named: string | undefined, payment?: unknown): { rail: PaymentRail; payments: Payments } {
   const on = getRails();
@@ -75,10 +79,11 @@ export function pickRail(named: string | undefined, payment?: unknown): { rail: 
   if (enabled.length === 0) throw new DeskError("unavailable", "payments are not enabled yet; only test money works here");
   let rail: PaymentRail;
   if (named) {
-    if (named !== "paypal" && named !== "concordium") throw new DeskError("invalid", "rail must be paypal or concordium");
-    rail = named;
+    if (!(PAYMENT_RAILS as readonly string[]).includes(named)) throw new DeskError("invalid", `rail must be ${PAYMENT_RAILS.join(", ")}`);
+    rail = named as PaymentRail;
   } else if (payment !== undefined) {
-    rail = typeof payment === "object" && payment !== null && "orderId" in payment ? "paypal" : "concordium";
+    const shape = typeof payment === "object" && payment !== null ? payment : {};
+    rail = "orderId" in shape ? "paypal" : "txHash" in shape && "signerId" in shape ? "near" : "concordium";
   } else {
     rail = enabled[0]!;
   }
