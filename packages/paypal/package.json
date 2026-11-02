@@ -8,6 +8,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "demo:dataset": "tsx scripts/demo-dataset.ts",
     "sandbox-loop": "tsx --env-file-if-exists=../../.env.paypal scripts/sandbox-loop.ts"
   },
   "dependencies": {

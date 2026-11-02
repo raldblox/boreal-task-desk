@@ -4,10 +4,15 @@
 // ~/.boreal-task-desk/pg instead: Turbopack watches the whole workspace, and Postgres writes
 // its log constantly, which kept the dev server recompiling and reloading pages. Delete both
 // to start fresh.
+//
+// `pnpm dev:demo` is the same with the demo dataset for the admin money console: its own
+// database (~/.boreal-task-desk/pg-demo), filled once with 30 days of generated sandbox
+// activity, and the dashboard labelled "Demo dataset". `pnpm dev:demo --fresh` regenerates it
+// so the last hours' activity (payouts on their way, retries) lines up with now.
 
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -36,8 +41,14 @@ function persistentSecret(name: string): string {
   return readFileSync(file, "utf8").trim();
 }
 
-const pgDir = join(homedir(), ".boreal-task-desk", "pg");
-if (!existsSync(pgDir) && existsSync(join(localDir, "pg"))) {
+const demo = process.argv.includes("--demo");
+const pgDir = join(homedir(), ".boreal-task-desk", demo ? "pg-demo" : "pg");
+const seededMarker = join(localDir, demo ? "demo-seeded" : "seeded");
+if (demo && process.argv.includes("--fresh")) {
+  rmSync(pgDir, { recursive: true, force: true });
+  rmSync(seededMarker, { force: true });
+}
+if (!demo && !existsSync(pgDir) && existsSync(join(localDir, "pg"))) {
   // One-time move from where the database used to live.
   mkdirSync(dirname(pgDir), { recursive: true });
   renameSync(join(localDir, "pg"), pgDir);
@@ -71,19 +82,23 @@ const env = {
   FILE_STORAGE: "local",
   LOCAL_UPLOAD_DIR: join(localDir, "uploads"),
   MONITOR_INTERVAL_MS: "5000",
+  // Labels the admin console's data as generated (`pnpm dev:demo`).
+  BOREAL_DEMO_DATA: demo ? "1" : "",
 };
 
-console.log(`[local] Postgres (PGlite) on ${databaseUrl}, data in .local/${paypal ? "; payments on the PayPal sandbox" : ""}`);
+console.log(
+  `[local] Postgres (PGlite) on ${databaseUrl}, data in .local/${paypal ? "; payments on the PayPal sandbox" : ""}${demo ? "; demo dataset" : ""}`,
+);
 
 const run = (command: string) => spawn(command, { cwd: root, env, shell: true, stdio: "inherit" });
 
-const seededMarker = join(localDir, "seeded");
 if (!existsSync(seededMarker)) {
-  await new Promise<void>((done, fail) =>
-    run("pnpm --filter @boreal/desk -s seed:local").on("exit", (code) =>
-      code === 0 ? done() : fail(new Error(`seed failed with ${code}`)),
-    ),
-  );
+  const step = (command: string) =>
+    new Promise<void>((done, fail) =>
+      run(command).on("exit", (code) => (code === 0 ? done() : fail(new Error(`${command} failed with ${code}`)))),
+    );
+  await step("pnpm --filter @boreal/desk -s seed:local");
+  if (demo) await step("pnpm --filter @boreal/paypal -s demo:dataset");
   writeFileSync(seededMarker, new Date().toISOString());
 }
 
