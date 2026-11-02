@@ -1,6 +1,6 @@
 import type { Task } from "@boreal/db";
 import type { RequesterKind } from "@boreal/desk";
-import { BadgeCheck, Camera, Clock, FileText, PenLine, ShieldCheck, Store, UserCheck } from "lucide-react";
+import { BadgeCheck, Bot, Camera, Clock, FileText, PenLine, ShieldCheck, Store, UserCheck } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +13,13 @@ const FORMAT = {
 } as const;
 
 /** A task, plus who's behind it: a Verified by Concordium agent, a verified person, a NEAR market buyer, or none (from the desk). */
-export function TaskCard({ task, showStatus = false }: { task: Task & { requesterKind?: RequesterKind }; showStatus?: boolean }) {
+export function TaskCard({
+  task,
+  showStatus = false,
+}: {
+  task: Task & { requesterKind?: RequesterKind; fulfilledBy?: "person" | "agent" | null };
+  showStatus?: boolean;
+}) {
   const shown = task.requesterKind === "verified_agent" || task.requesterKind === "verified_person" || task.requesterKind === "market";
   const status = WORKER_STATUS[task.status];
   const format = FORMAT[task.resultFormat];
@@ -34,7 +40,7 @@ export function TaskCard({ task, showStatus = false }: { task: Task & { requeste
           <Clock className="size-4" /> Due {when(task.deadline)}
         </span>
       </div>
-      {(showStatus || task.test || task.paymentRail || shown || task.requiredAttributes.length > 0) && (
+      {(showStatus || task.test || task.paymentRail || shown || task.requiredAttributes.length > 0 || task.fulfillers === "people_or_agents") && (
         <div className="flex flex-wrap gap-2">
           {showStatus && <Badge variant={status.tone}>{status.label}</Badge>}
           {task.test && <Badge className="bg-primary-soft text-primary-soft-foreground">Test money</Badge>}
@@ -58,6 +64,18 @@ export function TaskCard({ task, showStatus = false }: { task: Task & { requeste
           )}
           {task.paymentRail === "paypal" && <Badge variant="outline">Paid via PayPal</Badge>}
           {task.paymentRail === "concordium" && <Badge variant="outline">Paid in tokens</Badge>}
+          {task.paymentRail === "near" && <Badge variant="outline">Paid in USDC on NEAR</Badge>}
+          {task.fulfillers === "people_or_agents" && !task.fulfilledBy && (
+            // The requester let AI agents take it too, under the same review.
+            <Badge variant="outline" className="gap-1">
+              <Bot className="size-3.5 text-primary" /> Open to AI agents
+            </Badge>
+          )}
+          {task.fulfilledBy === "agent" && (
+            <Badge variant="outline" className="gap-1">
+              <Bot className="size-3.5 text-primary" /> Done by an AI agent
+            </Badge>
+          )}
           {task.requiredAttributes.length > 0 && (
             // Required attributes are proven with Concordium ID, so the task needs its badge.
             <Badge variant="outline" className="gap-1">

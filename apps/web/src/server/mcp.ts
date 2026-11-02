@@ -68,6 +68,10 @@ function summary(task: Task) {
     /** Funded on a rail that holds the money (PayPal): taken only when the task is final. */
     held: task.fundingHold !== null,
     reviewer: task.reviewMode,
+    /** Who may do it: verified people only, or AI agents too. */
+    fulfillers: task.fulfillers,
+    /** Who took it, once claimed: a person or an AI agent. */
+    ...("fulfilledBy" in task ? { fulfilledBy: (task as { fulfilledBy: "person" | "agent" | null }).fulfilledBy } : {}),
     test: task.test,
   };
 }

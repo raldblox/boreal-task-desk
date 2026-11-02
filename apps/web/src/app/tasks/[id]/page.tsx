@@ -1,7 +1,7 @@
 import { POLICY } from "@boreal/core";
 import { type Caller, DeskError, type RequesterKind } from "@boreal/desk";
 import type { Task } from "@boreal/db";
-import { ArrowLeft, BadgeCheck, CircleCheck, ShieldCheck, Store, UserCheck } from "lucide-react";
+import { ArrowLeft, BadgeCheck, Bot, CircleCheck, ShieldCheck, Store, UserCheck } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -180,7 +180,7 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
   }
 
   const desk = getDesk();
-  let task: Task & { requesterKind: RequesterKind };
+  let task: Task & { requesterKind: RequesterKind; fulfilledBy: "person" | "agent" | null };
   try {
     task = await desk.getTask(worker, id);
   } catch (error) {
@@ -232,6 +232,21 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
               </Badge>
             )}
             {task.reviewMode === "requester" && <Badge variant="outline">Reviewed by the requester</Badge>}
+            {task.fulfilledBy === "agent" && (
+              <Badge variant="outline" className="gap-1" title="An AI agent did this task, signed in with its NEAR account. Its requester opened the task to agents; the review was the same.">
+                <Bot className="size-3.5 text-primary" /> Done by an AI agent
+              </Badge>
+            )}
+            {task.fulfilledBy === "person" && task.fulfillers === "people_or_agents" && (
+              <Badge variant="outline" className="gap-1" title="A person did this task, though it was open to AI agents too.">
+                <UserCheck className="size-3.5 text-primary" /> Done by a person
+              </Badge>
+            )}
+            {task.fulfillers === "people_or_agents" && !task.fulfilledBy && (
+              <Badge variant="outline" className="gap-1" title="The requester let AI agents take this too, under the same review.">
+                <Bot className="size-3.5 text-primary" /> Open to AI agents
+              </Badge>
+            )}
             {task.requiredAttributes.length > 0 && (
               <Badge variant="outline" className="gap-1">
                 <ShieldCheck className="size-3.5 text-primary" /> Needs Verified by Concordium

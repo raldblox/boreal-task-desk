@@ -14,6 +14,7 @@ import {
   outboxTransferJournal,
   taskTotal,
   verifyAgentKey,
+  verifyWorkerKey,
 } from "@boreal/desk";
 
 import { loadNear } from "@boreal/near";
@@ -154,6 +155,36 @@ export async function asRequester(
     // A write may unblock screening, review or payouts; run them now rather than at the next cron.
     if (request.method !== "GET" && response.ok) after(kickMonitor);
     // Reads keep timers (objection windows, deadlines) moving too, throttled.
+    else after(kickMonitorSoon);
+    return response;
+  } catch (error) {
+    if (error instanceof DeskError) {
+      return Response.json({ error: error.code, message: error.message }, { status: STATUS[error.code] });
+    }
+    console.error("[api] unexpected error", error);
+    return Response.json({ error: "internal", message: "something went wrong" }, { status: 500 });
+  }
+}
+
+/**
+ * Runs an agent worker's API action: authenticates `Authorization: Bearer bw_…` (an AI agent
+ * that proved a NEAR account), then turns desk refusals into JSON errors like `asRequester`.
+ */
+export async function asAgentWorker(request: Request, action: (caller: Caller) => Promise<Response>): Promise<Response> {
+  const header = request.headers.get("authorization") ?? "";
+  const key = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
+  const workerId = key ? await verifyWorkerKey(getDb(), key) : null;
+  if (!workerId) {
+    return Response.json({ error: "unauthorized", message: "send your agent worker key (bw_…) as a Bearer token" }, { status: 401 });
+  }
+  return runAs({ role: "worker", workerId }, request, action);
+}
+
+/** Shared by the agent and worker APIs: run, kick the monitor, map desk errors to statuses. */
+async function runAs(caller: Caller, request: Request, action: (caller: Caller) => Promise<Response>): Promise<Response> {
+  try {
+    const response = await action(caller);
+    if (request.method !== "GET" && response.ok) after(kickMonitor);
     else after(kickMonitorSoon);
     return response;
   } catch (error) {
