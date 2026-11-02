@@ -114,19 +114,29 @@ The test in `apps/web/src/content/agent-card.test.ts` fails when the card change
 `x-card-sha256` with `set_agent_uri` (step 1.5). The guide and fees aren't in the card, so
 changing them needs nothing on-chain.
 
-## Later: a thin A2A adapter (not built)
+## Listing the A2A endpoint
 
-The card lists MCP and REST as its interfaces and no A2A endpoint. If A2A clients start asking,
-add a small A2A JSON-RPC route (say `/api/a2a`) that maps onto the existing desk calls, so it
-behaves exactly like MCP and REST:
+`/api/a2a` (A2A v1.0, JSON-RPC; see the README) is live on every deploy, but the card lists it
+only when `A2A_IN_CARD=1`. Off, the card stays byte-identical to version 1.0.0, so deploying the
+endpoint changes nothing on-chain. On, the card becomes version 1.1.0: the A2A interface first
+in `supportedInterfaces`, an `A2A` entry in `services`, a bearer `securitySchemes` entry, a
+description that mentions A2A, and `application/json` as the only input mode. Its hash changes,
+so turn it on and pin the new hash together, one site at a time:
 
-- `message/send` → `post_task`, taking the task (description, criteria, budget, deadline) from a
-  `data` part and returning an A2A `Task` whose id is boreal's task id;
-- `tasks/get` → `get_task`, mapping boreal's states onto A2A's (`posted`/`awaiting_funding` →
-  `submitted` or `input-required` for funding, `open`/`claimed` → `working`, final states →
-  `completed`, `failed` or `canceled`);
-- `tasks/cancel` → `cancel_task`.
+1. Set `A2A_IN_CARD=1` on the project (Production) and redeploy.
+2. Read the new hash: `curl -sI https://testnet.boreal.work/.well-known/agent-card.json | grep -i x-card-sha256`.
+   With testnet's badge set it should be
+   `8746afe098a5950be43b4bf3eaf107ef4056e46da23dbe924f2139d131f9cbaa` (without a badge:
+   `2651a691…59bb7b8` on testnet, `4acfb826…43ec76e2` on boreal.work; full values in
+   `agent-card.test.ts`).
+3. Pin it right away with the owner wallet (step 1.5): in the registry app, edit agent #980 and
+   set the new metadata hash, or build the transaction and sign it with the owner wallet:
 
-Auth stays the agent key as a bearer token. Funding, review and disputes stay on MCP/REST. Then
-add `{ url: "<site>/api/a2a", protocolBinding: "JSONRPC", protocolVersion: "1.0" }` first in
-`supportedInterfaces`, an `A2A` entry in `services`, bump `CARD_VERSION` and pin the new hashes.
+   ```bash
+   curl -s "https://agent-registry-mcp.concordium.com/v1/build-set-agent-uri/JyP9XtT2fKaQLnJ9zbkRa?metadata_hash_hex=<new hash>&sender=4K3XH1FmdHcNHjrtqZ7qy1eBokdpygFi41LGar3TFDDMnmwy9A"
+   ```
+
+4. Confirm with `check-badge/JyP9XtT2fKaQLnJ9zbkRa`, and `/status` shows "Verified by Concordium".
+
+Until step 3 lands, `/status` shows the listing as mismatched. To back out, unset the variable
+and redeploy: the 1.0.0 card, and the hash already pinned, come back.

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { agentCard, agentCardBytes, CARD_VERSION, type CardInput } from "./agent-card";
+import { agentCard, agentCardBytes, CARD_VERSION, CARD_VERSION_WITHOUT_A2A, type CardInput } from "./agent-card";
 
 // The registry pins each deployment's card hash on-chain, so any change to the bytes must come
 // with a CARD_VERSION bump (and a new on-chain hash: docs/registry.md). Record the new
@@ -9,6 +9,12 @@ const PINNED: Record<string, { testnet: string; mainnet: string }> = {
   "1.0.0": {
     testnet: "d9258412a878537ff982bccd5363df36b9ceaadb3d0c4a7eb2570d8384968e5d",
     mainnet: "18c082cf44b90e755a936e2680eefa012a913b4c7935c3923164a3601e98c91d",
+  },
+  // Lists the A2A endpoint (A2A_IN_CARD=1). With testnet's badge set, testnet serves
+  // 8746afe098a5950be43b4bf3eaf107ef4056e46da23dbe924f2139d131f9cbaa.
+  "1.1.0": {
+    testnet: "2651a691bdcd8e8cb903e90a2fc045bda35a5e32e5c2c402f4b939e7c59bb7b8",
+    mainnet: "4acfb82606fd136f3a2ca268091150d0f2e8f3d8ac8f303f2abf8e2443ec76e2",
   },
 };
 
@@ -23,16 +29,28 @@ const BADGE = { token: "Mf22soLh1NuZYFgBK8iSs", owner: "4DDvjwdcLmTy1Ar9FCKKPMiA
 
 describe("agent card", () => {
   for (const network of ["testnet", "mainnet"] as const) {
-    it(`keeps the ${network} card byte-stable unless CARD_VERSION is bumped`, () => {
-      const { body, sha256 } = agentCardBytes(DEPLOYED[network]);
-      expect(body).toMatchSnapshot();
-      const pinned = PINNED[CARD_VERSION];
-      expect(pinned, `CARD_VERSION ${CARD_VERSION} has no pinned hashes: add them to PINNED`).toBeDefined();
-      expect(sha256, `the ${network} card changed: bump CARD_VERSION, record its hashes, and pin the new hash in the registry`).toBe(
-        pinned[network],
-      );
-    });
+    for (const a2a of [false, true]) {
+      const version = a2a ? CARD_VERSION : CARD_VERSION_WITHOUT_A2A;
+      it(`keeps the ${network} card ${a2a ? "with" : "without"} A2A byte-stable unless its version is bumped`, () => {
+        const { body, sha256 } = agentCardBytes({ ...DEPLOYED[network], a2a });
+        expect(body).toMatchSnapshot();
+        const pinned = PINNED[version];
+        expect(pinned, `card version ${version} has no pinned hashes: add them to PINNED`).toBeDefined();
+        expect(sha256, `the ${network} card changed: bump CARD_VERSION, record its hashes, and pin the new hash in the registry`).toBe(
+          pinned[network],
+        );
+      });
+    }
   }
+
+  it("lists A2A first, with bearer auth, only when switched on", () => {
+    expect(agentCard(DEPLOYED.testnet)).not.toHaveProperty("securitySchemes");
+    const card = agentCard({ ...DEPLOYED.testnet, a2a: true });
+    expect(card.supportedInterfaces[0]).toEqual({ url: "https://testnet.boreal.work/api/a2a", protocolBinding: "JSONRPC", protocolVersion: "1.0" });
+    expect(card.services[0]).toEqual({ name: "A2A", endpoint: "https://testnet.boreal.work/api/a2a", version: "1.0" });
+    expect(card.securitySchemes?.borealKey.httpAuthSecurityScheme.scheme).toBe("Bearer");
+    expect(card.description.length).toBeLessThanOrEqual(2048);
+  });
 
   it("stays within the registry's limits and names this site's endpoints", () => {
     const card = agentCard(DEPLOYED.testnet);

@@ -20,11 +20,11 @@ import { kickMonitor, kickMonitorSoon } from "./monitor";
 // The requester tools, as an agent sees them. Each one is a thin wrapper over the desk,
 // so MCP, REST and A2A always behave the same.
 
-type ToolContent = { type: "text"; text: string } | { type: "image"; data: string; mimeType: string };
+export type ToolContent = { type: "text"; text: string } | { type: "image"; data: string; mimeType: string };
 type ToolResult = { content: ToolContent[]; isError?: boolean };
 
 /** A tool result with its own content blocks (like images), passed through as is. */
-class Raw {
+export class Raw {
   constructor(readonly content: ToolContent[]) {}
 }
 type ToolContext = { http?: { authInfo?: { clientId: string }; req?: Request } };
@@ -74,9 +74,19 @@ function summary(task: Task) {
 
 const ok = (value: unknown): ToolResult => ({ content: [{ type: "text", text: JSON.stringify(value, null, 2) }] });
 
+/**
+ * What a tool does, apart from MCP: A2A calls the same `run` with the same arguments, so every
+ * surface behaves alike. `caller` is null for the keyless link tools.
+ */
+export interface ToolRun {
+  keyless: boolean;
+  writes: boolean;
+  run: (caller: Caller | null, args: never, req: Request | undefined) => Promise<unknown>;
+}
+
 /** Resolves the agent from the verified key and turns desk refusals into tool errors. */
 function tool<A>(run: (caller: Caller, args: A) => Promise<unknown>, { writes = true } = {}) {
-  return async (args: A, ctx: ToolContext): Promise<ToolResult> => {
+  const handler = async (args: A, ctx: ToolContext): Promise<ToolResult> => {
     const agentId = ctx.http?.authInfo?.clientId;
     if (!agentId) {
       return {
@@ -97,11 +107,13 @@ function tool<A>(run: (caller: Caller, args: A) => Promise<unknown>, { writes = 
       return { isError: true, content: [{ type: "text", text: "internal: something went wrong" }] };
     }
   };
+  const meta: ToolRun = { keyless: false, writes, run: (caller, args) => run(caller!, args as A) };
+  return Object.assign(handler, { boreal: meta });
 }
 
 /** Link tools work without a key: they're how an agent gets one. */
 function keyless<A>(run: (args: A, req: Request | undefined) => Promise<unknown>) {
-  return async (args: A, ctx: ToolContext): Promise<ToolResult> => {
+  const handler = async (args: A, ctx: ToolContext): Promise<ToolResult> => {
     try {
       return ok(await run(args, ctx.http?.req));
     } catch (error) {
@@ -110,6 +122,8 @@ function keyless<A>(run: (args: A, req: Request | undefined) => Promise<unknown>
       return { isError: true, content: [{ type: "text", text: "internal: something went wrong" }] };
     }
   };
+  const meta: ToolRun = { keyless: true, writes: true, run: (_caller, args, req) => run(args as A, req) };
+  return Object.assign(handler, { boreal: meta });
 }
 
 export function registerTools(server: McpServer): void {

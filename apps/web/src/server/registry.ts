@@ -23,7 +23,15 @@ let served: { body: string; sha256: string } | undefined;
 
 /** The card this deployment serves, built once per process. */
 export function servedCard(): { body: string; sha256: string } {
-  served ??= agentCardBytes({ site: SITE, liveSite: LIVE_SITE, network: NETWORK, x402: "concordium" in getRails(), badge: ownBadge() });
+  served ??= agentCardBytes({
+    site: SITE,
+    liveSite: LIVE_SITE,
+    network: NETWORK,
+    x402: "concordium" in getRails(),
+    badge: ownBadge(),
+    // Listing A2A changes the pinned bytes: turn it on together with the new on-chain hash.
+    a2a: process.env.A2A_IN_CARD === "1",
+  });
   return served;
 }
 

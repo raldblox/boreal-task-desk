@@ -12,12 +12,21 @@ import { badgeCardFields, type RegistryNetwork } from "@boreal/concordium";
  * Bump on any change to the card's bytes, then pin the new hash in the registry. The snapshot
  * test fails until the new version's hashes are recorded there.
  */
-export const CARD_VERSION = "1.0.0";
+export const CARD_VERSION = "1.1.0";
+
+/**
+ * The card before it listed A2A, still served while `A2A_IN_CARD` is off, so deploying the A2A
+ * endpoint doesn't change the pinned bytes. Turning the flag on serves CARD_VERSION, whose new
+ * hash must be pinned right after (docs/registry.md).
+ */
+export const CARD_VERSION_WITHOUT_A2A = "1.0.0";
 
 export const CARD_PATH = "/.well-known/agent-card.json";
 
 /** The MCP revision boreal's server speaks (the SDK's latest). */
 const MCP_PROTOCOL_VERSION = "2025-11-25";
+/** The A2A version /api/a2a speaks (JSON-RPC binding). */
+const A2A_PROTOCOL_VERSION = "1.0";
 
 export interface CardInput {
   /** This deployment's address, e.g. https://testnet.boreal.work. */
@@ -29,29 +38,36 @@ export interface CardInput {
   x402: boolean;
   /** boreal's own registry badge and the account that owns it, once registered. */
   badge: { token: string; owner: string } | null;
+  /** List the A2A endpoint (`A2A_IN_CARD=1`). Off keeps the 1.0.0 card's bytes exactly. */
+  a2a?: boolean;
 }
 
 const SERVICE = `boreal.work is a verified human task desk for AI agents. Hand off a step you can't do alone to a verified human: something in the physical world (visit a place, photograph a shelf, check a notice, buy an item) or a judgment only a person can give. Fund the task into escrow, a reviewer judges the result against your own acceptance criteria, and you pay only for work that passes. Every step lands in a hash-chained audit trail anchored on Concordium.
 
 boreal is a deterministic service, not an AI agent: its rulebook decides every state change. Connect over MCP or REST; an agent links itself with request_link and its owner approves the key.`;
 
+const SERVICE_A2A = `${SERVICE.slice(0, SERVICE.indexOf("Connect over"))}Connect over A2A, MCP or REST; an agent links itself with request_link and its owner approves the key. Over A2A, each message carries one structured data part, { "action": "<tool>", ...arguments }: boreal doesn't read free text.`;
+
 /** The card as an object, keys in their served order. */
-export function agentCard({ site, liveSite, network, x402, badge }: CardInput) {
+export function agentCard({ site, liveSite, network, x402, badge, a2a = false }: CardInput) {
   const badgeFields = badge ? badgeCardFields(network, badge.token, badge.owner) : null;
   const testnet = network === "testnet";
   const mcp = `${site}/api/mcp`;
   const rest = `${site}/api/v1`;
+  const a2aUrl = `${site}/api/a2a`;
+  const service = a2a ? SERVICE_A2A : SERVICE;
   return {
     type: "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
     name: testnet ? "boreal.work testnet" : "boreal.work",
     description: testnet
-      ? `${SERVICE}\n\nThis is boreal's testnet: money here is never real (PayPal sandbox, Concordium testnet tokens). The live site is ${liveSite}, with its own keys and accounts. Guide: ${site}/agents.md`
-      : `${SERVICE}\n\nThis is the live site: money here is real. Guide: ${site}/agents.md`,
-    version: CARD_VERSION,
+      ? `${service}\n\nThis is boreal's testnet: money here is never real (PayPal sandbox, Concordium testnet tokens). The live site is ${liveSite}, with its own keys and accounts. Guide: ${site}/agents.md`
+      : `${service}\n\nThis is the live site: money here is real. Guide: ${site}/agents.md`,
+    version: a2a ? CARD_VERSION : CARD_VERSION_WITHOUT_A2A,
     provider: { organization: "boreal.work", url: liveSite },
     documentationUrl: `${site}/agents.md`,
-    // boreal has no A2A endpoint yet; these name their own protocols, so A2A clients skip them.
+    // A2A first (JSON-RPC); MCP and REST name their own protocols, so A2A clients skip them.
     supportedInterfaces: [
+      ...(a2a ? [{ url: a2aUrl, protocolBinding: "JSONRPC", protocolVersion: A2A_PROTOCOL_VERSION }] : []),
       { url: mcp, protocolBinding: "MCP", protocolVersion: MCP_PROTOCOL_VERSION },
       { url: rest, protocolBinding: "REST", protocolVersion: "v1" },
     ],
@@ -60,8 +76,22 @@ export function agentCard({ site, liveSite, network, x402, badge }: CardInput) {
       pushNotifications: false,
       ...(badgeFields ? { extensions: [badgeFields.extension] } : {}),
     },
-    defaultInputModes: ["application/json", "text/plain"],
+    // Over A2A boreal reads data parts only; the older card kept text/plain.
+    defaultInputModes: a2a ? ["application/json"] : ["application/json", "text/plain"],
     defaultOutputModes: ["application/json", "text/plain"],
+    ...(a2a
+      ? {
+          securitySchemes: {
+            borealKey: {
+              httpAuthSecurityScheme: {
+                scheme: "Bearer",
+                description: "Your boreal agent key (bk_...). Without one, send the request_link action and have your owner approve it.",
+              },
+            },
+          },
+          securityRequirements: [{ schemes: { borealKey: { list: [] } } }],
+        }
+      : {}),
     skills: [
       {
         id: "hire-verified-human",
@@ -98,6 +128,7 @@ export function agentCard({ site, liveSite, network, x402, badge }: CardInput) {
       },
     ],
     services: [
+      ...(a2a ? [{ name: "A2A", endpoint: a2aUrl, version: A2A_PROTOCOL_VERSION }] : []),
       { name: "MCP", endpoint: mcp, version: MCP_PROTOCOL_VERSION },
       { name: "REST", endpoint: rest, version: "v1" },
       { name: "web", endpoint: site },
