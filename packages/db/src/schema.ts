@@ -44,6 +44,10 @@ export const marketJobState = pgEnum("market_job_state", ["posted", "started", "
  * themselves (their own requester, made on their first post), or a NEAR Agent Market buyer.
  */
 export const agentKind = pgEnum("agent_kind", ["agent", "personal", "market"]);
+/** Who may do a task: verified people only (the default), or AI agents too. */
+export const fulfillers = pgEnum("fulfillers", ["people", "people_or_agents"]);
+/** A worker is a person (proves who they are) or an AI agent (proves a NEAR account). */
+export const workerKind = pgEnum("worker_kind", ["person", "agent"]);
 export const agentLinkStatus = pgEnum("agent_link_status", ["pending", "approved", "denied", "collected"]);
 
 const timestamps = {
@@ -150,6 +154,11 @@ export const workers = pgTable("workers", {
   paypalEmail: text("paypal_email"),
   /** NEAR account that payouts go to on the NEAR rail. */
   nearAccount: text("near_account"),
+  kind: workerKind("kind").notNull().default("person"),
+  /** Agent workers only: hash of their `bw_` API key's secret. */
+  apiKeyHash: text("api_key_hash"),
+  /** Agent workers only: when the key was last issued; an older sign-in signature can't issue another. */
+  apiKeyIssuedAt: timestamp("api_key_issued_at", { withTimezone: true }),
   /** Signed in with a test invite; sees and claims only test tasks. */
   testMode: boolean("test_mode").notNull().default(false),
   ...timestamps,
@@ -190,6 +199,7 @@ export const tasks = pgTable(
     test: boolean("test").notNull().default(false),
     /** Who judges the result: boreal's reviewer, or the requester itself (worker can still dispute). */
     reviewMode: reviewMode("review_mode").notNull().default("boreal"),
+    fulfillers: fulfillers("fulfillers").notNull().default("people"),
     /** Set when the AI reviewer can't decide; a human reviewer takes it from there. */
     needsHuman: boolean("needs_human").notNull().default(false),
     humanReason: text("human_reason"),

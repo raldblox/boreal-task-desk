@@ -127,6 +127,13 @@
       "when": 1793593197469,
       "tag": "0017_drop_agent_personal",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793595134542,
+      "tag": "0018_agent_workers",
+      "breakpoints": true
     }
   ]
 }
