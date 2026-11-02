@@ -322,12 +322,13 @@ export function findAnomalies(data: ConsoleData, reconciliation: ReconcileResult
   const stuck = data.transfers.filter((t) => (t.kind === "payout" || t.kind === "refund") && (t.state === "stuck" || t.state === "retrying"));
   if (stuck.length > 0) {
     const oldest = Math.max(...stuck.map((t) => t.minutesOpen));
+    const retrying = stuck.filter((t) => t.state === "retrying").length;
     found.push({
       id: "stuck-payouts",
-      severity: stuck.some((t) => t.state === "retrying") ? "critical" : "warning",
+      severity: retrying > 0 ? "critical" : "warning",
       kind: "stuck_payouts",
-      title: `${stuck.length} ${stuck.length === 1 ? "payout" : "payouts"} stuck on their way`,
-      detail: `Oldest has waited ${oldest >= 120 ? `${Math.round(oldest / 60)} hours` : `${oldest} minutes`}; ${stuck.filter((t) => t.state === "retrying").length} are retrying after an error.`,
+      title: stuck.length === 1 ? "1 payout stuck on its way" : `${stuck.length} payouts stuck on their way`,
+      detail: `${stuck.length === 1 ? "It has" : "The oldest has"} waited ${oldest >= 120 ? `${Math.round(oldest / 60)} hours` : `${oldest} minutes`}; ${retrying === 0 ? "none is" : retrying === 1 ? "1 is" : `${retrying} are`} retrying after an error.`,
       amount: total(stuck),
       count: stuck.length,
       taskIds: ids(stuck),

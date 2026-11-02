@@ -31,9 +31,12 @@ mkdirSync(join(localDir, "uploads"), { recursive: true });
 
 // PayPal sandbox credentials, if you want the PayPal rail locally (PAYMENTS_RAIL=paypal).
 // Kept in their own gitignored file so .env.local's production values never mix in.
+// The demo dataset never loads them: its PayPal holds exist only in the generator's in-memory
+// PayPal, and the monitor must not try to capture or pay them out on the real sandbox.
+const demo = process.argv.includes("--demo");
 const paypalEnv = join(root, ".env.paypal");
-if (existsSync(paypalEnv)) process.loadEnvFile(paypalEnv);
-const paypal = process.env.PAYMENTS_RAIL === "paypal";
+if (!demo && existsSync(paypalEnv)) process.loadEnvFile(paypalEnv);
+const paypal = !demo && process.env.PAYMENTS_RAIL === "paypal";
 
 function persistentSecret(name: string): string {
   const file = join(localDir, name);
@@ -41,7 +44,6 @@ function persistentSecret(name: string): string {
   return readFileSync(file, "utf8").trim();
 }
 
-const demo = process.argv.includes("--demo");
 const pgDir = join(homedir(), ".boreal-task-desk", demo ? "pg-demo" : "pg");
 const seededMarker = join(localDir, demo ? "demo-seeded" : "seeded");
 if (demo && process.argv.includes("--fresh")) {
@@ -82,8 +84,10 @@ const env = {
   FILE_STORAGE: "local",
   LOCAL_UPLOAD_DIR: join(localDir, "uploads"),
   MONITOR_INTERVAL_MS: "5000",
-  // Labels the admin console's data as generated (`pnpm dev:demo`).
+  // Labels the admin console's data as generated (`pnpm dev:demo`), and keeps any PayPal
+  // settings from the shell out of it.
   BOREAL_DEMO_DATA: demo ? "1" : "",
+  ...(demo && { PAYMENTS_RAIL: "", PAYMENT_RAILS: "concordium", PAYPAL_CLIENT_ID: "", PAYPAL_CLIENT_SECRET: "", PAYPAL_LOGIN: "" }),
 };
 
 console.log(
@@ -97,8 +101,8 @@ if (!existsSync(seededMarker)) {
     new Promise<void>((done, fail) =>
       run(command).on("exit", (code) => (code === 0 ? done() : fail(new Error(`${command} failed with ${code}`)))),
     );
-  await step("pnpm --filter @boreal/desk -s seed:local");
-  if (demo) await step("pnpm --filter @boreal/paypal -s demo:dataset");
+  // The demo dataset brings its own requesters, and leaves .local/agent-key.txt to dev:local.
+  await step(demo ? "pnpm --filter @boreal/paypal -s demo:dataset" : "pnpm --filter @boreal/desk -s seed:local");
   writeFileSync(seededMarker, new Date().toISOString());
 }
 

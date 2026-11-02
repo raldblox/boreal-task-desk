@@ -1,0 +1,59 @@
+/* The money console's tokens: the site's Aurora Teal (globals.css, brand.md) as hex, because AG
+   Studio converts theme colors to hex and can't read oklch(). Charts are calm and categorical:
+   teal first, red only for failures. */
+.boreal-console {
+  --bc-bg: #f6fafa;
+  --bc-card: #ffffff;
+  --bc-fg: #1a262c;
+  --bc-muted: #eef3f3;
+  --bc-muted-fg: #5d6a71;
+  --bc-border: #dde4e5;
+  --bc-accent: #e6f0f0;
+  --bc-primary: #00696a;
+  --bc-primary-fg: #f6fbfb;
+  --bc-primary-soft: #bfe0de;
+  --bc-primary-soft-fg: #0d5051;
+  --bc-chart-1: #00696a;
+  --bc-chart-2: #3b6fb6;
+  --bc-chart-3: #3f9a6e;
+  --bc-chart-4: #c08a1e;
+  --bc-chart-5: #b8573a;
+  --bc-chart-6: #5f6f7a;
+  --bc-chart-7: #7a5c9e;
+  --bc-chart-8: #4aa3c2;
+  --bc-chart-9: #8fb8b0;
+  --bc-chart-10: #a0a9b0;
+  --bc-ok: #00696a;
+  --bc-warn: #b7791f;
+  --bc-bad: #c2412d;
+  --bc-quiet: #8a99a3;
+  --bc-gridline: #edf2f2;
+}
+.dark .boreal-console {
+  --bc-bg: #0d191d;
+  --bc-card: #142228;
+  --bc-fg: #eef4f4;
+  --bc-muted: #1a2a30;
+  --bc-muted-fg: #a6b0b3;
+  --bc-border: #29393f;
+  --bc-accent: #1c3234;
+  --bc-primary: #5ac6bd;
+  --bc-primary-fg: #0b1f1d;
+  --bc-primary-soft: #b6e4dd;
+  --bc-primary-soft-fg: #0b3b37;
+  --bc-chart-1: #5ac6bd;
+  --bc-chart-2: #7aa5e0;
+  --bc-chart-3: #74c79b;
+  --bc-chart-4: #e0b45a;
+  --bc-chart-5: #e08a6c;
+  --bc-chart-6: #9aa9b3;
+  --bc-chart-7: #a98ad0;
+  --bc-chart-8: #7fcfe6;
+  --bc-chart-9: #4e8a83;
+  --bc-chart-10: #6f7a82;
+  --bc-ok: #5ac6bd;
+  --bc-warn: #e0b45a;
+  --bc-bad: #f07a63;
+  --bc-quiet: #7d8b94;
+  --bc-gridline: #1c2b30;
+}

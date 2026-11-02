@@ -10,6 +10,7 @@ export const instant = false;
 
 const NAV = [
   ["/admin", "Overview"],
+  ["/admin/console", "Money console"],
   ["/admin/review", "Review queue"],
   ["/admin/tasks", "Tasks"],
   ["/admin/money", "Money"],
