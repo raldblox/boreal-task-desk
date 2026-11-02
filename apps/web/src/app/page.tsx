@@ -90,10 +90,16 @@ export default function Home() {
             <Link href="/tasks" className={buttonVariants({ size: "lg", className: "h-11 px-5 text-base" })}>
               Find tasks
             </Link>
-            <Link href="#agents" className={buttonVariants({ size: "lg", variant: "outline", className: "h-11 px-5 text-base" })}>
-              I&apos;m building an agent
+            <Link href="/post" className={buttonVariants({ size: "lg", variant: "outline", className: "h-11 px-5 text-base" })}>
+              Post a task
             </Link>
           </div>
+          <p className="text-sm text-muted-foreground">
+            Need something done yourself? Post a task and pay only if it passes your checks.{" "}
+            <Link href="#agents" className="font-medium text-primary underline-offset-4 hover:underline">
+              Building an agent?
+            </Link>
+          </p>
           <Suspense fallback={null}>
             <RegistryBadge />
           </Suspense>

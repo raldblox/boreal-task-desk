@@ -1,7 +1,7 @@
 import { POLICY } from "@boreal/core";
-import { type Caller, DeskError } from "@boreal/desk";
+import { type Caller, DeskError, type RequesterKind } from "@boreal/desk";
 import type { Task } from "@boreal/db";
-import { ArrowLeft, BadgeCheck, CircleCheck, ShieldCheck } from "lucide-react";
+import { ArrowLeft, BadgeCheck, CircleCheck, ShieldCheck, Store, UserCheck } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -29,14 +29,28 @@ function NextStep({
   task,
   worker,
   needsBadge,
+  postedByMe,
 }: {
   task: Task;
   worker: Extract<Caller, { role: "worker" }>;
   /** The task needs proven attributes and this worker hasn't added Concordium ID yet. */
   needsBadge: boolean;
+  /** The signed-in person posted this task themselves: they manage it, they can't claim it. */
+  postedByMe: boolean;
 }) {
   const mine = task.claimedBy === worker.workerId;
   const windowEnds = task.verdictAt ? new Date(task.verdictAt.getTime() + POLICY.objectionWindowMs) : null;
+
+  if (postedByMe) {
+    return (
+      <div className="flex flex-col gap-3">
+        <p className="text-sm text-muted-foreground">You posted this task, so you can&apos;t claim it. Workers see it like this.</p>
+        <Link href={`/me/posted/${task.id}`} className={buttonVariants({ className: "w-full" })}>
+          Manage your task
+        </Link>
+      </div>
+    );
+  }
 
   switch (task.status) {
     case "open":
@@ -166,17 +180,18 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
   }
 
   const desk = getDesk();
-  let task: Task & { agentVerified: boolean };
+  let task: Task & { requesterKind: RequesterKind };
   try {
     task = await desk.getTask(worker, id);
   } catch (error) {
     if (error instanceof DeskError && error.code === "not_found") notFound();
     throw error;
   }
-  const [submission, verdict, profile] = await Promise.all([
+  const [submission, verdict, profile, mine] = await Promise.all([
     desk.getSubmission(worker, id),
     desk.getVerdict(worker, id),
     desk.getWorker(worker),
+    desk.findPersonalRequester(worker.workerId),
   ]);
   const needsBadge = task.requiredAttributes.length > 0 && !!profile && !profile.testMode && !profile.hasConcordium;
   const status = WORKER_STATUS[task.status];
@@ -193,7 +208,7 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
         </div>
         <TaskProgress status={task.status} />
         <div className="border-t pt-5">
-          <NextStep task={task} worker={worker} needsBadge={needsBadge} />
+          <NextStep task={task} worker={worker} needsBadge={needsBadge} postedByMe={mine?.id === task.agentId} />
         </div>
       </aside>
 
@@ -201,12 +216,20 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-2">
             {task.test && <Badge className="bg-primary-soft text-primary-soft-foreground">Test task · test money only</Badge>}
-            {task.agentVerified ? (
+            {task.requesterKind === "verified_agent" && (
               <Badge variant="outline" className="gap-1" title="The AI agent that posted this is listed in Concordium's Agent Registry, owned by an accountable Concordium account.">
-                <BadgeCheck className="size-3.5 text-primary" /> Posted by a verified agent
+                <BadgeCheck className="size-3.5 text-primary" /> Verified agent
               </Badge>
-            ) : (
-              <Badge variant="outline" className="text-muted-foreground">Agent not verified</Badge>
+            )}
+            {task.requesterKind === "verified_person" && (
+              <Badge variant="outline" className="gap-1" title="A person posted this themselves, and proved who they are with Concordium ID.">
+                <UserCheck className="size-3.5 text-primary" /> Posted by a verified person
+              </Badge>
+            )}
+            {task.requesterKind === "market" && (
+              <Badge variant="outline" className="gap-1" title="Hired through boreal's listing on NEAR Agent Market.">
+                <Store className="size-3.5 text-primary" /> NEAR market buyer
+              </Badge>
             )}
             {task.reviewMode === "requester" && <Badge variant="outline">Reviewed by the requester</Badge>}
             {task.requiredAttributes.length > 0 && (

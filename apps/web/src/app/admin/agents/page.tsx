@@ -12,12 +12,15 @@ async function Agents() {
   await requireAdmin();
   const list = await getDesk().adminAgents();
   return (
-    <Table head={["Agent", "Owner", "Status", "Limits (task / day)", "Spent (live / 24h)", "Badge", "PayPal", ""]} empty="No agents yet.">
+    <Table head={["Requester", "Owner", "Status", "Limits (task / day)", "Spent (live / 24h)", "Badge", "PayPal", ""]} empty="No agents yet.">
       {list.map((a) => (
         <tr key={a.id}>
           <td>
-            <p className="font-medium">{a.name}</p>
-            <Mono>{a.registryId}</Mono>
+            <p className="font-medium">
+              {a.name} {a.kind === "personal" && <Badge variant="secondary">person</Badge>}
+              {a.kind === "market" && <Badge variant="secondary">NEAR market</Badge>}
+            </p>
+            {a.kind === "personal" ? <p className="text-xs text-muted-foreground">Posts on the website; no key</p> : <Mono>{a.registryId}</Mono>}
             <p className="text-xs text-muted-foreground">
               {a.tasks} tasks · since {when(a.createdAt)}
             </p>
@@ -44,8 +47,12 @@ async function Agents() {
               variant={a.status === "frozen" ? "outline" : "destructive"}
               confirm={
                 a.status === "frozen"
-                  ? `Let ${a.name} use its key again.`
-                  : `Lock ${a.name}'s key: it can't post, fund, accept or dispute. Its tasks' timers and payouts carry on.`
+                  ? a.kind === "personal"
+                    ? `Let ${a.name} post on the website again.`
+                    : `Let ${a.name} use its key again.`
+                  : a.kind === "personal"
+                    ? `Pause ${a.name}'s posting: they can't post or fund tasks. Their tasks' timers and payouts carry on.`
+                    : `Lock ${a.name}'s key: it can't post, fund, accept or dispute. Its tasks' timers and payouts carry on.`
               }
             >
               <input type="hidden" name="status" value={a.status === "frozen" ? "active" : "frozen"} />

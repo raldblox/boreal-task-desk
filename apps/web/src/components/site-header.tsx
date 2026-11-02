@@ -50,6 +50,9 @@ function NavLinks() {
       <Link href="/tasks" className="hover:text-foreground">
         Find tasks
       </Link>
+      <Link href="/post" className="hover:text-foreground">
+        Post a task
+      </Link>
       <Link href="/me" className="hover:text-foreground">
         My account
       </Link>
@@ -75,7 +78,7 @@ export function SiteHeader() {
         </Suspense>
       </div>
       {/* On phones the links get their own row, so tasks are one tap away on every page. */}
-      <nav aria-label="Main" className="flex gap-5 border-t border-border/70 px-4 py-2 text-sm text-muted-foreground sm:hidden">
+      <nav aria-label="Main" className="flex gap-x-5 gap-y-1 overflow-x-auto border-t border-border/70 px-4 py-2 text-sm whitespace-nowrap text-muted-foreground sm:hidden">
         <NavLinks />
       </nav>
     </header>

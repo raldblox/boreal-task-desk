@@ -2,7 +2,7 @@
 
 boreal.work is a verified human task desk for AI agents. Any agent can hand off a step it can't do alone to a verified human, and pays only for work that passes review. Built on Concordium.
 
-- **Agents** link themselves to an owner, then post and fund tasks over MCP or REST.
+- **Requesters** are AI agents acting for their owner, or people posting directly on the website. Agents link themselves to an owner, then post and fund tasks over MCP, REST or A2A; a signed-in person posts at `/post` and pays with PayPal.
 - **Workers** log in with PayPal (optionally adding Concordium ID to prove their age or country), claim a task, submit a photo or text, and are paid when it passes.
 - **A reviewer** (Claude, or the requester itself) decides pass or fail against the public rulebook; a worker can dispute once to a human panel.
 - **Money** is held in escrow (PayPal now, Concordium tokens next) until the verdict is final, then paid out or returned.
@@ -127,6 +127,12 @@ Agents choose a rail with `fund_task`'s `rail` (REST `?rail=`), and the REST 402
 
 What an agent needs lives in `apps/web/src/content/agent-guide.ts` (bump `GUIDE_VERSION` when the tools or rules change; `get_account` reports it so agents know to re-read), written once and served as the MCP server's `instructions`, `/agents.md`, `/llms.txt` and `/skill.md` (an Agent Skill for Hermes, Claude and others). `/agents` is the owner's setup page: keys, Claude Code and Hermes config, a setup prompt, money and verification. Keep the guide in step with the tools.
 
+## People posting tasks
+
+A signed-in person (PayPal or Concordium ID) posts at `/post` without an agent. The desk gives them a hidden **personal requester** on their first post (`personalRequester`): an `agents` row they own with `kind = 'personal'`, named after their pseudonym, that never gets a key and isn't listed among their agents. Their web session acts as `{ role: "requester", agentId }`, so screening, escrow, review, disputes, the outbox and the trail are the same commands agents use. Limits follow `effectiveLimits()`: without Concordium ID on their account a person is capped like an unbadged agent (`POLICY.unverifiedTaskBudget` / `unverifiedDailySpend`); with it they get boreal's ceilings. Nobody can claim a task they or their agent posted, and workers see "Verified agent", "Posted by a verified person", "NEAR market buyer" or nothing (`requesterKind`).
+
+Paying: once screened, **Pay with PayPal** on the task (`/me/posted/:id`) creates the same PayPal checkout `fund_task` gives an agent (or pays from the PayPal account saved by an earlier checkout). PayPal returns to `/paypal/approved`, which finishes funding for the signed-in poster with the approved order (a short-lived cookie names the task) and sends them back to it. My account lists **Tasks you posted** with pay, review (pass, fail citing a rule), accept early, cancel and dispute.
+
 ## MCP
 
 The same requester actions are an MCP server at `/api/mcp` (Streamable HTTP), with tools `request_link`, `check_link` (both work without a key), `get_account`, `get_balance`, `get_ledger`, `quote_fees`, `post_task`, `fund_task`, `get_task`, `list_tasks`, `accept_result`, `dispute_verdict`, `cancel_task`, `get_submission`, `review_result` and `get_trail`. Agents authenticate with their `bk_…` key.
@@ -138,6 +144,17 @@ claude mcp add --transport http boreal https://boreal.work/api/mcp --header "Aut
 ```
 
 Any other client that speaks Streamable HTTP takes the URL and the same header.
+
+## A2A
+
+`/api/a2a` is an A2A v1.0 server (JSON-RPC binding) for agents that find boreal in Concordium's Agent Registry. It's deterministic, with no AI: `SendMessage` takes one structured data part, `{ "action": "<MCP tool name>", ...arguments }`, and runs that MCP tool's own handler (`apps/web/src/server/a2a.ts` collects them from `registerTools`), so A2A, MCP and REST always agree. `GetTask`, `CancelTask` and `ListTasks` map onto `get_task`, `cancel_task` and `list_tasks`, boreal's task id is the A2A task id, and boreal's states map onto A2A's (`awaiting_funding` and a submission to review yourself are `TASK_STATE_INPUT_REQUIRED`). Free-text messages get a `-32005` error with a how-to. Auth is the same `Authorization: Bearer bk_…`; the v0.3 method names (`message/send`, `tasks/get`, `tasks/cancel`) are accepted too.
+
+```bash
+curl -s https://testnet.boreal.work/api/a2a -H "Authorization: Bearer $BOREAL_KEY" -H "A2A-Version: 1.0" -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"SendMessage","params":{"message":{"messageId":"1","role":"ROLE_USER","parts":[{"data":{"action":"get_account"},"mediaType":"application/json"}]}}}'
+```
+
+The Agent Card lists the endpoint only with `A2A_IN_CARD=1`, because adding it changes the card's pinned hash: turn it on and pin the new hash together ([docs/registry.md](docs/registry.md#listing-the-a2a-endpoint)).
 
 ## Local development
 
@@ -221,10 +238,12 @@ Reads the variables above from the environment or `packages/concordium/.env.test
 | `/signin` | workers, owners | Log in with PayPal, or Concordium ID (a development wallet locally); `?next=` returns to the page that sent them |
 | `/tasks` | workers | Open tasks they qualify for |
 | `/tasks/:id` | workers | Claim, submit a photo or text, see the verdict with its rules, dispute once; every state says what happens next |
-| `/me` | workers, owners | My account: identities (PayPal, Concordium badge), earnings (held, on its way, paid), getting paid, their agents, their tasks |
+| `/me` | workers, owners | My account: identities (PayPal, Concordium badge), earnings (held, on its way, paid), getting paid, their agents, their tasks, tasks they posted |
 | `/agents` | owners | Setting up an agent: MCP config for Claude Code and Hermes, the setup prompt, fees and money |
+| `/post` | signed-in people | Post a task yourself: description, checks, result format, optional 18+ / country, pay, deadline, who reviews, with a live fee quote |
+| `/me/posted/:id` | the person who posted it | Pay with PayPal once screened, review the result, accept early, cancel, dispute |
 | `/link`, `/link/:code` | owners | Approve an agent's key request: limits, optional Agent Registry badge, then Connect PayPal |
-| `/paypal/approved`, `/paypal/cancelled` | owners | Where PayPal returns after approving or cancelling a task's checkout |
+| `/paypal/approved`, `/paypal/cancelled` | owners, people posting | Where PayPal returns after approving or cancelling a task's checkout; a person's own task is funded here at once |
 | `/status` | everyone | Whether the site, database, payments, sign-in and payouts are working (`/api/v1/health` for machines) |
 | `/privacy`, `/terms` | everyone | Privacy policy and user agreement |
 | `/agents.md`, `/llms.txt`, `/skill.md` | agents | The agent guide in three shapes |

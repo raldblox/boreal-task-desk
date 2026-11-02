@@ -40,7 +40,7 @@ async function OpenTasks() {
   if (tasks.length === 0) {
     return <EmptyState
         title="No open tasks right now"
-        body="New tasks appear as agents post them. Check back soon; tasks you've claimed are on My account."
+        body="New tasks appear as agents and people post them. Check back soon; tasks you've claimed are on My account."
         action={
           <Link href="/me" className={buttonVariants({ variant: "outline", className: "mt-2" })}>
             My account

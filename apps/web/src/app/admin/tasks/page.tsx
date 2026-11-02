@@ -42,8 +42,8 @@ async function Results({ searchParams }: { searchParams: Promise<Search> }) {
       <p className="text-sm text-muted-foreground">
         {rows.length === 100 ? "The newest 100 matches" : `${rows.length} ${rows.length === 1 ? "task" : "tasks"}`}
       </p>
-      <Table head={["Task", "Status", "Description", "Agent", "Budget", "Rail", "Posted"]} empty="No tasks match.">
-        {rows.map(({ task, agentName }) => (
+      <Table head={["Task", "Status", "Description", "Requester", "Budget", "Rail", "Posted"]} empty="No tasks match.">
+        {rows.map(({ task, agentName, kind }) => (
           <tr key={task.id}>
             <td>
               <Link href={`/admin/tasks/${task.id}`} className="hover:underline">
@@ -58,7 +58,9 @@ async function Results({ searchParams }: { searchParams: Promise<Search> }) {
                 {task.description}
               </Link>
             </td>
-            <td>{agentName}</td>
+            <td>
+              {agentName} {kind !== "agent" && <span className="text-xs text-muted-foreground">({kind === "personal" ? "person" : "NEAR market"})</span>}
+            </td>
             <td className="tabular-nums">{usd(task.budget)}</td>
             <td className="whitespace-nowrap">
               {task.paymentRail ?? "—"} <LiveBadge test={task.test} />

@@ -1,5 +1,6 @@
 import { POLICY } from "@boreal/core";
-import { BadgeCheck, Bot, CheckCircle2, ShieldCheck, Wallet } from "lucide-react";
+import { taskTotal } from "@boreal/desk";
+import { BadgeCheck, Bot, CheckCircle2, ChevronRight, ShieldCheck, Wallet } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
@@ -14,12 +15,13 @@ import { DevWallet, PayoutForm } from "@/components/worker-forms";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { attributeLabel, usd, workerHandle } from "@/lib/format";
+import { attributeLabel, posterStatus, usd, when, workerHandle } from "@/lib/format";
 import { NETWORK } from "@/content/agent-guide";
 import { getConcordium, getDesk, paymentRails } from "@/server/desk";
 import { getIdAppVerifier } from "@/server/id-app";
 import { kickMonitorSoon } from "@/server/monitor";
 import { paypalAccounts, paypalLoginEnabled } from "@/server/paypal-accounts";
+import { posterFromSession } from "@/server/poster";
 import { workerFromSession } from "@/server/session";
 
 const ACTIVE = new Set(["claimed", "submitted", "passed", "failed", "disputed"]);
@@ -239,13 +241,13 @@ async function Payouts() {
             <PayoutForm action={setPayoutAddress} current={profile.payoutAddress} paypal={false} />
           </div>
         )}
-      </div>
-      <p className="text-xs text-muted-foreground">
         {rails.includes("near") && (
           <div className="p-4">
             <PayoutForm action={setPayoutAddress} current={profile.nearAccount} paypal={false} near />
           </div>
         )}
+      </div>
+      <p className="text-xs text-muted-foreground">
         Used only to pay you. Agents never see it, and nothing about it goes on-chain.
       </p>
     </section>
@@ -281,6 +283,60 @@ async function MyAgents() {
             ))}
         </div>
       ))}
+    </section>
+  );
+}
+
+/** Tasks this person posted themselves, on the website: each with where it stands and what's next. */
+async function PostedTasks() {
+  const poster = await posterFromSession();
+  if (!poster) redirect("/signin");
+  const tasks = poster.requester ? await getDesk().listTasks(poster.requester, { limit: 50 }) : [];
+  // Needing the poster comes first: paying, then reviewing.
+  const waiting = tasks.filter((t) => t.status === "awaiting_funding" || (t.status === "submitted" && t.reviewMode === "requester")).length;
+  return (
+    <section id="posted" className="flex scroll-mt-20 flex-col gap-3">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-sm font-semibold text-muted-foreground">
+          Tasks you posted{tasks.length > 0 ? ` · ${tasks.length}` : ""}
+          {waiting > 0 && <span className="text-primary"> · {waiting} need you</span>}
+        </h2>
+        <Link href="/post" className={buttonVariants({ variant: "outline", size: "sm" })}>
+          Post a task
+        </Link>
+      </div>
+      {tasks.length === 0 ? (
+        <div className="flex flex-col items-start gap-2 rounded-2xl border border-dashed bg-card/60 p-6">
+          <p className="font-medium">You haven&apos;t posted a task</p>
+          <p className="text-sm text-muted-foreground">
+            Need something done in the physical world? Post it, and pay only if the result passes your checks.
+          </p>
+        </div>
+      ) : (
+        <div className="flex flex-col divide-y rounded-2xl border bg-card">
+          {tasks.map((task) => {
+            const status = posterStatus(task);
+            return (
+              <Link
+                key={task.id}
+                href={`/me/posted/${task.id}`}
+                className="flex items-center gap-3 p-4 transition-colors first:rounded-t-2xl last:rounded-b-2xl hover:bg-accent/40"
+              >
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
+                  <p className="truncate font-medium">{task.description}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {usd(taskTotal(task))} · posted {when(task.createdAt)}
+                  </p>
+                </div>
+                <Badge variant={status.tone} className="shrink-0">
+                  {status.label}
+                </Badge>
+                <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 }
@@ -375,6 +431,9 @@ export default function MyTasksPage({ searchParams }: { searchParams: Promise<{ 
       </Suspense>
       <Suspense fallback={<div className="h-40 animate-pulse rounded-2xl bg-muted" />}>
         <MyTasks />
+      </Suspense>
+      <Suspense fallback={<div className="h-24 animate-pulse rounded-2xl bg-muted" />}>
+        <PostedTasks />
       </Suspense>
     </main>
   );

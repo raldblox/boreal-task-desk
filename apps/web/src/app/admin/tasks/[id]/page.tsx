@@ -49,7 +49,8 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
           <div>
             <dt className="text-muted-foreground">Agent</dt>
             <dd>
-              {d.agent.name} <StatusBadge status={d.agent.status} />
+              {d.agent.name} {d.agent.kind === "personal" && <span className="text-xs text-muted-foreground">(a person, posting on the website)</span>}{" "}
+              <StatusBadge status={d.agent.status} />
             </dd>
           </div>
           <div>

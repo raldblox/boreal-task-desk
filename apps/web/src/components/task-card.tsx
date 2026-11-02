@@ -1,5 +1,6 @@
 import type { Task } from "@boreal/db";
-import { BadgeCheck, Camera, Clock, FileText, PenLine, ShieldCheck } from "lucide-react";
+import type { RequesterKind } from "@boreal/desk";
+import { BadgeCheck, Camera, Clock, FileText, PenLine, ShieldCheck, Store, UserCheck } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
@@ -11,8 +12,9 @@ const FORMAT = {
   text: { icon: PenLine, label: "Written answer" },
 } as const;
 
-/** A task, plus whether the agent that posted it is Verified by Concordium (from the desk). */
-export function TaskCard({ task, showStatus = false }: { task: Task & { agentVerified?: boolean }; showStatus?: boolean }) {
+/** A task, plus who's behind it: a Verified by Concordium agent, a verified person, a NEAR market buyer, or none (from the desk). */
+export function TaskCard({ task, showStatus = false }: { task: Task & { requesterKind?: RequesterKind }; showStatus?: boolean }) {
+  const shown = task.requesterKind === "verified_agent" || task.requesterKind === "verified_person" || task.requesterKind === "market";
   const status = WORKER_STATUS[task.status];
   const format = FORMAT[task.resultFormat];
   return (
@@ -32,14 +34,26 @@ export function TaskCard({ task, showStatus = false }: { task: Task & { agentVer
           <Clock className="size-4" /> Due {when(task.deadline)}
         </span>
       </div>
-      {(showStatus || task.test || task.paymentRail || task.agentVerified || task.requiredAttributes.length > 0) && (
+      {(showStatus || task.test || task.paymentRail || shown || task.requiredAttributes.length > 0) && (
         <div className="flex flex-wrap gap-2">
           {showStatus && <Badge variant={status.tone}>{status.label}</Badge>}
           {task.test && <Badge className="bg-primary-soft text-primary-soft-foreground">Test money</Badge>}
-          {task.agentVerified && (
+          {task.requesterKind === "verified_agent" && (
             // The posting agent's owner is an accountable Concordium account (Agent Registry badge).
             <Badge variant="outline" className="gap-1">
               <BadgeCheck className="size-3.5 text-primary" /> Verified agent
+            </Badge>
+          )}
+          {task.requesterKind === "verified_person" && (
+            // A person posted it themselves, and has Concordium ID on their account.
+            <Badge variant="outline" className="gap-1">
+              <UserCheck className="size-3.5 text-primary" /> Verified person
+            </Badge>
+          )}
+          {task.requesterKind === "market" && (
+            // Hired through boreal's listing on NEAR Agent Market.
+            <Badge variant="outline" className="gap-1">
+              <Store className="size-3.5 text-primary" /> NEAR market buyer
             </Badge>
           )}
           {task.paymentRail === "paypal" && <Badge variant="outline">Paid via PayPal</Badge>}
