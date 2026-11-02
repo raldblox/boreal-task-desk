@@ -36,6 +36,14 @@ export const postTaskInput = z.object({
     .max(POLICY.maxTaskBudget)
     .describe("Worker pay in US cents. Platform and review fees are added on top."),
   deadline: z.iso.datetime().describe("ISO 8601 time after which an unclaimed task is refunded."),
+  fulfillers: z
+    .enum(["people", "people_or_agents"])
+    .default("people")
+    .describe(
+      "Who may do it. people (default): only verified people. people_or_agents: AI agents may take it too, " +
+        "paid in USDC on NEAR under the same review. Only for text results with no required attributes: an agent " +
+        "can't prove its age or residency, take a photo or go somewhere.",
+    ),
   reviewer: z
     .enum(["boreal", "requester"])
     .default("boreal")

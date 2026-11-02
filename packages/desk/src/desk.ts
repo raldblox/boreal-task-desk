@@ -45,6 +45,7 @@ import { linkCommands } from "./links";
 import { moneyViews } from "./money-views";
 import { recordFunding, settle, taskTotal } from "./money";
 import { drainOutbox, type PaymentStatusUpdate, type PayoutAddresses, queuePaymentUpdate, reconcileEscrow } from "./outbox";
+import { issueWorkerKey } from "./keys";
 import { appendEvent } from "./trail";
 
 export type Caller =
@@ -410,11 +411,20 @@ export function createDesk({
    * (`agentVerified`), a person who posted it themselves with Concordium ID, a NEAR Agent Market
    * buyer, or none of these.
    */
-  async function withAgentBadge<T extends { agentId: string }>(
+  async function withAgentBadge<T extends { agentId: string; claimedBy?: string | null }>(
     rows: T[],
-  ): Promise<(T & { agentVerified: boolean; requesterKind: RequesterKind })[]> {
+  ): Promise<(T & { agentVerified: boolean; requesterKind: RequesterKind; fulfilledBy: "person" | "agent" | null })[]> {
     const ids = [...new Set(rows.map((r) => r.agentId))];
     if (ids.length === 0) return [];
+    // Who is doing (or did) each task: a verified person or an AI agent.
+    const claimers = [...new Set(rows.flatMap((r) => (r.claimedBy ? [r.claimedBy] : [])))];
+    const workerKinds = new Map(
+      claimers.length === 0
+        ? []
+        : (await db.select({ id: workers.id, kind: workers.kind }).from(workers).where(inArray(workers.id, claimers))).map(
+            (w): [string, "person" | "agent"] => [w.id, w.kind],
+          ),
+    );
     const found = await db
       .select({ id: agents.id, kind: agents.kind, badge: agents.badgeVerifiedAt, person: workers.concordiumRef })
       .from(agents)
@@ -437,7 +447,8 @@ export function createDesk({
     );
     return rows.map((r) => {
       const requesterKind = kinds.get(r.agentId) ?? "agent";
-      return { ...r, agentVerified: requesterKind === "verified_agent", requesterKind };
+      const fulfilledBy = r.claimedBy ? (workerKinds.get(r.claimedBy) ?? null) : null;
+      return { ...r, agentVerified: requesterKind === "verified_agent", requesterKind, fulfilledBy };
     });
   }
 
@@ -479,6 +490,10 @@ export function createDesk({
         throw new DeskError("invalid", issues.join("; "));
       }
       const data = parsed.data;
+      // An agent can't prove an attribute, take a photo or go somewhere: those stay with people.
+      if (data.fulfillers === "people_or_agents" && (data.requiredAttributes.length > 0 || data.resultFormat !== "text")) {
+        throw new DeskError("invalid", "only text tasks with no required attributes can be open to agents; this one stays with verified people");
+      }
 
       const at = now();
       if (new Date(data.deadline) <= at) throw new DeskError("invalid", "deadline is in the past");
@@ -511,6 +526,7 @@ export function createDesk({
             deadline: new Date(data.deadline),
             test: agent.testMode,
             reviewMode: data.reviewer,
+            fulfillers: data.fulfillers,
             createdAt: at,
             updatedAt: at,
           })
@@ -620,11 +636,19 @@ export function createDesk({
 
     async claimTask(caller: Caller, taskId: string) {
       requireRole(caller, "worker");
+      let fulfiller: "person" | "agent" = "person";
       return mutate(taskId, caller, { type: "claim", workerId: caller.workerId }, {
+        // The trail says who did the work: a verified person or an AI agent.
+        payload: () => ({ type: "claim", workerId: caller.workerId, fulfiller }),
         async check(tx, task, at) {
           if (task.deadline <= at) throw new DeskError("conflict", "task deadline has passed");
           const [worker] = await tx.select().from(workers).where(eq(workers.id, caller.workerId));
           if (!worker) throw new DeskError("not_found", "worker not found");
+          fulfiller = worker.kind;
+          if (worker.kind === "agent") {
+            if (task.fulfillers !== "people_or_agents") throw new DeskError("forbidden", "this task is for verified people only");
+            if (task.paymentRail !== "near") throw new DeskError("forbidden", "agents are paid in USDC on NEAR, and this task pays on another rail");
+          }
           const mine = (await ownedAgentIds(worker.pseudonym, tx)).has(task.agentId);
           // Nobody works their own task, posted themselves or by their agent. An owner may still
           // run their agent's test tasks end to end.
@@ -632,8 +656,9 @@ export function createDesk({
           if (task.test !== worker.testMode && !(task.test && mine)) {
             throw new DeskError("forbidden", task.test ? "this is a test task" : "test workers can only claim test tasks");
           }
-          // Testers keep their invite's attributes; everyone else proves them with Concordium ID.
-          if (!worker.testMode && !worker.concordiumRef) {
+          // Testers keep their invite's attributes; every other person proves them with Concordium ID.
+          // (An agent proved its NEAR account instead, and only takes tasks with no attributes.)
+          if (worker.kind === "person" && !worker.testMode && !worker.concordiumRef) {
             if (task.requiredAttributes.length > 0) {
               throw new DeskError("forbidden", "this task needs the Verified by Concordium badge: add Concordium ID on My account");
             }
@@ -942,6 +967,30 @@ export function createDesk({
      * Log in with PayPal: one worker per PayPal account. A new worker's ID is the PayPal hash,
      * and their payout goes to the PayPal email in the same step.
      */
+    /**
+     * An AI agent signs in as a worker with a NEAR account it proved it controls (the caller
+     * checks the signature). One worker per NEAR account, paid to that account. Each sign-in
+     * issues a new `bw_` key; a signature no newer than the last one issued can't issue another.
+     */
+    async signInAgentWorker(nearAccount: string, signedAt: Date) {
+      if (!NEAR_ACCOUNT.test(nearAccount)) throw new DeskError("invalid", "that isn't a NEAR account id");
+      const at = now();
+      return db.transaction(async (tx) => {
+        const pseudonym = `near:${nearAccount}`;
+        await tx
+          .insert(workers)
+          .values({ pseudonym, kind: "agent", nearAccount, provenAttributes: {}, createdAt: at, updatedAt: at })
+          .onConflictDoNothing({ target: workers.pseudonym });
+        const [worker] = await tx.select().from(workers).where(eq(workers.pseudonym, pseudonym)).for("update");
+        if (!worker || worker.kind !== "agent") throw new DeskError("conflict", "that NEAR account belongs to a person's account");
+        if (worker.apiKeyIssuedAt && signedAt <= worker.apiKeyIssuedAt) {
+          throw new DeskError("conflict", "that signature was already used; sign a new sign-in message");
+        }
+        const key = await issueWorkerKey(tx, worker.id, signedAt);
+        return { workerId: worker.id, key };
+      });
+    },
+
     async signInWithPayPal(identity: PayPalIdentity) {
       checkPayPalIdentity(identity);
       const at = now();
@@ -1088,6 +1137,8 @@ export function createDesk({
       const mine = await ownedAgentIds(worker.pseudonym);
       return withAgentBadge(open).then((rows) => rows.filter(
         (task) =>
+          // An agent sees only tasks open to agents that pay on its rail (USDC on NEAR).
+          (worker.kind === "person" || (task.fulfillers === "people_or_agents" && task.paymentRail === "near")) &&
           (task.test ? worker.testMode || mine.has(task.agentId) : !worker.testMode && !mine.has(task.agentId)) &&
           (meetsAttributes(task.requiredAttributes, worker.provenAttributes) || (!worker.testMode && !worker.concordiumRef)),
       ));

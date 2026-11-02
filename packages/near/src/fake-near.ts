@@ -77,6 +77,8 @@ export function decodeSignedTransaction(base64: string): DecodedTx {
 export interface FakeNear extends NearChain {
   balances: Map<string, bigint>;
   registered: Set<string>;
+  /** Full-access keys per account (`ed25519:…`), for sign-in checks. */
+  keys: Map<string, Set<string>>;
   sent: DecodedTx[];
   /** Records an outside transfer (an agent paying escrow) and returns its hash. */
   externalTransfer(from: string, to: string, amount: bigint, memo: string): string;
@@ -87,6 +89,7 @@ export interface FakeNear extends NearChain {
 export function createFakeNear(token: string): FakeNear {
   const balances = new Map<string, bigint>();
   const registered = new Set<string>();
+  const keys = new Map<string, Set<string>>();
   const outcomes = new Map<string, TxOutcome>();
   const nonces = new Map<string, bigint>();
   const sent: DecodedTx[] = [];
@@ -114,6 +117,7 @@ export function createFakeNear(token: string): FakeNear {
   return {
     balances,
     registered,
+    keys,
     sent,
     dropNextReply() {
       dropReply = true;
@@ -141,6 +145,9 @@ export function createFakeNear(token: string): FakeNear {
     },
     async accessKey(accountId) {
       return { nonce: nonces.get(accountId) ?? BigInt("100"), blockHash: base58Encode(Buffer.alloc(32, 7)) };
+    },
+    async keyPermission(accountId, publicKey) {
+      return keys.get(accountId)?.has(publicKey) ? "FullAccess" : null;
     },
     async send(base64) {
       const tx = decodeSignedTransaction(base64);

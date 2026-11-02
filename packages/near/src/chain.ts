@@ -15,6 +15,8 @@ export interface NearChain {
   view(contractId: string, methodName: string, args: unknown): Promise<unknown>;
   /** The key's current nonce and a recent final block hash to sign against. */
   accessKey(accountId: string, publicKey: string): Promise<{ nonce: bigint; blockHash: string }>;
+  /** What a key may do on the account, or null when it isn't one of the account's keys. */
+  keyPermission(accountId: string, publicKey: string): Promise<"FullAccess" | "FunctionCall" | null>;
   /** Sends a signed transaction and waits until it is final. */
   send(signedBase64: string): Promise<TxOutcome>;
   /** A sent transaction's final outcome, or null while the chain doesn't know it. */
@@ -105,6 +107,20 @@ export function createNearRpc(url: string, fetchImpl: typeof fetch = fetch): Nea
         public_key: publicKey,
       });
       return { nonce: BigInt(r.nonce), blockHash: r.block_hash };
+    },
+    async keyPermission(accountId, publicKey) {
+      try {
+        const r = await call<{ permission: "FullAccess" | { FunctionCall: unknown } }>("query", {
+          request_type: "view_access_key",
+          finality: "final",
+          account_id: accountId,
+          public_key: publicKey,
+        });
+        return r.permission === "FullAccess" ? "FullAccess" : "FunctionCall";
+      } catch (error) {
+        if (error instanceof NearRpcError && /UNKNOWN_ACCESS_KEY|UNKNOWN_ACCOUNT|does not exist/.test(error.message)) return null;
+        throw error;
+      }
     },
     async send(signedBase64) {
       return toOutcome(await call<RpcOutcome>("send_tx", { signed_tx_base64: signedBase64, wait_until: "FINAL" }));

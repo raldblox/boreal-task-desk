@@ -86,6 +86,8 @@ export function taskFromBrief(brief: string, options: { budget: number; deadline
     resultFormat: PHOTO.test(text) ? "photo" : "text",
     budget: options.budget,
     deadline: options.deadline.toISOString(),
+    // The buyer hired boreal for its verified people, so a market job never goes to an agent.
+    fulfillers: "people",
     reviewer: "boreal",
   };
 }

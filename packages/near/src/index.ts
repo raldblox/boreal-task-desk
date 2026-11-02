@@ -23,6 +23,7 @@ export {
 } from "./bridge";
 export { createNearRpc, type NearChain, NearRpcError, type TxOutcome } from "./chain";
 export { signFileLink, verifyFileLink } from "./file-links";
+export { NearSignInError, nep413Digest, SIGN_IN_MESSAGE, type NearSignIn, signInNonce, verifyNearSignIn } from "./sign-in";
 export { type AgentMarket, createAgentMarket, MARKET_URL, type MarketAssignment, MarketError } from "./market";
 export {
   createNearPayments,
@@ -59,6 +60,11 @@ function need(env: Env, name: string): string {
   const value = env[name];
   if (!value) throw new Error(`the NEAR rail needs ${name}`);
   return value;
+}
+
+/** NEAR's RPC for this deployment's network, for checks that don't need the rail (agent sign-in). */
+export function loadNearChain(env: Env): NearChain {
+  return createNearRpc(env.NEAR_RPC_URL || RPC[nearNetwork(env)]);
 }
 
 /** The NEAR rail from the environment (`PAYMENT_RAILS` includes `near`), or null when it's off. */
