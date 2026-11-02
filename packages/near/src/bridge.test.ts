@@ -67,7 +67,15 @@ beforeEach(async () => {
   const [owner] = await db.insert(owners).values({ kind: "business", verifiedRef: "boreal" }).returning();
   const [agent] = await db
     .insert(agents)
-    .values({ ownerId: owner!.id, registryId: "boreal-near-market", name: "boreal on NEAR Agent Market", maxTaskBudget: 5_000, maxDailySpend: 50_000, refundAddress: TREASURY })
+    .values({
+      ownerId: owner!.id,
+      registryId: "boreal-near-market",
+      name: "boreal on NEAR Agent Market",
+      kind: "market",
+      maxTaskBudget: 5_000,
+      maxDailySpend: 50_000,
+      refundAddress: TREASURY,
+    })
     .returning();
   marketAgent = { role: "requester", agentId: agent!.id };
 
@@ -113,6 +121,8 @@ describe("NEAR Agent Market bridge", () => {
     expect(market.rows[0]!.assignment.startedAt).not.toBeNull();
     expect(market.messages.at(-1)?.body).toMatch(/verified human/);
     expect((await job("asg-1")).fundingSent?.txHash).toBe(funded.fundingTxHash);
+    // Workers see who is behind it: a NEAR market buyer, through boreal's market requester.
+    expect((await desk.browseOpenTasks(worker)).find((t) => t.id === taskId)?.requesterKind).toBe("market");
 
     // A worker needs a NEAR account to claim a task that pays on NEAR.
     await expect(desk.claimTask(worker, taskId!)).rejects.toThrow(/NEAR account/);

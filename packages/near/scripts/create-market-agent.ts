@@ -30,6 +30,8 @@ const [agent] = await db
     ownerId: owner!.id,
     registryId: "boreal-near-agent-market",
     name: "boreal on NEAR Agent Market",
+    // Workers see its tasks as "NEAR market buyer"; it has no API key and no owner's "Your agents" entry.
+    kind: "market",
     maxTaskBudget: POLICY.maxTaskBudget,
     maxDailySpend: POLICY.maxAgentDailySpend,
     refundAddress: treasury,
