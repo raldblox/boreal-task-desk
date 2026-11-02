@@ -81,6 +81,11 @@ export const agents = pgTable("agents", {
    * funded without an approval page. Only boreal's own spending limits gate it.
    */
   paymentVaultId: text("payment_vault_id"),
+  /**
+   * A person's own requester: made the first time they post on the website, owned by them,
+   * named after their pseudonym. It never gets a key and isn't listed among their agents.
+   */
+  personal: boolean("personal").notNull().default(false),
   ...timestamps,
 });
 

@@ -133,7 +133,46 @@ export function linkCommands(db: Database, now: () => Date) {
       return { code: link.code, agentName: link.agentName, agentDescription: link.agentDescription, expiresAt: link.expiresAt };
     },
 
-    /** The owner's agents, to replace a lost key instead of creating a duplicate. */
+    /**
+     * The signed-in person's own requester, made on their first post: an agent owned by them,
+     * marked personal, named after their pseudonym. It never gets a key; their web session
+     * acts as it. Its limits are boreal's ceilings, capped like any requester's until the
+     * person adds Concordium ID.
+     */
+    async personalRequester(workerId: string) {
+      const owner = await ownerFor(workerId);
+      const at = now();
+      // One per owner: the registry id comes from the owner, so a second insert does nothing.
+      await db
+        .insert(agents)
+        .values({
+          ownerId: owner.id,
+          registryId: `personal-${owner.id}`,
+          name: owner.verifiedRef.slice(0, 80),
+          maxTaskBudget: POLICY.maxTaskBudget,
+          maxDailySpend: POLICY.maxAgentDailySpend,
+          testMode: false,
+          personal: true,
+          createdAt: at,
+          updatedAt: at,
+        })
+        .onConflictDoNothing({ target: agents.registryId });
+      const [agent] = await db.select().from(agents).where(eq(agents.registryId, `personal-${owner.id}`));
+      return agent!;
+    },
+
+    /** The person's own requester if they have posted before, else null. Never makes one. */
+    async findPersonalRequester(workerId: string) {
+      const [found] = await db
+        .select({ agent: agents })
+        .from(agents)
+        .innerJoin(owners, eq(owners.id, agents.ownerId))
+        .innerJoin(workers, eq(workers.pseudonym, owners.verifiedRef))
+        .where(and(eq(workers.id, workerId), eq(agents.personal, true)));
+      return found?.agent ?? null;
+    },
+
+    /** The owner's agents, to replace a lost key instead of creating a duplicate. Their own requester isn't one. */
     async listOwnerAgents(workerId: string) {
       const owner = await ownerFor(workerId);
       return db
@@ -145,7 +184,7 @@ export function linkCommands(db: Database, now: () => Date) {
           paypalConnected: sql<boolean>`${agents.paymentVaultId} is not null`,
         })
         .from(agents)
-        .where(eq(agents.ownerId, owner.id));
+        .where(and(eq(agents.ownerId, owner.id), eq(agents.personal, false)));
     },
 
     /** One of the owner's agents, or a refusal: for pages that act on an agent. */
@@ -154,7 +193,7 @@ export function linkCommands(db: Database, now: () => Date) {
       const [agent] = await db
         .select({ id: agents.id, name: agents.name })
         .from(agents)
-        .where(and(eq(agents.id, agentId), eq(agents.ownerId, owner.id)));
+        .where(and(eq(agents.id, agentId), eq(agents.ownerId, owner.id), eq(agents.personal, false)));
       if (!agent) throw new DeskError("forbidden", "that agent isn't yours");
       return agent;
     },
@@ -165,7 +204,7 @@ export function linkCommands(db: Database, now: () => Date) {
       const [agent] = await db
         .select({ id: agents.id, name: agents.name })
         .from(agents)
-        .where(and(eq(agents.id, agentId), eq(agents.ownerId, owner.id)));
+        .where(and(eq(agents.id, agentId), eq(agents.ownerId, owner.id), eq(agents.personal, false)));
       if (!agent) throw new DeskError("forbidden", "that agent isn't yours");
       if (!vaultId) throw new DeskError("invalid", "PayPal returned no saved account");
       await db.update(agents).set({ paymentVaultId: vaultId, updatedAt: now() }).where(eq(agents.id, agent.id));
@@ -196,7 +235,8 @@ export function linkCommands(db: Database, now: () => Date) {
           const [mine] = await tx
             .select({ id: agents.id })
             .from(agents)
-            .where(and(eq(agents.id, input.replaceAgentId), eq(agents.ownerId, owner.id)));
+            // A person's own requester never gets a key.
+            .where(and(eq(agents.id, input.replaceAgentId), eq(agents.ownerId, owner.id), eq(agents.personal, false)));
           if (!mine) throw new DeskError("forbidden", "that agent isn't yours");
           // A fresh approval by its verified owner makes the agent live, like a new one.
           await tx

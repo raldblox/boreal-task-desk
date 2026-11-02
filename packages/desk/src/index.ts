@@ -1,4 +1,4 @@
-export { type Caller, type ConcordiumIdentity, createDesk, type Desk, type DeskOptions, type FundingPayment, type PayPalIdentity } from "./desk";
+export { type Caller, type ConcordiumIdentity, createDesk, type Desk, type DeskOptions, type FundingPayment, type PayPalIdentity, type RequesterKind } from "./desk";
 export { DeskError, type DeskErrorCode } from "./errors";
 export { settlementMovements, taskTotal } from "./money";
 export { taskMoney } from "./money-views";

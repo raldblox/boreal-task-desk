@@ -1,6 +1,6 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 
-import { agents, type Database, eq } from "@boreal/db";
+import { agents, and, type Database, eq } from "@boreal/db";
 
 // Agent API keys look like `bk_<agent id>.<secret>`. Only a hash of the secret is stored.
 
@@ -10,15 +10,18 @@ function hashSecret(secret: string): string {
   return createHash("sha256").update(secret).digest("hex");
 }
 
-/** Issues a new key for an agent, replacing any old one. Show the result once; it can't be recovered. */
+/**
+ * Issues a new key for an agent, replacing any old one. Show the result once; it can't be
+ * recovered. A person's own requester never gets one: their web session acts as it.
+ */
 export async function issueAgentKey(db: Database, agentId: string): Promise<string> {
   const secret = randomBytes(32).toString("base64url");
   const [agent] = await db
     .update(agents)
     .set({ apiKeyHash: hashSecret(secret), updatedAt: new Date() })
-    .where(eq(agents.id, agentId))
+    .where(and(eq(agents.id, agentId), eq(agents.personal, false)))
     .returning({ id: agents.id });
-  if (!agent) throw new Error(`agent ${agentId} not found`);
+  if (!agent) throw new Error(`agent ${agentId} not found, or it's a person's own requester`);
   return `${PREFIX}${agent.id}.${secret}`;
 }
 

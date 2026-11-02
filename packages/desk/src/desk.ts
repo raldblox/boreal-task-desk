@@ -76,6 +76,12 @@ export interface DeskOptions {
   requireVerifiedPayPal?: boolean;
 }
 
+/**
+ * Who posted a task, as workers see it: an agent (Verified by Concordium or not) or a person
+ * posting for themselves (with Concordium ID or not).
+ */
+export type RequesterKind = "verified_agent" | "agent" | "verified_person" | "person";
+
 /** A PayPal identity read from Log in with PayPal; `ref` is the keyed hash of the payer_id. */
 export interface PayPalIdentity {
   ref: string;
@@ -371,23 +377,57 @@ export function createDesk({
     });
   }
 
-  /** An agent's limits in force: its owner's, capped for agents without a Concordium badge. */
-  function effectiveLimits(agent: { maxTaskBudget: number; maxDailySpend: number; badgeVerifiedAt: Date | null }) {
-    if (agent.badgeVerifiedAt) return { maxTaskBudget: agent.maxTaskBudget, maxDailySpend: agent.maxDailySpend };
+  /**
+   * Whether a requester is verified: an agent by its Agent Registry badge, a person's own
+   * requester by the Concordium ID on their account.
+   */
+  async function requesterVerified(
+    agent: { personal: boolean; ownerId: string; badgeVerifiedAt: Date | null },
+    q: Pick<Database, "select"> = db,
+  ): Promise<boolean> {
+    if (!agent.personal) return agent.badgeVerifiedAt !== null;
+    const [person] = await q
+      .select({ id: workers.id })
+      .from(owners)
+      .innerJoin(workers, eq(workers.pseudonym, owners.verifiedRef))
+      .where(and(eq(owners.id, agent.ownerId), isNotNull(workers.concordiumRef)));
+    return Boolean(person);
+  }
+
+  /** A requester's limits in force: its owner's, capped until it's verified (see requesterVerified). */
+  function effectiveLimits(agent: { maxTaskBudget: number; maxDailySpend: number }, verified: boolean) {
+    if (verified) return { maxTaskBudget: agent.maxTaskBudget, maxDailySpend: agent.maxDailySpend };
     return {
       maxTaskBudget: Math.min(agent.maxTaskBudget, POLICY.unverifiedTaskBudget),
       maxDailySpend: Math.min(agent.maxDailySpend, POLICY.unverifiedDailySpend),
     };
   }
 
-  /** Marks each task with whether the agent that posted it is Verified by Concordium. */
-  async function withAgentBadge<T extends { agentId: string }>(rows: T[]): Promise<(T & { agentVerified: boolean })[]> {
+  /**
+   * Marks each task with who's behind it, for workers: a Verified by Concordium agent
+   * (`agentVerified`), a person who posted it themselves with Concordium ID, or neither.
+   */
+  async function withAgentBadge<T extends { agentId: string }>(
+    rows: T[],
+  ): Promise<(T & { agentVerified: boolean; requesterKind: RequesterKind })[]> {
     const ids = [...new Set(rows.map((r) => r.agentId))];
     if (ids.length === 0) return [];
-    const verified = new Set(
-      (await db.select({ id: agents.id }).from(agents).where(and(inArray(agents.id, ids), isNotNull(agents.badgeVerifiedAt)))).map((a) => a.id),
+    const found = await db
+      .select({ id: agents.id, personal: agents.personal, badge: agents.badgeVerifiedAt, person: workers.concordiumRef })
+      .from(agents)
+      .innerJoin(owners, eq(owners.id, agents.ownerId))
+      .leftJoin(workers, eq(workers.pseudonym, owners.verifiedRef))
+      .where(inArray(agents.id, ids));
+    const kinds = new Map(
+      found.map((a): [string, RequesterKind] => [
+        a.id,
+        a.personal ? (a.person ? "verified_person" : "person") : a.badge ? "verified_agent" : "agent",
+      ]),
     );
-    return rows.map((r) => ({ ...r, agentVerified: verified.has(r.agentId) }));
+    return rows.map((r) => {
+      const requesterKind = kinds.get(r.agentId) ?? "agent";
+      return { ...r, agentVerified: requesterKind === "verified_agent", requesterKind };
+    });
   }
 
   function requireRole<R extends Caller["role"]>(
@@ -410,10 +450,13 @@ export function createDesk({
       // Flow step 2 comes first: who is asking, before what they ask.
       const [agent] = await db.select().from(agents).where(eq(agents.id, caller.agentId));
       if (!agent) throw new DeskError("not_found", "agent not found");
-      if (agent.status !== "active") throw new DeskError("forbidden", "agent is frozen");
+      if (agent.status !== "active") throw new DeskError("forbidden", agent.personal ? "posting is paused on your account" : "agent is frozen");
+      const verified = await requesterVerified(agent);
       if (concordium && requireBadge) {
-        const entry = await concordium.registry.lookup(agent.registryId);
-        if (!entry?.verified) {
+        // A person proves themselves with Concordium ID; an agent with its registry badge.
+        if (agent.personal && !verified) throw new DeskError("forbidden", "add Concordium ID on My account before posting");
+        const entry = agent.personal ? null : await concordium.registry.lookup(agent.registryId);
+        if (!agent.personal && !entry?.verified) {
           throw new DeskError("forbidden", "agent has no Verified by Concordium badge in the Agent Registry");
         }
       }
@@ -427,9 +470,14 @@ export function createDesk({
 
       const at = now();
       if (new Date(data.deadline) <= at) throw new DeskError("invalid", "deadline is in the past");
-      if (data.budget > effectiveLimits(agent).maxTaskBudget) {
-        if (!agent.badgeVerifiedAt && data.budget <= agent.maxTaskBudget) {
-          throw new DeskError("limit", `agents without a Verified by Concordium badge can post up to ${POLICY.unverifiedTaskBudget} cents a task; ask your owner to add the badge`);
+      if (data.budget > effectiveLimits(agent, verified).maxTaskBudget) {
+        if (!verified && data.budget <= agent.maxTaskBudget) {
+          throw new DeskError(
+            "limit",
+            agent.personal
+              ? `without Concordium ID you can post up to ${POLICY.unverifiedTaskBudget} cents a task; add Concordium ID on My account for more`
+              : `agents without a Verified by Concordium badge can post up to ${POLICY.unverifiedTaskBudget} cents a task; ask your owner to add the badge`,
+          );
         }
         throw new DeskError("limit", "budget exceeds this agent's per-task cap");
       }
@@ -509,8 +557,13 @@ export function createDesk({
                 gte(ledgerEntries.createdAt, since),
               ),
             );
-          if ((spent?.total ?? 0) + total > effectiveLimits(agent!).maxDailySpend) {
-            throw new DeskError("limit", "this payment would pass the agent's daily spending cap");
+          if ((spent?.total ?? 0) + total > effectiveLimits(agent!, await requesterVerified(agent!, tx)).maxDailySpend) {
+            throw new DeskError(
+              "limit",
+              agent!.personal
+                ? "this payment would pass your daily spending cap (add Concordium ID on My account to raise it)"
+                : "this payment would pass the agent's daily spending cap",
+            );
           }
           if ("vault" in payment) {
             const vault = requirePayments(options.rail ?? "paypal").vault;
@@ -560,7 +613,11 @@ export function createDesk({
           if (task.deadline <= at) throw new DeskError("conflict", "task deadline has passed");
           const [worker] = await tx.select().from(workers).where(eq(workers.id, caller.workerId));
           if (!worker) throw new DeskError("not_found", "worker not found");
-          if (task.test !== worker.testMode && !(task.test && (await ownedAgentIds(worker.pseudonym, tx)).has(task.agentId))) {
+          const mine = (await ownedAgentIds(worker.pseudonym, tx)).has(task.agentId);
+          // Nobody works their own task, posted themselves or by their agent. An owner may still
+          // run their agent's test tasks end to end.
+          if (mine && !task.test) throw new DeskError("forbidden", "you posted this task, so you can't claim it");
+          if (task.test !== worker.testMode && !(task.test && mine)) {
             throw new DeskError("forbidden", task.test ? "this is a test task" : "test workers can only claim test tasks");
           }
           // Testers keep their invite's attributes; everyone else proves them with Concordium ID.
@@ -988,7 +1045,8 @@ export function createDesk({
 
     /**
      * Open tasks this worker has proven the attributes for, newest first. Without Concordium ID
-     * a worker also sees tasks that need it (marked on the card), so they know to add it.
+     * a worker also sees tasks that need it (marked on the card), so they know to add it. Tasks
+     * they posted themselves (or their agents did) aren't theirs to claim, so they're left out.
      */
     async browseOpenTasks(caller: Caller) {
       requireRole(caller, "worker");
@@ -1003,7 +1061,7 @@ export function createDesk({
       const mine = await ownedAgentIds(worker.pseudonym);
       return withAgentBadge(open).then((rows) => rows.filter(
         (task) =>
-          (task.test === worker.testMode || (task.test && mine.has(task.agentId))) &&
+          (task.test ? worker.testMode || mine.has(task.agentId) : !worker.testMode && !mine.has(task.agentId)) &&
           (meetsAttributes(task.requiredAttributes, worker.provenAttributes) || (!worker.testMode && !worker.concordiumRef)),
       ));
     },
@@ -1099,6 +1157,20 @@ export function createDesk({
       return { outcome, ruleIds, reasoning, by: event.actor as "reviewer" | "panel", at: event.createdAt };
     },
 
+    /** Why screening refused a task: the rules it broke and the screener's reasoning. */
+    async getRefusal(caller: Caller, taskId: string) {
+      await this.getTask(caller, taskId);
+      const [event] = await db
+        .select()
+        .from(taskEvents)
+        .where(and(eq(taskEvents.taskId, taskId), eq(taskEvents.type, "screen_refused")))
+        .orderBy(desc(taskEvents.id))
+        .limit(1);
+      if (!event) return null;
+      const { ruleIds = [], reasoning } = event.payload as { ruleIds?: string[]; reasoning?: string };
+      return { ruleIds, reasoning: reasoning ?? null, at: event.createdAt };
+    },
+
     /** The latest submission, for the worker who made it or the task's requester. */
     async getSubmission(caller: Caller, taskId: string) {
       const task = await this.getTask(caller, taskId);
@@ -1129,22 +1201,25 @@ export function createDesk({
           ),
         );
       const spentLast24h = spent?.total ?? 0;
+      // In force now: an unverified requester is capped below its owner's limits.
+      const limits = effectiveLimits(agent, await requesterVerified(agent));
       return {
         agentId: agent.id,
         name: agent.name,
         status: agent.status,
         testMode: agent.testMode,
+        /** A person's own requester (posting on the website), not an agent. */
+        personal: agent.personal,
         registryId: agent.registryId,
         refundAddress: agent.refundAddress,
         verifiedByConcordium: agent.badgeVerifiedAt
           ? { badge: agent.registryId, network: agent.badgeNetwork, ownerAccount: agent.ownerAccount, verifiedAt: agent.badgeVerifiedAt }
           : null,
-        // In force now: an agent without a Concordium badge is capped below its owner's limits.
-        limits: effectiveLimits(agent),
+        limits,
         /** The owner saved a payment method: fund_task pays without an approval page. */
         savedPaymentMethod: agent.paymentVaultId !== null,
         spentLast24h,
-        leftToday: Math.max(0, effectiveLimits(agent).maxDailySpend - spentLast24h),
+        leftToday: Math.max(0, limits.maxDailySpend - spentLast24h),
       };
     },
 

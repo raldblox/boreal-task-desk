@@ -1,0 +1,1 @@
+ALTER TABLE "agents" ADD COLUMN "personal" boolean DEFAULT false NOT NULL;

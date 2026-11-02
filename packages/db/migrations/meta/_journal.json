@@ -99,6 +99,13 @@
       "when": 1793578017440,
       "tag": "0013_worker_wallet",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793578436170,
+      "tag": "0014_personal_requesters",
+      "breakpoints": true
     }
   ]
 }
