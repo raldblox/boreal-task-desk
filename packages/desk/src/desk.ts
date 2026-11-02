@@ -41,6 +41,7 @@ import {
 
 import { adminCommands } from "./admin";
 import { adminViews } from "./admin-views";
+import { consoleViews, findAnomalies, type ReconcileResult } from "./console-views";
 import { DeskError, fromTransitionError } from "./errors";
 import { linkCommands } from "./links";
 import { moneyViews } from "./money-views";
@@ -1052,6 +1053,25 @@ export function createDesk({
       return reconcileEscrow(db, requirePayments(rail), rail);
     },
 
+    /** Escrow against the ledger on every rail configured here; a rail that can't answer says why. */
+    async adminReconcile(): Promise<ReconcileResult[]> {
+      return Promise.all(
+        (Object.entries(allRails) as [PaymentRail, Payments][]).map(async ([rail, payments]) => {
+          try {
+            return { rail, ...(await reconcileEscrow(db, payments, rail)) };
+          } catch (error) {
+            return { rail, error: error instanceof Error ? error.message : String(error) };
+          }
+        }),
+      );
+    },
+
+    /** The anomaly agent's findings: failed and stuck payouts, refund spikes, escrow gaps. */
+    async adminAnomalies() {
+      const [data, reconciliation] = await Promise.all([consoleViews(db, now).adminConsole({ days: 30 }), commands.adminReconcile()]);
+      return { anomalies: findAnomalies(data, reconciliation, now()), reconciliation };
+    },
+
     /** The default payment rail, or null when payments are off. */
     payments,
     /** Every configured rail, by name. */
@@ -1360,7 +1380,7 @@ export function createDesk({
     },
   };
 
-  return Object.assign(commands, adminViews(db, now), adminCommands(db, now, commands));
+  return Object.assign(commands, adminViews(db, now), consoleViews(db, now), adminCommands(db, now, commands));
 
   async function sweep(
     where: ReturnType<typeof and>,
