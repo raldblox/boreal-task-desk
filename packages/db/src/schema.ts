@@ -48,6 +48,8 @@ export const agentKind = pgEnum("agent_kind", ["agent", "personal", "market"]);
 export const fulfillers = pgEnum("fulfillers", ["people", "people_or_agents"]);
 /** A worker is a person (proves who they are) or an AI agent (proves a NEAR account). */
 export const workerKind = pgEnum("worker_kind", ["person", "agent"]);
+/** Chains a worker can set up a self-held payout account on through boreal. */
+export const walletChain = pgEnum("wallet_chain", ["near", "concordium"]);
 export const agentLinkStatus = pgEnum("agent_link_status", ["pending", "approved", "denied", "collected"]);
 
 const timestamps = {
@@ -300,6 +302,17 @@ export const marketJobs = pgTable("market_jobs", {
   fundingSent: jsonb("funding_sent").$type<{ txHash: string; expiry: number }>(),
   note: text("note"),
   ...timestamps,
+});
+
+/**
+ * One row per worker who set up a payout account on a chain for the first time through boreal's
+ * guided setup, counted per chain for the status page. Deliberately nothing else: no worker,
+ * no account, no task. boreal never holds a wallet for anyone; this only counts that one was made.
+ */
+export const walletSetups = pgTable("wallet_setups", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  chain: walletChain("chain").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 /** Named leases, so only one monitor tick runs at a time across the worker, cron and the app. */

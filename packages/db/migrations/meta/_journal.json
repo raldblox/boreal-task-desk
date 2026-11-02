@@ -134,6 +134,13 @@
       "when": 1793595134542,
       "tag": "0018_agent_workers",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793597967936,
+      "tag": "0019_wallet_setups",
+      "breakpoints": true
     }
   ]
 }
