@@ -119,6 +119,19 @@ describe("quick sign-in with a remembered wallet", () => {
     expect((await desk.signInWithWallet(wallet(3)))?.id).toBe(kept.id);
   });
 
+  it("signs a new wallet in free with its own account; the badge waits for a proof", async () => {
+    const worker = await desk.signInWithWallet(wallet(4), { create: true });
+    expect(worker).toMatchObject({ pseudonym: wallet(4), concordiumRef: null, provenAttributes: {} });
+    expect((await desk.signInWithWallet(wallet(4), { create: true }))?.id).toBe(worker!.id);
+    expect(await desk.getWorker(asWorker(worker!))).toMatchObject({ hasConcordium: false });
+
+    // Adding Concordium ID later is the one paid step: it brings the badge and attributes.
+    const kept = await desk.linkVerifiedConcordium(asWorker(worker!), concordium(4), wallet(4));
+    expect(kept.id).toBe(worker!.id);
+    expect(await desk.getWorker(asWorker(kept))).toMatchObject({ hasConcordium: true, provenAttributes: { residency: "PH" } });
+    expect((await desk.signInWithWallet(wallet(4)))?.id).toBe(worker!.id);
+  });
+
   it("refuses a wallet that isn't a keyed hash", async () => {
     await expectDeskError(desk.signInWithWallet("3kBx2h5Y2veb4hZgAJWPrr8RyQESKm5TjzF3ti1QQ4VSYLwK1G"), "invalid");
     await expectDeskError(desk.signInVerifiedWorker(concordium(1), "cw:nope"), "invalid");

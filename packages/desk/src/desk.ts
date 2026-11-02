@@ -910,13 +910,22 @@ export function createDesk({
      * Signs in by a wallet account that answered an earlier proof, once the caller has checked
      * that account signed this sign-in's challenge. Null when no worker has it yet: prove first.
      */
-    async signInWithWallet(walletRef: string) {
+    async signInWithWallet(walletRef: string, options: { create?: boolean } = {}) {
       checkWalletRef(walletRef);
-      const [worker] = await db
-        .select()
-        .from(workers)
-        .where(and(eq(workers.concordiumWalletRef, walletRef), isNotNull(workers.concordiumRef)));
-      return worker ?? null;
+      const [worker] = await db.select().from(workers).where(eq(workers.concordiumWalletRef, walletRef));
+      if (worker || !options.create) return worker ?? null;
+      // A new wallet signs in by its signature alone, like a new PayPal account: every Concordium
+      // account sits on a verified identity, so nothing more is needed to sign in. The paid,
+      // anchored identity proof waits until the worker adds the Concordium ID badge.
+      const at = now();
+      const [created] = await db
+        .insert(workers)
+        .values({ pseudonym: walletRef, concordiumWalletRef: walletRef, provenAttributes: {}, createdAt: at, updatedAt: at })
+        .onConflictDoNothing({ target: workers.concordiumWalletRef })
+        .returning();
+      if (created) return created;
+      const [raced] = await db.select().from(workers).where(eq(workers.concordiumWalletRef, walletRef));
+      return raced ?? null;
     },
 
     /**

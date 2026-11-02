@@ -6,9 +6,9 @@ import { holdPendingWallet, takeChallenge, walletRef } from "@/server/concordium
 import { getDesk } from "@/server/desk";
 import { startWorkerSession } from "@/server/session";
 
-// Quick sign-in, step 2: check the wallet account signed this browser's challenge. If that
-// account answered a worker's earlier proof, sign them in: no new proof, nothing on-chain.
-// Otherwise hold the account until the proof that follows, which remembers it.
+// Wallet sign-in, step 2: check the wallet account signed this browser's challenge, then sign
+// in its worker, creating one for a new wallet: no proof, nothing on-chain, no CCD. When linking
+// to a signed-in account, hold the wallet for the identity proof that follows instead.
 export const maxDuration = 30;
 
 export async function POST(request: Request) {
@@ -25,7 +25,9 @@ export async function POST(request: Request) {
   try {
     const valid = await verifyAccountSignature(NETWORK, body.account, message, body.signature as never);
     if (!valid) return Response.json({ error: "signature", message: "The wallet's signature didn't match. Try again." }, { status: 403 });
-    const worker = body.link === true ? null : await getDesk().signInWithWallet(ref);
+    // Signing in: the signature alone is enough, and a new wallet gets its own account (free).
+    // Linking to an account keeps the identity proof that follows, which adds the badge.
+    const worker = body.link === true ? null : await getDesk().signInWithWallet(ref, { create: true });
     if (worker) {
       await startWorkerSession(worker.id);
       return Response.json({ signedIn: true });
