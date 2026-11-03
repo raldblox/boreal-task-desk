@@ -105,6 +105,8 @@ export function getDesk(): Desk {
     payments: getPayments(),
     rails: getRails(),
     requireBadge: process.env.REQUIRE_AGENT_BADGE === "1",
+    // Testnet only: pass screening automatically when no reviewer runs. Never on live money.
+    autoScreen: NETWORK === "testnet" && process.env.AUTO_SCREEN === "1",
     // Live money: workers without Concordium ID need an account PayPal has verified.
     requireVerifiedPayPal: NETWORK === "mainnet",
     addresses: addressesFromEnv(),

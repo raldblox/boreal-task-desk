@@ -341,6 +341,19 @@ describe("agent keys", () => {
   });
 });
 
+describe("auto-screening (testnet)", () => {
+  it("passes a new task straight to funding, recorded in its trail; off by default", async () => {
+    const { task: waiting } = await desk.postTask(requester, taskInput());
+    expect(waiting.status).toBe("posted");
+
+    const auto = createDesk({ db, now: () => clock, autoScreen: true });
+    const { task } = await auto.postTask(requester, taskInput());
+    expect(task.status).toBe("awaiting_funding");
+    const trail = await auto.getTrail(requester, task.id);
+    expect(trail.map((e) => e.type)).toContain("screen_ok");
+  });
+});
+
 describe("agent account", () => {
   it("reports the agent's limits and what it has left today", async () => {
     const before = await desk.getAgentAccount(requester);

@@ -74,6 +74,11 @@ export interface DeskOptions {
   /** Refuse posting without a Verified by Concordium badge. Off during the beta. */
   requireBadge?: boolean;
   /**
+   * Screen every new task as passed, recorded in its trail, instead of waiting for a reviewer.
+   * For the testnet only, where no reviewer runs; the web app refuses it on mainnet.
+   */
+  autoScreen?: boolean;
+  /**
    * Workers without Concordium ID claim only with a PayPal account PayPal has verified
    * (`verified_account`). On for live money (mainnet); the sandbox's accounts are all test ones.
    */
@@ -115,6 +120,7 @@ type TaskPatch = Partial<typeof tasks.$inferInsert>;
 const CLEAR_AI: TaskPatch = { needsHuman: false, humanReason: null, aiAttempts: 0, aiRetryAt: null };
 const MAX_AI_ATTEMPTS = 3;
 const TEST_SCREENER: Caller = { role: "reviewer", reviewerRef: "test-mode" };
+const AUTO_SCREENER: Caller = { role: "reviewer", reviewerRef: "auto-screen" };
 
 interface MutateOptions {
   /** Extra checks beyond the state machine, run on the locked row. */
@@ -158,6 +164,7 @@ export function createDesk({
   rails = {},
   requireBadge = false,
   requireVerifiedPayPal = false,
+  autoScreen = false,
 }: DeskOptions) {
   // The rail a task funds on when none is named: the default rail's name.
   const defaultRail: PaymentRail | null = payments
@@ -563,10 +570,14 @@ export function createDesk({
         await appendEvent(tx, { taskId: task!.id, type: "posted", actor: "requester", payload: data, at });
         return { task: task!, quote };
       });
-      if (!agent.testMode) return posted;
-      // Test agents skip screening (recorded in the trail), so test runs don't wait on a reviewer.
-      const screened = await mutate(posted.task.id, TEST_SCREENER, { type: "screen_ok" }, {
-        payload: { outcome: "ok", reasoning: "Test agent: screening skipped.", reviewerRef: "test-mode" },
+      if (!agent.testMode && !autoScreen) return posted;
+      // Test agents, and every task where auto-screening is on (testnet), skip the reviewer's
+      // screening; the trail records who passed it and why.
+      const screener = agent.testMode ? TEST_SCREENER : AUTO_SCREENER;
+      const screened = await mutate(posted.task.id, screener, { type: "screen_ok" }, {
+        payload: agent.testMode
+          ? { outcome: "ok", reasoning: "Test agent: screening skipped.", reviewerRef: "test-mode" }
+          : { outcome: "ok", reasoning: "Auto-screened: this deployment passes every task without a reviewer.", reviewerRef: "auto-screen" },
       });
       return { task: screened, quote };
     },
