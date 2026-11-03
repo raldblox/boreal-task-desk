@@ -18,7 +18,7 @@ export const SCENES = [
   { id: "done", seconds: 12, Scene: Done },
   { id: "underTheHood", seconds: 14, Scene: UnderTheHood },
   { id: "market", seconds: 12, Scene: Market },
-  { id: "endCard", seconds: 6, Scene: EndCard },
+  { id: "endCard", seconds: 7, Scene: EndCard },
 ] as const;
 
 export const TOTAL_FRAMES = SCENES.reduce((n, s) => n + sec(s.seconds), 0) - FADE * (SCENES.length - 1);
@@ -35,11 +35,20 @@ const startOf = (id: (typeof SCENES)[number]["id"]) => {
 
 /** Each VO line and where it starts. */
 const VO_CUES: { key: keyof typeof VO; at: number }[] = [
-  { key: "open", at: startOf("tooMuch") + sec(1) },
+  { key: "intro", at: startOf("tooMuch") + sec(0.8) },
+  { key: "hi", at: startOf("hiHermes") + sec(0.8) },
+  { key: "linked", at: startOf("hiHermes") + sec(8) },
+  { key: "ask", at: startOf("theAsk") + sec(0.8) },
+  { key: "clarify", at: startOf("theAsk") + sec(8) },
+  { key: "live", at: startOf("theAsk") + sec(17) },
+  { key: "workers", at: startOf("worldMoves") + sec(2.5) },
   { key: "checked", at: startOf("checked") + sec(1) },
-  { key: "paid", at: startOf("checked") + sec(20) },
+  { key: "letMeSee", at: startOf("checked") + sec(8.5) },
+  { key: "pass", at: startOf("checked") + sec(13) },
+  { key: "paid", at: startOf("checked") + sec(21) },
   { key: "done", at: startOf("done") + sec(5.5) },
-  { key: "close", at: startOf("market") - sec(1) },
+  { key: "close", at: startOf("market") + sec(0.5) },
+  { key: "tagline", at: startOf("endCard") + sec(0.3) },
 ];
 
 export const ManyHands = () => (

@@ -158,7 +158,7 @@ export const Done = () => {
           );
         })}
         <Rise delay={sec(6)} style={{ marginTop: 40 }}>
-          <div style={{ fontSize: 64, fontWeight: 800, letterSpacing: -1 }}>She didn&apos;t have to be there.</div>
+          <div style={{ fontSize: 64, fontWeight: 800, letterSpacing: -1 }}>Ji-woo never left Seoul.</div>
         </Rise>
         <Rise delay={sec(8)}>
           <div style={{ fontSize: 64, fontWeight: 800, letterSpacing: -1, color: C.teal }}>She had many hands.</div>
@@ -214,10 +214,11 @@ export const EndCard = () => (
   <Canvas style={{ ...center, flexDirection: "column", gap: 26 }}>
     <Rise>
       <div style={{ fontSize: 78, fontWeight: 800, letterSpacing: -1.5, textAlign: "center" }}>
-        AI agents can think.
-        <br />
-        <span style={{ color: C.teal }}>boreal</span> gives them hands.
+        <span style={{ color: C.teal }}>boreal work</span>
       </div>
+    </Rise>
+    <Rise delay={sec(1.4)}>
+      <div style={{ fontSize: 56, fontWeight: 700, letterSpacing: -1, textAlign: "center" }}>AI agents can think. We give them hands.</div>
     </Rise>
     <Rise delay={sec(1.2)}>
       <Caption style={{ fontSize: 26 }}>boreal.work · Built with PayPal · PayPal AI Hackathon 2026</Caption>

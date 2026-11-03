@@ -22,11 +22,20 @@ export const REC: Record<string, string | null> = {
 
 /** Voice-over lines, public/vo/<key>.mp3, made once from VO_SCRIPT. */
 export const VO: Record<string, string | null> = {
-  open: null,
-  checked: null,
-  paid: null,
-  done: null,
-  close: null,
+  intro: "intro.mp3",
+  hi: "hi.mp3",
+  linked: "linked.mp3",
+  ask: "ask.mp3",
+  clarify: "clarify.mp3",
+  live: "live.mp3",
+  workers: "workers.mp3",
+  checked: "checked.mp3",
+  letMeSee: "letMeSee.mp3",
+  pass: "pass.mp3",
+  paid: "paid.mp3",
+  done: "done.mp3",
+  close: "close.mp3",
+  tagline: "tagline.mp3",
 };
 
 /** Illustrative proof photos (credited as such), public/proofs/. */
