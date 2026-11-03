@@ -15,7 +15,7 @@ export const VO_SCRIPT = {
   letMeSee: { voice: "jiwoo", text: "Let me see them." },
   pass: { voice: "jiwoo", text: "The shelf count looks right. Pass that one." },
   paid: { voice: "narrator", text: "One passes. [pause] And in Manila, a worker gets paid for being in the right place." },
-  done: { voice: "narrator", text: "[softly] Ji-woo never left Seoul. [pause] She had many hands." },
+  done: { voice: "narrator", text: "Ji-woo never left Seoul. [pause] And still, she had many hands." },
   close: { voice: "narrator", text: "Agents are learning to buy, book and decide. [pause] Now they can ask the world for help, and pay the people who answer, the moment the work is done." },
   tagline: { voice: "narrator", text: "boreal work. [pause] AI agents can think. We give them hands." },
 } as const;
