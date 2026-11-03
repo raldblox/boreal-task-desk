@@ -715,6 +715,26 @@ export function createDesk({
       return { funded, failed };
     },
 
+    /**
+     * fund_tasks with the owner's saved payment method: no approval at all, each task paid on
+     * its own through fundTask, so each check and hold is per task. A refused one is listed in
+     * `failed` and the rest stand.
+     */
+    async fundTasksSaved(caller: Caller, taskIds: string[], rail: PaymentRail = "paypal") {
+      requireRole(caller, "requester");
+      await batchTasks(caller, taskIds);
+      const funded: Awaited<ReturnType<typeof commands.fundTask>>[] = [];
+      const failed: { taskId: string; error: string }[] = [];
+      for (const taskId of taskIds) {
+        try {
+          funded.push(await commands.fundTask(caller, taskId, { vault: true }, { rail }));
+        } catch (error) {
+          failed.push({ taskId, error: error instanceof Error ? error.message : "refused" });
+        }
+      }
+      return { funded, failed };
+    },
+
     async cancelTask(caller: Caller, taskId: string) {
       requireRole(caller, "requester");
       return mutate(taskId, caller, { type: "cancel" });

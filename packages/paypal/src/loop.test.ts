@@ -279,6 +279,17 @@ describe("PayPal vaulting", () => {
     expect(await savedVault()).toBe(vaultId);
   });
 
+  it("funds several tasks from the saved account in one call, one held order each", async () => {
+    await fundedTask();
+    const ids = [(await screenedTask()).task.id, (await screenedTask()).task.id];
+    const before = paypal.calls.length;
+    const { funded, failed } = await desk.fundTasksSaved(requester, ids);
+    expect(failed).toEqual([]);
+    expect(funded.map((t) => t.status)).toEqual(["open", "open"]);
+    expect(new Set(funded.map((t) => t.fundingHold)).size).toBe(2);
+    expect(paypal.calls.slice(before).filter((c) => c === "POST /v2/checkout/orders")).toHaveLength(2);
+  });
+
   it("authorizes a vaulted order that PayPal returns approved but not yet authorized", async () => {
     await fundedTask();
     paypal.vaultAuthorizesOnCreate = false;

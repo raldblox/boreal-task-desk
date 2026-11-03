@@ -396,7 +396,8 @@ export function registerTools(server: McpServer): void {
       title: "Fund several tasks with one approval",
       description:
         "Funds 2 to 10 of your screened tasks with ONE PayPal approval from your owner, instead of one checkout per " +
-        "task. Call once with `taskIds` and no `payment`: you get one approveUrl for the total; send it to your " +
+        "task. If your owner saved PayPal for you (get_account.savedPaymentMethod), one call with `taskIds` funds " +
+        "them all, no approval. Otherwise call once with `taskIds` and no `payment`: you get one approveUrl for the total; send it to your " +
         "owner. Once approved, call again with the same `taskIds` and payment: { orderId }. PayPal holds each task's " +
         "money separately, so each is still captured only when it passes and released if it fails, expires or is " +
         "cancelled. Together they must fit your daily cap. Tasks that fail to fund are listed in `failed`, with their " +
@@ -408,6 +409,11 @@ export function registerTools(server: McpServer): void {
     },
     tool(async (caller, { taskIds, payment }: { taskIds: string[]; payment?: unknown }) => {
       if (payment === undefined) {
+        // The owner saved a PayPal account: fund them all in this one call, no approval page.
+        if (getRails().paypal?.vault && (await desk.getAgentAccount(caller)).savedPaymentMethod) {
+          const { funded, failed } = await desk.fundTasksSaved(caller, taskIds, "paypal");
+          return { funded: funded.map(summary), failed, paidWith: "your owner's saved PayPal account" };
+        }
         const request = await desk.requestBatchFunding(caller, taskIds, "paypal");
         return {
           paymentRequired: request,

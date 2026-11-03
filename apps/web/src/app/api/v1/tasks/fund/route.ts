@@ -1,9 +1,10 @@
 import { DeskError } from "@boreal/desk";
 
-import { asRequester, getDesk, readJson } from "@/server/desk";
+import { asRequester, getDesk, getRails, readJson } from "@/server/desk";
 
 /**
  * fund_tasks: several screened tasks funded by one PayPal approval. Without a payment the reply
+ * funds them all at once from the owner's saved PayPal account if there is one, else it
  * is 402 with one approveUrl for the total; once the owner approves, send the same `taskIds`
  * with `{ "orderId": … }` (or `payment: { orderId }`). PayPal holds each task's money
  * separately, so each is captured or released on its own.
@@ -17,6 +18,10 @@ export async function POST(request: Request) {
 
     const desk = getDesk();
     if (payment === undefined) {
+      // The owner saved a PayPal account: fund them all now, no approval page.
+      if (getRails().paypal?.vault && (await desk.getAgentAccount(caller)).savedPaymentMethod) {
+        return Response.json({ ...(await desk.fundTasksSaved(caller, taskIds, "paypal")), paidWith: "saved PayPal account" });
+      }
       const required = await desk.requestBatchFunding(caller, taskIds, "paypal");
       return Response.json(
         { error: "payment required", paymentRequired: required, retry: 'once approved, POST again with the same taskIds and { "orderId": "<paymentRequired.orderId>" }' },
