@@ -1,4 +1,4 @@
-import { BadgeCheck } from "lucide-react";
+import { ChevronRight, ShieldCheck, UserRound } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -7,6 +7,7 @@ import { BorealLogo } from "@/components/brand";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { NETWORK } from "@/content/agent-guide";
 import { workerHandle } from "@/lib/format";
+import { currentAdmin } from "@/server/admin";
 import { getDesk } from "@/server/desk";
 import { workerFromSession } from "@/server/session";
 
@@ -21,19 +22,34 @@ async function Account() {
   }
   // The header is on every page: if the database is down, show the account link without the handle
   // rather than taking the whole page down with it.
-  const profile = await getDesk()
-    .getWorker(worker)
-    .catch(() => null);
+  const [profile, admin] = await Promise.all([
+    getDesk()
+      .getWorker(worker)
+      .catch(() => null),
+    // Only allowlisted operators see the way into /admin; for everyone else it stays invisible.
+    currentAdmin().catch(() => null),
+  ]);
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-2">
+      {admin && (
+        <Link href="/admin" title="boreal admin" className={buttonVariants({ variant: "ghost", size: "sm", className: "gap-1.5 text-primary" })}>
+          <ShieldCheck className="size-4" />
+          <span className="hidden sm:inline">Admin</span>
+        </Link>
+      )}
       <Link
         href="/me"
         title="My account: your worker ID, earnings and tasks"
-        aria-label="My account"
-        className={buttonVariants({ variant: "ghost", size: "sm", className: "gap-1.5" })}
+        className="group flex items-center gap-2 rounded-full border bg-card py-1 pr-2.5 pl-1 shadow-xs transition-colors hover:border-primary/60 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       >
-        <BadgeCheck className="size-4 text-primary" />
-        {profile ? <span className="font-mono text-xs">{workerHandle(profile.pseudonym)}</span> : "My account"}
+        <span className="grid size-7 place-items-center rounded-full bg-primary-soft text-primary-soft-foreground">
+          <UserRound className="size-4" />
+        </span>
+        <span className="flex flex-col leading-tight">
+          <span className="text-xs font-semibold">My account</span>
+          {profile && <span className="hidden font-mono text-[10px] text-muted-foreground sm:block">{workerHandle(profile.pseudonym)}</span>}
+        </span>
+        <ChevronRight className="size-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
       </Link>
       <form action={signOut}>
         <Button type="submit" variant="outline" size="sm">
@@ -52,9 +68,6 @@ function NavLinks() {
       </Link>
       <Link href="/post" className="hover:text-foreground">
         Post a task
-      </Link>
-      <Link href="/me" className="hover:text-foreground">
-        My account
       </Link>
       <Link href="/agents" className="hover:text-foreground">
         For agents
