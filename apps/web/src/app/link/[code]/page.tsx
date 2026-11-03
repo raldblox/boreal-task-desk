@@ -4,6 +4,7 @@ import { DeskError, normaliseLinkCode } from "@boreal/desk";
 import { Bot, CheckCircle2, XCircle } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { approveLink, denyLink } from "@/app/link/actions";
@@ -25,6 +26,8 @@ async function LinkRequest({ params, searchParams }: Props) {
   const { done, agent } = await searchParams;
 
   if (done === "approved" || done === "denied") {
+    // canSaveAccounts reads the clock (its cached PayPal token), so render at request time.
+    await connection();
     const approved = done === "approved";
     return (
       <div className="flex flex-col items-start gap-4 rounded-2xl border bg-card p-6">
