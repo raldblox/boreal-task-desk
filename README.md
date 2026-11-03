@@ -285,7 +285,7 @@ ADMIN_PSEUDONYMS=dev-admin pnpm dev:local
 
 - **boreal's widgets** (in the widget picker's "boreal" group): *Money in flight* (every dollar funded into escrow and where it is now), the *payout timeline* (transfers by state over the last hours) and the *anomaly alert board*. Task refs in every grid open the task.
 - **Agents**, on AG Studio's agent framework, opened with **Edit · Ask AI**: *boreal ops* (AG's lead agent taught boreal's money model, delegating to AG's built-in data, planning, page and widget agents to answer questions with live widgets) and the *anomaly agent* (runs `adminAnomalies`: failed and stuck payouts, refund spikes, holds not captured, escrow against each rail; then builds an Anomalies page). They run on Claude Sonnet 5.5 through `/admin/console/ai`, which keeps the key on the server. Without `ANTHROPIC_API_KEY` they answer that they're off; **Scan for anomalies** works either way.
-- `AG_STUDIO_LICENSE_KEY` removes AG Studio's trial watermark; without it everything works, watermarked.
+- `AG_STUDIO_LICENSE_KEY` removes AG Studio's trial watermark; without it everything works, watermarked. Locally, `pnpm dev:local` and `pnpm dev:demo` read it from a gitignored `.env.studio`. A trial key is for evaluation only: set it on testnet, never on boreal.work.
 
 The same report engine gives people their own `/me/insights`, read-only and without the assistant.
 

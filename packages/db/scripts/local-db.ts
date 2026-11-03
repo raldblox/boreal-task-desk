@@ -38,6 +38,11 @@ const paypalEnv = join(root, ".env.paypal");
 if (!demo && existsSync(paypalEnv)) process.loadEnvFile(paypalEnv);
 const paypal = !demo && process.env.PAYMENTS_RAIL === "paypal";
 
+// The AG Studio licence for the money console and /me/insights, if you have one (a trial key is
+// fine locally). Without it they work with AG's watermark.
+const studioEnv = join(root, ".env.studio");
+if (existsSync(studioEnv)) process.loadEnvFile(studioEnv);
+
 function persistentSecret(name: string): string {
   const file = join(localDir, name);
   if (!existsSync(file)) writeFileSync(file, randomBytes(32).toString("base64url"));
