@@ -37,7 +37,7 @@ export interface MoneyConsoleProps {
 }
 
 // Bump when the built-in report changes, so browsers drop a layout saved from the old one.
-const SAVED = "boreal-console-report-v3";
+const SAVED = "boreal-console-report-v4";
 const NAMES: Record<string, string> = { ...Object.fromEntries(PAGES), [ANOMALY_PAGE]: "Anomalies" };
 
 /** The filters panel stays folded away: page filters live on the canvas as filter widgets. */

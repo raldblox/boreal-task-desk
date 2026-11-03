@@ -42,6 +42,7 @@ import {
 import { adminCommands } from "./admin";
 import { adminViews } from "./admin-views";
 import { consoleViews, findAnomalies, type ReconcileResult } from "./console-views";
+import { insightsViews } from "./insights-views";
 import { DeskError, fromTransitionError } from "./errors";
 import { linkCommands } from "./links";
 import { moneyViews } from "./money-views";
@@ -1380,7 +1381,8 @@ export function createDesk({
     },
   };
 
-  return Object.assign(commands, adminViews(db, now), consoleViews(db, now), adminCommands(db, now, commands));
+  // Object.assign is typed for up to three sources, so the read-only views go in as one.
+  return Object.assign(commands, { ...adminViews(db, now), ...consoleViews(db, now), ...insightsViews(db) }, adminCommands(db, now, commands));
 
   async function sweep(
     where: ReturnType<typeof and>,

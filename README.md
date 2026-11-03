@@ -241,6 +241,7 @@ Reads the variables above from the environment or `packages/concordium/.env.test
 | `/me` | workers, owners | My account: identities (PayPal, Concordium badge), earnings (held, on its way, paid), getting paid, their agents, their tasks, tasks they posted |
 | `/agents` | owners | Setting up an agent: MCP config for Claude Code and Hermes, the setup prompt, fees and money |
 | `/post` | signed-in people | Post a task yourself: description, checks, result format, optional 18+ / country, pay, deadline, who reviews, with a live fee quote |
+| `/me/insights` | people with enough tasks | Their own money as charts (AG Studio): spending for people who post or own agents, earnings for workers. My account links here only after 3 funded or 3 paid tasks |
 | `/me/posted/:id` | the person who posted it | Pay with PayPal once screened, review the result, accept early, cancel, dispute |
 | `/link`, `/link/:code` | owners | Approve an agent's key request: limits, optional Agent Registry badge, then Connect PayPal |
 | `/paypal/approved`, `/paypal/cancelled` | owners, people posting | Where PayPal returns after approving or cancelling a task's checkout; a person's own task is funded here at once |
@@ -276,6 +277,22 @@ Locally, start the app with an admin and sign in with that pseudonym on the deve
 
 ```bash
 ADMIN_PSEUDONYMS=dev-admin pnpm dev:local
+```
+
+### Money console
+
+`/admin/console` is the operator money console, built on [AG Studio](https://www.ag-grid.com/studio/): one report over boreal's live money with Money (GMV, holds, fees, refunds, escrow per rail), Payouts, Funnel and Ledger pages. It reads the desk's read-only `adminConsole` view, so it never writes. AG Studio loads only on that page.
+
+- **boreal's widgets** (in the widget picker's "boreal" group): *Money in flight* (every dollar funded into escrow and where it is now), the *payout timeline* (transfers by state over the last hours) and the *anomaly alert board*. Task refs in every grid open the task.
+- **Agents**, on AG Studio's agent framework, opened with **Edit · Ask AI**: *boreal ops* (AG's lead agent taught boreal's money model, delegating to AG's built-in data, planning, page and widget agents to answer questions with live widgets) and the *anomaly agent* (runs `adminAnomalies`: failed and stuck payouts, refund spikes, holds not captured, escrow against each rail; then builds an Anomalies page). They run on Claude Sonnet 5.5 through `/admin/console/ai`, which keeps the key on the server. Without `ANTHROPIC_API_KEY` they answer that they're off; **Scan for anomalies** works either way.
+- `AG_STUDIO_LICENSE_KEY` removes AG Studio's trial watermark; without it everything works, watermarked.
+
+The same report engine gives people their own `/me/insights`, read-only and without the assistant.
+
+To see it full, run the demo dataset: 30 days of generated sandbox activity in its own local database, made through the desk's own commands (`packages/paypal/scripts/demo-dataset.ts`), with the console labelled "Demo dataset". It never loads `.env.paypal` and refuses any non-local database. `--fresh` regenerates it so the last hours line up with now:
+
+```bash
+ADMIN_PSEUDONYMS=dev-admin pnpm dev:demo --fresh
 ```
 
 ## Seeing the whole flow

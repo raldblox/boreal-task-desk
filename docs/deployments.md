@@ -34,6 +34,10 @@ back, so keep their source (a local env file) or generate new ones.
   `CRON_SECRET`, `CONCORDIUM_PSEUDONYM_SECRET` (never change it, or every worker gets a new
   ID), `NEXT_PUBLIC_REOWN_PROJECT_ID`, `ADMIN_PSEUDONYMS` (that site's worker IDs), the Neon
   connection (`DATABASE_URL`, …) and `BLOB_READ_WRITE_TOKEN` from their Vercel integrations.
+- **Both, optional:** `AG_STUDIO_LICENSE_KEY` (AG Studio licence or trial key for the money
+  console and `/me/insights`; unset, they show AG's watermark) and `ANTHROPIC_API_KEY` on the web
+  project (the money console's agents; unset, they say they're off). The AI reviewer reads the
+  same key where the monitor runs.
 - **Testnet only:** `CONCORDIUM_MODE=testnet`, `CONCORDIUM_ANCHOR_ACCOUNT`/`_KEY` (a testnet
   account), `PAYMENT_RAILS=paypal`, `PAYPAL_ENV=sandbox` and the sandbox app's `PAYPAL_CLIENT_ID`,
   `PAYPAL_CLIENT_SECRET`, `PAYPAL_WEBHOOK_ID`, `PAYPAL_LOGIN=on` (optional `PAYPAL_REVIEWER_EMAILS`: unset, boreal's review fee stays in its own PayPal account), plus

@@ -1,6 +1,6 @@
 import { POLICY } from "@boreal/core";
 import { taskTotal } from "@boreal/desk";
-import { BadgeCheck, Bot, CheckCircle2, ChevronRight, ShieldCheck, Wallet } from "lucide-react";
+import { BadgeCheck, BarChart3, Bot, CheckCircle2, ChevronRight, ShieldCheck, Wallet } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
@@ -189,6 +189,39 @@ async function Earnings() {
             sooner if the requester accepts early.
           </p>
         </div>
+      ))}
+    </section>
+  );
+}
+
+/**
+ * A link to the person's money report, only once they have enough tasks for it to say something:
+ * funded tasks they or their agents posted, or tasks they were paid for. Everyone else sees nothing.
+ */
+async function InsightsLink() {
+  const worker = await workerFromSession();
+  if (worker?.role !== "worker") return null;
+  const available = await getDesk()
+    .insightsAvailable(worker)
+    .catch(() => ({ spending: false, earnings: false }));
+  if (!available.spending && !available.earnings) return null;
+  const links = [
+    available.spending && { href: "/me/insights", label: "Spending" },
+    available.earnings && { href: "/me/insights?view=earnings", label: "Earnings" },
+  ].filter((l): l is { href: string; label: string } => !!l);
+  return (
+    <section className="flex items-center gap-3 rounded-2xl border bg-card p-4">
+      <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary-soft text-primary-soft-foreground">
+        <BarChart3 className="size-5" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="font-medium">Your money, in charts</p>
+        <p className="text-sm text-muted-foreground">Where every dollar is, by week and by task. Best on a computer.</p>
+      </div>
+      {links.map((l) => (
+        <Link key={l.href} href={l.href} className={buttonVariants({ variant: "outline", size: "sm" })}>
+          {l.label}
+        </Link>
       ))}
     </section>
   );
@@ -422,6 +455,9 @@ export default function MyTasksPage({ searchParams }: { searchParams: Promise<{ 
       </Suspense>
       <Suspense fallback={<div className="h-36 animate-pulse rounded-2xl bg-muted" />}>
         <Earnings />
+      </Suspense>
+      <Suspense fallback={null}>
+        <InsightsLink />
       </Suspense>
       <Suspense fallback={<div className="h-32 animate-pulse rounded-2xl bg-muted" />}>
         <Payouts />

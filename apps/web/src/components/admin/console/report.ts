@@ -33,7 +33,7 @@ const kpi = (text: string, value: { id: string; aggregation?: "sum" | "avg" }, s
   dataMapping: { value: [value], ...(sparkline && { sparklineX: [field("calendar::day")] }) },
   format: {
     title: { enabled: true, text, typography: type(12, "bold") },
-    caption: { enabled: true, text: "", typography: type(0) },
+    caption: { enabled: false },
     style: { typography: type(24, "bold") },
   },
 });

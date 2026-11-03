@@ -18,17 +18,21 @@ export const ALERTS = "boreal-alerts";
 const icon = (path: string) =>
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
 
-/** Task refs (first 8 characters) to task ids, so grid cells can link to the task. */
-const taskIds = new Map<string, string>();
-export function registerTaskRefs(rows: { id: string; ref: string }[]) {
-  for (const r of rows) taskIds.set(r.ref, r.id);
+/** Task refs (first 8 characters) to where each task opens, so grid cells can link to it. */
+const taskLinks = new Map<string, string>();
+export function registerTaskRefs(rows: { id: string; ref: string }[], href: (row: { id: string; ref: string }) => string | null = (r) => `/admin/tasks/${r.id}`) {
+  taskLinks.clear();
+  for (const r of rows) {
+    const to = href(r);
+    if (to) taskLinks.set(r.ref, to);
+  }
 }
 
 function TaskLink({ value }: { value?: unknown }) {
   const ref = String(value ?? "");
-  const id = taskIds.get(ref);
-  if (!id) return ref;
-  return createElement("a", { href: `/admin/tasks/${id}`, className: "font-mono text-primary underline-offset-2 hover:underline" }, ref);
+  const to = taskLinks.get(ref);
+  if (!to) return createElement("span", { className: "font-mono" }, ref);
+  return createElement("a", { href: to, className: "font-mono text-primary underline-offset-2 hover:underline" }, ref);
 }
 
 const isTaskRef = (field: AgWidgetField) => /(^|\.)(ref|taskRef)$/.test(String(field.fieldId));

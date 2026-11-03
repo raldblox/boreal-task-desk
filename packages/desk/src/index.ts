@@ -9,3 +9,4 @@ export { addressesFromEnv, ledgerEscrowBalance, outboxTransferJournal, type Paym
 export { AI_REVIEWER, type ReadFile, runAiReview, type ReviewPass } from "./review-loop";
 export { type Admin, adminForWorker, BOREAL_PANEL, BOREAL_REVIEWER, parseAdminList } from "./admin";
 export { type Anomaly, type ConsoleData, FUNNEL, findAnomalies, type FunnelStage, type ReconcileResult, STUCK_AFTER_MS } from "./console-views";
+export { INSIGHTS_MIN_TASKS } from "./insights-views";
