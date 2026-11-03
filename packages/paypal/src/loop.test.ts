@@ -171,6 +171,41 @@ describe("PayPal rail", () => {
     });
   });
 
+  it("funds several tasks from one approval, holding money separately per task", async () => {
+    const tasks = [await screenedTask(), await screenedTask(), await screenedTask()];
+    const ids = tasks.map((t) => t.task.id);
+    const request = await desk.requestBatchFunding(requester, ids);
+    expect(request).toMatchObject({ rail: "paypal", amount: tasks[0]!.quote.total * 3, taskIds: ids });
+
+    // Not approved yet: nothing funds.
+    await expect(desk.fundTasks(requester, ids, { orderId: request.orderId })).rejects.toThrow(/isn't approved yet/);
+    // An order for other tasks never funds these.
+    await expect(desk.fundTasks(requester, ids.slice(0, 2), { orderId: request.orderId })).rejects.toThrow(/different tasks/);
+
+    paypal.approve(request.orderId);
+    const { funded, failed } = await desk.fundTasks(requester, ids, { orderId: request.orderId });
+    expect(failed).toEqual([]);
+    expect(funded.map((t) => t.status)).toEqual(["open", "open", "open"]);
+    const holds = funded.map((t) => t.fundingHold!);
+    expect(new Set(holds).size).toBe(3);
+    expect(holds.every((h) => paypal.authorizations.get(h)?.status === "CREATED")).toBe(true);
+
+    // One passes: only its own hold is captured; the others stay held.
+    await submitted(ids[0]!);
+    await desk.recordVerdict(reviewer, ids[0]!, { outcome: "pass", ruleIds: ["R5.2"], reasoning: "Shelf and tag visible" });
+    await desk.acceptEarly(requester, ids[0]!);
+    await desk.drainOutbox();
+    expect(paypal.authorizations.get(holds[0]!)?.status).toBe("CAPTURED");
+    expect([holds[1], holds[2]].map((h) => paypal.authorizations.get(h!)?.status)).toEqual(["CREATED", "CREATED"]);
+  });
+
+  it("refuses a batch that would pass the daily cap, before any PayPal order", async () => {
+    const tasks = [await screenedTask(), await screenedTask(), await screenedTask(), await screenedTask(), await screenedTask()];
+    const before = paypal.calls.filter((c) => c === "POST /v2/checkout/orders").length;
+    await expect(desk.requestBatchFunding(requester, tasks.map((t) => t.task.id))).rejects.toThrow(/daily spending cap/);
+    expect(paypal.calls.filter((c) => c === "POST /v2/checkout/orders").length).toBe(before);
+  });
+
   it("captures only the review fee on a fail and lets the rest of the hold go", async () => {
     const { task, quote } = await fundedTask();
     await submitted(task.id);

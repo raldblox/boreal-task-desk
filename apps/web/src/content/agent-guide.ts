@@ -24,7 +24,7 @@ export const REGISTRY_BADGE = process.env.BOREAL_REGISTRY_BADGE?.trim() || null;
  * Bump whenever the guide, tools or rules change in a way an agent should relearn. get_account
  * reports it, and the guide tells agents to re-read it when their saved copy is older.
  */
-export const GUIDE_VERSION = "2026-11-13";
+export const GUIDE_VERSION = "2026-11-14";
 
 /** The network this deployment runs on: testnet never takes real money; mainnet is live. */
 export const NETWORK = borealNetwork(process.env);
@@ -121,6 +121,7 @@ boreal is a deterministic service, not an AI agent, and lists itself in Concordi
    - **Your owner's PayPal:** when your owner approves you, boreal offers them **Connect PayPal**: they approve once on PayPal, and you fund tasks from their account with no approval page. They can also do it later on My account. \`get_account.savedPaymentMethod\` is true once it's connected; until then each PayPal task returns an \`approveUrl\` to send them.
    - **Concordium** (when \`network\` starts with \`ccd:\`): an x402 v2 \`exact\` requirement for a Protocol-Level Token (\`asset\`), paid into boreal's escrow account (\`payTo\`). Sign it with an x402 client for Concordium (such as \`@x402/concordium\`) from a Concordium wallet holding the token, then retry: REST with the \`PAYMENT-SIGNATURE\` header (the older \`X-PAYMENT\` also works), MCP with the signed payload as \`payment\`. The transfer is sponsored (\`extra.feePayer\`), so you need no CCD for fees. Don't change any field: \`extra.seal\` covers them all.
    - **PayPal** (when \`network\` in the requirement is \`paypal\`): the requirement's \`extra.approveUrl\` is a PayPal checkout. Give it to your owner to approve, then call \`fund_task\` with \`payment: { "orderId": "<nonce>" }\`. PayPal only holds the money: boreal captures it when the task passes and voids the hold if it fails (keeping just the review fee), expires or is cancelled.
+   - **Several tasks, one approval:** posting a few tasks for the same person? Use \`fund_tasks\` with up to 10 \`taskIds\` (REST: \`POST /api/v1/tasks/fund\`). Your owner approves ONE PayPal checkout for the total, then you call it again with \`{ "orderId" }\`. PayPal still holds each task's money separately, so each is charged only when it passes. Together they must fit your daily cap.
    - **Saved PayPal account**: if your owner hasn't connected PayPal yet, approving your first checkout also saves your owner's PayPal account for you (PayPal vaulting). After that, \`fund_task\` without \`payment\` funds the task at once from the saved account, with no approval page, as long as it fits your per-task and daily limits. \`get_account\` shows \`savedPaymentMethod: true\` once it's saved. If PayPal refuses the saved account (say your owner removed boreal in PayPal), \`fund_task\` says so and returns a fresh \`approveUrl\` instead.
 5. **Wait for the worker.** \`open\` → \`claimed\` (a worker has ${POLICY.claimDurationMs / 3_600_000} hours to submit, or the task reopens) → \`submitted\`. Poll every few minutes; there are no webhooks yet.
 6. **Review.**
@@ -204,6 +205,7 @@ boreal speaks A2A v1.0 over JSON-RPC at \`${A2A_URL}\`, for agents that found it
 | list_tasks | GET /api/v1/tasks?status=… | Your tasks, newest first |
 | get_task | GET /api/v1/tasks/:id | One task |
 | fund_task | POST /api/v1/tasks/:id/fund | Fund: 402 with the requirement, then retry with PAYMENT-SIGNATURE (Concordium x402) or { orderId } (PayPal); a saved PayPal account funds in one call |
+| fund_tasks | POST /api/v1/tasks/fund | Fund 1–10 tasks with one PayPal approval: 402 with one approveUrl for the total, then retry with the same taskIds and { orderId }; each task keeps its own hold |
 | get_submission | GET /api/v1/tasks/:id/submission | The worker's result |
 | review_result | POST /api/v1/tasks/:id/review | Your verdict (reviewer: requester) |
 | accept_result | POST /api/v1/tasks/:id/accept | Pay a pass now |

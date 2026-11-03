@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import type { ConfirmedPayment, PayPalPaymentRequirement, Payments, PaymentVault } from "@boreal/concordium";
+import type { BatchPaymentRequest, ConfirmedPayment, PaymentBatch, PayPalPaymentRequirement, Payments, PaymentVault } from "@boreal/concordium";
 
 import { createPayPalClient, fromValue, type PayPalClient, type PayPalClientOptions, PayPalError, toValue } from "./client";
 
@@ -78,7 +78,11 @@ function orderIdOf(payment: unknown): string {
   }
 }
 
-export type PayPalPayments = Payments<PayPalPaymentRequirement> & { holds: NonNullable<Payments["holds"]>; client: PayPalClient };
+export type PayPalPayments = Payments<PayPalPaymentRequirement> & {
+  holds: NonNullable<Payments["holds"]>;
+  batch: PaymentBatch;
+  client: PayPalClient;
+};
 
 export function createPayPalPayments(options: PayPalPaymentsOptions): PayPalPayments {
   const client = options.client ?? createPayPalClient(options);
@@ -94,9 +98,9 @@ export function createPayPalPayments(options: PayPalPaymentsOptions): PayPalPaym
     amount: { currency_code: currency, value: toValue(amount) },
   });
 
-  /** The order's authorization, checked: a live hold for this task in boreal's currency. */
-  function heldPayment(order: PayPalOrder): ConfirmedPayment {
-    const auth = order.purchase_units?.[0]?.payments?.authorizations?.[0];
+  /** A purchase unit's authorization, checked: a live hold for its task in boreal's currency. */
+  function heldPayment(order: PayPalOrder, unit = order.purchase_units?.[0]): ConfirmedPayment {
+    const auth = unit?.payments?.authorizations?.[0];
     if (!auth) throw new PayPalPaymentError(`PayPal returned no authorization for order ${order.id}`);
     if (auth.status !== "CREATED") {
       throw new PayPalPaymentError(`PayPal authorization is ${auth.status}, not CREATED`);
@@ -131,8 +135,72 @@ export function createPayPalPayments(options: PayPalPaymentsOptions): PayPalPaym
     },
   };
 
+  /**
+   * One order with a purchase unit per task: the payer approves once, and PayPal authorizes each
+   * unit separately, so every task keeps its own hold to capture or void (up to 10 per order).
+   */
+  const batch: PaymentBatch = {
+    async createBatchRequest(units): Promise<BatchPaymentRequest> {
+      if (units.length < 1 || units.length > 10) throw new PayPalPaymentError("a PayPal batch holds 1 to 10 tasks");
+      const order = await client.request<PayPalOrder>("POST", "/v2/checkout/orders", {
+        requestId: `batch:order:${randomUUID()}`,
+        body: {
+          intent: "AUTHORIZE",
+          purchase_units: units.map((u) => purchaseUnit(u.taskId, u.amount)),
+          payment_source: {
+            paypal: {
+              ...(saveForLater ? { attributes: { vault: { store_in_vault: "ON_SUCCESS", usage_type: "MERCHANT" } } } : {}),
+              experience_context: {
+                brand_name: brand,
+                shipping_preference: "NO_SHIPPING",
+                user_action: "CONTINUE",
+                return_url: options.returnUrl,
+                cancel_url: options.cancelUrl,
+              },
+            },
+          },
+        },
+      });
+      const approveUrl = order.links?.find((l) => l.rel === "payer-action" || l.rel === "approve")?.href;
+      if (!approveUrl) throw new PayPalPaymentError(`PayPal order ${order.id} has no approval link`);
+      return {
+        rail: "paypal",
+        orderId: order.id,
+        approveUrl,
+        amount: units.reduce((sum, u) => sum + u.amount, 0),
+        currency,
+        taskIds: units.map((u) => u.taskId),
+        expiresAt: new Date(now().getTime() + ORDER_TTL_MS).toISOString(),
+      };
+    },
+
+    async confirmBatch(taskIds, payment) {
+      const orderId = orderIdOf(payment);
+      const order = await client.request<PayPalOrder>("GET", `/v2/checkout/orders/${orderId}`);
+      const units = order.purchase_units ?? [];
+      const ids = units.map((u) => u.custom_id ?? "");
+      if (ids.length !== taskIds.length || [...taskIds].sort().join() !== [...ids].sort().join()) {
+        throw new PayPalPaymentError("that PayPal order covers different tasks");
+      }
+      if (units.some((u) => u.amount?.currency_code !== currency)) throw new PayPalPaymentError(`payment must be in ${currency}`);
+      let authorized = order;
+      if (!units.every((u) => u.payments?.authorizations?.length)) {
+        try {
+          authorized = await client.request<PayPalOrder>("POST", `/v2/checkout/orders/${orderId}/authorize`);
+        } catch (error) {
+          if (error instanceof PayPalError && error.has(/NOT_APPROVED|PAYER_ACTION_REQUIRED/)) {
+            throw new PayPalPaymentError("the PayPal order isn't approved yet: open the approveUrl, approve, then fund again");
+          }
+          throw error;
+        }
+      }
+      return new Map((authorized.purchase_units ?? []).map((u) => [u.custom_id ?? "", heldPayment(authorized, u)]));
+    },
+  };
+
   return {
     client,
+    batch,
     ...(saveForLater ? { vault } : {}),
 
     async createPaymentRequest(taskId, amount): Promise<PayPalPaymentRequirement> {

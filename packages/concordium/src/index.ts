@@ -170,6 +170,29 @@ export interface Payments<R extends PaymentRequirement = PaymentRequirement> {
   holds?: PaymentHolds;
   /** Present on rails that can pay again from a saved payment method. */
   vault?: PaymentVault;
+  /** Present on rails that can fund several tasks from one payer approval. */
+  batch?: PaymentBatch;
+}
+
+/**
+ * Several tasks funded by one approval: one payment the payer approves once, holding money
+ * separately per task, so each task is still captured or released on its own.
+ */
+export interface PaymentBatch {
+  createBatchRequest(units: { taskId: string; amount: number }[]): Promise<BatchPaymentRequest>;
+  /** Confirms the approved payment covers exactly these tasks; one confirmed hold per task. */
+  confirmBatch(taskIds: string[], payment: unknown): Promise<Map<string, ConfirmedPayment>>;
+}
+
+export interface BatchPaymentRequest {
+  rail: PaymentRail;
+  orderId: string;
+  approveUrl: string;
+  /** Total of every task's amount, in minor units. */
+  amount: number;
+  currency: string;
+  taskIds: string[];
+  expiresAt: string;
 }
 
 /** A payout or refund as sent: enough to tell later whether it can still land. */

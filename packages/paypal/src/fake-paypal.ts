@@ -14,6 +14,8 @@ interface FakeOrder {
   storeInVault: boolean;
   /** The vault id saved by, or paying for, this order. */
   vaultId?: string;
+  /** Further purchase units after the first (one order funding several tasks), each held separately. */
+  more?: { customId: string; amount: { currency_code: string; value: string }; authorizationId?: string }[];
 }
 
 interface FakeAuthorization {
@@ -74,6 +76,14 @@ export function createFakePayPal(): FakePayPal {
           amount: o.amount,
           ...(auth ? { payments: { authorizations: [{ id: auth.id, status: auth.status, amount: auth.amount }] } } : {}),
         },
+        ...(o.more ?? []).map((u) => {
+          const a = u.authorizationId ? authorizations.get(u.authorizationId) : undefined;
+          return {
+            custom_id: u.customId,
+            amount: u.amount,
+            ...(a ? { payments: { authorizations: [{ id: a.id, status: a.status, amount: a.amount }] } } : {}),
+          };
+        }),
       ],
     };
   };
@@ -82,6 +92,12 @@ export function createFakePayPal(): FakePayPal {
     const auth: FakeAuthorization = { id: id("AUTH"), orderId: order.id, status: "CREATED", amount: order.amount };
     authorizations.set(auth.id, auth);
     order.authorizationId = auth.id;
+    // PayPal authorizes every purchase unit separately: one hold per unit.
+    for (const unit of order.more ?? []) {
+      const extra: FakeAuthorization = { id: id("AUTH"), orderId: order.id, status: "CREATED", amount: unit.amount };
+      authorizations.set(extra.id, extra);
+      unit.authorizationId = extra.id;
+    }
     if (order.storeInVault && !order.vaultId) {
       order.vaultId = id("VAULT");
       vaults.set(order.vaultId, { customerId: id("CUSTOMER"), revoked: false });
@@ -101,6 +117,7 @@ export function createFakePayPal(): FakePayPal {
         customId: unit.custom_id,
         amount: unit.amount,
         storeInVault: paypal.attributes?.vault?.store_in_vault === "ON_SUCCESS",
+        more: body.purchase_units.slice(1).map((u: { custom_id: string; amount: FakeOrder["amount"] }) => ({ customId: u.custom_id, amount: u.amount })),
       };
       if (paypal.vault_id) {
         const vault = vaults.get(paypal.vault_id);

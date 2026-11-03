@@ -391,6 +391,38 @@ export function registerTools(server: McpServer): void {
   );
 
   server.registerTool(
+    "fund_tasks",
+    {
+      title: "Fund several tasks with one approval",
+      description:
+        "Funds 2 to 10 of your screened tasks with ONE PayPal approval from your owner, instead of one checkout per " +
+        "task. Call once with `taskIds` and no `payment`: you get one approveUrl for the total; send it to your " +
+        "owner. Once approved, call again with the same `taskIds` and payment: { orderId }. PayPal holds each task's " +
+        "money separately, so each is still captured only when it passes and released if it fails, expires or is " +
+        "cancelled. Together they must fit your daily cap. Tasks that fail to fund are listed in `failed`, with their " +
+        "hold released; the rest open to workers.",
+      inputSchema: z.object({
+        taskIds: z.array(taskId).min(1).max(10).describe("The tasks to fund together, all awaiting funding."),
+        payment: z.unknown().optional().describe("{ orderId } of the approved PayPal order, on the second call."),
+      }),
+    },
+    tool(async (caller, { taskIds, payment }: { taskIds: string[]; payment?: unknown }) => {
+      if (payment === undefined) {
+        const request = await desk.requestBatchFunding(caller, taskIds, "paypal");
+        return {
+          paymentRequired: request,
+          tellYourOwner:
+            `Please approve ${usd(request.amount)} on PayPal for ${request.taskIds.length} boreal tasks, in one go: ` +
+            `${request.approveUrl} (held, not charged; each task is charged only when its work passes review).`,
+          next: `once approved, call fund_tasks with the same taskIds and payment: { "orderId": "${request.orderId}" }`,
+        };
+      }
+      const { funded, failed } = await desk.fundTasks(caller, taskIds, payment, "paypal");
+      return { funded: funded.map(summary), failed };
+    }),
+  );
+
+  server.registerTool(
     "get_task",
     {
       title: "Get a task",

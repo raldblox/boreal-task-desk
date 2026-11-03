@@ -455,6 +455,32 @@ export function createDesk({
     });
   }
 
+  /** A batch's tasks: 1–10 distinct tasks of this requester, all awaiting funding, together under the daily cap. */
+  async function batchTasks(caller: Extract<Caller, { role: "requester" }>, taskIds: string[]) {
+    const ids = [...new Set(taskIds)];
+    if (ids.length !== taskIds.length || ids.length < 1 || ids.length > 10) {
+      throw new DeskError("invalid", "fund 1 to 10 different tasks at once");
+    }
+    const list = await db.select().from(tasks).where(inArray(tasks.id, ids));
+    for (const id of ids) {
+      const task = list.find((t) => t.id === id);
+      if (!task || task.agentId !== caller.agentId) throw new DeskError("not_found", `task ${id} not found`);
+      if (task.status !== "awaiting_funding") throw new DeskError("conflict", `task ${id} is ${task.status}, not awaiting funding`);
+      if (task.test) throw new DeskError("invalid", `task ${id} uses test money; fund it on its own`);
+    }
+    const [agent] = await db.select().from(agents).where(eq(agents.id, caller.agentId));
+    const since = new Date(now().getTime() - 24 * 60 * 60 * 1000);
+    const [spent] = await db
+      .select({ total: sql<number>`coalesce(sum(${ledgerEntries.amount}), 0)::int` })
+      .from(ledgerEntries)
+      .where(and(eq(ledgerEntries.party, caller.agentId), eq(ledgerEntries.fromAccount, "requester"), gte(ledgerEntries.createdAt, since)));
+    const total = list.reduce((sum, t) => sum + taskTotal(t), 0);
+    if ((spent?.total ?? 0) + total > effectiveLimits(agent!, await requesterVerified(agent!, db)).maxDailySpend) {
+      throw new DeskError("limit", "together these tasks would pass the daily spending cap");
+    }
+    return ids.map((id) => list.find((t) => t.id === id)!);
+  }
+
   function requireRole<R extends Caller["role"]>(
     caller: Caller,
     ...roles: R[]
@@ -630,6 +656,52 @@ export function createDesk({
           }
         },
       });
+    },
+
+    /**
+     * One payer approval for several of this requester's tasks (fund_tasks): checks they are
+     * all theirs and awaiting funding and that together they fit the daily cap, then asks the
+     * rail for one payment that holds money separately per task.
+     */
+    async requestBatchFunding(caller: Caller, taskIds: string[], rail: PaymentRail = "paypal") {
+      requireRole(caller, "requester");
+      const list = await batchTasks(caller, taskIds);
+      const batch = requirePayments(rail).batch;
+      if (!batch) throw new DeskError("unavailable", `the ${rail} rail can't fund several tasks with one approval`);
+      return batch.createBatchRequest(list.map((t) => ({ taskId: t.id, amount: taskTotal(t) })));
+    },
+
+    /**
+     * Funds the tasks a batch approval covers. Each task then funds through fundTask, so every
+     * check still runs per task; one that fails has its own hold released, the rest stand.
+     */
+    async fundTasks(caller: Caller, taskIds: string[], payment: unknown, rail: PaymentRail = "paypal") {
+      requireRole(caller, "requester");
+      await batchTasks(caller, taskIds);
+      const payments = requirePayments(rail);
+      if (!payments.batch) throw new DeskError("unavailable", `the ${rail} rail can't fund several tasks with one approval`);
+      let confirmed: Map<string, ConfirmedPayment>;
+      try {
+        confirmed = await payments.batch.confirmBatch(taskIds, payment);
+      } catch (error) {
+        throw new DeskError("invalid", error instanceof Error ? error.message : "payment was not accepted");
+      }
+      const funded: Awaited<ReturnType<typeof commands.fundTask>>[] = [];
+      const failed: { taskId: string; error: string }[] = [];
+      for (const taskId of taskIds) {
+        const held = confirmed.get(taskId);
+        try {
+          if (!held) throw new DeskError("invalid", "the payment holds nothing for this task");
+          funded.push(await commands.fundTask(caller, taskId, { confirm: async () => held }, { rail }));
+        } catch (error) {
+          failed.push({ taskId, error: error instanceof Error ? error.message : "refused" });
+          // Its money was held but the task didn't fund: give that one hold back.
+          if (held?.hold && payments.holds) {
+            await payments.holds.release(held.hold, `${taskId}:batch-release`).catch((e) => console.error(`[desk] couldn't release hold for ${taskId}`, e));
+          }
+        }
+      }
+      return { funded, failed };
     },
 
     async cancelTask(caller: Caller, taskId: string) {
