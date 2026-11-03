@@ -1,6 +1,6 @@
 import { AbsoluteFill, interpolate, Sequence, useCurrentFrame } from "remotion";
 
-import { Canvas, Caption, Chip, MoneyLine, Phone, Proof, Rise, Screen, useIn } from "./components";
+import { Canvas, Caption, Chip, MoneyLine, Phone, Proof, Rise, useIn } from "./components";
 import { Globe } from "./globe";
 import { PROOFS } from "./media";
 import { C, MONO, sec } from "./theme";
@@ -49,36 +49,63 @@ export const HiHermes = () => (
   </Canvas>
 );
 
-/* 3. The ask: a voice note becomes tasks, she says yes, PayPal holds it. */
-const CARDS = ["Sunscreen prices · store A", "Sunscreen prices · store B", "K-beauty shelf count"];
-export const TheAsk = () => (
-  <Canvas style={{ ...center, flexDirection: "row", gap: 90 }}>
-    <Phone slot="voiceNote" scale={0.95} />
-    <div style={{ display: "flex", flexDirection: "column", gap: 20, width: 560 }}>
-      {CARDS.map((c, i) => (
-        <Rise key={c} delay={sec(4) + i * 10}>
-          <div style={{ padding: "22px 28px", background: C.card, borderRadius: 20, border: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: 30, fontWeight: 600 }}>{c}</span>
-            <span style={{ fontFamily: MONO, fontSize: 22, color: C.muted }}>Manila</span>
-          </div>
-        </Rise>
-      ))}
-      <Rise delay={sec(9)}>
-        <Caption>Checklist, photo proof, a fair price. She approves with one word.</Caption>
-      </Rise>
-    </div>
-    <Sequence from={sec(12)} layout="none">
-      <Phone slot="okToFund" scale={0.95} tilt={2} />
-    </Sequence>
-    <Sequence from={sec(19)}>
-      <AbsoluteFill style={{ alignItems: "center", justifyContent: "flex-end", paddingBottom: 56 }}>
-        <Rise>
-          <Chip tone="paypal">Held on PayPal, not charged</Chip>
-        </Rise>
-      </AbsoluteFill>
-    </Sequence>
-  </Canvas>
-);
+/* 3. The ask: a voice note, Hermes clarifies, answers what it can online, sends the rest to boreal work. */
+const QUESTIONS = [
+  { q: "K-beauty in Cebu malls?", online: true },
+  { q: "Korean dog jerky in Manila?", online: true },
+  { q: "Sunscreen prices · store A", online: false },
+  { q: "Sunscreen prices · store B", online: false },
+  { q: "K-beauty shelf count", online: false },
+];
+export const TheAsk = () => {
+  const sorted = useIn(sec(19));
+  return (
+    <Canvas style={{ ...center, flexDirection: "row", gap: 80 }}>
+      <div style={{ position: "relative" }}>
+        <Sequence durationInFrames={sec(8)} layout="none">
+          <Phone slot="voiceNote" scale={0.95} />
+        </Sequence>
+        <Sequence from={sec(8)} durationInFrames={sec(8)} layout="none">
+          <Phone slot="hermesClarify" scale={0.95} />
+        </Sequence>
+        <Sequence from={sec(16)} layout="none">
+          <Phone slot="hermesTriage" scale={0.95} />
+        </Sequence>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 16, width: 640 }}>
+        {QUESTIONS.map((c, i) => (
+          <Rise key={c.q} delay={sec(16) + i * 6}>
+            <div
+              style={{
+                padding: "18px 24px",
+                background: c.online ? "transparent" : C.card,
+                borderRadius: 18,
+                border: `1px ${c.online ? "dashed" : "solid"} ${C.border}`,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                opacity: c.online ? 1 - sorted * 0.35 : 1,
+              }}
+            >
+              <span style={{ fontSize: 28, fontWeight: 600 }}>{c.q}</span>
+              <span style={{ opacity: sorted }}>{c.online ? <Chip>Answered online · free</Chip> : <Chip tone="paypal">→ boreal work</Chip>}</span>
+            </div>
+          </Rise>
+        ))}
+      </div>
+      <Sequence from={sec(25)} layout="none">
+        <Phone slot="okToFund" scale={0.95} tilt={2} />
+      </Sequence>
+      <Sequence from={sec(28)}>
+        <AbsoluteFill style={{ alignItems: "center", justifyContent: "flex-end", paddingBottom: 56 }}>
+          <Rise>
+            <Chip tone="paypal">Held on PayPal, not charged</Chip>
+          </Rise>
+        </AbsoluteFill>
+      </Sequence>
+    </Canvas>
+  );
+};
 
 /* 4. The world moves: Seoul to Manila, workers claim and submit. */
 export const WorldMoves = () => (
@@ -167,21 +194,6 @@ export const Done = () => {
     </Canvas>
   );
 };
-
-/* 7a. Under the hood: the real plumbing, quickly. */
-export const UnderTheHood = () => (
-  <Canvas style={{ ...center, flexDirection: "column", gap: 28 }}>
-    <Screen slot="toolCalls" width={1180} />
-    <Sequence from={sec(7)}>
-      <AbsoluteFill style={center}>
-        <Screen slot="adminConsole" width={1180} />
-      </AbsoluteFill>
-    </Sequence>
-    <AbsoluteFill style={{ alignItems: "center", justifyContent: "flex-end", paddingBottom: 30 }}>
-      <Caption>Real product · Real PayPal sandbox · Recorded on testnet.boreal.work</Caption>
-    </AbsoluteFill>
-  </Canvas>
-);
 
 /* 7b. Market reveal over a pulled-back globe. */
 const FIGURES = [

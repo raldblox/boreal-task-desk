@@ -9,6 +9,7 @@ export const VO_SCRIPT = {
   linked: { voice: "narrator", text: "Her agent reads boreal work's skill, connects through MCP, and asks for one approval. [pause] PayPal holds the limits. Ji-woo holds the keys." },
   ask: { voice: "jiwoo", text: "I need competitor sunscreen prices at two stores, and someone to count who stops at a K-beauty shelf." },
   clarify: { voice: "narrator", text: "Before it spends a cent, Hermes asks what a good assistant would. [pause] Which mall? How long? What counts?" },
+  triage: { voice: "narrator", text: "Two of her questions already have answers online, and Hermes finds them for free. [pause] Only the work that needs a person in the right place goes to boreal work." },
   live: { voice: "narrator", text: "Then three small jobs cross the sea, [pause] and PayPal holds every dollar." },
   workers: { voice: "narrator", text: "In Manila, people already at the mall pick them up. [pause] A few minutes between errands. Money already waiting." },
   checked: { voice: "narrator", text: "But not every answer is honest. [pause] Hermes checks the proof, and two photos don't hold up." },

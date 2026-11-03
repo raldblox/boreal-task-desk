@@ -3,7 +3,7 @@ import { fade } from "@remotion/transitions/fade";
 import { Audio, Sequence, staticFile } from "remotion";
 
 import { VO } from "./media";
-import { Checked, Done, EndCard, HiHermes, Market, TheAsk, TooMuch, UnderTheHood, WorldMoves } from "./scenes";
+import { Checked, Done, EndCard, HiHermes, Market, TheAsk, TooMuch, WorldMoves } from "./scenes";
 import { sec } from "./theme";
 
 const FADE = 15;
@@ -12,11 +12,10 @@ const FADE = 15;
 export const SCENES = [
   { id: "tooMuch", seconds: 12, Scene: TooMuch },
   { id: "hiHermes", seconds: 18, Scene: HiHermes },
-  { id: "theAsk", seconds: 24, Scene: TheAsk },
+  { id: "theAsk", seconds: 34, Scene: TheAsk },
   { id: "worldMoves", seconds: 22, Scene: WorldMoves },
   { id: "checked", seconds: 30, Scene: Checked },
   { id: "done", seconds: 12, Scene: Done },
-  { id: "underTheHood", seconds: 14, Scene: UnderTheHood },
   { id: "market", seconds: 12, Scene: Market },
   { id: "endCard", seconds: 7, Scene: EndCard },
 ] as const;
@@ -40,7 +39,8 @@ const VO_CUES: { key: keyof typeof VO; at: number }[] = [
   { key: "linked", at: startOf("hiHermes") + sec(8) },
   { key: "ask", at: startOf("theAsk") + sec(0.8) },
   { key: "clarify", at: startOf("theAsk") + sec(8) },
-  { key: "live", at: startOf("theAsk") + sec(17) },
+  { key: "triage", at: startOf("theAsk") + sec(16.5) },
+  { key: "live", at: startOf("theAsk") + sec(27) },
   { key: "workers", at: startOf("worldMoves") + sec(2.5) },
   { key: "checked", at: startOf("checked") + sec(1) },
   { key: "letMeSee", at: startOf("checked") + sec(8.5) },

@@ -7,7 +7,9 @@ export const REC: Record<string, string | null> = {
   approveLink: null, // boreal /link: sign in with PayPal, set limits, Approve
   connectPayPal: null, // Connect PayPal and the sandbox approval as Ji-woo Kim
   connected: null, // Hermes: "Connected…"
-  voiceNote: null, // the voice note sent, Hermes posting tasks
+  voiceNote: null, // the voice note sent
+  hermesClarify: null, // Hermes's clarifying questions and her answers
+  hermesTriage: null, // Hermes: two answered online for free, the rest posted to boreal work
   okToFund: null, // Hermes's list and total, "OK to fund?", her "Yes", funded
   heldPage: null, // a task page showing "held, not charged"
   workerClaim: null, // worker: Log in with PayPal, claim
@@ -16,8 +18,7 @@ export const REC: Record<string, string | null> = {
   letMeSee: null, // "Let me see them", her call: pass the shelf count
   passed: null, // the task page: Reviewed, Paid
   payout: null, // worker's PayPal sandbox: "You received $5.00"
-  toolCalls: null, // under the hood: post_task, fund_tasks scrolling (desktop)
-  adminConsole: null, // under the hood: AG Studio console (desktop)
+  toolCalls: null, // appendix: post_task, fund_tasks scrolling (desktop)
 };
 
 /** Voice-over lines, public/vo/<key>.mp3, made once from VO_SCRIPT. */
@@ -26,6 +27,7 @@ export const VO: Record<string, string | null> = {
   hi: "hi.mp3",
   linked: "linked.mp3",
   ask: "ask.mp3",
+  triage: "triage.mp3",
   clarify: "clarify.mp3",
   live: "live.mp3",
   workers: "workers.mp3",
