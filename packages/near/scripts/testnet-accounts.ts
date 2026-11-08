@@ -138,9 +138,7 @@ if (process.argv.includes("--vercel")) {
   // Signs the evidence links in market deliverables; made once and kept with the keys.
   if (!env.NEAR_MARKET_LINK_SECRET) {
     env.NEAR_MARKET_LINK_SECRET = randomBytes(32).toString("base64url");
-    writeFileSync(file, readFileSync(file, "utf8").trimEnd() + `
-NEAR_MARKET_LINK_SECRET=${env.NEAR_MARKET_LINK_SECRET}
-`);
+    writeFileSync(file, `${readFileSync(file, "utf8").trimEnd()}\nNEAR_MARKET_LINK_SECRET=${env.NEAR_MARKET_LINK_SECRET}\n`);
   }
   const settings: [string, string, boolean][] = [
     ["BOREAL_ADDONS", "concordium,near", false],
@@ -169,9 +167,8 @@ NEAR_MARKET_LINK_SECRET=${env.NEAR_MARKET_LINK_SECRET}
       input: value,
       stdio: ["pipe", "ignore", "pipe"],
     });
-    console.log(`${added.status === 0 ? "set   " : "FAILED"} ${name}${added.status === 0 ? "" : `: ${added.stderr.toString().trim().split("
-").at(-1)}`}`);
+    const reason = added.stderr.toString().trim().split("\n").at(-1);
+    console.log(`${added.status === 0 ? "set   " : "FAILED"} ${name}${added.status === 0 ? "" : `: ${reason}`}`);
   }
-  console.log("
-Redeploy boreal-testnet (vercel --prod, or push to main), then check /status.");
+  console.log("\nRedeploy boreal-testnet (vercel --prod, or push to main), then check /status.");
 }
