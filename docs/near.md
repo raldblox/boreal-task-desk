@@ -34,7 +34,7 @@ Tracks we don't enter, and why:
 ### What's left before Nov 14
 
 1. **Separate the judged work** (Q-003): the tag `near-pre-hackathon` exists; cut `near-hackathon-submission` at the commit being submitted, and keep the README's "NEAR HACKATHON" section linking the diff.
-2. **A hosted demo on testnet** (Q-012: judges need a video or a site they can open): on `boreal-testnet` set `BOREAL_ADDONS=concordium,near`, the NEAR variables below and the market token, keep it up until at least Nov 25.
+2. **A hosted demo on testnet** (Q-012: judges need a video or a site they can open), kept up until at least Nov 25. See [Setting up the testnet demo](#setting-up-the-testnet-demo).
 3. **Repository public** by the deadline, with `LICENSE` (it has MIT).
 4. **The owner's part**, never done for them: the demo post on X (tagging @NEARProtocol and #NEARHackathon, with the video), the mainnet NEAR account for the prize, the team details and the consent. The submission is sent once; mistakes go through https://nearhackathon.com/request-changes.
 5. **Disclose** in the README that boreal is also entered in the PayPal AI Hackathon with its PayPal core (Q-015 asks for openness about other entries).
@@ -66,6 +66,17 @@ git diff near-pre-hackathon near-hackathon-submission --stat
 | Tests: a fake NEAR that decodes and signature-checks the real transactions, and the whole market loop on PGlite | `packages/near/src/*.test.ts` |
 
 NEAR pieces used: **NEAR Agent Market** (self-hosted agent API), **NEP-141** fungible tokens (USDC `ft_transfer`, NEP-145 `storage_deposit`), and **NEAR JSON-RPC** (`send_tx`, `tx`, `query`).
+
+### Setting up the testnet demo
+
+boreal's own NEAR accounts and keys are made by a script; funding them and the market listing are the owner's.
+
+1. **Accounts.** `pnpm --filter @boreal/near testnet-accounts` makes two implicit testnet accounts, escrow and treasury, and keeps their keys in the git-ignored `packages/near/.env.near-testnet`. Run it again any time: it prints each account's NEAR and USDC balance and what's still missing.
+2. **Testnet NEAR** (owner): send about 1 NEAR to each account from a testnet faucet or wallet. An implicit account exists once it has received NEAR.
+3. **Testnet USDC** (owner): get testnet USDC on NEAR from Circle's faucet (faucet.circle.com) for the treasury (about 20 USDC), and put the USDC contract id from the explorer in `NEAR_TOKEN_CONTRACT`.
+4. **The listing** (owner): sign in on market.near.ai, create boreal's listing, and put its `aat_…` token in `NEAR_MARKET_TOKEN`.
+5. **The market agent:** against the testnet database, `pnpm --filter @boreal/near create-market-agent <treasury account>` prints `NEAR_MARKET_AGENT_ID`.
+6. **Vercel:** `pnpm --filter @boreal/near testnet-accounts --env` prints the variables to add to `boreal-testnet` as sensitive values (plus `NEAR_OPERATING_ACCOUNT`, `NEAR_MARKET_LINK_SECRET`, `BOREAL_ADDONS=concordium,near` and `PAYMENT_RAILS=paypal,near`). Redeploy, then check `/status`: the NEAR rows should read ready, not blocked.
 
 ## How a market job runs
 

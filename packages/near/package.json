@@ -8,7 +8,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "create-market-agent": "tsx scripts/create-market-agent.ts"
+    "create-market-agent": "tsx scripts/create-market-agent.ts",
+    "testnet-accounts": "tsx scripts/testnet-accounts.ts"
   },
   "dependencies": {
     "@boreal/concordium": "workspace:*",
