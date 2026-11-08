@@ -1,18 +1,25 @@
 // Sets up and checks boreal's own NEAR testnet accounts for the NEAR add-on's demo:
 //   pnpm --filter @boreal/near testnet-accounts           make the keys (once) and show what each account needs
-//   pnpm --filter @boreal/near testnet-accounts --env     also print the lines to set on boreal-testnet
+//   pnpm --filter @boreal/near testnet-accounts --vercel  add the NEAR add-on's settings to the linked Vercel
+//                                                           project (boreal-testnet), values never printed
+//   pnpm --filter @boreal/near testnet-accounts --register  register escrow and the fee account with the
+//                                                           USDC contract (a storage_deposit each, paid from
+//                                                           their own testnet NEAR), so agents can pay escrow
 //
 // It makes two implicit accounts, escrow (holds open tasks' USDC) and treasury (funds NEAR
 // Agent Market jobs), each with a fresh ed25519 key. The keys go only into the git-ignored
-// packages/near/.env.near-testnet, never to the console unless you ask with --env. Implicit
+// packages/near/.env.near-testnet, never to the console. Implicit
 // accounts exist on chain once they receive NEAR. Nothing here signs or sends a transaction:
 // funding them (testnet NEAR from a faucet, testnet USDC from Circle's faucet) is yours to do.
+// Only --register sends anything: one testnet transaction per account that isn't registered yet.
 
-import { generateKeyPairSync } from "node:crypto";
+import { spawnSync } from "node:child_process";
+import { generateKeyPairSync, randomBytes } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { base58Encode } from "../src/tx";
+import { createNearRpc } from "../src/chain";
+import { base58Encode, nearSigner, signTransaction } from "../src/tx";
 
 const RPC = process.env.NEAR_RPC_URL || "https://rpc.testnet.near.org";
 const file = join(import.meta.dirname, "..", ".env.near-testnet");
@@ -82,10 +89,37 @@ async function usdcBalance(accountId: string): Promise<string | null> {
   return (Number(raw) / 10 ** Number(env.NEAR_TOKEN_DECIMALS || 6)).toFixed(2);
 }
 
+if (process.argv.includes("--register")) {
+  if (!env.NEAR_TOKEN_CONTRACT) throw new Error("set NEAR_TOKEN_CONTRACT first");
+  const chain = createNearRpc(RPC);
+  for (const [account, key] of [
+    [env.NEAR_ESCROW_ACCOUNT, env.NEAR_ESCROW_KEY],
+    [env.NEAR_OPERATING_ACCOUNT, env.NEAR_OPERATING_KEY],
+  ] as const) {
+    if (!account || !key) continue;
+    if ((await chain.view(env.NEAR_TOKEN_CONTRACT, "storage_balance_of", { account_id: account })) !== null) {
+      console.log(`${account.slice(0, 12)}… already registered with ${env.NEAR_TOKEN_CONTRACT.slice(0, 12)}…`);
+      continue;
+    }
+    const signer = nearSigner(account, key);
+    const { nonce, blockHash } = await chain.accessKey(account, signer.publicKey);
+    const tx = signTransaction(signer, {
+      receiverId: env.NEAR_TOKEN_CONTRACT,
+      nonce: nonce + 1n,
+      blockHash,
+      calls: [{ methodName: "storage_deposit", args: { account_id: account, registration_only: true }, gas: 30n * 10n ** 12n, deposit: 1_250_000_000_000_000_000_000n }],
+    });
+    const outcome = await chain.send(tx.base64);
+    console.log(`${account.slice(0, 12)}… registered: ${outcome.status} (https://testnet.nearblocks.io/txns/${tx.hash})`);
+  }
+  console.log("");
+}
+
 const rows: [string, string, string, string][] = [];
 for (const [role, account, needs] of [
   ["escrow", env.NEAR_ESCROW_ACCOUNT!, "~1 NEAR for gas and storage; holds only open tasks' USDC"],
   ["treasury", env.NEAR_MARKET_TREASURY_ACCOUNT!, "~1 NEAR, plus USDC to fund market jobs (e.g. 20 USDC)"],
+  ...(env.NEAR_OPERATING_ACCOUNT ? ([["fees", env.NEAR_OPERATING_ACCOUNT, "receives boreal's platform and review fees"]] as const) : []),
 ] as const) {
   const near = await nearBalance(account);
   const usdc = await usdcBalance(account);
@@ -99,8 +133,45 @@ const missing = [
 ].filter(Boolean);
 if (missing.length) console.log(`Still to fill in ${file}:\n  ${missing.join("\n  ")}\n`);
 
-if (process.argv.includes("--env")) {
-  console.log("For boreal-testnet (sensitive):");
-  for (const [k, v] of Object.entries(env)) if (v) console.log(`${k}=${v}`);
-  console.log("BOREAL_ADDONS=concordium,near\nPAYMENT_RAILS=paypal,near");
+if (process.argv.includes("--vercel")) {
+  if (!env.NEAR_TOKEN_CONTRACT) throw new Error("set NEAR_TOKEN_CONTRACT first");
+  // Signs the evidence links in market deliverables; made once and kept with the keys.
+  if (!env.NEAR_MARKET_LINK_SECRET) {
+    env.NEAR_MARKET_LINK_SECRET = randomBytes(32).toString("base64url");
+    writeFileSync(file, readFileSync(file, "utf8").trimEnd() + `
+NEAR_MARKET_LINK_SECRET=${env.NEAR_MARKET_LINK_SECRET}
+`);
+  }
+  const settings: [string, string, boolean][] = [
+    ["BOREAL_ADDONS", "concordium,near", false],
+    ["PAYMENT_RAILS", "paypal,near", false],
+    ["NEAR_NETWORK", "testnet", false],
+    ["NEAR_TOKEN_CONTRACT", env.NEAR_TOKEN_CONTRACT, false],
+    ["NEAR_TOKEN_DECIMALS", env.NEAR_TOKEN_DECIMALS || "6", false],
+    ["NEAR_ESCROW_ACCOUNT", env.NEAR_ESCROW_ACCOUNT!, false],
+    ["NEAR_ESCROW_KEY", env.NEAR_ESCROW_KEY!, true],
+    ["NEAR_OPERATING_ACCOUNT", env.NEAR_OPERATING_ACCOUNT ?? "", false],
+    ["NEAR_MARKET_TREASURY_ACCOUNT", env.NEAR_MARKET_TREASURY_ACCOUNT!, false],
+    ["NEAR_MARKET_TREASURY_KEY", env.NEAR_MARKET_TREASURY_KEY!, true],
+    ["NEAR_MARKET_LINK_SECRET", env.NEAR_MARKET_LINK_SECRET, true],
+    ["NEAR_MARKET_TOKEN", env.NEAR_MARKET_TOKEN ?? "", true],
+    ["NEAR_MARKET_AGENT_ID", env.NEAR_MARKET_AGENT_ID ?? "", false],
+  ];
+  for (const [name, value, sensitive] of settings) {
+    if (!value) {
+      console.log(`skip   ${name} (not set yet)`);
+      continue;
+    }
+    // Replace any earlier value; the value goes in on stdin, never on the command line or the console.
+    spawnSync("vercel", ["env", "rm", name, "production", "--yes"], { shell: true, stdio: "ignore" });
+    const added = spawnSync("vercel", ["env", "add", name, "production", ...(sensitive ? ["--sensitive"] : [])], {
+      shell: true,
+      input: value,
+      stdio: ["pipe", "ignore", "pipe"],
+    });
+    console.log(`${added.status === 0 ? "set   " : "FAILED"} ${name}${added.status === 0 ? "" : `: ${added.stderr.toString().trim().split("
+").at(-1)}`}`);
+  }
+  console.log("
+Redeploy boreal-testnet (vercel --prod, or push to main), then check /status.");
 }

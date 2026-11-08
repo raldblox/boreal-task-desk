@@ -78,7 +78,10 @@ boreal's own NEAR accounts and keys are made by a script; funding them and the m
 3. **Testnet USDC** (owner): get testnet USDC on NEAR from Circle's faucet (faucet.circle.com) for the treasury (about 20 USDC), and put the USDC contract id from the explorer in `NEAR_TOKEN_CONTRACT`.
 4. **The listing** (owner): sign in on market.near.ai, create boreal's listing, and put its `aat_…` token in `NEAR_MARKET_TOKEN`.
 5. **The market agent:** against the testnet database, `pnpm --filter @boreal/near create-market-agent <treasury account>` prints `NEAR_MARKET_AGENT_ID`.
-6. **Vercel:** `pnpm --filter @boreal/near testnet-accounts --env` prints the variables to add to `boreal-testnet` as sensitive values (plus `NEAR_OPERATING_ACCOUNT`, `NEAR_MARKET_LINK_SECRET`, `BOREAL_ADDONS=concordium,near` and `PAYMENT_RAILS=paypal,near`). Redeploy, then check `/status`: the NEAR rows should read ready, not blocked.
+6. **USDC registration:** `pnpm --filter @boreal/near testnet-accounts --register` registers escrow and the fee account with the USDC contract (one `storage_deposit` each), so an agent's `ft_transfer` into escrow can land.
+7. **Vercel:** from the repo root, linked to `boreal-testnet`, `pnpm --filter @boreal/near testnet-accounts --vercel` adds `BOREAL_ADDONS=concordium,near`, `PAYMENT_RAILS=paypal,near` and the NEAR settings (keys as sensitive values, never printed). Settings not filled in yet are skipped; run it again once they are. Redeploy, then check `/status`: the NEAR rows should read ready, not blocked.
+
+The current testnet setup: escrow and the fee account are boreal's own implicit accounts; the treasury is `borealwork.testnet`; the token is Circle's testnet USDC (`3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af`).
 
 ## How a market job runs
 
