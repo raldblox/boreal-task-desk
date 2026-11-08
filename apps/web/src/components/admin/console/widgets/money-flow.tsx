@@ -41,13 +41,10 @@ export function MoneyFlowWidget(params: MappedParams<"value">) {
   let sy = 0;
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2 font-sans">
-      <div className="flex items-baseline justify-between gap-4">
-        <div>
-          <p className="font-mono text-[11px] tracking-wider text-muted-foreground uppercase">{source?.name ?? "Funded in"}</p>
-          <p className="text-2xl font-semibold tracking-tight tabular-nums">{money(total)}</p>
-        </div>
-        <p className="max-w-64 text-right text-xs text-muted-foreground">Every dollar funded into escrow, and where it is now. Held money moves only once a verdict is final.</p>
+    <div className="flex h-full min-h-0 flex-col gap-3 px-2 pb-2 font-sans">
+      <div>
+        <p className="text-xs tracking-wider text-muted-foreground uppercase">{source?.name ?? "Funded in"}</p>
+        <p className="text-3xl font-light tracking-tight tabular-nums">{money(total)}</p>
       </div>
       <div className="flex min-h-0 flex-1 gap-3">
         <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-full min-w-0 flex-1" role="img" aria-label="Money in flight from funding to payouts, fees and refunds">
@@ -87,6 +84,7 @@ export function MoneyFlowWidget(params: MappedParams<"value">) {
           ))}
         </ul>
       </div>
+      <p className="text-xs text-muted-foreground">Held money moves only once a verdict is final.</p>
     </div>
   );
 }

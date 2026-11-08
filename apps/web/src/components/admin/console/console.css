@@ -57,3 +57,10 @@
   --bc-quiet: #7d8b94;
   --bc-gridline: #1c2b30;
 }
+
+/* A person's own report (/me/insights) is read-only: selecting a widget does nothing, so it
+   draws no frame (AG Studio draws it around the grid cell, outside the card). */
+.boreal-insights .ag-studio-layout-widget-selected {
+  box-shadow: none !important;
+  outline: none !important;
+}

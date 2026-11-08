@@ -12,7 +12,7 @@ const MyInsights = dynamic(() => import("./my-insights"), {
 
 export function InsightsSkeleton() {
   return (
-    <div className="flex h-[calc(100dvh-12rem)] min-h-[640px] flex-col gap-3 rounded-2xl border bg-background p-4" aria-busy="true">
+    <div className="flex h-[860px] flex-col gap-3 rounded-2xl border bg-background p-4" aria-busy="true">
       <div className="grid grid-cols-3 gap-3 md:grid-cols-6">
         {Array.from({ length: 6 }, (_, i) => (
           <div key={i} className="h-20 animate-pulse rounded-xl bg-muted" />

@@ -8,6 +8,8 @@ type Earnings = Awaited<ReturnType<Desk["myEarnings"]>>;
 
 const usd = (cents: number) => Math.round(cents) / 100;
 const iso = (at: Date | string | null) => (at ? new Date(at).toISOString() : null);
+/** A task's description, short enough for a table column; the full text is on the task's page. */
+const brief = (text: string) => (text.length > 60 ? `${text.slice(0, 57).trimEnd()}…` : text);
 
 export function spendingRows(data: Spending) {
   const tasks = data.tasks.map((t) => ({
@@ -15,7 +17,7 @@ export function spendingRows(data: Spending) {
     ref: t.ref,
     ownPage: t.ownPage,
     postedBy: t.postedBy,
-    description: t.description,
+    description: brief(t.description),
     status: t.status.replace("_", " "),
     rail: t.rail,
     total: usd(t.total),
@@ -57,7 +59,7 @@ export function earningsRows(data: Earnings) {
   return data.map((j) => ({
     id: j.id,
     ref: j.ref,
-    description: j.description,
+    description: brief(j.description),
     requester: j.requester,
     rail: j.rail,
     state: j.state,

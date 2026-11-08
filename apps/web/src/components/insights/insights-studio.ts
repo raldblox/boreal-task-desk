@@ -125,6 +125,7 @@ const kpi = (text: string, value: { id: string; aggregation?: "sum" | "avg" }) =
   },
 });
 const legend = { theme: { common: { legend: { enabled: true, position: "bottom" } } } };
+const GRID_STYLE = { columnAutoSize: true };
 
 const spendingPage = {
   id: "spending",
@@ -162,7 +163,7 @@ const spendingPage = {
         cols: [field("spend.postedAt"), field("spend.ref"), field("spend.postedBy"), field("spend.description"), field("spend.status"), field("spend.verdict"), field("spend.rail"), sum("spend.total"), avg("spend.hoursToResult")],
       },
       sort: [{ field: field("spend.postedAt"), direction: "desc" }],
-      format: title("Your tasks"),
+      format: { ...title("Your tasks"), style: GRID_STYLE },
     },
   },
   widgetLayout: {
@@ -200,7 +201,7 @@ const earningsPage = {
       type: "grid",
       dataMapping: { cols: [field("jobs.claimedAt"), field("jobs.ref"), field("jobs.description"), field("jobs.requester"), field("jobs.state"), field("jobs.rail"), sum("jobs.paid"), field("jobs.paidAt")] },
       sort: [{ field: field("jobs.claimedAt"), direction: "desc" }],
-      format: title("Your tasks"),
+      format: { ...title("Your tasks"), style: GRID_STYLE },
     },
   },
   widgetLayout: {
@@ -214,6 +215,17 @@ const earningsPage = {
     jobs: at(0, 25, 24, 20),
   },
 };
+
+/** The canvas rows' height (theme: studioCanvasRowHeight) and padding, to size the report to its page. */
+const ROW_PX = 18;
+const CANVAS_PAD_PX = 32;
+
+/** How tall a page's report is: its lowest widget's bottom edge, in pixels. */
+export function reportHeight(pageId: string): number {
+  const page = [spendingPage, earningsPage].find((p) => p.id === pageId) ?? spendingPage;
+  const rows = Math.max(...Object.values(page.widgetLayout).map((l) => l.yTrack + l.ySpan));
+  return rows * ROW_PX + CANVAS_PAD_PX;
+}
 
 export function insightsReport(rows: InsightsRows, start: "spending" | "earnings"): AgReportState {
   const pages = [...(rows.spending ? [spendingPage] : []), ...(rows.earnings ? [earningsPage] : [])];
