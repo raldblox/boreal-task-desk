@@ -1,11 +1,11 @@
-import { ChevronRight, ShieldCheck, UserRound } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
-import { signOut } from "@/app/actions";
+import { AccountMenu } from "@/components/account-menu";
 import { BorealLogo } from "@/components/brand";
 import { Container } from "@/components/page";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { NETWORK } from "@/content/agent-guide";
 import { workerHandle } from "@/lib/format";
 import { currentAdmin } from "@/server/admin";
@@ -31,35 +31,7 @@ async function Account() {
     // Only allowlisted operators see the way into /admin; for everyone else it stays invisible.
     currentAdmin().catch(() => null),
   ]);
-  return (
-    <div className="flex items-center gap-2">
-      {admin && (
-        <Link href="/admin" title="boreal admin" className={buttonVariants({ variant: "ghost", size: "sm", className: "gap-1.5 text-primary" })}>
-          <ShieldCheck className="size-4" />
-          <span className="hidden sm:inline">Admin</span>
-        </Link>
-      )}
-      <Link
-        href="/me"
-        title="My account: your worker ID, earnings and tasks"
-        className="group flex h-10 items-center gap-2.5 rounded-lg border bg-card pr-3 pl-1.5 transition-colors hover:border-primary/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-      >
-        <span className="grid size-7 place-items-center rounded-md bg-primary-soft text-primary-soft-foreground">
-          <UserRound className="size-4" />
-        </span>
-        <span className="flex flex-col leading-tight">
-          <span className="text-sm font-medium">My account</span>
-          {profile && <span className="hidden font-mono text-[10px] text-muted-foreground sm:block">{workerHandle(profile.pseudonym)}</span>}
-        </span>
-        <ChevronRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
-      </Link>
-      <form action={signOut} className="hidden sm:block">
-        <Button type="submit" variant="ghost">
-          Sign out
-        </Button>
-      </form>
-    </div>
-  );
+  return <AccountMenu handle={profile ? workerHandle(profile.pseudonym) : null} admin={Boolean(admin)} />;
 }
 
 const NAV = [

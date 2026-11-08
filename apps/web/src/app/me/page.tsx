@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { Suspense } from "react";
 
-import { linkConcordium, signOut } from "@/app/actions";
+import { linkConcordium } from "@/app/actions";
 import { ConnectConcordiumAccount, ConnectNear } from "@/components/connect-wallet";
 import { type AccountTab, AccountTabs, accountTab } from "@/components/account-tabs";
 import { BlockHeading, Container, Cta, EmptyState, LinkTile, MoreLink, PageHero } from "@/components/page";
@@ -17,7 +17,7 @@ import { TaskCard } from "@/components/task-card";
 import { DevWallet } from "@/components/worker-forms";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { attributeLabel, posterStatus, usd, when, workerHandle } from "@/lib/format";
 import { NETWORK, SITE } from "@/content/agent-guide";
 import { gatedEnv, getAddons } from "@/server/addons";
@@ -837,14 +837,6 @@ function AccountHero({ children }: { children: React.ReactNode }) {
       kicker="Your account"
       title="My account"
       lede="Your work, the tasks you posted, your agents, how you're paid, and what you've connected."
-      actions={
-        // The header keeps Sign out off phones to fit; it's here instead.
-        <form action={signOut} className="sm:hidden">
-          <Button type="submit" variant="outline">
-            Sign out
-          </Button>
-        </form>
-      }
     >
       {children}
     </PageHero>
