@@ -27,7 +27,7 @@ interface Props {
   myAgents: { id: string; name: string }[];
   maxTaskBudget: number;
   maxDailySpend: number;
-  /** The Concordium add-on is on: owners can prove their agent's Verified by Concordium badge. */
+  /** The Concordium integration is on: owners can prove their agent's Verified by Concordium badge. */
   badges: boolean;
   /** What unlocks the full limits here, as a phrase ("once your PayPal account is verified by PayPal"). */
   verifiedBy: string;
@@ -151,7 +151,7 @@ export function ApproveLinkForm({
           <div className="flex items-center gap-2">
             <BadgeCheck className="size-4 text-primary" />
             <p className="text-sm font-medium">
-              Verified by Concordium badge (optional, Concordium add-on)
+              Verified by Concordium badge (optional, Concordium integration)
             </p>
           </div>
           <p className="text-sm text-muted-foreground">

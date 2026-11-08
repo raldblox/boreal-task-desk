@@ -23,6 +23,7 @@
     "@boreal/near": "workspace:*",
     "@boreal/paypal": "workspace:*",
     "@concordium/verification-web-ui": "0.2.1",
+    "@hot-labs/near-connect": "0.11.4",
     "@modelcontextprotocol/server": "^2.4.0",
     "ag-studio": "3.0.0",
     "ag-studio-react": "3.0.0",

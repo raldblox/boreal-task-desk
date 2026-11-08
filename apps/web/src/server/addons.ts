@@ -42,7 +42,7 @@ export function addonRefusal(id: "concordium" | "near", part: string): Response 
   if (found?.state === "ready") return null;
   if (!status.enabled) {
     return Response.json(
-      { error: "addon_off", message: `${found?.name ?? status.name} is part of the ${status.name} add-on, which isn't on here. This site runs on PayPal.` },
+      { error: "addon_off", message: `${found?.name ?? status.name} is part of the ${status.name} integration, which isn't on here. This site runs on PayPal.` },
       { status: 404 },
     );
   }
@@ -64,6 +64,6 @@ export function requireAddonPart(id: "concordium" | "near", part: string): void 
     "unavailable",
     status.enabled
       ? `${found?.name ?? status.name} isn't ready here. ${found?.reason ?? ""}`.trim()
-      : `${found?.name ?? status.name} is part of the ${status.name} add-on, which isn't on here. This site runs on PayPal.`,
+      : `${found?.name ?? status.name} is part of the ${status.name} integration, which isn't on here. This site runs on PayPal.`,
   );
 }

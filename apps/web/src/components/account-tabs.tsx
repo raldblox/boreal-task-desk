@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ScrollActiveTab } from "@/components/scroll-active-tab";
 import { cn } from "@/lib/utils";
 
 // My account's sections as tabs. Links, not client state: each tab is its own URL (/me?tab=…),
@@ -11,19 +12,20 @@ export const ACCOUNT_TABS = [
   { id: "posted", label: "Posted" },
   { id: "agents", label: "Agents" },
   { id: "payouts", label: "Getting paid" },
-  { id: "addons", label: "Add-ons" },
+  { id: "integrations", label: "Integrations" },
 ] as const;
 
 export type AccountTab = (typeof ACCOUNT_TABS)[number]["id"];
 
 export function accountTab(value: string | undefined): AccountTab {
+  if (value === "addons") return "integrations"; // the tab's old name, in older links
   return ACCOUNT_TABS.some((t) => t.id === value) ? (value as AccountTab) : "overview";
 }
 
 /** The tab bar. `counts` puts a small number on a tab (things waiting there); 0 shows nothing. */
 export function AccountTabs({ active, counts = {} }: { active: AccountTab; counts?: Partial<Record<AccountTab, number>> }) {
   return (
-    <nav aria-label="My account" className="-mx-4 overflow-x-auto overflow-y-hidden px-4 [scrollbar-width:none]">
+    <ScrollActiveTab label="My account" className="-mx-4 overflow-x-auto overflow-y-hidden px-4 [scrollbar-width:none]">
       <ul className="flex w-max min-w-full gap-1 border-b">
         {ACCOUNT_TABS.map((tab) => {
           const current = tab.id === active;
@@ -52,6 +54,6 @@ export function AccountTabs({ active, counts = {} }: { active: AccountTab; count
           );
         })}
       </ul>
-    </nav>
+    </ScrollActiveTab>
   );
 }

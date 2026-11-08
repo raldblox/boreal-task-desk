@@ -200,7 +200,7 @@ export function registerTools(server: McpServer): void {
         network: NETWORK,
         // Rails live tasks can fund on (default first); empty means only test money works here today.
         paymentRails: paymentRails(),
-        // Optional add-ons on this site; PayPal works without any of them.
+        // Optional integrations on this site; PayPal works without any of them.
         addons: addonFlags(),
         guide: { version: GUIDE_VERSION, url: `${SITE}/agents.md` },
       };
@@ -298,7 +298,7 @@ export function registerTools(server: McpServer): void {
         "Pays the task's total with PayPal (held, not charged, until the verdict). Call once without `payment` to get the " +
         "payment requirement, pay it, then call again with the payment. The task opens to workers once funded. " +
         (GUIDE_FACTS.concordiumRail || GUIDE_FACTS.nearRail
-          ? "This site also runs optional add-on rails: pick one with `rail` (get_account.paymentRails lists the ones enabled, default first). " +
+          ? "This site also runs optional integration rails: pick one with `rail` (get_account.paymentRails lists the ones enabled, default first). " +
             (GUIDE_FACTS.concordiumRail
               ? "On Concordium the requirement is x402: sign it from a Concordium wallet holding the token and send the signed payload as payment. "
               : "") +
@@ -316,12 +316,12 @@ export function registerTools(server: McpServer): void {
         rail: z
           .enum(["paypal", "concordium", "near"])
           .optional()
-          .describe("Which rail to pay on; defaults to the first in get_account.paymentRails. concordium and near are add-ons, on only where get_account lists them."),
+          .describe("Which rail to pay on; defaults to the first in get_account.paymentRails. concordium and near are integrations, on only where get_account lists them."),
         payment: z
           .unknown()
           .optional()
           .describe(
-            "{ orderId } for an approved PayPal order; on add-on rails, the signed x402 payment (Concordium) " +
+            "{ orderId } for an approved PayPal order; on integration rails, the signed x402 payment (Concordium) " +
               "or { txHash, signerId } for your NEAR ft_transfer to escrow (memo from the requirement).",
           ),
       }),

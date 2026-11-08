@@ -21,11 +21,11 @@ export default function PrivacyPage() {
           <li>
             <strong className="font-medium text-foreground">A pseudonym.</strong> A one-way code made from the identity you
             sign in with: <code className="font-mono text-sm">pp:</code> plus a keyed hash of your PayPal account ID, or, with
-            the Concordium add-on, <code className="font-mono text-sm">ccdid:</code> plus a keyed hash of your identity
+            the Concordium integration, <code className="font-mono text-sm">ccdid:</code> plus a keyed hash of your identity
             document from Concordium ID. It can&apos;t be turned back into who you are.
           </li>
           <li>
-            <strong className="font-medium text-foreground">Proven attributes.</strong> If you add Concordium ID (Concordium add-on): that
+            <strong className="font-medium text-foreground">Proven attributes.</strong> If you add Concordium ID (Concordium integration): that
             you&apos;re 18 or older and your country of residence, proven with a zero-knowledge proof.
           </li>
           <li>
@@ -58,16 +58,16 @@ export default function PrivacyPage() {
 
       <LegalSection title="On-chain">
         <p>
-          Nothing personal goes on a blockchain. Where the Concordium add-on is on, boreal anchors each task&apos;s audit trail
+          Nothing personal goes on a blockchain. Where the Concordium integration is on, boreal anchors each task&apos;s audit trail
           on Concordium as salted hashes, which show the trail wasn&apos;t changed without revealing what&apos;s in it. Where
-          the NEAR add-on is on and you choose to be paid there, your payout goes to the NEAR account you give.
+          the NEAR integration is on and you choose to be paid there, your payout goes to the NEAR account you give.
         </p>
       </LegalSection>
 
       <LegalSection title="Who else handles your data">
         <ul>
           <li>PayPal, to sign you in with PayPal, hold task money and pay you.</li>
-          <li>With the Concordium add-on: Concordium&apos;s ID App or Wallet, on your device, to make the proofs you approve.</li>
+          <li>With the Concordium integration: Concordium&apos;s ID App or Wallet, on your device, to make the proofs you approve.</li>
           <li>Anthropic&apos;s Claude, which reviews submissions against the task&apos;s criteria for boreal&apos;s reviewer.</li>
           <li>Vercel and Neon, which host the site, its files and its database.</li>
         </ul>
@@ -84,7 +84,7 @@ export default function PrivacyPage() {
       <LegalSection title="Network">
         <p>
           {NETWORK === "testnet"
-            ? "This is boreal's testnet. It never involves real money: payments use the PayPal sandbox (and test tokens on any add-on rail). Its accounts and data are separate from the live site's."
+            ? "This is boreal's testnet. It never involves real money: payments use the PayPal sandbox (and test tokens on any integration's rail). Its accounts and data are separate from the live site's."
             : "This is the live site, with real money. boreal's testnet is a separate site with its own accounts and data, and never involves real money."}
         </p>
       </LegalSection>

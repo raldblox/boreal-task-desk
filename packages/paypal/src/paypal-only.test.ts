@@ -181,7 +181,7 @@ describe("the PayPal-only configuration", () => {
   it("refuses required attributes with a reason, and keeps unverified owners at the caps", async () => {
     const requester = await linkedAgent(identity(1));
     await expect(desk.postTask(requester, taskInput({ requiredAttributes: [{ attribute: "age_over_18" }] }))).rejects.toSatisfy(
-      (e: unknown) => e instanceof DeskError && e.code === "invalid" && /Concordium add-on/.test(e.message),
+      (e: unknown) => e instanceof DeskError && e.code === "invalid" && /Concordium integration/.test(e.message),
     );
 
     const unverified = await linkedAgent(identity(3, false));

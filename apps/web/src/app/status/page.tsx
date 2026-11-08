@@ -104,25 +104,25 @@ async function Checks() {
         : "Not switched on here yet",
     },
     queue?.money ?? { name: "Payouts and refunds", health: db.health === "down" ? "down" : "degraded", detail: "Couldn't read the queue" },
-    // Add-on checks show only where the add-on is on; a PayPal-only site has none of them.
+    // Integration checks show only where the integration is on; a PayPal-only site has none of them.
     ...(concordium
       ? [
           {
-            name: "Concordium ID (add-on)",
+            name: "Concordium ID (integration)",
             health: getIdAppVerifier() || addons.ready("concordium", "id") ? "ok" : "degraded",
             detail:
               getIdAppVerifier() || addons.ready("concordium", "id")
                 ? `Workers can add Concordium ID to prove their age or country (Concordium ${NETWORK})`
                 : (addons.concordium.parts.find((p) => p.id === "id")?.reason ?? "Not ready"),
           } satisfies Check,
-          ...(queue ? [{ ...queue.anchors, name: "On-chain audit anchors (add-on)" }] : []),
-          ...(registry ? [{ ...registry, name: "Registry listing (add-on)" }] : []),
+          ...(queue ? [{ ...queue.anchors, name: "On-chain audit anchors (integration)" }] : []),
+          ...(registry ? [{ ...registry, name: "Registry listing (integration)" }] : []),
         ]
       : []),
     ...(addons.on("near")
       ? [
           {
-            name: "USDC on NEAR (add-on)",
+            name: "USDC on NEAR (integration)",
             health: rails.includes("near") ? "ok" : "degraded",
             detail: rails.includes("near")
               ? `Agents can fund in USDC on NEAR ${NETWORK}; workers are paid to their NEAR account`
@@ -154,7 +154,7 @@ async function Checks() {
       </ul>
       {setupLine.length > 0 && <p className="text-sm text-muted-foreground">{setupLine.join(". ")}.</p>}
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">Add-ons</h2>
+        <h2 className="text-lg font-semibold">Integrations</h2>
         <AddonsPanel addons={[addons.concordium, addons.near]} source={addons.source} />
       </section>
     </div>

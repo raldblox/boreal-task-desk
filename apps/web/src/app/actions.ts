@@ -2,11 +2,13 @@
 
 import { type Caller, DeskError } from "@boreal/desk";
 import type { ProofRequest } from "@boreal/concordium";
+import { CONNECT_MESSAGE, loadNearChain, NearSignInError, type NearSignIn, verifyNearSignIn } from "@boreal/near";
 import { refresh } from "next/cache";
 import { after } from "next/server";
 import { redirect } from "next/navigation";
 
-import { requireAddonPart } from "@/server/addons";
+import { SITE } from "@/content/agent-guide";
+import { gatedEnv, requireAddonPart } from "@/server/addons";
 import { getDesk } from "@/server/desk";
 import { FileRejected, saveSubmissionFile } from "@/server/files";
 import { kickMonitor } from "@/server/monitor";
@@ -98,37 +100,41 @@ export async function submitResult(taskId: string, _prev: ActionState, form: For
   });
 }
 
-/** Where the worker is paid on one rail: a PayPal email, a NEAR account or a Concordium account. */
-export async function setPayoutAddress(_prev: ActionState, form: FormData): Promise<ActionState> {
-  return asWorker(async (worker) => {
-    const named = form.get("rail");
-    const rail = named === "paypal" || named === "near" ? named : "concordium";
-    if (rail !== "paypal") requireAddonPart(rail, "rail");
-    await getDesk().setPayoutAddress(worker, String(form.get("payoutAddress") ?? ""), rail);
-  });
-}
-
-export async function disputeVerdict(taskId: string, _prev: ActionState, form: FormData): Promise<ActionState> {
-  return asWorker(async (worker) => {
-    await getDesk().disputeVerdict(worker, taskId, String(form.get("reason") ?? ""));
-  });
-}
-
 /**
- * The guided payout setup on a task: saves the worker's own account on the task's rail (counted
- * as a first setup through boreal), then claims the task and goes back to it. boreal never holds
- * a wallet for anyone and never converts between rails: the account is the worker's.
+ * Connects a payout account the worker holds, from a wallet button rather than a typed address,
+ * on My account (no task) or on a task's guided setup (then claims the task and goes back to it).
+ * NEAR proves the account with a NEP-413 signature of CONNECT_MESSAGE from one of its full-access
+ * keys; Concordium takes the account the Concordium Wallet for Web connected. boreal never holds
+ * a wallet for anyone and never converts between rails.
  */
-export async function setUpPayoutAndClaim(taskId: string, rail: "near" | "concordium", _prev: ActionState, form: FormData): Promise<ActionState> {
+export async function connectPayoutAccount(
+  connection: { rail: "near"; signed: NearSignIn } | { rail: "concordium"; account: string },
+  taskId?: string,
+): Promise<ActionState> {
   const worker = await workerFromSession();
   if (!worker) return { error: "Your session has ended. Sign in again." };
   try {
-    requireAddonPart(rail, "rail");
-    await getDesk().setPayoutAddress(worker, String(form.get("payoutAddress") ?? ""), rail, { guided: true });
+    requireAddonPart(connection.rail, "rail");
+    const account =
+      connection.rail === "near"
+        ? (
+            await verifyNearSignIn(connection.signed, {
+              chain: loadNearChain(gatedEnv()),
+              recipient: new URL(SITE).host,
+              message: CONNECT_MESSAGE,
+            })
+          ).accountId
+        : connection.account;
+    await getDesk().setPayoutAddress(worker, account, connection.rail, { guided: Boolean(taskId) });
   } catch (error) {
+    if (error instanceof NearSignInError) return { error: `Your wallet's signature didn't check out: ${error.message}.` };
     if (error instanceof DeskError) return { error: error.message };
-    console.error("[payout setup] failed", error);
+    console.error("[connect payout account] failed", error);
     return { error: "Something went wrong. Try again." };
+  }
+  if (!taskId) {
+    refresh();
+    return null;
   }
   try {
     await getDesk().claimTask(worker, taskId);
@@ -139,3 +145,10 @@ export async function setUpPayoutAndClaim(taskId: string, rail: "near" | "concor
   }
   redirect(`/tasks/${taskId}`);
 }
+
+export async function disputeVerdict(taskId: string, _prev: ActionState, form: FormData): Promise<ActionState> {
+  return asWorker(async (worker) => {
+    await getDesk().disputeVerdict(worker, taskId, String(form.get("reason") ?? ""));
+  });
+}
+

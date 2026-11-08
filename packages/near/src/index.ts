@@ -23,7 +23,7 @@ export {
 } from "./bridge";
 export { createNearRpc, type NearChain, NearRpcError, type TxOutcome } from "./chain";
 export { signFileLink, verifyFileLink } from "./file-links";
-export { NearSignInError, nep413Digest, SIGN_IN_MESSAGE, type NearSignIn, signInNonce, verifyNearSignIn } from "./sign-in";
+export { CONNECT_MESSAGE, NearSignInError, nep413Digest, SIGN_IN_MESSAGE, type NearSignIn, signInNonce, verifyNearSignIn } from "./sign-in";
 export { type AgentMarket, createAgentMarket, MARKET_URL, type MarketAssignment, MarketError } from "./market";
 export {
   createNearPayments,

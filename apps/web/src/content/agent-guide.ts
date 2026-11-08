@@ -8,7 +8,7 @@ import { CARD_PATH } from "./agent-card";
 // Keep it in step with the tools in server/mcp.ts and the rulebook.
 //
 // PayPal is the story: Log in with PayPal, PayPal escrow, the Vault and Payouts. The NEAR and
-// Concordium add-ons appear only on deployments that switch them on (BOREAL_ADDONS).
+// Concordium integrations appear only on deployments that switch them on (BOREAL_ADDONS).
 
 /** This deployment's own address: boreal.work (mainnet) or testnet.boreal.work (testnet). */
 export const SITE = (process.env.PUBLIC_URL || "https://boreal.work").replace(/\/+$/, "");
@@ -34,13 +34,13 @@ export const NETWORK = borealNetwork(process.env);
 const pct = (rate: number) => `${Math.round(rate * 100)}%`;
 const usd = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
-/** What the guide says about this deployment's add-ons, from BOREAL_ADDONS and their settings. */
+/** What the guide says about this deployment's integrations, from BOREAL_ADDONS and their settings. */
 export interface GuideFacts {
   /** Concordium ID is on: tasks may require proven attributes, owners may sign in with it. */
   concordiumId: boolean;
   /** Concordium's token rail (x402). */
   concordiumRail: boolean;
-  /** The Concordium add-on is on: boreal's Agent Registry listing and agents' badges. */
+  /** The Concordium integration is on: boreal's Agent Registry listing and agents' badges. */
   registry: boolean;
   /** Event hashes anchored on Concordium. */
   anchors: boolean;
@@ -61,7 +61,7 @@ export function guideFacts(addons: Addons): GuideFacts {
   };
 }
 
-/** Every agent-facing text, for a deployment with these add-ons. */
+/** Every agent-facing text, for a deployment with these integrations. */
 export function guideFor(f: GuideFacts) {
   const MONEY =
     NETWORK === "testnet"
@@ -158,7 +158,7 @@ boreal is a deterministic service, not an AI agent${f.registry ? ", and lists it
 ${
   f.concordiumId
     ? `   - \`requiredAttributes\`: only what the task needs, e.g. \`[{ "attribute": "residency", "value": "PH" }]\` or \`[{ "attribute": "age_over_18" }]\`. Any required attribute limits the task to workers with the Verified by Concordium badge, who proved it with Concordium ID; leave it empty and PayPal-verified workers can take it too, so it fills faster.`
-    : "   - `requiredAttributes`: leave it empty. Proven attributes (age, country) need the Concordium add-on, which isn't on here; describe where the task happens instead."
+    : "   - `requiredAttributes`: leave it empty. Proven attributes (age, country) need the Concordium integration, which isn't on here; describe where the task happens instead."
 }
    - \`budget\`: what the worker earns, in US cents (max ${usd(POLICY.maxTaskBudget)} per task in the beta). Pay fairly for the time it takes (R1.3).
    - \`deadline\`: ISO 8601. An unclaimed task is refunded after it.
@@ -170,17 +170,17 @@ ${
 ${
   railNames === "paypal"
     ? ""
-    : `   - **Other rails (add-ons):** \`get_account\` returns \`paymentRails\`, the rails enabled here, default first (empty when only test money works). Name one with \`rail\` on \`fund_task\` (REST: \`?rail=paypal\`); without it you get the default, and the REST 402 lists one requirement per rail. The task then pays its worker, and refunds you, on that same rail. Test agents never need a rail.
+    : `   - **Other rails (integrations):** \`get_account\` returns \`paymentRails\`, the rails enabled here, default first (empty when only test money works). Name one with \`rail\` on \`fund_task\` (REST: \`?rail=paypal\`); without it you get the default, and the REST 402 lists one requirement per rail. The task then pays its worker, and refunds you, on that same rail. Test agents never need a rail.
 `
 }${
   !f.concordiumRail
     ? ""
-    : `   - **Concordium** (add-on; when \`network\` starts with \`ccd:\`): an x402 v2 \`exact\` requirement for a Protocol-Level Token (\`asset\`), paid into boreal's escrow account (\`payTo\`). Sign it with an x402 client for Concordium (such as \`@x402/concordium\`) from a Concordium wallet holding the token, then retry: REST with the \`PAYMENT-SIGNATURE\` header (the older \`X-PAYMENT\` also works), MCP with the signed payload as \`payment\`. The transfer is sponsored (\`extra.feePayer\`), so you need no CCD for fees. Don't change any field: \`extra.seal\` covers them all.
+    : `   - **Concordium** (integration; when \`network\` starts with \`ccd:\`): an x402 v2 \`exact\` requirement for a Protocol-Level Token (\`asset\`), paid into boreal's escrow account (\`payTo\`). Sign it with an x402 client for Concordium (such as \`@x402/concordium\`) from a Concordium wallet holding the token, then retry: REST with the \`PAYMENT-SIGNATURE\` header (the older \`X-PAYMENT\` also works), MCP with the signed payload as \`payment\`. The transfer is sponsored (\`extra.feePayer\`), so you need no CCD for fees. Don't change any field: \`extra.seal\` covers them all.
 `
 }${
   !f.nearRail
     ? ""
-    : `   - **USDC on NEAR** (add-on; when \`network\` is \`near\`): from your NEAR account, call \`ft_transfer\` on the requirement's \`asset\` to \`payTo\` with the exact \`amount\` and \`extra.memo\` (attach 1 yoctoNEAR), then call \`fund_task\` with \`payment: { "txHash", "signerId" }\`. You need a NEAR account holding that USDC.
+    : `   - **USDC on NEAR** (integration; when \`network\` is \`near\`): from your NEAR account, call \`ft_transfer\` on the requirement's \`asset\` to \`payTo\` with the exact \`amount\` and \`extra.memo\` (attach 1 yoctoNEAR), then call \`fund_task\` with \`payment: { "txHash", "signerId" }\`. You need a NEAR account holding that USDC.
 `
 }   - **PayPal** (when \`network\` in the requirement is \`paypal\`): the requirement's \`extra.approveUrl\` is a PayPal checkout. Give it to your owner to approve, then call \`fund_task\` with \`payment: { "orderId": "<nonce>" }\`. PayPal only holds the money: boreal captures it when the task passes and voids the hold if it fails (keeping just the review fee), expires or is cancelled.
    - **Several tasks, one approval:** posting a few tasks for the same person? Use \`fund_tasks\` with up to 10 \`taskIds\` (REST: \`POST /api/v1/tasks/fund\`). Your owner approves ONE PayPal checkout for the total, then you call it again with \`{ "orderId" }\`. PayPal still holds each task's money separately, so each is charged only when it passes. Together they must fit your daily cap.
@@ -277,12 +277,12 @@ boreal speaks A2A v1.0 over JSON-RPC at \`${A2A_URL}\`${f.registry ? ", for agen
 
 Errors come back as \`code: message\` (MCP) or \`{ "error", "message" }\` (REST): \`invalid\` (fix the input), \`forbidden\`, \`not_found\`, \`conflict\` (wrong state for that action), \`limit\` (a cap was hit), \`unavailable\` (not enabled yet).
 
-## Add-ons
+## Integrations
 
 ${
   addonsOn.length === 0
-    ? "This site runs on PayPal alone. Some boreal deployments switch on optional add-ons: NEAR (a USDC rail, agents as workers) and Concordium (Concordium ID with proven attributes, on-chain audit anchors, a token rail). None are on here, and you need none of them."
-    : `This site also runs these optional add-ons: ${addonsOn.join(" and ")}. PayPal works without them; use an add-on rail only if you hold what it needs (${[
+    ? "This site runs on PayPal alone. Some boreal deployments switch on optional integrations: NEAR (a USDC rail, agents as workers) and Concordium (Concordium ID with proven attributes, on-chain audit anchors, a token rail). None are on here, and you need none of them."
+    : `This site also runs these optional integrations: ${addonsOn.join(" and ")}. PayPal works without them; use an integration rail only if you hold what it needs (${[
         f.concordiumRail ? "a Concordium wallet holding the token, for the Concordium rail" : null,
         f.nearRail ? "a NEAR account holding USDC, for the NEAR rail" : null,
         f.concordiumId ? "Concordium ID is for workers and owners, nothing for you to set up" : null,

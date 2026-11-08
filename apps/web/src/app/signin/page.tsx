@@ -57,7 +57,7 @@ function PayPalSignIn({ next }: { next: string }) {
 
 /**
  * For people who already added Concordium ID on My account: a quiet way back in, with no pitch.
- * Concordium ID is offered and explained on My account (Add-ons), never here.
+ * Concordium ID is offered and explained on My account (Integrations), never here.
  */
 async function ConcordiumReturn({ next, open }: { next: string; open: boolean }) {
   let body: React.ReactNode = null;

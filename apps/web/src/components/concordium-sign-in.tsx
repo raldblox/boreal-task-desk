@@ -130,7 +130,7 @@ export function ConcordiumSignIn({
         size="lg"
         className="h-auto min-h-11 w-full whitespace-normal text-base"
       >
-        {link && status === "idle" ? "Add Concordium ID" : LABEL[status]}
+        {link && status === "idle" ? "Connect with the Concordium ID App" : LABEL[status]}
       </Button>
       {status !== "idle" && status !== "verifying" && (
         <Button variant="ghost" onClick={() => cancel.current?.()} className="self-center text-muted-foreground">

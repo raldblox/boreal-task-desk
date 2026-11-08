@@ -69,7 +69,7 @@ async function Overview() {
       </div>
 
       <Section
-        title="Add-ons"
+        title="Integrations"
         description="PayPal is the core. NEAR and Concordium are optional, switched on per deployment with BOREAL_ADDONS; each lists what it needs before it can run."
       >
         <AddonsPanel addons={[addons.concordium, addons.near]} source={addons.source} operator />

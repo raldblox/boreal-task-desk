@@ -54,9 +54,9 @@ export function PostForm({
   verified: boolean;
   /** What raises the cap here, as a phrase ("verifying your PayPal account with PayPal"). */
   liftWith: string;
-  /** Tasks may require proven attributes (the Concordium add-on's Concordium ID is on). */
+  /** Tasks may require proven attributes (the Concordium integration's Concordium ID is on). */
   attributes: boolean;
-  /** Add-on rails switched on here, besides PayPal. */
+  /** Integration rails switched on here, besides PayPal. */
   addonRails: string[];
 }) {
   const [state, formAction, pending] = useActionState(action, null);
@@ -253,7 +253,7 @@ export function PostForm({
         </p>
         {addonRails.length > 0 && (
           <p className="text-xs text-muted-foreground">
-            PayPal tasks reach the most workers, since every worker can be paid there. This site also runs add-on rails (
+            PayPal tasks reach the most workers, since every worker can be paid there. This site also runs integration rails (
             {addonRails.map((r) => (r === "near" ? "USDC on NEAR" : "tokens on Concordium")).join(", ")}) for agents that pay in
             crypto; workers set up their own wallet to take those tasks.
           </p>

@@ -28,7 +28,7 @@ Tracks we don't enter, and why:
 | NEAR agent (buyer) | [market.near.ai](https://market.near.ai), boreal's listing | Hires boreal with a brief; gets a deliverable with the result, evidence links, the verdict and the hashed trail |
 | Requester agent | MCP / REST `fund_task` with `rail: "near"` | Funds a task with an `ft_transfer` of USDC to escrow, then sends `{ txHash, signerId }` |
 | AI agent (worker) | `POST /api/v1/work/sign-in`, then `/api/v1/work/*` | Signs in with its NEAR account (NEP-413), takes text tasks opened to agents, is paid in USDC |
-| Person (worker) | My account → **Add-ons → NEAR**; a task's **Set up and claim** | Adds the NEAR account they hold; tasks that pay "USDC on NEAR" pay there |
+| Person (worker) | My account → **Integrations → NEAR**; a task's **Set up and claim** | Presses **Connect NEAR wallet** and signs a free NEP-413 message, which proves the account; tasks that pay "USDC on NEAR" pay there |
 | Operator | `/admin` and `/status` → **Add-ons** | Sees the NEAR rail, agents as workers and Agent Market each as ready or blocked, with what's missing |
 
 ### What's left before Nov 14
@@ -89,7 +89,7 @@ The current testnet setup: escrow and the fee account are boreal's own implicit 
 2. The monitor tick polls `GET /v1/agents/me/assignments` and posts the brief as a boreal task from boreal's market agent. The brief is data. It goes through boreal's screening against the public rulebook like any task, and bullet lines become acceptance criteria.
 3. If screening refuses it, the buyer gets a message naming the rules. Nothing starts and nothing is funded.
 4. If screening passes it, boreal calls `start` and its NEAR treasury funds the task: an `ft_transfer` of the task total to escrow, with memo `boreal:<taskId>`. The desk checks that transfer on chain before the task opens.
-5. A worker in the Philippines claims the task and submits a photo. Workers on this rail need a NEAR account, added under Add-ons on My account. (Where the Concordium add-on is on too, a brief can ask for proven residency.)
+5. A worker in the Philippines claims the task and submits a photo. Workers on this rail need a NEAR account, connected under Integrations on My account. (Where the Concordium add-on is on too, a brief can ask for proven residency.)
 6. boreal's reviewer (Claude) passes or fails it. On a pass, the bridge accepts it and hands in a Markdown deliverable with `submit`: the result, signed links to the evidence, the verdict and the hashed trail.
 7. The outbox pays the worker in USDC on NEAR. Boreal's fees go to its operating account.
 
@@ -111,7 +111,7 @@ You should see 13 passing tests, including:
 - **"never sends twice when the reply is lost after the chain took the transfer"**: a payout whose RPC reply is lost is found on chain on retry, not sent again.
 - **"explains a refused brief on the market and never funds it"**.
 
-To see the web side: run `pnpm dev:local --addons near` with the NEAR variables below, then open My account → Add-ons. Workers see a **NEAR account** payout field. Agents on MCP see `near` in `fund_task`'s rails. Calling it without a payment returns the `ft_transfer` to make; calling it with `{ txHash, signerId }` funds the task.
+To see the web side: run `pnpm dev:local --addons near` with the NEAR variables below, then open My account → Integrations. Workers see **Connect NEAR wallet**. Agents on MCP see `near` in `fund_task`'s rails. Calling it without a payment returns the `ft_transfer` to make; calling it with `{ txHash, signerId }` funds the task.
 
 ## Running it on NEAR testnet
 
@@ -142,8 +142,8 @@ Every task shows how it pays: "Paid via PayPal", "USDC on NEAR" or "Paid in toke
 
 A worker can't claim a task without a payout account on its rail. Instead of a refusal, the task offers **Set up and claim** (`/tasks/{id}/payout`):
 
-- **NEAR:** "Create a free NEAR account (about 2 minutes)". The page links a beginner wallet (`NEAR_WALLET_URL`; MyNearWallet on the matching network by default). The worker pastes their account, and the same step saves it and claims the task.
-- **Concordium:** set up the Concordium wallet and ID App, then paste the account. The same ID earns the Verified by Concordium badge for tasks that ask for age or country. Adding the badge on My account costs a little CCD for its proof.
+- **NEAR:** "Connect a NEAR wallet". The page links a beginner wallet for anyone without one (`NEAR_WALLET_URL`; Meteor by default, which works on both networks). **Connect wallet and claim** opens NEAR Connect (`@hot-labs/near-connect`: Meteor, Intear, HOT and others), the wallet signs `CONNECT_MESSAGE` (NEP-413, free, no transaction), the server checks it against the account's full-access keys (`verifyNearSignIn`), saves the account and claims the task.
+- **Concordium:** get the Concordium wallet and ID App, then **Connect wallet and claim**: the Concordium Wallet for Web hands over the account picked in it. The same ID earns the Verified by Concordium badge for tasks that ask for age or country. Adding the badge on My account costs a little CCD for its proof.
 - **PayPal:** Log in with PayPal, which comes straight back to the task.
 
 boreal is **never custodial and never converts**. Payouts go to an account the worker holds themselves, in exactly what the task pays in.

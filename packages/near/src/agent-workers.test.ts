@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { createFakeNear, type FakeNear } from "./fake-near";
 import { createNearPayments, fundingMemo, type NearPayments } from "./payments";
-import { nep413Digest, SIGN_IN_MESSAGE, signInNonce, verifyNearSignIn } from "./sign-in";
+import { CONNECT_MESSAGE, nep413Digest, SIGN_IN_MESSAGE, signInNonce, verifyNearSignIn } from "./sign-in";
 import { newNearKey } from "./testing";
 import { base58Encode, nearSigner } from "./tx";
 
@@ -128,6 +128,18 @@ describe("agent workers", () => {
     await expect(check({ ...account.signIn(), accountId: "victim.testnet" })).rejects.toThrow(/full-access key/);
     const forged = account.signIn();
     await expect(check({ ...forged, nonce: Buffer.from(signInNonce(clock, randomBytes(24))).toString("base64") })).rejects.toThrow(/signature/);
+  });
+
+  it("checks a person connecting a NEAR account against the connect message, never the agent sign-in one", async () => {
+    const account = agentAccount("ana.testnet");
+    const connect = (input: ReturnType<typeof account.signIn>) =>
+      verifyNearSignIn(input, { chain, recipient: RECIPIENT, now: () => clock, message: CONNECT_MESSAGE });
+    await expect(connect(account.signIn(clock, CONNECT_MESSAGE))).resolves.toMatchObject({ accountId: "ana.testnet" });
+    // Neither signature stands in for the other.
+    await expect(connect(account.signIn())).rejects.toThrow(/sign the message/);
+    await expect(verifyNearSignIn(account.signIn(clock, CONNECT_MESSAGE), { chain, recipient: RECIPIENT, now: () => clock })).rejects.toThrow(
+      /sign the message/,
+    );
   });
 
   it("keeps photo tasks and tasks with required attributes for verified people", async () => {

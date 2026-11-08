@@ -22,7 +22,7 @@ async function verifyBadge(code: string, form: FormData): Promise<VerifiedBadge 
   const badge = String(form.get("badge") ?? "").trim();
   if (!badge) return undefined;
   if (!getAddons().on("concordium")) {
-    throw new BadgeError("the Verified by Concordium badge needs the Concordium add-on, which isn't on here; approve without it");
+    throw new BadgeError("the Verified by Concordium badge needs the Concordium integration, which isn't on here; approve without it");
   }
   const account = String(form.get("badgeAccount") ?? "");
   const signature = String(form.get("badgeSignature") ?? "");

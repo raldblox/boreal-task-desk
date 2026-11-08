@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { guideFacts, guideFor } from "./agent-guide";
 
-// The agent guide tells the PayPal story, and mentions an add-on only where it's on.
+// The agent guide tells the PayPal story, and mentions an integration only where it's on.
 
 const PAYPAL_ONLY = guideFor(guideFacts(readAddons({ BOREAL_ADDONS: "none" })));
 const ALL_ON = guideFor({ concordiumId: true, concordiumRail: true, registry: true, anchors: true, nearRail: true, paypalVerifies: false });
@@ -24,10 +24,10 @@ describe("agent guide", () => {
     expect(PAYPAL_ONLY.MCP_INSTRUCTIONS).not.toMatch(/optional rails/);
   });
 
-  it("describes each add-on, as optional, where it's on", () => {
+  it("describes each integration, as optional, where it's on", () => {
     expect(ALL_ON.AGENT_GUIDE).toMatch(/runs on PayPal/);
-    expect(ALL_ON.AGENT_GUIDE).toMatch(/\*\*Concordium\*\* \(add-on/);
-    expect(ALL_ON.AGENT_GUIDE).toMatch(/\*\*USDC on NEAR\*\* \(add-on/);
+    expect(ALL_ON.AGENT_GUIDE).toMatch(/\*\*Concordium\*\* \(integration/);
+    expect(ALL_ON.AGENT_GUIDE).toMatch(/\*\*USDC on NEAR\*\* \(integration/);
     expect(ALL_ON.AGENT_GUIDE).toMatch(/Concordium and NEAR. PayPal works without them/);
     expect(ALL_ON.AGENT_GUIDE).toMatch(/anchored on Concordium/);
     expect(ALL_ON.AGENT_GUIDE).toContain('"requiredAttributes": [{ "attribute": "residency", "value": "PH" }]');

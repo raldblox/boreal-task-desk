@@ -43,53 +43,6 @@ export function ActionButton({
   );
 }
 
-const PAYOUT_FIELD = {
-  paypal: { id: "payoutPaypal", label: "PayPal email", placeholder: "you@example.com" },
-  near: { id: "payoutNear", label: "NEAR account", placeholder: "you.near" },
-  concordium: { id: "payoutConcordium", label: "Concordium account", placeholder: "Concordium account address" },
-} as const;
-
-/** Where the worker is paid on one rail: their PayPal email, NEAR account or Concordium account. */
-export function PayoutForm({
-  action,
-  current,
-  paypal,
-  near = false,
-  submitLabel = "Save",
-}: {
-  action: Action;
-  current: string | null;
-  paypal: boolean;
-  near?: boolean;
-  /** The guided setup saves and claims in one step. */
-  submitLabel?: string;
-}) {
-  const [state, formAction, pending] = useActionState(action, null);
-  const rail = paypal ? "paypal" : near ? "near" : "concordium";
-  const field = PAYOUT_FIELD[rail];
-  const id = field.id;
-  return (
-    <form action={formAction} className="flex flex-col gap-3">
-      <input type="hidden" name="rail" value={rail} />
-      <div className="flex flex-col gap-2">
-        <Label htmlFor={id}>{field.label}</Label>
-        <Input
-          id={id}
-          name="payoutAddress"
-          type={paypal ? "email" : "text"}
-          defaultValue={current ?? ""}
-          placeholder={field.placeholder}
-          required
-        />
-      </div>
-      <Button type="submit" variant={submitLabel === "Save" ? "outline" : "default"} disabled={pending} className="w-full sm:w-fit">
-        {pending ? "Saving…" : submitLabel}
-      </Button>
-      <FormError state={state} />
-    </form>
-  );
-}
-
 /** Shrinks a photo to at most 2000 px on its longest side as a JPEG, so uploads stay small. */
 async function shrinkPhoto(file: File): Promise<File> {
   if (!file.type.startsWith("image/")) return file;

@@ -3,7 +3,7 @@ import { CircleAlert, CircleCheck, CircleDashed, CircleHelp, Puzzle } from "luci
 
 import { Badge } from "@/components/ui/badge";
 
-// The add-ons area: what each optional add-on (NEAR, Concordium) unlocks and what it needs,
+// The integrations area: what each optional integration (NEAR, Concordium) unlocks and what it needs,
 // on top of boreal's PayPal core. Operators (admin) see the settings behind each requirement;
 // the public status page sees only whether it's met.
 
@@ -22,7 +22,7 @@ function RequirementRow({ requirement, operator }: { requirement: Requirement; o
       <Icon className={`mt-0.5 size-4 shrink-0 ${tone}`} aria-hidden />
       <span className="min-w-0">
         {requirement.label}
-        {requirement.met === null && <span className="text-muted-foreground"> (can't be checked from settings; watch the anchor queue)</span>}
+        {requirement.met === null && <span className="text-muted-foreground"> (can&apos;t be checked from settings; watch the anchor queue)</span>}
         {operator && requirement.setting && <span className="block font-mono text-xs text-muted-foreground break-all">{requirement.setting}</span>}
       </span>
     </li>
@@ -31,14 +31,14 @@ function RequirementRow({ requirement, operator }: { requirement: Requirement; o
 
 export function AddonCard({ addon, operator = false }: { addon: AddonStatus; operator?: boolean }) {
   return (
-    <section className="flex flex-col gap-4 rounded-2xl border bg-card p-5" aria-label={`${addon.name} add-on`}>
+    <section className="flex flex-col gap-4 rounded-2xl border bg-card p-5" aria-label={`${addon.name} integration`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-start gap-3">
           <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-muted">
             <Puzzle className="size-5 text-muted-foreground" aria-hidden />
           </span>
           <div>
-            <p className="font-semibold">{addon.name} add-on</p>
+            <p className="font-semibold">{addon.name} integration</p>
             <p className="text-sm text-muted-foreground">{addon.summary}</p>
           </div>
         </div>
@@ -88,7 +88,7 @@ export function AddonCard({ addon, operator = false }: { addon: AddonStatus; ope
   );
 }
 
-/** Every add-on, with a line on PayPal being the core and where the setting came from. */
+/** Every integration, with a line on PayPal being the core and where the setting came from. */
 export function AddonsPanel({
   addons,
   source,
@@ -103,7 +103,7 @@ export function AddonsPanel({
     <div className="flex flex-col gap-4">
       <p className="text-sm text-muted-foreground">
         boreal runs on PayPal: Log in with PayPal, PayPal escrow, saved PayPal accounts for agents and PayPal Payouts.{" "}
-        {on.length === 0 ? "No add-ons are on here." : `Add-ons on here: ${on.map((a) => a.name).join(", ")}.`}
+        {on.length === 0 ? "No integrations are on here." : `Integrations on here: ${on.map((a) => a.name).join(", ")}.`}
         {operator && source === "inferred" && (
           <>
             {" "}

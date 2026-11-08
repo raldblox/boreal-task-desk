@@ -116,7 +116,7 @@ export function ConcordiumWalletSignIn({ next = "/tasks", link = false }: { next
         size="lg"
         className="h-auto min-h-11 w-full whitespace-normal text-base"
       >
-        {LABEL[status]}
+        {link && (status === "idle" || status === "missing") ? "Connect Concordium Wallet for Web" : LABEL[status]}
       </Button>
       {status === "missing" && (
         <Alert>

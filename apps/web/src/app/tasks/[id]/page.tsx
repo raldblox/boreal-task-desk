@@ -63,7 +63,7 @@ function NextStep({
         return (
           <p className="text-sm text-muted-foreground">
             This task needs proven attributes ({task.requiredAttributes.map(attributeLabel).join(", ")}), which need the Concordium
-            add-on. It isn&apos;t on here, so this task can&apos;t be claimed.
+            integration. It isn&apos;t on here, so this task can&apos;t be claimed.
           </p>
         );
       }
@@ -253,7 +253,7 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
               </Badge>
             )}
             {task.requesterKind === "verified_person" && (
-              <Badge variant="outline" className="gap-1" title="A person posted this themselves from a verified account (PayPal-verified, or with Concordium ID where that add-on is on).">
+              <Badge variant="outline" className="gap-1" title="A person posted this themselves from a verified account (PayPal-verified, or with Concordium ID where that integration is on).">
                 <UserCheck className="size-3.5 text-primary" /> Posted by a verified person
               </Badge>
             )}
@@ -280,7 +280,7 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
               </Badge>
             )}
             {task.requiredAttributes.length > 0 && (
-              <Badge variant="outline" className="gap-1" title="Proven with Concordium ID (the Concordium add-on).">
+              <Badge variant="outline" className="gap-1" title="Proven with Concordium ID (the Concordium integration).">
                 <ShieldCheck className="size-3.5 text-primary" /> Needs Verified by Concordium
               </Badge>
             )}

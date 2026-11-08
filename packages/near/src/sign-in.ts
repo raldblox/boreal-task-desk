@@ -9,6 +9,8 @@ import { isNearAccountId } from "./payments";
 import { base58Decode } from "./tx";
 
 export const SIGN_IN_MESSAGE = "Sign in to boreal as an agent worker";
+/** What a person signs to connect a NEAR account they hold to their boreal account (to be paid there). */
+export const CONNECT_MESSAGE = "Connect this NEAR account to boreal to be paid there";
 /** 2^31 + 413: NEP-413's tag, so a signed message can never be a valid transaction. */
 const NEP413_TAG = 2147484061;
 const MAX_AGE_MS = 10 * 60 * 1000;
@@ -51,16 +53,17 @@ export function signInNonce(at: Date, random: Uint8Array): Uint8Array {
 }
 
 /**
- * Checks a sign-in: the boreal message for this recipient, signed recently, by a full-access
+ * Checks a sign-in (or, with `message: CONNECT_MESSAGE`, a person connecting an account): the boreal message for this recipient, signed recently, by a full-access
  * key of the account. Returns the account and when it was signed.
  */
 export async function verifyNearSignIn(
   input: NearSignIn,
-  options: { chain: NearChain; recipient: string; now?: () => Date },
+  options: { chain: NearChain; recipient: string; now?: () => Date; message?: string },
 ): Promise<{ accountId: string; signedAt: Date }> {
   const now = options.now?.() ?? new Date();
   if (!isNearAccountId(input.accountId)) throw new NearSignInError("accountId isn't a NEAR account id");
-  if (input.message !== SIGN_IN_MESSAGE) throw new NearSignInError(`sign the message "${SIGN_IN_MESSAGE}"`);
+  const expected = options.message ?? SIGN_IN_MESSAGE;
+  if (input.message !== expected) throw new NearSignInError(`sign the message "${expected}"`);
   if (input.recipient !== options.recipient) throw new NearSignInError(`sign with recipient "${options.recipient}"`);
   const nonce = Buffer.from(input.nonce, "base64");
   if (nonce.length !== 32) throw new NearSignInError("nonce must be 32 bytes, base64");

@@ -543,7 +543,7 @@ export function createDesk({
       }
       const data = parsed.data;
       if (data.requiredAttributes.length > 0 && !verification.concordiumId) {
-        throw new DeskError("invalid", "requiredAttributes need the Concordium add-on (Concordium ID), which isn't on here; post without them");
+        throw new DeskError("invalid", "requiredAttributes need the Concordium integration (Concordium ID), which isn't on here; post without them");
       }
       // An agent can't prove an attribute, take a photo or go somewhere: those stay with people.
       if (data.fulfillers === "people_or_agents" && (data.requiredAttributes.length > 0 || data.resultFormat !== "text")) {
@@ -789,7 +789,7 @@ export function createDesk({
                 "forbidden",
                 verification.concordiumId
                   ? "this task needs the Verified by Concordium badge: add Concordium ID on My account"
-                  : "this task needs proven attributes, which need the Concordium add-on; it isn't on here",
+                  : "this task needs proven attributes, which need the Concordium integration; it isn't on here",
               );
             }
             if (requireVerifiedPayPal && !worker.paypalVerified) {
