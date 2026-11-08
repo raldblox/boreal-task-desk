@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
-import { AbsoluteFill, Img, interpolate, OffthreadVideo, spring, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Img, interpolate, OffthreadVideo, Sequence, spring, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 
-import { REC } from "./media";
+import { REC, REC_TIME } from "./media";
 import { C, FONT, MONO } from "./theme";
 
 export const Canvas = ({ children, style }: { children: ReactNode; style?: CSSProperties }) => (
@@ -29,8 +29,10 @@ const Recording = ({ slot, startFrom = 0 }: { slot: keyof typeof REC; startFrom?
   if (file) return <OffthreadVideo src={staticFile(`rec/${file}`)} startFrom={startFrom} muted style={{ width: "100%", height: "100%", objectFit: "cover" }} />;
   return (
     <AbsoluteFill style={{ background: C.tealWash, alignItems: "center", justifyContent: "center", padding: 32, textAlign: "center" }}>
-      <div style={{ fontFamily: MONO, fontSize: 22, color: C.teal }}>rec/{String(slot)}</div>
-      <div style={{ fontSize: 18, color: C.muted, marginTop: 8 }}>recording goes here</div>
+      <div style={{ fontFamily: MONO, fontSize: 22, color: C.teal }}>rec/{String(slot)}.mp4</div>
+      <div style={{ fontSize: 18, color: C.muted, marginTop: 8 }}>
+        {REC_TIME[slot].min}–{REC_TIME[slot].max} s, ideally {REC_TIME[slot].fit} s
+      </div>
     </AbsoluteFill>
   );
 };
@@ -61,7 +63,36 @@ export const Phone = ({ slot, delay = 0, scale = 1, tilt = 0, startFrom, style }
   );
 };
 
-/** A laptop-ish browser frame for desktop recordings (1440×900). */
+/** Window titles: Hermes clips are the desktop app, the rest are boreal work or PayPal in a browser. */
+const TITLE: Partial<Record<keyof typeof REC, string>> = {
+  hiHermes: "Hermes",
+  voiceNote: "Hermes",
+  hermesClarify: "Hermes",
+  hermesTriage: "Hermes",
+  okToFund: "Hermes",
+  hermesCatch: "Hermes",
+  letMeSee: "Hermes",
+  connectPayPal: "sandbox.paypal.com",
+};
+
+/**
+ * Several desktop recordings played one after another in the same spot, each springing in.
+ * `shots` are [slot, fromSecond, toSecond] on the scene's own clock.
+ */
+export const Shots = ({ shots, width, style }: { shots: [keyof typeof REC, number, number][]; width: number; style?: CSSProperties }) => {
+  const { fps } = useVideoConfig();
+  return (
+    <div style={{ position: "relative", width, height: (width * 900) / 1440 + 40, ...style }}>
+      {shots.map(([slot, from, to]) => (
+        <Sequence key={`${slot}-${from}`} from={Math.round(from * fps)} durationInFrames={Math.round((to - from) * fps)} layout="none">
+          <Screen slot={slot} width={width} style={{ position: "absolute", inset: 0 }} />
+        </Sequence>
+      ))}
+    </div>
+  );
+};
+
+/** A desktop window frame for recordings (16:10, e.g. 1440×900). */
 export const Screen = ({ slot, delay = 0, width = 1280, style }: { slot: keyof typeof REC; delay?: number; width?: number; style?: CSSProperties }) => {
   const t = useIn(delay, 22);
   return (
@@ -81,7 +112,7 @@ export const Screen = ({ slot, delay = 0, width = 1280, style }: { slot: keyof t
         {[0, 1, 2].map((i) => (
           <span key={i} style={{ width: 12, height: 12, borderRadius: 6, background: C.border }} />
         ))}
-        <span style={{ marginLeft: 16, fontFamily: MONO, fontSize: 14, color: C.muted }}>testnet.boreal.work</span>
+        <span style={{ marginLeft: 16, fontFamily: MONO, fontSize: 14, color: C.muted }}>{TITLE[slot] ?? "testnet.boreal.work"}</span>
       </div>
       <div style={{ width, height: (width * 900) / 1440, position: "relative" }}>
         <Recording slot={slot} />

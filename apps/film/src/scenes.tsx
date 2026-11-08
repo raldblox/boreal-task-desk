@@ -1,6 +1,6 @@
 import { AbsoluteFill, interpolate, Sequence, useCurrentFrame } from "remotion";
 
-import { Canvas, Caption, Chip, MoneyLine, Phone, Proof, Rise, useIn } from "./components";
+import { Canvas, Caption, Chip, MoneyLine, Proof, Rise, Shots, useIn } from "./components";
 import { Globe } from "./globe";
 import { PROOFS } from "./media";
 import { C, MONO, sec } from "./theme";
@@ -31,16 +31,10 @@ export const TooMuch = () => {
 
 /* 2. Hi, Hermes: connect once, connect PayPal once. */
 export const HiHermes = () => (
-  <Canvas style={{ ...center, flexDirection: "row", gap: 80 }}>
-    <Phone slot="hiHermes" scale={0.95} tilt={-2} />
-    <Sequence from={sec(5)} layout="none">
-      <Phone slot="approveLink" scale={0.95} />
-    </Sequence>
-    <Sequence from={sec(10)} layout="none">
-      <Phone slot="connectPayPal" scale={0.95} tilt={2} />
-    </Sequence>
-    <Sequence from={sec(14)}>
-      <AbsoluteFill style={{ alignItems: "center", justifyContent: "flex-end", paddingBottom: 60 }}>
+  <Canvas style={center}>
+    <Shots width={1500} shots={[["hiHermes", 0, 6], ["approveLink", 6, 12.5], ["connectPayPal", 12.5, 18]]} />
+    <Sequence from={sec(13.5)}>
+      <AbsoluteFill style={{ alignItems: "center", justifyContent: "flex-end", paddingBottom: 40 }}>
         <Rise>
           <Chip tone="paypal">PayPal connected once · $10 a task · $50 a day</Chip>
         </Rise>
@@ -60,19 +54,9 @@ const QUESTIONS = [
 export const TheAsk = () => {
   const sorted = useIn(sec(19));
   return (
-    <Canvas style={{ ...center, flexDirection: "row", gap: 80 }}>
-      <div style={{ position: "relative" }}>
-        <Sequence durationInFrames={sec(8)} layout="none">
-          <Phone slot="voiceNote" scale={0.95} />
-        </Sequence>
-        <Sequence from={sec(8)} durationInFrames={sec(8)} layout="none">
-          <Phone slot="hermesClarify" scale={0.95} />
-        </Sequence>
-        <Sequence from={sec(16)} layout="none">
-          <Phone slot="hermesTriage" scale={0.95} />
-        </Sequence>
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 16, width: 640 }}>
+    <Canvas style={{ ...center, flexDirection: "row", gap: 48 }}>
+      <Shots width={1120} shots={[["voiceNote", 0, 8], ["hermesClarify", 8, 16], ["hermesTriage", 16, 25], ["okToFund", 25, 34]]} />
+      <div style={{ display: "flex", flexDirection: "column", gap: 14, width: 620 }}>
         {QUESTIONS.map((c, i) => (
           <Rise key={c.q} delay={sec(16) + i * 6}>
             <div
@@ -87,15 +71,12 @@ export const TheAsk = () => {
                 opacity: c.online ? 1 - sorted * 0.35 : 1,
               }}
             >
-              <span style={{ fontSize: 28, fontWeight: 600 }}>{c.q}</span>
+              <span style={{ fontSize: 26, fontWeight: 600 }}>{c.q}</span>
               <span style={{ opacity: sorted }}>{c.online ? <Chip>Answered online · free</Chip> : <Chip tone="paypal">→ boreal work</Chip>}</span>
             </div>
           </Rise>
         ))}
       </div>
-      <Sequence from={sec(25)} layout="none">
-        <Phone slot="okToFund" scale={0.95} tilt={2} />
-      </Sequence>
       <Sequence from={sec(28)}>
         <AbsoluteFill style={{ alignItems: "center", justifyContent: "flex-end", paddingBottom: 56 }}>
           <Rise>
@@ -113,19 +94,14 @@ export const WorldMoves = () => (
     <AbsoluteFill style={{ transform: "translateX(-360px)" }}>
       <Globe pins={["makati", "bgc", "makati"]} pinsAt={sec(2)} pinGap={10} />
     </AbsoluteFill>
-    <AbsoluteFill style={{ flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 48, paddingRight: 120 }}>
-      <Sequence from={sec(4)} layout="none">
-        <Phone slot="workerClaim" scale={0.82} />
-      </Sequence>
-      <Sequence from={sec(9)} layout="none">
-        <Phone slot="workerSubmit" scale={0.82} tilt={2} />
-      </Sequence>
+    <AbsoluteFill style={{ alignItems: "flex-end", justifyContent: "center", paddingRight: 70 }}>
+      <Shots width={1080} shots={[["workerClaim", 3, 12], ["workerSubmit", 12, 22]]} />
     </AbsoluteFill>
-    <Sequence from={sec(14)}>
-      <AbsoluteFill style={{ alignItems: "flex-end", justifyContent: "flex-start", padding: "0 0 70px 100px", flexDirection: "row", gap: 24 }}>
-        <Proof src={PROOFS.storeA} width={300} rotate={-4} />
-        <Proof src={PROOFS.storeB} width={300} rotate={3} delay={6} />
-        <Proof src={PROOFS.shelf} width={300} rotate={-2} delay={12} />
+    <Sequence from={sec(15)}>
+      <AbsoluteFill style={{ alignItems: "flex-end", justifyContent: "flex-start", padding: "0 0 60px 60px", flexDirection: "row", gap: 18 }}>
+        <Proof src={PROOFS.storeA} width={230} rotate={-4} />
+        <Proof src={PROOFS.storeB} width={230} rotate={3} delay={6} />
+        <Proof src={PROOFS.shelf} width={230} rotate={-2} delay={12} />
       </AbsoluteFill>
     </Sequence>
   </Canvas>
@@ -135,9 +111,9 @@ export const WorldMoves = () => (
 export const Checked = () => {
   const verdict = useIn(sec(15));
   return (
-    <Canvas style={{ ...center, flexDirection: "row", gap: 70 }}>
-      <Phone slot="hermesCatch" scale={0.9} />
-      <div style={{ display: "flex", flexDirection: "column", gap: 22, width: 620 }}>
+    <Canvas style={{ ...center, flexDirection: "row", gap: 48 }}>
+      <Shots width={1120} shots={[["hermesCatch", 0, 8], ["letMeSee", 8, 21], ["payout", 21, 30]]} />
+      <div style={{ display: "flex", flexDirection: "column", gap: 18, width: 600 }}>
         {[
           { src: PROOFS.storeA, label: "Store A", pass: false },
           { src: PROOFS.storeB, label: "Store B", pass: false },
@@ -157,12 +133,6 @@ export const Checked = () => {
           <MoneyLine delay={6} />
         </Rise>
       </div>
-      <Sequence from={sec(8)} durationInFrames={sec(14)} layout="none">
-        <Phone slot="letMeSee" scale={0.9} tilt={2} />
-      </Sequence>
-      <Sequence from={sec(22)} layout="none">
-        <Phone slot="payout" scale={0.9} tilt={2} />
-      </Sequence>
     </Canvas>
   );
 };
