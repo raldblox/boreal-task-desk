@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Suspense } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -13,11 +14,23 @@ const NAV = [
 
 /** The main nav links: a clear tint on hover, and the current section stays highlighted. */
 export function NavLinks() {
-  const pathname = usePathname();
+  // The path is only known at request time: prerender the plain links, then mark the current one.
+  return (
+    <Suspense fallback={<Links pathname={null} />}>
+      <CurrentLinks />
+    </Suspense>
+  );
+}
+
+function CurrentLinks() {
+  return <Links pathname={usePathname()} />;
+}
+
+function Links({ pathname }: { pathname: string | null }) {
   return (
     <>
       {NAV.map((item) => {
-        const current = pathname === item.href || pathname.startsWith(`${item.href}/`);
+        const current = pathname !== null && (pathname === item.href || pathname.startsWith(`${item.href}/`));
         return (
           <Link
             key={item.href}
