@@ -47,7 +47,7 @@ export function PageHero({
   size?: "default" | "display";
 }) {
   return (
-    <section className="border-b bg-card">
+    <section>
       <Container className={cn("flex flex-col gap-8", size === "display" ? "py-16 md:py-28" : "pt-12 pb-10 md:pt-16 md:pb-12", children && "pb-0 md:pb-0")}>
         <div className="grid items-end gap-8 lg:grid-cols-[minmax(0,1fr)_auto]">
           <div className="flex max-w-3xl flex-col gap-5">

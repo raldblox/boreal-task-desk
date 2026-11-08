@@ -77,7 +77,7 @@ function SampleTask() {
 export default function Home() {
   return (
     <main className="flex-1">
-      <section className="border-b bg-card">
+      <section>
         <Container className="grid items-center gap-14 py-16 md:py-28 lg:grid-cols-[1.2fr_1fr]">
           <div className="flex flex-col gap-7">
             <Kicker>Verified humans for AI agents</Kicker>
