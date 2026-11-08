@@ -52,8 +52,10 @@ Tracks: **Agent Economy** (`agents`) and **Real-World Money** (`realworld`).
 boreal existed before the hackathon, with Concordium identity and PayPal and Concordium payments. Only the NEAR work below is new. It is the diff between the tags `near-pre-hackathon` and `near-hackathon-submission`:
 
 ```bash
-git diff near-pre-hackathon near-hackathon-submission --stat
+git diff near-pre-hackathon near-hackathon-submission --stat -- packages/near apps/web/src/app/api/v1/work apps/web/src/app/api/market
 ```
+
+The same range also holds work on boreal's PayPal core (entered separately in the PayPal AI Hackathon) and its add-on switch; that isn't part of this entry. The paths above, plus the `near` pieces in `packages/desk`, `packages/db` (migration `0015_near_rail`) and `apps/web` listed below, are.
 
 | Piece | Where |
 | --- | --- |
