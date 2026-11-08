@@ -163,3 +163,11 @@
 @media (prefers-reduced-motion: reduce) {
   .bb-aurora { animation: none; }
 }
+
+/* No visible scrollbars anywhere; scrolling by wheel, touch, keys and trackpad still works. */
+* {
+  scrollbar-width: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+}
