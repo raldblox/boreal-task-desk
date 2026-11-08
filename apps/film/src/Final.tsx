@@ -1,14 +1,15 @@
-import type { CSSProperties, ReactNode } from "react";
-import { AbsoluteFill, Audio, Easing, interpolate, OffthreadVideo, Sequence, spring, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
+import { createContext, type CSSProperties, type ReactNode, useContext } from "react";
+import { AbsoluteFill, Audio, Easing, Img, interpolate, OffthreadVideo, Sequence, spring, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 
 import { C, FONT, MONO } from "./theme";
 
-// The edited cut (Clipchamp, VO already in) with motion graphics, music and sound on top.
+// The edited cut (Clipchamp, VO already in) with motion graphics, camera moves, music and sound.
 // Times are seconds in that cut; the VO cues were found by matching its audio to public/vo.
 
 const FPS = 30;
 const s = (t: number) => Math.round(t * FPS);
 export const FINAL_FRAMES = s(179.5);
+const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 
 /** Where each VO line plays in the cut [start, end], for ducking the music. */
 const VO_AT: [number, number][] = [
@@ -16,232 +17,348 @@ const VO_AT: [number, number][] = [
   [104.3, 110.6], [115.7, 116.8], [128.9, 131.6], [137.6, 143.3], [154.1, 159.5], [160.6, 170.3], [171.9, 177.2],
 ];
 
-/** Shows children from `from` for `dur` seconds, springing in and fading out. */
+/* ---------- Liquid glass ---------- */
+
+const MINT = "#7fe0d6";
+
+/**
+ * How visible the surrounding beat is. Glass applies it to itself: opacity or filter on a parent
+ * would cut the glass off from the video behind it, and the blur would have nothing to blur.
+ */
+const Fade = createContext(1);
+
+/** A liquid-glass panel: blurred, saturated backdrop, a bright rim and a soft specular sheen. */
+const Glass = ({ tone = "dark", children, style }: { tone?: "dark" | "light"; children: ReactNode; style?: CSSProperties }) => {
+  const dark = tone === "dark";
+  const fade = useContext(Fade);
+  return (
+    <div
+      style={{
+        opacity: fade,
+        position: "relative",
+        borderRadius: 30,
+        overflow: "hidden",
+        color: dark ? "#fff" : C.ink,
+        background: dark
+          ? "linear-gradient(150deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,.08) 45%, rgba(120,220,210,.10) 100%)"
+          : "linear-gradient(150deg, rgba(255,255,255,.82) 0%, rgba(240,250,249,.62) 60%, rgba(200,236,232,.55) 100%)",
+        backdropFilter: "blur(28px) saturate(185%)",
+        WebkitBackdropFilter: "blur(28px) saturate(185%)",
+        border: `1px solid ${dark ? "rgba(255,255,255,.30)" : "rgba(255,255,255,.95)"}`,
+        boxShadow: dark
+          ? "inset 0 1px 1px rgba(255,255,255,.55), inset 0 -18px 40px rgba(255,255,255,.04), 0 40px 90px -30px rgba(0,0,0,.7)"
+          : "inset 0 1px 1px rgba(255,255,255,1), 0 40px 90px -36px rgba(10,50,55,.45), 0 0 0 1px rgba(20,90,95,.06)",
+        ...style,
+      }}
+    >
+      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(120% 70% at 12% -10%, rgba(255,255,255,.35), transparent 55%)", pointerEvents: "none" }} />
+      <div style={{ position: "relative" }}>{children}</div>
+    </div>
+  );
+};
+
+const Kicker = ({ children, color }: { children: ReactNode; color: string }) => (
+  <div style={{ fontFamily: MONO, fontSize: 16, letterSpacing: 3, textTransform: "uppercase", color }}>{children}</div>
+);
+
+const Pill = ({ children, tone }: { children: ReactNode; tone: "mint" | "paypal" | "red" | "ghost" | "teal" }) => {
+  const look = {
+    mint: { color: "#0d3b3a", background: MINT },
+    teal: { color: "#fff", background: C.teal },
+    paypal: { color: "#fff", background: C.paypal },
+    red: { color: "#fff", background: "rgba(225,80,70,.92)" },
+    ghost: { color: "rgba(255,255,255,.75)", background: "rgba(255,255,255,.12)" },
+  }[tone];
+  return <span style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "8px 16px", borderRadius: 999, fontSize: 20, fontWeight: 700, ...look }}>{children}</span>;
+};
+
+/** Shows children from `from` for `dur` seconds: springs in, drifts slightly, fades out. */
 const Beat = ({ from, dur, children, style, whoosh = false }: { from: number; dur: number; children: ReactNode; style?: CSSProperties; whoosh?: boolean }) => (
   <Sequence from={s(from)} durationInFrames={s(dur)} layout="none">
     <Pop dur={dur} style={style}>
       {children}
     </Pop>
-    {whoosh && <Audio src={staticFile("sfx/whoosh.mp3")} volume={0.35} />}
+    {whoosh && <Audio src={staticFile("sfx/whoosh.mp3")} volume={0.3} />}
   </Sequence>
 );
 
 const Pop = ({ dur, children, style }: { dur: number; children: ReactNode; style?: CSSProperties }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const t = spring({ frame, fps, config: { damping: 18, mass: 0.7 } });
-  const out = interpolate(frame, [s(dur) - 10, s(dur)], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const t = spring({ frame, fps, config: { damping: 20, mass: 0.8 } });
+  const out = interpolate(frame, [s(dur) - 12, s(dur)], [1, 0], clamp);
+  const drift = interpolate(frame, [0, s(dur)], [0, -8]);
   return (
-    <AbsoluteFill style={{ pointerEvents: "none", fontFamily: FONT, color: C.ink, ...style }}>
-      <div style={{ opacity: Math.min(t, 1) * out, transform: `translateY(${(1 - t) * 26}px) scale(${0.96 + 0.04 * t})` }}>{children}</div>
+    <AbsoluteFill style={{ pointerEvents: "none", fontFamily: FONT, ...style }}>
+      <Fade.Provider value={Math.min(t, 1) * out}>
+        <div style={{ transform: `translateY(${(1 - t) * 30 + drift}px) scale(${0.94 + 0.06 * t})` }}>{children}</div>
+      </Fade.Provider>
     </AbsoluteFill>
   );
 };
 
-const glass: CSSProperties = {
-  background: "rgba(255,255,255,0.94)",
-  borderRadius: 22,
-  boxShadow: "0 30px 70px -28px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.6)",
-  backdropFilter: "blur(14px)",
-};
-
-const Kicker = ({ children, color = C.teal }: { children: ReactNode; color?: string }) => (
-  <div style={{ fontFamily: MONO, fontSize: 17, letterSpacing: 2.5, textTransform: "uppercase", color }}>{children}</div>
-);
-
-/** A lower-third label: kicker over one line. */
-const Lower = ({ kicker, line, color }: { kicker: string; line: string; color?: string }) => (
-  <div style={{ ...glass, padding: "18px 26px", display: "inline-flex", flexDirection: "column", gap: 6 }}>
-    <Kicker color={color}>{kicker}</Kicker>
-    <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: -0.3 }}>{line}</div>
-  </div>
-);
-
-const Chip = ({ children, tone = "teal" }: { children: ReactNode; tone?: "teal" | "paypal" | "red" | "muted" }) => {
-  const fg = { teal: C.teal, paypal: C.paypal, red: C.red, muted: C.muted }[tone];
-  const bg = { teal: C.tealWash, paypal: "#e8f2fd", red: C.redWash, muted: "#f1f4f4" }[tone];
-  return <span style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "9px 18px", borderRadius: 999, background: bg, color: fg, fontSize: 22, fontWeight: 650 }}>{children}</span>;
-};
-
-const corner = (where: "bl" | "br" | "tr" | "tl" | "bc"): CSSProperties =>
+const place = (where: "bl" | "br" | "tr" | "rc" | "lc" | "bc"): CSSProperties =>
   ({
-    bl: { justifyContent: "flex-end", alignItems: "flex-start", padding: "0 0 70px 70px" },
-    br: { justifyContent: "flex-end", alignItems: "flex-end", padding: "0 70px 70px 0" },
-    tr: { justifyContent: "flex-start", alignItems: "flex-end", padding: "90px 70px 0 0" },
-    tl: { justifyContent: "flex-start", alignItems: "flex-start", padding: "90px 0 0 70px" },
-    bc: { justifyContent: "flex-end", alignItems: "center", padding: "0 0 64px 0" },
+    bl: { justifyContent: "flex-end", alignItems: "flex-start", padding: "0 0 150px 170px" },
+    br: { justifyContent: "flex-end", alignItems: "flex-end", padding: "0 170px 150px 0" },
+    tr: { justifyContent: "flex-start", alignItems: "flex-end", padding: "120px 170px 0 0" },
+    rc: { justifyContent: "center", alignItems: "flex-end", padding: "0 170px 0 0" },
+    lc: { justifyContent: "center", alignItems: "flex-start", padding: "0 0 0 190px" },
+    bc: { justifyContent: "flex-end", alignItems: "center", padding: "0 0 140px 0" },
   })[where];
 
-/* Opening: two cities, then Ji-woo. */
-const Cities = () => (
-  <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-    <Chip>● Seoul · 21:40</Chip>
-    <span style={{ color: "#fff", fontSize: 26, opacity: 0.8 }}>⟶</span>
-    <Chip tone="paypal">● Manila · 20:40</Chip>
-  </div>
-);
+/* ---------- Camera ---------- */
 
-const Profile = () => (
-  <div style={{ ...glass, padding: 24, display: "flex", gap: 22, alignItems: "center", width: 560 }}>
-    <div style={{ width: 92, height: 92, borderRadius: 46, background: `linear-gradient(135deg, ${C.tealSoft}, ${C.teal})`, display: "grid", placeItems: "center", color: "#fff", fontSize: 36, fontWeight: 800 }}>JW</div>
-    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <Kicker>Meet</Kicker>
-      <div style={{ fontSize: 36, fontWeight: 800, letterSpacing: -0.5 }}>Ji-woo Kim</div>
-      <div style={{ fontSize: 22, color: C.muted }}>Founder, K-beauty brand · Seoul</div>
-      <div style={{ marginTop: 6 }}>
-        <Chip tone="paypal">Launching in Manila next month</Chip>
+/** Slow push-ins on the moments that matter: [from, to, scale, focusX, focusY] in 1920×1080 pixels. */
+const PUSHES: [number, number, number, number, number][] = [
+  [34.4, 38.8, 1.22, 960, 560], // PayPal "Set it up just once"
+  [90.4, 101, 1.3, 1290, 520], // the worker's $5.00 task and notes
+  [148.9, 150.5, 1.45, 1250, 400], // the task page: Paid, "Paid $5.00 to your PayPal"
+];
+
+const Camera = ({ children }: { children: ReactNode }) => {
+  const frame = useCurrentFrame();
+  let scale = 1;
+  let ox = 960;
+  let oy = 540;
+  for (const [a, b, k, x, y] of PUSHES) {
+    const ramp = Math.min(1.2, (b - a) / 3);
+    const p = interpolate(frame, [s(a), s(a + ramp), s(b - ramp / 2), s(b)], [0, 1, 1, 0], { ...clamp, easing: Easing.inOut(Easing.cubic) });
+    const grow = interpolate(frame, [s(a), s(b)], [0, 1], clamp);
+    if (p > 0) {
+      scale = 1 + (k - 1) * p * (0.85 + 0.15 * grow);
+      ox = x;
+      oy = y;
+    }
+  }
+  return <AbsoluteFill style={{ transform: `scale(${scale})`, transformOrigin: `${ox}px ${oy}px` }}>{children}</AbsoluteFill>;
+};
+
+/* ---------- Cards ---------- */
+
+const JiWoo = () => (
+  <Glass style={{ width: 600, padding: 30 }}>
+    <div style={{ display: "flex", gap: 26, alignItems: "center" }}>
+      <div style={{ width: 132, height: 132, borderRadius: 66, overflow: "hidden", boxShadow: "0 0 0 3px rgba(255,255,255,.55), 0 14px 30px -10px rgba(0,0,0,.5)", flexShrink: 0 }}>
+        <Img src={staticFile("art/jiwoo.png")} style={{ width: "150%", marginLeft: "-25%", marginTop: "-6%" }} />
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <Kicker color={MINT}>Meet</Kicker>
+        <div style={{ fontSize: 44, fontWeight: 800, letterSpacing: -1 }}>Ji-woo Kim</div>
+        <div style={{ fontSize: 22, color: "rgba(255,255,255,.78)" }}>Founder of a K-beauty brand</div>
+        <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
+          <Pill tone="ghost">Seoul</Pill>
+          <Pill tone="mint">Launching in Manila</Pill>
+        </div>
       </div>
     </div>
-  </div>
+  </Glass>
 );
 
-/* Setup: what Hermes plugs into, one layer at a time. */
 const STACK = [
-  { at: 0.4, k: "Skill", v: "Reads boreal work's agents.md" },
-  { at: 2.6, k: "Tools", v: "Connects over MCP" },
-  { at: 4.8, k: "Owner", v: "One approval from Ji-woo" },
-  { at: 7.0, k: "PayPal", v: "Limits she sets: $10 a task, $50 a day" },
+  { at: 0.3, k: "Skill", v: "Learns boreal work from agents.md" },
+  { at: 2.4, k: "MCP", v: "Posts, funds and reviews as tools" },
+  { at: 4.6, k: "Owner", v: "One approval from Ji-woo" },
+  { at: 6.8, k: "PayPal", v: "$10 a task, $50 a day, her limits" },
 ];
 const Stack = () => {
   const frame = useCurrentFrame();
   return (
-    <div style={{ ...glass, padding: "24px 28px", width: 520, display: "flex", flexDirection: "column", gap: 16 }}>
-      <Kicker>How Hermes plugs in</Kicker>
-      {STACK.map((row, i) => {
-        const t = interpolate(frame, [s(row.at), s(row.at) + 10], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-        return (
-          <div key={row.k} style={{ display: "flex", gap: 16, alignItems: "center", opacity: t, transform: `translateX(${(1 - t) * 20}px)` }}>
-            <span style={{ width: 34, height: 34, borderRadius: 10, background: i === 3 ? C.paypal : C.teal, color: "#fff", display: "grid", placeItems: "center", fontWeight: 800, fontSize: 18 }}>{i + 1}</span>
-            <div>
-              <div style={{ fontFamily: MONO, fontSize: 15, color: C.muted, letterSpacing: 1.5, textTransform: "uppercase" }}>{row.k}</div>
-              <div style={{ fontSize: 24, fontWeight: 650 }}>{row.v}</div>
+    <Glass style={{ width: 560, padding: "28px 30px" }}>
+      <Kicker color={MINT}>What Hermes plugs into</Kicker>
+      <div style={{ display: "flex", flexDirection: "column", gap: 18, marginTop: 20 }}>
+        {STACK.map((row, i) => {
+          const t = interpolate(frame, [s(row.at), s(row.at) + 12], [0, 1], clamp);
+          return (
+            <div key={row.k} style={{ display: "flex", gap: 18, alignItems: "center", opacity: 0.25 + 0.75 * t, transform: `translateX(${(1 - t) * 14}px)` }}>
+              <span style={{ width: 92, flexShrink: 0 }}>
+                <Pill tone={i === 3 ? "paypal" : t > 0.5 ? "mint" : "ghost"}>{row.k}</Pill>
+              </span>
+              <span style={{ fontSize: 24, fontWeight: 650 }}>{row.v}</span>
             </div>
-          </div>
-        );
-      })}
-    </div>
+          );
+        })}
+      </div>
+    </Glass>
   );
 };
 
-/* The triage: what an agent can find, and what needs a person. */
+const PayPalSaved = () => (
+  <Glass tone="light" style={{ width: 470, padding: "28px 30px" }}>
+    <Kicker color={C.paypal}>PayPal, once</Kicker>
+    <div style={{ fontSize: 34, fontWeight: 800, letterSpacing: -0.6, marginTop: 12, lineHeight: 1.15 }}>Saved once. Every task after funds itself.</div>
+    <div style={{ fontSize: 21, color: C.muted, marginTop: 12 }}>Only within the limits Ji-woo set.</div>
+  </Glass>
+);
+
+const TRIAGE = [
+  { q: "K-beauty in Cebu malls", online: true },
+  { q: "Korean dog jerky in Manila", online: true },
+  { q: "Sunscreen prices, store A", online: false },
+  { q: "Sunscreen prices, store B", online: false },
+  { q: "K-beauty shelf count", online: false },
+];
 const Triage = () => {
   const frame = useCurrentFrame();
-  const split = interpolate(frame, [s(3.4), s(3.4) + 12], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.out(Easing.cubic) });
-  const rows = [
-    { q: "K-beauty in Cebu malls", online: true },
-    { q: "Korean dog jerky in Manila", online: true },
-    { q: "Sunscreen prices · store A", online: false },
-    { q: "Sunscreen prices · store B", online: false },
-    { q: "K-beauty shelf count", online: false },
-  ];
+  const split = interpolate(frame, [s(3.2), s(3.2) + 14], [0, 1], { ...clamp, easing: Easing.out(Easing.cubic) });
   return (
-    <div style={{ ...glass, padding: "24px 26px", width: 560, display: "flex", flexDirection: "column", gap: 12 }}>
-      <Kicker>Five questions, sorted</Kicker>
-      {rows.map((r) => (
-        <div key={r.q} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, opacity: r.online ? 1 - split * 0.25 : 1 }}>
-          <span style={{ fontSize: 22, fontWeight: 600 }}>{r.q}</span>
-          <span style={{ opacity: split }}>{r.online ? <Chip tone="muted">Online · free</Chip> : <Chip>→ boreal work</Chip>}</span>
-        </div>
-      ))}
-    </div>
+    <Glass style={{ width: 600, padding: "28px 30px" }}>
+      <Kicker color={MINT}>Five questions, sorted</Kicker>
+      <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 20 }}>
+        {TRIAGE.map((r) => (
+          <div key={r.q} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14, opacity: r.online ? 1 - split * 0.35 : 1 }}>
+            <span style={{ fontSize: 23, fontWeight: 600 }}>{r.q}</span>
+            <span style={{ opacity: split, transform: `translateX(${(1 - split) * 10}px)` }}>{r.online ? <Pill tone="ghost">Found online</Pill> : <Pill tone="mint">To boreal work</Pill>}</span>
+          </div>
+        ))}
+      </div>
+    </Glass>
   );
 };
 
-/* Task status strip for the worker side. */
-const Status = () => {
+const Funded = () => (
+  <Glass style={{ width: 480, padding: "26px 30px" }}>
+    <Kicker color={MINT}>Funded in one step</Kicker>
+    <div style={{ fontFamily: MONO, fontSize: 58, fontWeight: 500, marginTop: 10, letterSpacing: -1 }}>$23.52</div>
+    <div style={{ fontSize: 22, fontWeight: 650, marginTop: 4 }}>held by PayPal for 3 Manila tasks</div>
+    <div style={{ fontSize: 19, color: "rgba(255,255,255,.72)", marginTop: 8 }}>Charged only when the work passes.</div>
+  </Glass>
+);
+
+/** Manila: a full-frame illustration while the VO meets the workers. */
+const Manila = ({ dur }: { dur: number }) => {
   const frame = useCurrentFrame();
-  const steps = ["Open", "Claimed", "Submitted"];
+  const o = interpolate(frame, [0, 14, s(dur) - 14, s(dur)], [0, 1, 1, 0], clamp);
+  const zoom = interpolate(frame, [0, s(dur)], [1.04, 1.12]);
+  const card = spring({ frame: frame - 16, fps: FPS, config: { damping: 20 } });
   return (
-    <div style={{ ...glass, padding: "18px 24px", display: "flex", gap: 12, alignItems: "center" }}>
-      <Kicker>Task</Kicker>
-      {steps.map((st, i) => {
-        const on = frame > s(0.6 + i * 2.4);
-        return (
-          <span key={st} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            {i > 0 && <span style={{ width: 34, height: 3, borderRadius: 2, background: on ? C.teal : C.border }} />}
-            <Chip tone={on ? "teal" : "muted"}>{st}</Chip>
-          </span>
-        );
-      })}
-      <span style={{ marginLeft: 8 }}>
-        <Chip tone="paypal">Earns $5–$8</Chip>
-      </span>
-    </div>
+    <AbsoluteFill style={{ fontFamily: FONT }}>
+      <AbsoluteFill style={{ overflow: "hidden", opacity: o }}>
+        <Img src={staticFile("art/manila.png")} style={{ width: "100%", height: "100%", objectFit: "cover", transform: `scale(${zoom})`, transformOrigin: "70% 40%" }} />
+      </AbsoluteFill>
+      <AbsoluteFill style={{ opacity: o, background: "linear-gradient(90deg, rgba(8,30,32,.55) 0%, rgba(8,30,32,.15) 45%, transparent 70%)" }} />
+      <AbsoluteFill style={{ justifyContent: "center", paddingLeft: 140 }}>
+        <Fade.Provider value={Math.min(card, 1) * o}>
+        <div style={{ transform: `translateY(${(1 - card) * 30}px)` }}>
+          <Glass style={{ width: 560, padding: "32px 34px" }}>
+            <Kicker color={MINT}>Meanwhile in Manila</Kicker>
+            <div style={{ fontSize: 46, fontWeight: 800, letterSpacing: -1, marginTop: 14, lineHeight: 1.1 }}>3 tasks just went live nearby.</div>
+            <div style={{ display: "flex", gap: 10, marginTop: 22 }}>
+              <Pill tone="mint">Makati</Pill>
+              <Pill tone="mint">BGC</Pill>
+              <Pill tone="paypal">$5 to $8 each</Pill>
+            </div>
+          </Glass>
+        </div>
+        </Fade.Provider>
+      </AbsoluteFill>
+    </AbsoluteFill>
   );
 };
 
-/* A light scan across the frame while Hermes checks the proof. */
+/** A light scan across the frame while Hermes checks the proof. */
 const Scan = () => {
   const frame = useCurrentFrame();
-  const y = interpolate(frame, [0, s(2.2)], [-10, 110], { extrapolateRight: "clamp", easing: Easing.inOut(Easing.cubic) });
-  const o = interpolate(frame, [0, 6, s(2.2) - 6, s(2.2)], [0, 1, 1, 0], { extrapolateRight: "clamp" });
-  return <AbsoluteFill style={{ background: `linear-gradient(180deg, transparent ${y - 6}%, rgba(80,220,215,.22) ${y}%, transparent ${y + 1}%)`, opacity: o }} />;
+  const y = interpolate(frame, [0, s(2.2)], [-10, 110], { ...clamp, easing: Easing.inOut(Easing.cubic) });
+  const o = interpolate(frame, [0, 6, s(2.2) - 6, s(2.2)], [0, 1, 1, 0], clamp);
+  return <AbsoluteFill style={{ background: `linear-gradient(180deg, transparent ${y - 7}%, rgba(127,224,214,.20) ${y}%, transparent ${y + 1}%)`, opacity: o }} />;
 };
 
 const Verdicts = () => (
-  <div style={{ ...glass, padding: "22px 26px", display: "flex", flexDirection: "column", gap: 12, width: 470 }}>
-    <Kicker>Hermes's review</Kicker>
-    {[
-      ["Sunscreen · store A", false],
-      ["Sunscreen · store B", false],
-      ["K-beauty shelf count", true],
-    ].map(([label, pass]) => (
-      <div key={String(label)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ fontSize: 23, fontWeight: 600 }}>{label}</span>
-        {pass ? <Chip>✓ Passed</Chip> : <Chip tone="red">✕ Failed</Chip>}
-      </div>
-    ))}
-  </div>
+  <Glass style={{ width: 470, padding: "26px 28px" }}>
+    <Kicker color={MINT}>The review</Kicker>
+    <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 18 }}>
+      {(
+        [
+          ["Sunscreen, store A", false],
+          ["Sunscreen, store B", false],
+          ["K-beauty shelf count", true],
+        ] as const
+      ).map(([label, pass]) => (
+        <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontSize: 23, fontWeight: 600, opacity: pass ? 1 : 0.8 }}>{label}</span>
+          {pass ? <Pill tone="mint">Passed</Pill> : <Pill tone="red">Failed</Pill>}
+        </div>
+      ))}
+    </div>
+  </Glass>
 );
 
-/* Held → Approved → Paid, the money moment. */
 const Money = () => {
   const frame = useCurrentFrame();
   const labels = ["Held by PayPal", "Approved", "Paid $5.00"];
   return (
-    <div style={{ ...glass, padding: "22px 30px", display: "flex", gap: 16, alignItems: "center" }}>
-      {labels.map((l, i) => {
-        const on = interpolate(frame, [s(0.4 + i * 0.9), s(0.4 + i * 0.9) + 8], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-        const last = i === 2;
-        return (
-          <span key={l} style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            {i > 0 && <span style={{ width: 54, height: 3, borderRadius: 2, background: C.border, overflow: "hidden" }}><span style={{ display: "block", width: `${on * 100}%`, height: "100%", background: C.teal }} /></span>}
-            <span style={{ fontSize: last ? 34 : 28, fontWeight: 750, color: on > 0.5 ? (last ? C.paypal : C.teal) : C.muted, transform: `scale(${last ? 1 + on * 0.06 : 1})` }}>{l}</span>
-          </span>
-        );
-      })}
-    </div>
+    <Glass style={{ padding: "24px 34px" }}>
+      <div style={{ display: "flex", gap: 18, alignItems: "center" }}>
+        {labels.map((l, i) => {
+          const on = interpolate(frame, [s(0.4 + i * 0.9), s(0.4 + i * 0.9) + 8], [0, 1], clamp);
+          const last = i === 2;
+          return (
+            <span key={l} style={{ display: "flex", alignItems: "center", gap: 18 }}>
+              {i > 0 && (
+                <span style={{ width: 60, height: 3, borderRadius: 2, background: "rgba(255,255,255,.2)", overflow: "hidden" }}>
+                  <span style={{ display: "block", width: `${on * 100}%`, height: "100%", background: MINT }} />
+                </span>
+              )}
+              <span style={{ fontSize: last ? 36 : 28, fontWeight: 800, color: on > 0.5 ? (last ? "#fff" : MINT) : "rgba(255,255,255,.4)", padding: last ? "6px 16px" : 0, borderRadius: 14, background: last && on > 0.5 ? C.paypal : "transparent" }}>{l}</span>
+            </span>
+          );
+        })}
+      </div>
+    </Glass>
   );
 };
 
-/* Dims the cut behind full-frame titles. */
-const Dim = ({ dur, amount = 0.72 }: { dur: number; amount?: number }) => {
+/* ---------- The ending: one continuous backdrop from the line to the end card ---------- */
+
+const END_FROM = 153.9;
+
+const Backdrop = () => {
   const frame = useCurrentFrame();
-  const o = interpolate(frame, [0, 14, s(dur) - 14, s(dur)], [0, amount, amount, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-  return <AbsoluteFill style={{ background: C.bg, opacity: o }} />;
+  const o = interpolate(frame, [0, 16], [0, 0.9], clamp);
+  const solid = interpolate(frame, [s(171.4 - END_FROM), s(172.2 - END_FROM)], [0, 1], clamp);
+  return <AbsoluteFill style={{ opacity: Math.max(o, solid), background: "radial-gradient(120% 90% at 30% 20%, #134a4b 0%, #0a2a2c 45%, #051314 100%)" }} />;
+};
+
+const NeverLeft = ({ dur }: { dur: number }) => {
+  const frame = useCurrentFrame();
+  const a = spring({ frame: frame - 6, fps: FPS, config: { damping: 22 } });
+  const b = spring({ frame: frame - s(2.4), fps: FPS, config: { damping: 22 } });
+  const out = interpolate(frame, [s(dur) - 12, s(dur)], [1, 0], clamp);
+  return (
+    <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", fontFamily: FONT, color: "#fff", opacity: out, textAlign: "center" }}>
+      <div style={{ fontSize: 82, fontWeight: 800, letterSpacing: -2, opacity: a, transform: `translateY(${(1 - a) * 20}px)`, filter: `blur(${(1 - Math.min(a, 1)) * 10}px)` }}>Ji-woo never left Seoul.</div>
+      <div style={{ fontSize: 82, fontWeight: 800, letterSpacing: -2, color: MINT, opacity: b, transform: `translateY(${(1 - b) * 20}px)`, filter: `blur(${(1 - Math.min(b, 1)) * 10}px)` }}>She had many hands.</div>
+    </AbsoluteFill>
+  );
 };
 
 const FIGURES = [
-  { n: "$7.8B → $52.6B", label: "AI agent market, 2025 to 2030", src: "MarketsandMarkets (2025)" },
-  { n: "154–435M", label: "people already work online", src: "World Bank, Working Without Borders (2023)" },
-  { n: "$35.6B", label: "sent home to the Philippines in 2025", src: "Bangko Sentral ng Pilipinas (2026)" },
+  { n: "$7.8B → $52.6B", label: "AI agent market, 2025 to 2030", src: "MarketsandMarkets, 2025" },
+  { n: "154–435M", label: "people already work online", src: "World Bank, Working Without Borders, 2023" },
+  { n: "$35.6B", label: "sent home to the Philippines in 2025", src: "Bangko Sentral ng Pilipinas, 2026" },
 ];
-const Figures = () => {
+const Figures = ({ dur }: { dur: number }) => {
   const frame = useCurrentFrame();
+  const out = interpolate(frame, [s(dur) - 12, s(dur)], [1, 0], clamp);
   return (
-    <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", gap: 40, fontFamily: FONT, color: C.ink }}>
-      <div style={{ opacity: interpolate(frame, [6, 20], [0, 1], { extrapolateRight: "clamp" }) }}>
-        <Kicker>Agentic commerce, with real work behind it</Kicker>
+    <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", gap: 46, fontFamily: FONT, color: "#fff" }}>
+      <div style={{ opacity: interpolate(frame, [4, 18], [0, 1], clamp) * out }}>
+        <Kicker color={MINT}>Agentic commerce, with real work behind it</Kicker>
       </div>
-      <div style={{ display: "flex", gap: 34 }}>
+      <div style={{ display: "flex", gap: 30 }}>
         {FIGURES.map((f, i) => {
-          const t = spring({ frame: frame - s(0.6 + i * 1.6), fps: FPS, config: { damping: 20 } });
+          const t = spring({ frame: frame - s(0.6 + i * 1.5), fps: FPS, config: { damping: 20 } });
           return (
-            <div key={f.n} style={{ ...glass, width: 470, padding: "30px 32px", opacity: t, transform: `translateY(${(1 - t) * 30}px)` }}>
-              <div style={{ fontFamily: MONO, fontSize: 48, color: C.teal, whiteSpace: "nowrap" }}>{f.n}</div>
-              <div style={{ fontSize: 26, fontWeight: 650, marginTop: 10 }}>{f.label}</div>
-              <div style={{ fontSize: 16, color: C.muted, marginTop: 10 }}>{f.src}</div>
+            <Fade.Provider key={f.n} value={Math.min(t, 1) * out}>
+            <div style={{ transform: `translateY(${(1 - t) * 30}px)` }}>
+              <Glass style={{ width: 470, height: 228, padding: "34px 34px", boxSizing: "border-box" }}>
+                <div style={{ fontFamily: MONO, fontSize: 44, color: MINT, whiteSpace: "nowrap", letterSpacing: -1.5 }}>{f.n}</div>
+                <div style={{ fontSize: 26, fontWeight: 700, marginTop: 12 }}>{f.label}</div>
+                <div style={{ fontSize: 16, color: "rgba(255,255,255,.6)", marginTop: 12 }}>{f.src}</div>
+              </Glass>
             </div>
+            </Fade.Provider>
           );
         })}
       </div>
@@ -251,121 +368,98 @@ const Figures = () => {
 
 const EndCard = () => {
   const frame = useCurrentFrame();
-  const a = spring({ frame, fps: FPS, config: { damping: 22 } });
-  const b = spring({ frame: frame - s(1.2), fps: FPS, config: { damping: 22 } });
-  const c = interpolate(frame, [s(2.4), s(3)], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const a = spring({ frame: frame - 4, fps: FPS, config: { damping: 22 } });
+  const b = spring({ frame: frame - s(1.3), fps: FPS, config: { damping: 22 } });
+  const c = interpolate(frame, [s(2.6), s(3.2)], [0, 1], clamp);
   return (
-    <AbsoluteFill style={{ background: C.bg, alignItems: "center", justifyContent: "center", gap: 22, fontFamily: FONT, color: C.ink, opacity: interpolate(frame, [0, 12], [0, 1], { extrapolateRight: "clamp" }) }}>
-      <div style={{ fontSize: 96, fontWeight: 800, letterSpacing: -2.5, color: C.teal, opacity: a, transform: `translateY(${(1 - a) * 24}px)` }}>boreal work</div>
-      <div style={{ fontSize: 46, fontWeight: 700, letterSpacing: -1, opacity: b, transform: `translateY(${(1 - b) * 18}px)` }}>AI agents can think. We give them hands.</div>
-      <div style={{ opacity: c, display: "flex", flexDirection: "column", alignItems: "center", gap: 10, marginTop: 18 }}>
-        <div style={{ fontSize: 24, color: C.muted }}>boreal.work · Built with PayPal · PayPal AI Hackathon 2026</div>
-        <div style={{ fontSize: 16, color: C.muted }}>Some task photos and counts are illustrative.</div>
+    <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", gap: 24, fontFamily: FONT, color: "#fff" }}>
+      <div
+        style={{
+          fontSize: 120,
+          fontWeight: 800,
+          letterSpacing: -4,
+          background: `linear-gradient(120deg, #ffffff 10%, ${MINT} 90%)`,
+          WebkitBackgroundClip: "text",
+          backgroundClip: "text",
+          color: "transparent",
+          opacity: a,
+          transform: `translateY(${(1 - a) * 24}px)`,
+          filter: `blur(${(1 - Math.min(a, 1)) * 10}px)`,
+        }}
+      >
+        boreal work
+      </div>
+      <div style={{ fontSize: 48, fontWeight: 700, letterSpacing: -1, opacity: b, transform: `translateY(${(1 - b) * 18}px)` }}>AI agents can think. We give them hands.</div>
+      <div style={{ opacity: c, display: "flex", flexDirection: "column", alignItems: "center", gap: 12, marginTop: 26 }}>
+        <div style={{ fontSize: 24, color: "rgba(255,255,255,.75)" }}>boreal.work · Built with PayPal · PayPal AI Hackathon 2026</div>
+        <div style={{ fontSize: 16, color: "rgba(255,255,255,.5)" }}>Some task photos and counts are illustrative.</div>
       </div>
     </AbsoluteFill>
   );
 };
 
-/** The cut itself, softly blurred behind the closing titles. */
-const BlurredCut = () => {
+/** The cut itself, blurred behind the ending. */
+const Cut = () => {
   const frame = useCurrentFrame();
-  const blur = interpolate(frame, [s(154), s(155), s(171.6), s(172.2)], [0, 10, 10, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-  return <OffthreadVideo src={staticFile("raw/paypal-demo-raw.mp4")} style={{ filter: blur > 0.1 ? `blur(${blur}px)` : undefined }} />;
+  const blur = interpolate(frame, [s(END_FROM), s(END_FROM + 0.8)], [0, 16], clamp);
+  return (
+    <Camera>
+      <OffthreadVideo src={staticFile("raw/paypal-demo-raw.mp4")} style={{ filter: blur > 0.1 ? `blur(${blur}px)` : undefined }} />
+    </Camera>
+  );
 };
+
+/* ---------- Music ---------- */
 
 /** Music sits under everything and dips under each spoken line. */
 const musicVolume = (f: number) => {
   const t = f / FPS;
   const near = VO_AT.some(([a, b]) => t > a - 0.4 && t < b + 0.4);
   const base = near ? 0.07 : 0.2;
-  const fadeIn = Math.min(1, t / 2);
-  const fadeOut = Math.min(1, (179.5 - t) / 3);
-  return base * fadeIn * Math.max(0, fadeOut);
+  return base * Math.min(1, t / 2) * Math.max(0, Math.min(1, (179.5 - t) / 3));
+};
+const vol = (f: number) => {
+  let sum = 0;
+  for (let i = -6; i <= 6; i++) sum += musicVolume(Math.max(0, f + i));
+  return sum / 13;
 };
 
-export const Final = () => {
-  // Smooth the ducking over ~0.4 s so the music never jumps.
-  const vol = (f: number) => {
-    let sum = 0;
-    for (let i = -6; i <= 6; i++) sum += musicVolume(Math.max(0, f + i));
-    return sum / 13;
-  };
-  return (
-    <AbsoluteFill style={{ background: "#000" }}>
-      <BlurredCut />
-      {Array.from({ length: Math.ceil(179.5 / 30) }, (_, i) => (
-        <Sequence key={i} from={s(i * 30)} durationInFrames={s(30)}>
-          <Audio src={staticFile("sfx/music-bed.mp3")} volume={(f) => vol(f + s(i * 30))} />
-        </Sequence>
-      ))}
-
-      {/* Opening */}
-      <Beat from={0.9} dur={7.4} style={corner("tl")}><Cities /></Beat>
-      <Beat from={3.6} dur={6.4} style={corner("bl")} whoosh><Profile /></Beat>
-      <Beat from={9} dur={4.8} style={corner("br")}><Lower kicker="Her AI agent" line="Hermes, on her desktop" /></Beat>
-
-      {/* Setup */}
-      <Beat from={16.2} dur={9.4} style={corner("br")} whoosh><Stack /></Beat>
-      <Beat from={25.2} dur={4.4} style={corner("bl")}><Lower kicker="Sign in" line="Log in with PayPal" color={C.paypal} /></Beat>
-      <Beat from={30} dur={4.6} style={corner("bl")}><Lower kicker="boreal work" line="Hermes approved, within her limits" /></Beat>
-      <Beat from={35} dur={3.6} style={corner("bl")}><Lower kicker="PayPal" line="Connected once. No card to re-enter." color={C.paypal} /></Beat>
-
-      {/* The ask */}
-      <Beat from={39.1} dur={6.4} style={corner("bl")}><Lower kicker="Ji-woo" line="Her voice note to Hermes" /></Beat>
-      <Beat from={46.4} dur={7.6} style={corner("br")}><Lower kicker="Before it spends" line="Hermes asks: which mall, how long, what counts" /></Beat>
-      <Beat from={55.4} dur={10} style={corner("br")} whoosh><Triage /></Beat>
-      <Beat from={65.8} dur={8} style={corner("br")}>
-        <div style={{ ...glass, padding: "22px 28px", display: "flex", flexDirection: "column", gap: 10 }}>
-          <Kicker color={C.paypal}>Funded in one step</Kicker>
-          <div style={{ fontSize: 32, fontWeight: 750 }}>3 tasks · $23.52 held by PayPal</div>
-          <div style={{ fontSize: 21, color: C.muted }}>Charged only when the work passes</div>
-        </div>
-      </Beat>
-
-      {/* Manila */}
-      <Beat from={78.9} dur={10.6} style={corner("bl")} whoosh>
-        <div style={{ ...glass, padding: "22px 28px", display: "flex", flexDirection: "column", gap: 10, width: 520 }}>
-          <Kicker color={C.paypal}>Manila · Makati &amp; BGC</Kicker>
-          <div style={{ fontSize: 30, fontWeight: 750 }}>Already out for the day</div>
-          <div style={{ fontSize: 21, color: C.muted }}>Errands, coffee, a ride home. A few minutes on a task, paid through PayPal.</div>
-        </div>
-      </Beat>
-      <Beat from={89.8} dur={11} style={corner("tr")}><Status /></Beat>
-
-      {/* The check */}
-      <Sequence from={s(104.3)} durationInFrames={s(2.4)}><Scan /></Sequence>
-      <Beat from={104.6} dur={6.2} style={corner("br")}><Lower kicker="Proof check" line="Two photos don't hold up" color={C.red} /></Beat>
-      <Beat from={115.5} dur={3} style={corner("bl")}><Lower kicker="Ji-woo" line="“Let me see them.”" /></Beat>
-      <Beat from={128.8} dur={3} style={corner("bl")}><Lower kicker="Ji-woo" line="“Pass that one.”" /></Beat>
-      <Beat from={131.6} dur={5.6} style={corner("tr")} whoosh><Verdicts /></Beat>
-
-      {/* Paid */}
-      <Beat from={137.6} dur={6.2} style={corner("bc")}><Money /></Beat>
-      <Sequence from={s(139.4)} durationInFrames={s(2)}><Audio src={staticFile("sfx/payout-chime.mp3")} volume={0.5} /></Sequence>
-      <Beat from={150} dur={4} style={corner("tr")}><Lower kicker="Worker" line="Paid $5.00 via PayPal" color={C.paypal} /></Beat>
-
-      {/* Never left Seoul */}
-      <Sequence from={s(154)} durationInFrames={s(6.3)}>
-        <Dim dur={6.3} amount={0.9} />
-        <Pop dur={6.3} style={{ alignItems: "center", justifyContent: "center" }}>
-          <div style={{ textAlign: "center", fontSize: 70, fontWeight: 800, letterSpacing: -1.5, lineHeight: 1.15 }}>
-            Ji-woo never left Seoul.
-            <br />
-            <span style={{ color: C.teal }}>She had many hands.</span>
-          </div>
-        </Pop>
+export const Final = () => (
+  <AbsoluteFill style={{ background: "#000" }}>
+    <Cut />
+    {Array.from({ length: Math.ceil(179.5 / 30) }, (_, i) => (
+      <Sequence key={i} from={s(i * 30)} durationInFrames={s(30)}>
+        <Audio src={staticFile("sfx/music-bed.mp3")} volume={(f) => vol(f + s(i * 30))} />
       </Sequence>
+    ))}
 
-      {/* The market */}
-      <Sequence from={s(160.4)} durationInFrames={s(11.4)}>
-        <Dim dur={11.4} amount={0.9} />
-        <Figures />
-      </Sequence>
+    {/* Who and how */}
+    <Beat from={3.4} dur={6.6} style={place("br")} whoosh><JiWoo /></Beat>
+    <Beat from={16.2} dur={9.4} style={place("br")} whoosh><Stack /></Beat>
+    <Beat from={34.8} dur={3.8} style={place("lc")}><PayPalSaved /></Beat>
 
-      {/* End card */}
-      <Sequence from={s(171.6)}>
-        <EndCard />
-      </Sequence>
-    </AbsoluteFill>
-  );
-};
+    {/* The ask */}
+    <Beat from={55.4} dur={10} style={place("rc")} whoosh><Triage /></Beat>
+    <Beat from={65.8} dur={7.4} style={place("br")}><Funded /></Beat>
+
+    {/* Manila */}
+    <Sequence from={s(78.9)} durationInFrames={s(10.8)}>
+      <Manila dur={10.8} />
+      <Audio src={staticFile("sfx/whoosh.mp3")} volume={0.3} />
+    </Sequence>
+
+    {/* The check and the payout */}
+    <Sequence from={s(104.3)} durationInFrames={s(2.4)}><Scan /></Sequence>
+    <Beat from={131.6} dur={5.6} style={place("tr")} whoosh><Verdicts /></Beat>
+    <Beat from={137.6} dur={6.2} style={place("bc")}><Money /></Beat>
+    <Sequence from={s(139.4)} durationInFrames={s(2)}><Audio src={staticFile("sfx/payout-chime.mp3")} volume={0.5} /></Sequence>
+
+    {/* The ending */}
+    <Sequence from={s(END_FROM)}>
+      <Backdrop />
+    </Sequence>
+    <Sequence from={s(154.1)} durationInFrames={s(6.3)}><NeverLeft dur={6.3} /></Sequence>
+    <Sequence from={s(160.5)} durationInFrames={s(11.1)}><Figures dur={11.1} /></Sequence>
+    <Sequence from={s(171.7)}><EndCard /></Sequence>
+  </AbsoluteFill>
+);
