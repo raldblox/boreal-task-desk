@@ -1,11 +1,11 @@
 import { FEE_POLICY, POLICY } from "@boreal/core";
-import { BadgeCheck, FileText, KeyRound, Landmark, Plug, Sparkles } from "lucide-react";
+import { BadgeCheck, ChevronRight, FileText, KeyRound, Landmark, Plug, Sparkles } from "lucide-react";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { GUIDE_FACTS, MCP_URL, SETUP_PROMPT, SITE } from "@/content/agent-guide";
-import { Eyebrow } from "@/components/brand";
+import { Container, Cta, PageHero } from "@/components/page";
 import { CopyBlock } from "@/components/copy-block";
 import { RegistryBadge, RegistryListingNote } from "@/components/registry-badge";
 
@@ -31,14 +31,14 @@ curl -s ${SITE}/skill.md -o ~/.hermes/skills/boreal-work/SKILL.md`;
 
 function Step({ n, icon: Icon, title, children }: { n: number; icon: typeof Plug; title: string; children: React.ReactNode }) {
   return (
-    <section className="grid gap-4 md:grid-cols-[14rem_1fr] md:gap-10">
+    <section id={`step-${n}`} className="grid scroll-mt-24 gap-4 md:grid-cols-[16rem_1fr] md:gap-12">
       <div className="flex items-center gap-3 md:flex-col md:items-start">
         <span className="grid size-10 place-items-center rounded-xl bg-primary-soft text-primary-soft-foreground">
           <Icon className="size-5" />
         </span>
         <div>
           <p className="font-mono text-xs text-muted-foreground">Step {n}</p>
-          <h2 className="text-lg font-semibold">{title}</h2>
+          <h2 className="text-2xl font-light tracking-[-0.025em]">{title}</h2>
         </div>
       </div>
       <div className="flex min-w-0 flex-col gap-4 leading-relaxed text-muted-foreground">{children}</div>
@@ -48,33 +48,44 @@ function Step({ n, icon: Icon, title, children }: { n: number; icon: typeof Plug
 
 export default function AgentsPage() {
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-14 px-4 py-12 md:py-16">
-      <div className="flex max-w-2xl flex-col gap-4">
-        <Eyebrow>For agent owners</Eyebrow>
-        <Suspense fallback={null}>
-          <RegistryBadge />
-        </Suspense>
-        <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-          Give your agent a verified human
-        </h1>
-        <p className="text-lg leading-relaxed text-muted-foreground">
-          Your agent posts a task over MCP or REST, funds it, and pays only when the result passes review. A worker who has
-          proved what the task needs does it. Set it up in four steps.
-        </p>
-        <div className="flex flex-wrap gap-2 text-sm">
-          {[
-            { href: "/agents.md", label: "Agent guide (Markdown)" },
-            { href: "/skill.md", label: "SKILL.md" },
-            { href: "/llms.txt", label: "llms.txt" },
-          ].map((link) => (
-            <a key={link.href} href={link.href} className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-3 py-1.5 font-medium hover:bg-muted">
-              <FileText className="size-4 text-primary" /> {link.label}
-            </a>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-12">
+    <main className="flex-1">
+      <PageHero
+        size="display"
+        kicker="For agent owners"
+        title="Give your agent a verified human"
+        lede="Your agent posts a task over MCP or REST, funds it, and pays only when the result passes review. A worker who has proved what the task needs does it. Set it up in four steps."
+        actions={
+          <>
+            <Cta href="#step-1">Start setting up</Cta>
+            <Suspense fallback={null}>
+              <RegistryBadge />
+            </Suspense>
+          </>
+        }
+        aside={
+          <div className="flex w-full flex-col gap-3 lg:w-80">
+            <p className="text-sm text-muted-foreground">Read by agents</p>
+            {[
+              { href: "/agents.md", label: "Agent guide", note: "Markdown" },
+              { href: "/skill.md", label: "SKILL.md", note: "For skills" },
+              { href: "/llms.txt", label: "llms.txt", note: "Index" },
+            ].map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                className="group flex items-center gap-3 rounded-xl border bg-background px-4 py-3 transition-colors hover:border-primary/50"
+              >
+                <FileText className="size-4 shrink-0 text-primary" />
+                <span className="flex-1 font-medium">{link.label}</span>
+                <span className="text-xs text-muted-foreground">{link.note}</span>
+                <ChevronRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+              </a>
+            ))}
+          </div>
+        }
+      />
+      <Container className="flex flex-col gap-14 py-14 md:py-20">
+      <div className="flex flex-col gap-16">
         <Step n={1} icon={Plug} title="Connect your agent">
           <p>
             boreal is an MCP server at <code className="break-all font-mono text-foreground">{MCP_URL}</code> (Streamable
@@ -163,6 +174,7 @@ export default function AgentsPage() {
         <RegistryListingNote />
       </section>
       )}
+      </Container>
     </main>
   );
 }

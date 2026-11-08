@@ -23,5 +23,10 @@ export function BorealLogo() {
 
 /** A small uppercase label above a heading. */
 export function Eyebrow({ children }: { children: React.ReactNode }) {
-  return <p className="font-mono text-xs font-medium uppercase tracking-[0.14em] text-primary">{children}</p>;
+  return (
+    <p className="flex items-center gap-3 text-xs font-medium tracking-[0.18em] text-primary uppercase">
+      <span aria-hidden className="h-px w-6 bg-primary/60" />
+      {children}
+    </p>
+  );
 }

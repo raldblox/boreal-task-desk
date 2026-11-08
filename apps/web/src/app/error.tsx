@@ -13,10 +13,10 @@ export default function PageError({ error, retry }: { error: unknown; retry: () 
   }, [error]);
   const digest = error instanceof Error && "digest" in error ? String(error.digest) : null;
   return (
-    <main className="mx-auto flex w-full max-w-xl flex-1 flex-col items-start gap-5 px-4 py-16 md:py-24">
+    <main className="mx-auto flex w-full max-w-[1280px] flex-1 flex-col items-start gap-6 px-5 py-20 sm:px-8 md:py-32 lg:px-12">
       <Eyebrow>Something went wrong</Eyebrow>
-      <h1 className="text-3xl font-semibold tracking-tight">This page didn&apos;t load</h1>
-      <p className="text-muted-foreground">
+      <h1 className="text-4xl font-light tracking-[-0.035em] sm:text-5xl">This page didn&apos;t load</h1>
+      <p className="max-w-xl text-lg leading-relaxed text-muted-foreground">
         Your tasks and money are safe: nothing changes unless you see it confirmed. Try again, or check the status page if
         it keeps happening.
       </p>

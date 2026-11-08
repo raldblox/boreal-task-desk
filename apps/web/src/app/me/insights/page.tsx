@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
-import { Eyebrow } from "@/components/brand";
+import { Container, PageHero } from "@/components/page";
 import { earningsRows, spendingRows } from "@/components/insights/insights-data";
 import { InsightsLoader, InsightsSkeleton } from "@/components/insights/insights-loader";
 import { getDesk } from "@/server/desk";
@@ -46,15 +46,21 @@ async function Report({ searchParams }: { searchParams: Promise<{ view?: string 
 
 export default function InsightsPage({ searchParams }: PageProps<"/me/insights">) {
   return (
-    <main className="mx-auto flex w-full max-w-[1400px] flex-1 flex-col gap-6 px-4 py-8">
-      <div className="flex flex-col gap-2">
-        <Eyebrow>Your money</Eyebrow>
-        <h1 className="text-3xl font-semibold tracking-tight">Insights</h1>
-        <p className="text-sm text-muted-foreground">Only your own tasks and money. Live money only; test tasks are left out.</p>
-      </div>
+    <main className="flex-1">
+      <PageHero
+        kicker="Your money"
+        title={<>Insights</>}
+        lede={
+          <>
+            Only your own tasks and money. Live money only; test tasks are left out.
+          </>
+        }
+      />
+      <Container className="flex max-w-[1400px] flex-col gap-6 py-8">
       <Suspense fallback={<InsightsSkeleton />}>
         <Report searchParams={searchParams as Promise<{ view?: string }>} />
       </Suspense>
+      </Container>
     </main>
   );
 }

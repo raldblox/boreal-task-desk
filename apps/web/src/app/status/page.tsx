@@ -6,7 +6,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { AddonsPanel } from "@/components/addons-panel";
-import { Eyebrow } from "@/components/brand";
+import { Container, PageHero } from "@/components/page";
 import { GUIDE_VERSION, LIVE_SITE, NETWORK, SITE, TESTNET_SITE } from "@/content/agent-guide";
 import { getAddons, gatedEnv } from "@/server/addons";
 import { getConcordium, getDesk, paymentRails } from "@/server/desk";
@@ -140,7 +140,7 @@ async function Checks() {
       <div className="flex items-center gap-3 rounded-2xl border bg-card p-6">
         <Icon className={`size-8 shrink-0 ${look.tone}`} aria-hidden />
         <div>
-          <p className="text-xl font-semibold">{HEADLINE[state]}</p>
+          <p className="text-3xl font-light tracking-[-0.03em]">{HEADLINE[state]}</p>
           <p className="text-sm text-muted-foreground">
             Checked {new Intl.DateTimeFormat("en-PH", { timeStyle: "medium", timeZone: "Asia/Manila" }).format(new Date())} (Manila)
             {queue?.lastDoneAt ? ` · last payout or anchor sent ${ago(queue.lastDoneAt)}` : ""}
@@ -154,7 +154,7 @@ async function Checks() {
       </ul>
       {setupLine.length > 0 && <p className="text-sm text-muted-foreground">{setupLine.join(". ")}.</p>}
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">Integrations</h2>
+        <h2 className="text-2xl font-light tracking-[-0.025em]">Integrations</h2>
         <AddonsPanel addons={[addons.concordium, addons.near]} source={addons.source} />
       </section>
     </div>
@@ -164,17 +164,20 @@ async function Checks() {
 export default function StatusPage() {
   const other = NETWORK === "testnet" ? { label: "live site", url: LIVE_SITE } : { label: "testnet", url: TESTNET_SITE };
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-4 py-10 md:py-14">
-      <div className="flex flex-col gap-3">
-        <Eyebrow>Status</Eyebrow>
-        <h1 className="text-3xl font-semibold tracking-tight">{NETWORK === "testnet" ? "boreal testnet" : "boreal.work"} status</h1>
-        <p className="text-muted-foreground">
-          {NETWORK === "testnet"
+    <main className="flex-1">
+      <PageHero
+        kicker="Status"
+        title={<>{NETWORK === "testnet" ? "boreal testnet" : "boreal.work"} status</>}
+        lede={
+          <>
+            {NETWORK === "testnet"
             ? "This is the testnet: money here is never real."
             : "This is the live site: money here is real."}{" "}
           Refresh to check again.
-        </p>
-      </div>
+          </>
+        }
+      />
+      <Container className="flex flex-col gap-8 py-10 md:py-14">
       <Suspense fallback={<div className="h-80 animate-pulse rounded-2xl bg-muted" />}>
         <Checks />
       </Suspense>
@@ -208,6 +211,7 @@ export default function StatusPage() {
           </a>
         </p>
       )}
+      </Container>
     </main>
   );
 }

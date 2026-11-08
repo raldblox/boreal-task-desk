@@ -10,6 +10,7 @@ import { Suspense } from "react";
 
 import { acceptResult, cancelTask, disputeAsPoster, payTask, reviewResult } from "@/app/post/actions";
 import { Eyebrow } from "@/components/brand";
+import { Container } from "@/components/page";
 import { ReviewForm } from "@/components/poster-forms";
 import { ActionButton, DisputeForm } from "@/components/worker-forms";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -196,7 +197,7 @@ async function PostedTask({ params, searchParams }: Props) {
     <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
       <aside className="flex flex-col gap-5 rounded-2xl border bg-card p-5 lg:sticky lg:top-20 lg:order-2">
         <div className="flex items-baseline justify-between gap-3">
-          <p className="text-3xl font-semibold tabular-nums">{usd(taskTotal(task))}</p>
+          <p className="text-5xl font-light tracking-[-0.04em] tabular-nums">{usd(taskTotal(task))}</p>
           <Badge variant={status.tone}>{status.label}</Badge>
         </div>
         <dl className="grid gap-1 text-sm">
@@ -238,7 +239,7 @@ async function PostedTask({ params, searchParams }: Props) {
               </Badge>
             ))}
           </div>
-          <h1 className="text-2xl font-semibold leading-snug tracking-tight text-balance">{task.description}</h1>
+          <h1 className="text-3xl leading-tight font-light tracking-[-0.03em] text-balance sm:text-4xl">{task.description}</h1>
           <p className="text-sm text-muted-foreground">
             Posted {when(task.createdAt)} · deadline {when(task.deadline)}
           </p>
@@ -297,14 +298,16 @@ async function PostedTask({ params, searchParams }: Props) {
 
 export default function PostedTaskPage(props: Props) {
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-8 md:py-12">
-      <Link href="/me?tab=posted" className="flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="size-4" /> Tasks you posted
+    <main className="flex-1">
+      <Container className="flex flex-col gap-8 py-10 md:py-14">
+      <Link href="/me?tab=posted" className="group flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
+        <ArrowLeft className="size-4 transition-transform group-hover:-translate-x-0.5" /> Tasks you posted
       </Link>
       <Eyebrow>Your task</Eyebrow>
       <Suspense fallback={<div className="h-64 animate-pulse rounded-2xl bg-muted" />}>
         <PostedTask {...props} />
       </Suspense>
+      </Container>
     </main>
   );
 }

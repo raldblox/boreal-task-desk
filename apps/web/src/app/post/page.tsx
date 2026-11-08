@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
-import { Eyebrow } from "@/components/brand";
+import { Container, MoreLink, PageHero } from "@/components/page";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
 import { verification } from "@/server/addons";
@@ -63,18 +63,47 @@ async function Form() {
 
 export default function PostPage() {
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-4 py-10 md:py-14">
-      <div className="flex flex-col gap-3">
-        <Eyebrow>Post a task</Eyebrow>
-        <h1 className="text-3xl font-semibold tracking-tight">Hand it to a verified human</h1>
-        <p className="text-muted-foreground">
-          Something in the physical world, or a judgment only a person can give. A worker claims it, sends the result, and
+    <main className="flex-1">
+      <PageHero
+        kicker="Post a task"
+        title={<>Hand it to a verified human</>}
+        lede={
+          <>
+            Something in the physical world, or a judgment only a person can give. A worker claims it, sends the result, and
           you pay only if it meets your checks.
-        </p>
-      </div>
-      <Suspense fallback={<div className="h-96 animate-pulse rounded-2xl bg-muted" />}>
-        <Form />
-      </Suspense>
+          </>
+        }
+      />
+      <Container className="grid items-start gap-10 py-10 md:py-14 lg:grid-cols-[minmax(0,1fr)_340px] xl:gap-16">
+        <div className="flex min-w-0 flex-col gap-8">
+          <Suspense fallback={<div className="h-96 animate-pulse rounded-2xl bg-muted" />}>
+            <Form />
+          </Suspense>
+        </div>
+        <aside className="flex flex-col gap-6 rounded-2xl border bg-card p-6 lg:sticky lg:top-24">
+          <p className="text-xl font-light tracking-tight">What happens next</p>
+          <ol className="flex flex-col gap-5">
+            {[
+              ["Checked", "boreal reads your task for anything unsafe or unclear before anyone sees it."],
+              ["Funded", "You approve it on PayPal. The money is held, not charged."],
+              ["Done", "A worker claims it and sends the result you asked for."],
+              ["Reviewed", "Against your checks and the public rulebook, never anything else."],
+              ["Paid or returned", `It pays out once final (${POLICY.objectionWindowMs / 3_600_000} hours after a pass, or sooner if you accept). A fail returns it, less any review fee.`],
+            ].map(([title, body], i) => (
+              <li key={title} className="flex gap-3">
+                <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary-soft text-[11px] font-semibold text-primary-soft-foreground tabular-nums">
+                  {i + 1}
+                </span>
+                <div className="flex flex-col gap-0.5">
+                  <p className="text-sm font-medium">{title}</p>
+                  <p className="text-sm leading-relaxed text-muted-foreground">{body}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+          <MoreLink href="/terms">Read the rules</MoreLink>
+        </aside>
+      </Container>
     </main>
   );
 }

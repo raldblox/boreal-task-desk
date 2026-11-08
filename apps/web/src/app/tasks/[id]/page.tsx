@@ -8,6 +8,7 @@ import { Suspense } from "react";
 
 import { claimTask, disputeVerdict, releaseTask, submitResult } from "@/app/actions";
 import { TaskProgress } from "@/components/task-progress";
+import { Container } from "@/components/page";
 import { ActionButton, DisputeForm, SubmitForm } from "@/components/worker-forms";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -234,7 +235,7 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
     <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
       <aside className="flex flex-col gap-5 rounded-2xl border bg-card p-5 lg:sticky lg:top-20 lg:order-2">
         <div className="flex items-baseline justify-between gap-3">
-          <p className="text-3xl font-semibold tabular-nums text-primary">{usd(task.budget)}</p>
+          <p className="text-5xl font-light tracking-[-0.04em] tabular-nums text-primary">{usd(task.budget)}</p>
           <Badge variant={status.tone}>{status.label}</Badge>
         </div>
         <TaskProgress status={task.status} />
@@ -290,7 +291,7 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
               </Badge>
             ))}
           </div>
-          <h1 className="text-2xl font-semibold leading-snug tracking-tight text-balance">{task.description}</h1>
+          <h1 className="text-3xl leading-tight font-light tracking-[-0.03em] text-balance sm:text-4xl">{task.description}</h1>
           <p className="text-sm text-muted-foreground">Due {when(task.deadline)}</p>
         </div>
 
@@ -349,13 +350,15 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
 
 export default function TaskPage({ params }: PageProps<"/tasks/[id]">) {
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-8 md:py-12">
-      <Link href="/tasks" className="flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="size-4" /> Open tasks
+    <main className="flex-1">
+      <Container className="flex flex-col gap-8 py-10 md:py-14">
+      <Link href="/tasks" className="group flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
+        <ArrowLeft className="size-4 transition-transform group-hover:-translate-x-0.5" /> Open tasks
       </Link>
       <Suspense fallback={<div className="h-64 animate-pulse rounded-2xl bg-muted" />}>
         <TaskDetail params={params} />
       </Suspense>
+      </Container>
     </main>
   );
 }

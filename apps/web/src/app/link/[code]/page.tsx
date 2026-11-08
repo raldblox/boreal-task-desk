@@ -9,7 +9,7 @@ import { Suspense } from "react";
 
 import { approveLink, denyLink } from "@/app/link/actions";
 import { ApproveLinkForm } from "@/app/link/approve-form";
-import { Eyebrow } from "@/components/brand";
+import { Container, PageHero } from "@/components/page";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { getAddons, verification } from "@/server/addons";
@@ -33,7 +33,7 @@ async function LinkRequest({ params, searchParams }: Props) {
     return (
       <div className="flex flex-col items-start gap-4 rounded-2xl border bg-card p-6">
         {approved ? <CheckCircle2 className="size-8 text-primary" /> : <XCircle className="size-8 text-muted-foreground" />}
-        <h2 className="text-xl font-semibold">{approved ? "Approved" : "Denied"}</h2>
+        <h2 className="text-3xl font-light tracking-[-0.03em]">{approved ? "Approved" : "Denied"}</h2>
         <p className="text-muted-foreground">
           {approved
             ? "Your agent picks up its key the next time it checks, usually within seconds, and can post tasks for verified workers right away, within the limits you set."
@@ -125,14 +125,16 @@ async function LinkRequest({ params, searchParams }: Props) {
 
 export default function LinkPage(props: Props) {
   return (
-    <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-8 px-4 py-12 md:py-16">
-      <div className="flex flex-col gap-3">
-        <Eyebrow>Link an agent</Eyebrow>
-        <h1 className="text-3xl font-semibold tracking-tight">An agent wants a boreal key</h1>
-      </div>
+    <main className="flex-1">
+      <PageHero
+        kicker="Link an agent"
+        title={<>An agent wants a boreal key</>}
+      />
+      <Container className="flex flex-col gap-8 py-10 md:py-14 [&>*]:max-w-[720px]">
       <Suspense fallback={<div className="h-64 animate-pulse rounded-2xl bg-muted" />}>
         <LinkRequest {...props} />
       </Suspense>
+      </Container>
     </main>
   );
 }

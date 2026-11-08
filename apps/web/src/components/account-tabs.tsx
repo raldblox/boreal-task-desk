@@ -25,8 +25,8 @@ export function accountTab(value: string | undefined): AccountTab {
 /** The tab bar. `counts` puts a small number on a tab (things waiting there); 0 shows nothing. */
 export function AccountTabs({ active, counts = {} }: { active: AccountTab; counts?: Partial<Record<AccountTab, number>> }) {
   return (
-    <ScrollActiveTab label="My account" className="-mx-4 overflow-x-auto overflow-y-hidden px-4 [scrollbar-width:none]">
-      <ul className="flex w-max min-w-full gap-1 border-b">
+    <ScrollActiveTab label="My account" className="-mx-5 overflow-x-auto overflow-y-hidden px-5 [scrollbar-width:none] sm:mx-0 sm:px-0">
+      <ul className="flex w-max min-w-full gap-2">
         {ACCOUNT_TABS.map((tab) => {
           const current = tab.id === active;
           const count = counts[tab.id] ?? 0;
@@ -37,7 +37,7 @@ export function AccountTabs({ active, counts = {} }: { active: AccountTab; count
                 aria-current={current ? "page" : undefined}
                 scroll={false}
                 className={cn(
-                  "-mb-px flex h-10 items-center gap-1.5 whitespace-nowrap border-b-2 px-3 text-sm font-medium transition-colors",
+                  "-mb-px flex h-12 items-center gap-2 whitespace-nowrap border-b-2 px-3 text-[15px] transition-colors",
                   current
                     ? "border-primary text-foreground"
                     : "border-transparent text-muted-foreground hover:border-border hover:text-foreground",

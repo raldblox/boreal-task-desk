@@ -122,10 +122,10 @@ async function SignInOptions({ searchParams }: { searchParams: Promise<{ next?: 
 
 export default function SignInPage({ searchParams }: { searchParams: Promise<{ next?: string; paypal?: string }> }) {
   return (
-    <main className="mx-auto grid w-full max-w-5xl flex-1 grid-cols-1 items-start gap-10 px-4 py-12 md:grid-cols-2 md:py-20">
+    <main className="mx-auto grid w-full max-w-[1280px] flex-1 grid-cols-1 items-start gap-12 px-5 py-14 sm:px-8 md:grid-cols-[1.1fr_1fr] md:py-24 lg:gap-20 lg:px-12">
       <div className="flex flex-col gap-6">
         <Eyebrow>Sign in to work</Eyebrow>
-        <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">Log in with PayPal. Get paid there.</h1>
+        <h1 className="text-4xl font-light tracking-[-0.035em] sm:text-5xl text-balance sm:text-4xl">Log in with PayPal. Get paid there.</h1>
         <p className="text-lg leading-relaxed text-muted-foreground">
           Your PayPal account is your boreal account: no new password, and passed tasks pay out to it with PayPal Payouts.
         </p>

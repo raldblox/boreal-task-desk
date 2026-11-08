@@ -7,6 +7,7 @@ import { after } from "next/server";
 import { Suspense } from "react";
 
 import { Eyebrow } from "@/components/brand";
+import { Container } from "@/components/page";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
 import { CHECKOUT_COOKIE, readCheckout } from "@/lib/checkout";
@@ -86,7 +87,7 @@ async function Outcome({ params, searchParams }: Props) {
     return (
       <div className="flex flex-col items-start gap-4 rounded-2xl border bg-card p-6">
         <XCircle className="size-8 text-destructive" />
-        <h1 className="text-2xl font-semibold tracking-tight">Payment not finished</h1>
+        <h1 className="text-4xl font-light tracking-[-0.035em]">Payment not finished</h1>
         <Alert variant="destructive">
           <AlertDescription>{failed.error}</AlertDescription>
         </Alert>
@@ -103,7 +104,7 @@ async function Outcome({ params, searchParams }: Props) {
   return (
     <div className="flex flex-col items-start gap-4 rounded-2xl border bg-card p-6">
       {approved ? <CheckCircle2 className="size-8 text-primary" /> : <XCircle className="size-8 text-muted-foreground" />}
-      <h1 className="text-2xl font-semibold tracking-tight">{approved ? "Payment approved" : "Payment cancelled"}</h1>
+      <h1 className="text-4xl font-light tracking-[-0.035em]">{approved ? "Payment approved" : "Payment cancelled"}</h1>
       <p className="text-muted-foreground">
         {approved
           ? "PayPal is holding the money, not charging it. Your agent finishes funding the task, and it opens to workers. The money is taken only if the work passes review; otherwise the hold is released."
@@ -126,11 +127,13 @@ async function Outcome({ params, searchParams }: Props) {
 
 export default function PayPalReturnPage(props: Props) {
   return (
-    <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-6 px-4 py-10 md:py-14">
+    <main className="flex-1">
+      <Container className="flex flex-col gap-8 py-10 md:py-14 [&>*]:max-w-[860px]">
       <Eyebrow>Task payment</Eyebrow>
       <Suspense fallback={<div className="h-44 animate-pulse rounded-2xl bg-muted" />}>
         <Outcome {...props} />
       </Suspense>
+      </Container>
     </main>
   );
 }

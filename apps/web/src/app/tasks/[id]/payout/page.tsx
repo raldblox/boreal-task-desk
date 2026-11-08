@@ -7,6 +7,7 @@ import { Suspense } from "react";
 import { CONNECT_MESSAGE } from "@boreal/near";
 
 import { Eyebrow } from "@/components/brand";
+import { Container } from "@/components/page";
 import { ConnectConcordiumAccount, ConnectNear } from "@/components/connect-wallet";
 import { buttonVariants } from "@/components/ui/button";
 import { SITE } from "@/content/agent-guide";
@@ -53,7 +54,7 @@ async function Setup({ params }: { params: Promise<{ id: string }> }) {
   if (task.paymentRail === "paypal") {
     return (
       <div className="flex flex-col gap-4">
-        <h1 className="text-2xl font-semibold tracking-tight">Get paid via PayPal</h1>
+        <h1 className="text-4xl font-light tracking-[-0.035em]">Get paid via PayPal</h1>
         <p className="text-muted-foreground">This task pays {usd(task.budget)} via PayPal. Log in with PayPal once and you&apos;re paid the moment it passes.</p>
         {/* A route handler that redirects to PayPal, so a full navigation, not <Link>. */}
         <a href={`/paypal/login?next=${encodeURIComponent(`/tasks/${id}`)}`} className={buttonVariants({ className: "w-fit" })}>
@@ -68,7 +69,7 @@ async function Setup({ params }: { params: Promise<{ id: string }> }) {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
         <Eyebrow>{near ? "USDC on NEAR" : "Tokens on Concordium"}</Eyebrow>
-        <h1 className="text-2xl font-semibold tracking-tight">{near ? "Connect a NEAR wallet" : "Connect a Concordium wallet"}</h1>
+        <h1 className="text-4xl font-light tracking-[-0.035em]">{near ? "Connect a NEAR wallet" : "Connect a Concordium wallet"}</h1>
         <p className="text-muted-foreground">
           {near
             ? `This task pays ${usd(task.budget)} in USDC on NEAR. Connect your NEAR wallet once and you're paid there the moment it passes.`
@@ -122,13 +123,15 @@ async function Setup({ params }: { params: Promise<{ id: string }> }) {
 
 export default function PayoutSetupPage({ params }: PageProps<"/tasks/[id]/payout">) {
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-4 py-8 md:py-12">
-      <Link href="/tasks" className="flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="size-4" /> Open tasks
+    <main className="flex-1">
+      <Container className="flex flex-col gap-8 py-10 md:py-14 [&>*]:max-w-[860px]">
+      <Link href="/tasks" className="group flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
+        <ArrowLeft className="size-4 transition-transform group-hover:-translate-x-0.5" /> Open tasks
       </Link>
       <Suspense fallback={<div className="h-64 animate-pulse rounded-2xl bg-muted" />}>
         <Setup params={params} />
       </Suspense>
+      </Container>
     </main>
   );
 }

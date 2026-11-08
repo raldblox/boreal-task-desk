@@ -7,17 +7,17 @@ import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { Suspense } from "react";
 
-import { linkConcordium } from "@/app/actions";
+import { linkConcordium, signOut } from "@/app/actions";
 import { ConnectConcordiumAccount, ConnectNear } from "@/components/connect-wallet";
 import { type AccountTab, AccountTabs, accountTab } from "@/components/account-tabs";
-import { Eyebrow } from "@/components/brand";
+import { BlockHeading, Container, Cta, EmptyState, LinkTile, MoreLink, PageHero } from "@/components/page";
 import { ConcordiumSignIn } from "@/components/concordium-sign-in";
 import { ConcordiumWalletSignIn } from "@/components/concordium-wallet-sign-in";
 import { TaskCard } from "@/components/task-card";
 import { DevWallet } from "@/components/worker-forms";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { attributeLabel, posterStatus, usd, when, workerHandle } from "@/lib/format";
 import { NETWORK, SITE } from "@/content/agent-guide";
 import { gatedEnv, getAddons } from "@/server/addons";
@@ -72,13 +72,13 @@ async function Identity() {
   const needsVerifiedPayPal = NETWORK === "mainnet" && !profile.hasConcordium && !profile.paypalVerified;
   const concordiumId = getAddons().on("concordium");
   return (
-    <section className="flex flex-col gap-4 rounded-2xl border bg-card p-6">
-      <div className="flex items-start gap-3">
-        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary-soft-foreground">
-          <BadgeCheck className="size-5" />
+    <section className="flex flex-col gap-6 rounded-2xl border bg-card p-6 md:p-8">
+      <div className="flex items-start gap-4">
+        <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary-soft-foreground">
+          <BadgeCheck className="size-6" />
         </span>
         <div className="flex min-w-0 flex-col gap-1">
-          <p className="font-semibold">{profile.testMode ? "Test worker" : "Your identities"}</p>
+          <h2 className="text-2xl font-light tracking-[-0.025em]">{profile.testMode ? "Test worker" : "Sign-in and identity"}</h2>
           <p className="text-sm text-muted-foreground">
             <span className="font-mono">{workerHandle(profile.pseudonym)}</span> · worker since {since}
           </p>
@@ -95,7 +95,7 @@ async function Identity() {
         </div>
       ) : (
         <div className="flex flex-col divide-y rounded-xl border">
-          <div className="flex flex-wrap items-center gap-3 p-4">
+          <div className="flex flex-wrap items-center gap-4 p-5">
             <Wallet className="size-5 shrink-0 text-primary" />
             <div className="min-w-0 flex-1">
               <p className="font-medium">PayPal</p>
@@ -115,15 +115,16 @@ async function Identity() {
               paypalLogin && (
                 // A route handler that redirects to PayPal, so a full navigation, not <Link>.
                 // eslint-disable-next-line @next/next/no-html-link-for-pages
-                <a href="/paypal/login" className={buttonVariants({ variant: "outline", size: "sm" })}>
+                <a href="/paypal/login" className={buttonVariants({ className: "group gap-2" })}>
                   Add PayPal
+                  <ChevronRight className="size-4 transition-transform group-hover:translate-x-0.5" />
                 </a>
               )
             )}
           </div>
           {profile.hasConcordium && (
-            <div className="flex flex-col gap-3 p-4">
-              <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-col gap-3 p-5">
+              <div className="flex flex-wrap items-center gap-4">
                 <ShieldCheck className="size-5 shrink-0 text-primary" />
                 <div className="min-w-0 flex-1">
                   <p className="font-medium">Concordium ID</p>
@@ -186,19 +187,19 @@ async function Earnings() {
     { label: "Test money", money: earnings.test, note: "From test tasks. Not real money." },
   ].filter((r, i) => i === 0 || r.money.paid + r.money.settling + r.money.upcoming > 0);
   return (
-    <section className="grid gap-3 sm:grid-cols-2">
+    <section className="flex flex-col gap-4">
       {rows.map(({ label, money, note }) => (
-        <div key={label} className="flex flex-col gap-3 rounded-2xl border bg-card p-5">
-          <p className="text-sm font-semibold text-muted-foreground">{label}</p>
-          <p className="text-3xl font-semibold tabular-nums">{usd(money.paid)}</p>
-          <dl className="grid grid-cols-2 gap-2 text-sm">
-            <div>
+        <div key={label} className="flex flex-col gap-5 rounded-2xl border bg-card p-6 md:p-8">
+          <p className="text-sm text-muted-foreground">{label}</p>
+          <p className="text-5xl font-light tracking-[-0.04em] tabular-nums">{usd(money.paid)}</p>
+          <dl className="grid grid-cols-2 gap-4 border-t pt-4 text-sm">
+            <div className="flex flex-col gap-1">
               <dt className="text-muted-foreground">On its way</dt>
-              <dd className="font-medium tabular-nums">{usd(money.settling)}</dd>
+              <dd className="text-lg tabular-nums">{usd(money.settling)}</dd>
             </div>
-            <div>
+            <div className="flex flex-col gap-1">
               <dt className="text-muted-foreground">Held for you</dt>
-              <dd className="font-medium tabular-nums">{usd(money.upcoming)}</dd>
+              <dd className="text-lg tabular-nums">{usd(money.upcoming)}</dd>
             </div>
           </dl>
           <p className="text-xs text-muted-foreground">
@@ -223,23 +224,27 @@ async function InsightsLink() {
     .catch(() => ({ spending: false, earnings: false }));
   if (!available.spending && !available.earnings) return null;
   const links = [
-    available.spending && { href: "/me/insights", label: "Spending" },
-    available.earnings && { href: "/me/insights?view=earnings", label: "Earnings" },
-  ].filter((l): l is { href: string; label: string } => !!l);
+    available.spending && {
+      href: "/me/insights",
+      label: "Spending",
+      icon: BarChart3,
+      description: "What you and your agents spent, where every dollar is now, by week and by task.",
+    },
+    available.earnings && {
+      href: "/me/insights?view=earnings",
+      label: "Earnings",
+      icon: Wallet,
+      description: "What you were paid and what's on its way, by week and by task.",
+    },
+  ].filter((l) => !!l);
   return (
-    <section className="flex items-center gap-3 rounded-2xl border bg-card p-4">
-      <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary-soft text-primary-soft-foreground">
-        <BarChart3 className="size-5" />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="font-medium">Your money, in charts</p>
-        <p className="text-sm text-muted-foreground">Where every dollar is, by week and by task. Best on a computer.</p>
+    <section className="flex flex-col gap-5">
+      <BlockHeading title="Your money, in charts" description="Interactive reports. Best on a computer." />
+      <div className="grid gap-4 md:grid-cols-2">
+        {links.map((l) => (
+          <LinkTile key={l.href} href={l.href} title={l.label} description={l.description} icon={l.icon} />
+        ))}
       </div>
-      {links.map((l) => (
-        <Link key={l.href} href={l.href} className={buttonVariants({ variant: "outline", size: "sm" })}>
-          {l.label}
-        </Link>
-      ))}
     </section>
   );
 }
@@ -254,14 +259,11 @@ async function Payouts() {
   if (!rails.includes("paypal")) return null;
   const paypalLogin = paypalLoginEnabled();
   return (
-    <section className="flex flex-col gap-4 rounded-2xl border bg-card p-6">
-      <div className="flex flex-col gap-1">
-        <h2 className="font-semibold">Getting paid</h2>
-        <p className="text-sm text-muted-foreground">Passed tasks pay out here the moment they&apos;re final.</p>
-      </div>
-      <div className="flex flex-col divide-y rounded-xl border">
+    <section className="flex flex-col gap-6">
+      <BlockHeading title="Getting paid" description="Passed tasks pay out here the moment they're final." />
+      <div className="flex flex-col divide-y rounded-2xl border bg-card">
         {(
-          <div className="flex items-center gap-3 p-4">
+          <div className="flex items-center gap-4 p-6">
             <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary-soft text-primary-soft-foreground">
               <Wallet className="size-5" />
             </span>
@@ -280,8 +282,9 @@ async function Payouts() {
             {paypalLogin && !profile.hasPayPal && (
               // A route handler that redirects to PayPal, so a full navigation, not <Link>.
               // eslint-disable-next-line @next/next/no-html-link-for-pages
-              <a href="/paypal/login" className={buttonVariants({ size: "sm" })}>
-                Connect
+              <a href="/paypal/login" className={buttonVariants({ className: "group gap-2" })}>
+                Connect PayPal
+                <ChevronRight className="size-4 transition-transform group-hover:translate-x-0.5" />
               </a>
             )}
           </div>
@@ -437,9 +440,9 @@ async function Integrations() {
   const proven = Object.entries(profile.provenAttributes);
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h2 className="text-xl font-semibold">Integrations</h2>
-        <p className="text-sm text-muted-foreground">
+      <div className="flex flex-col gap-1.5">
+        <h2 className="text-2xl font-light tracking-[-0.025em]">Integrations</h2>
+        <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
           {on.length === 0
             ? "This site runs on PayPal alone: you sign in, work and get paid with PayPal. No integrations are switched on here."
             : "boreal runs on PayPal. Connect these to take more kinds of tasks and get paid in more ways. They're optional, and each one connects with a button: you never type an address."}
@@ -576,39 +579,42 @@ async function MyAgents() {
     .catch(() => []); // testers can't own agents
   if (agents.length === 0) {
     return (
-      <div className="flex flex-col items-start gap-2 rounded-2xl border border-dashed bg-card/60 p-6">
-        <p className="font-medium">No agents yet</p>
-        <p className="text-sm text-muted-foreground">
-          An AI agent asks you for a key, and you approve it here with spending limits. Connect your PayPal once and it funds
-          tasks without asking each time.
-        </p>
-        <Link href="/agents" className={buttonVariants({ variant: "outline", size: "sm", className: "mt-1" })}>
-          Set up an agent
-        </Link>
-      </div>
+      <EmptyState title="No agents yet" action={<Cta href="/agents">Set up an agent</Cta>}>
+        An AI agent asks you for a key, and you approve it here with spending limits. Connect your PayPal once and it funds tasks
+        without asking each time.
+      </EmptyState>
     );
   }
   // Offer Connect PayPal only when PayPal lets boreal save accounts; otherwise each task sends a checkout link.
   const paypal = paymentRails().includes("paypal") && ((await paypalAccounts()?.canSaveAccounts()) ?? false);
   return (
-    <section className="flex flex-col gap-3">
-      <h2 className="text-sm font-semibold text-muted-foreground">Your agents · {agents.length}</h2>
+    <section className="flex flex-col gap-6">
+      <BlockHeading
+        title={`Your agents · ${agents.length}`}
+        description="Agents you approved, each inside the spending limits you set."
+        action={<MoreLink href="/agents">Add another agent</MoreLink>}
+      />
+      <div className="flex flex-col divide-y rounded-2xl border bg-card">
       {agents.map((agent) => (
-        <div key={agent.id} className="flex items-center gap-3 rounded-2xl border bg-card p-4">
-          <Bot className="size-5 shrink-0 text-primary" />
-          <p className="min-w-0 flex-1 truncate font-medium">{agent.name}</p>
+        <div key={agent.id} className="flex flex-wrap items-center gap-4 p-5 md:p-6">
+          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary-soft-foreground">
+            <Bot className="size-5" />
+          </span>
+          <p className="min-w-0 flex-1 truncate text-lg font-light tracking-tight">{agent.name}</p>
           {agent.badgeVerifiedAt && getAddons().on("concordium") && <Badge>Verified by Concordium</Badge>}
           {agent.testMode && <Badge variant="outline">Test money</Badge>}
           {paypal &&
             (agent.paypalConnected ? (
               <Badge variant="outline">PayPal connected</Badge>
             ) : (
-              <a href={`/paypal/save/${agent.id}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+              <a href={`/paypal/save/${agent.id}`} className={buttonVariants({ className: "group gap-2" })}>
                 Connect PayPal
+                <ChevronRight className="size-4 transition-transform group-hover:translate-x-0.5" />
               </a>
             ))}
         </div>
       ))}
+      </div>
     </section>
   );
 }
@@ -621,23 +627,21 @@ async function PostedTasks() {
   // Needing the poster comes first: paying, then reviewing.
   const waiting = tasks.filter((t) => t.status === "awaiting_funding" || (t.status === "submitted" && t.reviewMode === "requester")).length;
   return (
-    <section id="posted" className="flex scroll-mt-20 flex-col gap-3">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold text-muted-foreground">
-          Tasks you posted{tasks.length > 0 ? ` · ${tasks.length}` : ""}
-          {waiting > 0 && <span className="text-primary"> · {waiting} need you</span>}
-        </h2>
-        <Link href="/post" className={buttonVariants({ variant: "outline", size: "sm" })}>
-          Post a task
-        </Link>
-      </div>
+    <section id="posted" className="flex scroll-mt-20 flex-col gap-6">
+      <BlockHeading
+        title={
+          <>
+            Tasks you posted{tasks.length > 0 ? ` · ${tasks.length}` : ""}
+            {waiting > 0 && <span className="text-primary"> · {waiting} need you</span>}
+          </>
+        }
+        description="Open one to fund it, review the result, or see where it stands."
+        action={tasks.length > 0 && <Cta href="/post">Post a task</Cta>}
+      />
       {tasks.length === 0 ? (
-        <div className="flex flex-col items-start gap-2 rounded-2xl border border-dashed bg-card/60 p-6">
-          <p className="font-medium">You haven&apos;t posted a task</p>
-          <p className="text-sm text-muted-foreground">
-            Need something done in the physical world? Post it, and pay only if the result passes your checks.
-          </p>
-        </div>
+        <EmptyState title="You haven't posted a task" action={<Cta href="/post">Post a task</Cta>}>
+          Need something done in the physical world? Post it, and pay only if the result passes your checks.
+        </EmptyState>
       ) : (
         <div className="flex flex-col divide-y rounded-2xl border bg-card">
           {tasks.map((task) => {
@@ -646,10 +650,10 @@ async function PostedTasks() {
               <Link
                 key={task.id}
                 href={`/me/posted/${task.id}`}
-                className="flex items-center gap-3 p-4 transition-colors first:rounded-t-2xl last:rounded-b-2xl hover:bg-accent/40"
+                className="group flex items-center gap-4 p-5 transition-colors first:rounded-t-2xl last:rounded-b-2xl hover:bg-accent/50 md:p-6"
               >
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
-                  <p className="truncate font-medium">{task.description}</p>
+                  <p className="truncate text-base font-medium">{task.description}</p>
                   <p className="text-xs text-muted-foreground">
                     {usd(taskTotal(task))} · posted {when(task.createdAt)}
                   </p>
@@ -657,7 +661,7 @@ async function PostedTasks() {
                 <Badge variant={status.tone} className="shrink-0">
                   {status.label}
                 </Badge>
-                <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+                <ChevronRight className="size-5 shrink-0 text-muted-foreground transition-all group-hover:translate-x-1 group-hover:text-primary" />
               </Link>
             );
           })}
@@ -673,13 +677,9 @@ async function MyTasks() {
   const tasks = await getDesk().listWorkerTasks(worker);
   if (tasks.length === 0) {
     return (
-      <div className="flex flex-col items-start gap-3 rounded-2xl border border-dashed bg-card/60 p-8">
-        <p className="font-semibold">You haven&apos;t claimed a task yet</p>
-        <p className="text-sm text-muted-foreground">Claimed tasks show up here until they&apos;re paid.</p>
-        <Link href="/tasks" className={buttonVariants({ className: "mt-1" })}>
-          Find a task
-        </Link>
-      </div>
+      <EmptyState title="You haven't claimed a task yet" action={<Cta href="/tasks">Find a task</Cta>}>
+        Claimed tasks show up here until they&apos;re paid.
+      </EmptyState>
     );
   }
   const active = tasks.filter((t) => ACTIVE.has(t.status));
@@ -692,10 +692,8 @@ async function MyTasks() {
       ]
         .filter((g) => g.list.length > 0)
         .map((group) => (
-          <section key={group.title} className="flex flex-col gap-3">
-            <h2 className="text-sm font-semibold text-muted-foreground">
-              {group.title} · {group.list.length}
-            </h2>
+          <section key={group.title} className="flex flex-col gap-4">
+            <BlockHeading title={`${group.title} · ${group.list.length}`} action={group.title === "In progress" && <MoreLink href="/tasks">Find more tasks</MoreLink>} />
             {group.list.map((task) => (
               <TaskCard key={task.id} task={task} showStatus />
             ))}
@@ -761,12 +759,14 @@ function TabPanel({ tab }: { tab: AccountTab }) {
     case "overview":
       return (
         <>
-          <Suspense fallback={<div className="h-44 animate-pulse rounded-2xl bg-muted" />}>
-            <Identity />
-          </Suspense>
-          <Suspense fallback={<div className="h-36 animate-pulse rounded-2xl bg-muted" />}>
-            <Earnings />
-          </Suspense>
+          <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+            <Suspense fallback={<div className="h-80 animate-pulse rounded-2xl bg-muted" />}>
+              <Identity />
+            </Suspense>
+            <Suspense fallback={<div className="h-64 animate-pulse rounded-2xl bg-muted" />}>
+              <Earnings />
+            </Suspense>
+          </div>
           <Suspense fallback={null}>
             <InsightsLink />
           </Suspense>
@@ -818,25 +818,49 @@ async function Account({ searchParams }: { searchParams: SearchParams }) {
   );
   return (
     <>
-      <Suspense fallback={<AccountTabs active={tab} />}>
-        <Tabs active={tab} />
-      </Suspense>
-      <PayPalNotice searchParams={searchParams} />
-      <div className="flex flex-col gap-6">
+      <AccountHero>
+        <Suspense fallback={<AccountTabs active={tab} />}>
+          <Tabs active={tab} />
+        </Suspense>
+      </AccountHero>
+      <Container className="flex flex-col gap-10 py-10 md:py-14">
+        <PayPalNotice searchParams={searchParams} />
         <TabPanel tab={tab} />
-      </div>
+      </Container>
     </>
+  );
+}
+
+function AccountHero({ children }: { children: React.ReactNode }) {
+  return (
+    <PageHero
+      kicker="Your account"
+      title="My account"
+      lede="Your work, the tasks you posted, your agents, how you're paid, and what you've connected."
+      actions={
+        // The header keeps Sign out off phones to fit; it's here instead.
+        <form action={signOut} className="sm:hidden">
+          <Button type="submit" variant="outline">
+            Sign out
+          </Button>
+        </form>
+      }
+    >
+      {children}
+    </PageHero>
   );
 }
 
 export default function MyAccountPage({ searchParams }: { searchParams: SearchParams }) {
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-10 md:py-14">
-      <div className="flex flex-col gap-3">
-        <Eyebrow>Your account</Eyebrow>
-        <h1 className="text-3xl font-semibold tracking-tight">My account</h1>
-      </div>
-      <Suspense fallback={<AccountTabs active="overview" />}>
+    <main className="flex-1">
+      <Suspense
+        fallback={
+          <AccountHero>
+            <AccountTabs active="overview" />
+          </AccountHero>
+        }
+      >
         <Account searchParams={searchParams} />
       </Suspense>
     </main>
