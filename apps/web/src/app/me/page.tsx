@@ -7,6 +7,7 @@ import { after } from "next/server";
 import { Suspense } from "react";
 
 import { linkConcordium, setPayoutAddress } from "@/app/actions";
+import { type AccountTab, AccountTabs, accountTab } from "@/components/account-tabs";
 import { Eyebrow } from "@/components/brand";
 import { ConcordiumSignIn } from "@/components/concordium-sign-in";
 import { ConcordiumWalletSignIn } from "@/components/concordium-wallet-sign-in";
@@ -450,7 +451,20 @@ async function MyAgents() {
   const agents = await getDesk()
     .listOwnerAgents(worker.workerId)
     .catch(() => []); // testers can't own agents
-  if (agents.length === 0) return null;
+  if (agents.length === 0) {
+    return (
+      <div className="flex flex-col items-start gap-2 rounded-2xl border border-dashed bg-card/60 p-6">
+        <p className="font-medium">No agents yet</p>
+        <p className="text-sm text-muted-foreground">
+          An AI agent asks you for a key, and you approve it here with spending limits. Connect your PayPal once and it funds
+          tasks without asking each time.
+        </p>
+        <Link href="/agents" className={buttonVariants({ variant: "outline", size: "sm", className: "mt-1" })}>
+          Set up an agent
+        </Link>
+      </div>
+    );
+  }
   // Offer Connect PayPal only when PayPal lets boreal save accounts; otherwise each task sends a checkout link.
   const paypal = paymentRails().includes("paypal") && ((await paypalAccounts()?.canSaveAccounts()) ?? false);
   return (
@@ -596,39 +610,111 @@ async function PayPalNotice({ searchParams }: { searchParams: Promise<{ paypal?:
   );
 }
 
-export default function MyTasksPage({ searchParams }: { searchParams: Promise<{ paypal?: string; concordium?: string }> }) {
+type SearchParams = Promise<{ tab?: string; paypal?: string; concordium?: string }>;
+
+/** The tab bar, with a count on the tabs where something waits for this person. */
+async function Tabs({ active }: { active: AccountTab }) {
+  const worker = await workerFromSession();
+  if (!worker || worker.role !== "worker") return <AccountTabs active={active} />;
+  const desk = getDesk();
+  const [mine, poster] = await Promise.all([desk.listWorkerTasks(worker).catch(() => []), posterFromSession()]);
+  const posted = poster?.requester ? await desk.listTasks(poster.requester, { limit: 50 }).catch(() => []) : [];
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-4 py-10 md:py-14">
+    <AccountTabs
+      active={active}
+      counts={{
+        work: mine.filter((t) => t.status === "claimed").length,
+        posted: posted.filter((t) => t.status === "awaiting_funding" || (t.status === "submitted" && t.reviewMode === "requester")).length,
+      }}
+    />
+  );
+}
+
+const SECTION_FALLBACK = <div className="h-40 animate-pulse rounded-2xl bg-muted" />;
+
+/** One tab's sections. */
+function TabPanel({ tab }: { tab: AccountTab }) {
+  switch (tab) {
+    case "overview":
+      return (
+        <>
+          <Suspense fallback={<div className="h-44 animate-pulse rounded-2xl bg-muted" />}>
+            <Identity />
+          </Suspense>
+          <Suspense fallback={<div className="h-36 animate-pulse rounded-2xl bg-muted" />}>
+            <Earnings />
+          </Suspense>
+          <Suspense fallback={null}>
+            <InsightsLink />
+          </Suspense>
+        </>
+      );
+    case "work":
+      return (
+        <Suspense fallback={SECTION_FALLBACK}>
+          <MyTasks />
+        </Suspense>
+      );
+    case "posted":
+      return (
+        <Suspense fallback={SECTION_FALLBACK}>
+          <PostedTasks />
+        </Suspense>
+      );
+    case "agents":
+      return (
+        <Suspense fallback={SECTION_FALLBACK}>
+          <MyAgents />
+        </Suspense>
+      );
+    case "payouts":
+      return (
+        <Suspense fallback={SECTION_FALLBACK}>
+          <Payouts />
+        </Suspense>
+      );
+    case "addons":
+      return (
+        <Suspense fallback={SECTION_FALLBACK}>
+          <Addons />
+        </Suspense>
+      );
+  }
+}
+
+async function Account({ searchParams }: { searchParams: SearchParams }) {
+  const params = await searchParams;
+  // Coming back from PayPal or Concordium lands on the tab that changed.
+  const tab = accountTab(
+    params.tab ??
+      (params.concordium === "added"
+        ? "addons"
+        : params.paypal === "saved" || params.paypal === "not-yours" || params.paypal === "unavailable"
+          ? "agents"
+          : undefined),
+  );
+  return (
+    <>
+      <Suspense fallback={<AccountTabs active={tab} />}>
+        <Tabs active={tab} />
+      </Suspense>
+      <PayPalNotice searchParams={searchParams} />
+      <div className="flex flex-col gap-6">
+        <TabPanel tab={tab} />
+      </div>
+    </>
+  );
+}
+
+export default function MyAccountPage({ searchParams }: { searchParams: SearchParams }) {
+  return (
+    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-10 md:py-14">
       <div className="flex flex-col gap-3">
-        <Eyebrow>Your work</Eyebrow>
+        <Eyebrow>Your account</Eyebrow>
         <h1 className="text-3xl font-semibold tracking-tight">My account</h1>
       </div>
-      <Suspense>
-        <PayPalNotice searchParams={searchParams} />
-      </Suspense>
-      <Suspense fallback={<div className="h-44 animate-pulse rounded-2xl bg-muted" />}>
-        <Identity />
-      </Suspense>
-      <Suspense fallback={<div className="h-36 animate-pulse rounded-2xl bg-muted" />}>
-        <Earnings />
-      </Suspense>
-      <Suspense fallback={null}>
-        <InsightsLink />
-      </Suspense>
-      <Suspense fallback={<div className="h-32 animate-pulse rounded-2xl bg-muted" />}>
-        <Payouts />
-      </Suspense>
-      <Suspense fallback={<div className="h-32 animate-pulse rounded-2xl bg-muted" />}>
-        <Addons />
-      </Suspense>
-      <Suspense fallback={null}>
-        <MyAgents />
-      </Suspense>
-      <Suspense fallback={<div className="h-40 animate-pulse rounded-2xl bg-muted" />}>
-        <MyTasks />
-      </Suspense>
-      <Suspense fallback={<div className="h-24 animate-pulse rounded-2xl bg-muted" />}>
-        <PostedTasks />
+      <Suspense fallback={<AccountTabs active="overview" />}>
+        <Account searchParams={searchParams} />
       </Suspense>
     </main>
   );

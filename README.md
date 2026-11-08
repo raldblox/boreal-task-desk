@@ -66,6 +66,13 @@ When `BOREAL_ADDONS` is unset, the add-ons are inferred from older settings (Con
 
 The pseudonym secret keys PayPal identities as well as Concordium ID: set `BOREAL_PSEUDONYM_SECRET`, or keep the older `CONCORDIUM_PSEUDONYM_SECRET` (the same value; never change it, and both set to different values is refused).
 
+## Hackathons
+
+boreal is entered in two hackathons, with different parts of it:
+
+- **PayPal AI Hackathon**: the PayPal core ([docs/devpost-paypal.md](docs/devpost-paypal.md)).
+- **NEAR HACKATHON** (Agent Economy, Real-World Money): only the NEAR add-on, built after the Oct 19, 2026 announcement, is judged. It is the diff between the tags `near-pre-hackathon` and `near-hackathon-submission`; [docs/near.md](docs/near.md) says what was built, where it joins the product and how to try it.
+
 ## Getting started
 
 Needs Node 22+ and pnpm 10.
@@ -282,7 +289,7 @@ Reads the variables above from the environment or `packages/concordium/.env.test
 | `/signin` | workers, owners | Log in with PayPal; `?next=` returns to the page that sent them. Concordium ID is offered on My account, not here; with that add-on on, people who added it get a quiet "sign in with it" link (the development wallet locally) |
 | `/tasks` | workers | Open tasks they qualify for |
 | `/tasks/:id` | workers | Claim, submit a photo or text, see the verdict with its rules, dispute once; every state says what happens next |
-| `/me` | workers, owners | My account: identity (PayPal), earnings (held, on its way, paid), getting paid, add-ons (only those on here), their agents, their tasks, tasks they posted |
+| `/me` | workers, owners | My account, in tabs (`?tab=`): Overview (identity, earnings), My work, Posted, Agents, Getting paid, Add-ons (only those on here) |
 | `/agents` | owners | Setting up an agent: MCP config for Claude Code and Hermes, the setup prompt, fees and money |
 | `/post` | signed-in people | Post a task yourself: description, checks, result format, pay, deadline, who reviews, with a live fee quote (optional 18+ / country with the Concordium add-on) |
 | `/me/insights` | people with enough tasks | Their own money as charts (AG Studio): spending for people who post or own agents, earnings for workers. My account links here only after 3 funded or 3 paid tasks |

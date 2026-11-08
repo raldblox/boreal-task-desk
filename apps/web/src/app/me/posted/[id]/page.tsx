@@ -298,7 +298,7 @@ async function PostedTask({ params, searchParams }: Props) {
 export default function PostedTaskPage(props: Props) {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-8 md:py-12">
-      <Link href="/me#posted" className="flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+      <Link href="/me?tab=posted" className="flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-4" /> Tasks you posted
       </Link>
       <Eyebrow>Your task</Eyebrow>
