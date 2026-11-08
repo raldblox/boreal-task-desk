@@ -62,7 +62,7 @@ export function BorealBackdrop() {
       aria-hidden
       className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[560px] overflow-hidden [mask-image:linear-gradient(to_bottom,black_55%,transparent)] md:h-[640px]"
     >
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" className="size-full">
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" className="absolute inset-0 size-full">
         <defs>
           <linearGradient id="bb-sky" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor="#cfe4ee" />
@@ -107,19 +107,29 @@ export function BorealBackdrop() {
         <rect width={W} height={H} fill="url(#bb-sky)" />
         <rect width={W} height={H} fill="url(#bb-sun)" />
 
-        {/* Aurora: soft curtains, faint as it would be by day. */}
-        <g filter="url(#bb-soft)" opacity="0.6">
-          <path d="M-60 250 C 220 150, 420 300, 700 200 S 1150 110, 1380 190 S 1620 150, 1700 120 L 1700 -40 L -60 -40 Z" fill="url(#bb-aurora)" transform="translate(0 -30) scale(1 0.8)" />
-          <path d="M520 240 C 760 170, 960 250, 1160 190 S 1460 150, 1660 210 L 1660 20 L 520 20 Z" fill="url(#bb-aurora)" opacity="0.6" />
-        </g>
-        <g opacity="0.3" filter="url(#bb-haze)" stroke="#6fd8b2" strokeWidth="5" fill="none">
-          {Array.from({ length: 26 }, (_, i) => {
-            const x = 560 + i * 34;
-            const top = 60 + Math.sin(i * 0.7) * 30;
-            return <path key={i} d={`M${x} ${top} L${x + 30} ${top + 120 + Math.cos(i) * 25}`} />;
-          })}
-        </g>
+      </svg>
 
+      {/* Aurora: soft curtains, faint as it would be by day. Each sits on its own layer and drifts
+          slowly (globals.css: .bb-aurora-*), moved by the compositor so the blur isn't redrawn. */}
+      <div className="bb-aurora bb-aurora-a absolute inset-y-0 -inset-x-[6%]">
+        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" className="size-full">
+          <path d="M-60 250 C 220 150, 420 300, 700 200 S 1150 110, 1380 190 S 1620 150, 1700 120 L 1700 -40 L -60 -40 Z" fill="url(#bb-aurora)" filter="url(#bb-soft)" opacity="0.6" transform="translate(0 -30) scale(1 0.8)" />
+        </svg>
+      </div>
+      <div className="bb-aurora bb-aurora-b absolute inset-y-0 -inset-x-[6%]">
+        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" className="size-full">
+          <path d="M520 240 C 760 170, 960 250, 1160 190 S 1460 150, 1660 210 L 1660 20 L 520 20 Z" fill="url(#bb-aurora)" filter="url(#bb-soft)" opacity="0.36" />
+          <g opacity="0.3" filter="url(#bb-haze)" stroke="#6fd8b2" strokeWidth="5" fill="none">
+            {Array.from({ length: 26 }, (_, i) => {
+              const x = 560 + i * 34;
+              const top = 60 + Math.sin(i * 0.7) * 30;
+              return <path key={i} d={`M${x} ${top} L${x + 30} ${top + 120 + Math.cos(i) * 25}`} />;
+            })}
+          </g>
+        </svg>
+      </div>
+
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" className="absolute inset-0 size-full">
         {/* Clouds */}
         <g fill="#ffffff" filter="url(#bb-soft)" opacity="0.8">
           <ellipse cx="260" cy="120" rx="220" ry="34" />

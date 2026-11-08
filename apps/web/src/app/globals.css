@@ -140,3 +140,26 @@
     @apply font-sans;
   }
 }
+/* The backdrop's aurora (components/boreal-backdrop.tsx): a slow, faint drift. Transform and
+   opacity only, so it runs on the compositor; still for people who ask for less motion. */
+.bb-aurora {
+  transform-origin: 50% 0;
+  will-change: transform, opacity;
+}
+.bb-aurora-a {
+  animation: bb-aurora-a 26s ease-in-out infinite;
+}
+.bb-aurora-b {
+  animation: bb-aurora-b 34s ease-in-out -9s infinite;
+}
+@keyframes bb-aurora-a {
+  0%, 100% { transform: translate3d(-1.5%, 0, 0) scaleY(0.97); opacity: 0.8; }
+  50% { transform: translate3d(1.5%, -1%, 0) scaleY(1.05); opacity: 1; }
+}
+@keyframes bb-aurora-b {
+  0%, 100% { transform: translate3d(1.2%, 0, 0) scaleY(1.03); opacity: 1; }
+  50% { transform: translate3d(-1.8%, 0.6%, 0) scaleY(0.95); opacity: 0.65; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bb-aurora { animation: none; }
+}
