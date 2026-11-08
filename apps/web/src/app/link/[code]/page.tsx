@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { POLICY } from "@boreal/core";
 import { badgeProofMessage } from "@boreal/concordium";
 import { DeskError, normaliseLinkCode } from "@boreal/desk";
@@ -16,6 +17,9 @@ import { getAddons, verification } from "@/server/addons";
 import { getDesk, paymentRails } from "@/server/desk";
 import { paypalAccounts } from "@/server/paypal-accounts";
 import { workerFromSession } from "@/server/session";
+
+export const metadata: Metadata = { title: "Link an agent", robots: { index: false, follow: false } };
+
 
 /** Desk errors are lower-case clauses; show one as a sentence. */
 const sentence = (message: string) => `${message.charAt(0).toUpperCase()}${message.slice(1).replace(/\.?$/, ".")}`;

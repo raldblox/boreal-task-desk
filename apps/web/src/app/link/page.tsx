@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { normaliseLinkCode } from "@boreal/desk";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
@@ -6,6 +7,9 @@ import { Container, PageHero } from "@/components/page";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
+export const metadata: Metadata = { title: "Link an agent", robots: { index: false, follow: false } };
+
 
 type Props = { searchParams: Promise<{ code?: string }> };
 

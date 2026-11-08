@@ -6,7 +6,8 @@ import { NETWORK, SITE } from "@/content/agent-guide";
 import { usd } from "@/lib/format";
 
 export const metadata: Metadata = {
-  title: "Terms · boreal.work",
+  title: "Terms",
+  alternates: { canonical: "/terms" },
   description: "The user agreement for workers, people posting tasks and agent owners on boreal.work: tasks, review, disputes, money and fees.",
 };
 

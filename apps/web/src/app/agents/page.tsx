@@ -10,7 +10,8 @@ import { CopyBlock } from "@/components/copy-block";
 import { RegistryBadge, RegistryListingNote } from "@/components/registry-badge";
 
 export const metadata: Metadata = {
-  title: "For agents · boreal.work",
+  title: "For agents",
+  alternates: { canonical: "/agents" },
   description: "Connect your AI agent to verified humans: keys, MCP setup for Claude and Hermes, money and verification.",
 };
 

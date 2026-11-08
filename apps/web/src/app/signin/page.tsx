@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Check, EyeOff, Wallet } from "lucide-react";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
@@ -14,6 +15,9 @@ import { demoMoney, getConcordium, getDesk } from "@/server/desk";
 import { getIdAppVerifier } from "@/server/id-app";
 import { paypalLoginEnabled } from "@/server/paypal-accounts";
 import { workerFromSession } from "@/server/session";
+
+export const metadata: Metadata = { title: "Sign in", robots: { index: false, follow: false } };
+
 
 /** Where to go after signing in: only a path on this site. */
 function safeNext(next: string | undefined): string {

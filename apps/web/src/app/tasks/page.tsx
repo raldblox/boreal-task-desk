@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -6,6 +7,13 @@ import { TaskCard } from "@/components/task-card";
 import { canBePaidOn } from "@/lib/rails";
 import { getDesk } from "@/server/desk";
 import { workerFromSession } from "@/server/session";
+
+export const metadata: Metadata = {
+  title: "Find tasks",
+  description: "Paid real-world tasks near you: photos, checks and visits. Funded before they appear, paid with PayPal when they pass.",
+  alternates: { canonical: "/tasks" },
+};
+
 
 async function OpenTasks({ searchParams }: { searchParams: Promise<{ payable?: string }> }) {
   const payable = (await searchParams).payable === "1";

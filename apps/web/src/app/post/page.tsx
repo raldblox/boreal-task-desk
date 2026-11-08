@@ -14,7 +14,8 @@ import { postTask } from "./actions";
 import { PostForm } from "./post-form";
 
 export const metadata: Metadata = {
-  title: "Post a task · boreal.work",
+  title: "Post a task",
+  alternates: { canonical: "/post" },
   description: "Hand a task that needs a real person to a verified human, and pay only if the result passes.",
 };
 

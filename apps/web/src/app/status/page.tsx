@@ -15,7 +15,8 @@ import { paypalLoginEnabled } from "@/server/paypal-accounts";
 import { type Check, databaseCheck, type Health, overall, queueCheck, registryCheck } from "@/server/status";
 
 export const metadata: Metadata = {
-  title: "Status · boreal.work",
+  title: "Status",
+  alternates: { canonical: "/status" },
   description: "Whether boreal.work, its database, payments, sign-in and payouts are working right now.",
 };
 

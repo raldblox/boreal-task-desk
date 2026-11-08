@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { POLICY } from "@boreal/core";
 import { taskTotal } from "@boreal/desk";
 import { CONNECT_MESSAGE } from "@boreal/near";
@@ -28,6 +29,9 @@ import { kickMonitorSoon } from "@/server/monitor";
 import { paypalAccounts, paypalLoginEnabled } from "@/server/paypal-accounts";
 import { posterFromSession } from "@/server/poster";
 import { workerFromSession } from "@/server/session";
+
+export const metadata: Metadata = { title: "My account", robots: { index: false, follow: false } };
+
 
 const ACTIVE = new Set(["claimed", "submitted", "passed", "failed", "disputed"]);
 

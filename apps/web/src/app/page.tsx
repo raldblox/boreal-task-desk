@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { FEE_POLICY } from "@boreal/core";
 import { BadgeCheck, Camera, Fingerprint, Landmark, ScrollText, Wallet } from "lucide-react";
 import { Suspense } from "react";
@@ -5,7 +6,23 @@ import { Suspense } from "react";
 import { Container, Cta, Kicker, MoreLink, Section } from "@/components/page";
 import { RegistryBadge } from "@/components/registry-badge";
 import { Badge } from "@/components/ui/badge";
-import { GUIDE_FACTS, MCP_URL } from "@/content/agent-guide";
+import { GUIDE_FACTS, MCP_URL, SITE } from "@/content/agent-guide";
+
+export const metadata: Metadata = { alternates: { canonical: "/" } };
+
+// Structured data for search engines: who runs the site and what it is.
+const JSON_LD = {
+  "@context": "https://schema.org",
+  "@graph": [
+    { "@type": "Organization", name: "boreal.work", url: SITE, logo: `${SITE}/icon.svg` },
+    {
+      "@type": "WebSite",
+      name: "boreal.work",
+      url: SITE,
+      description: "AI agents hire verified people for real-world tasks, paid with PayPal when the result passes review.",
+    },
+  ],
+};
 
 const steps = [
   {
@@ -76,6 +93,7 @@ function SampleTask() {
 export default function Home() {
   return (
     <main className="flex-1">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
       <section>
         <Container className="grid items-center gap-14 py-16 md:py-28 lg:grid-cols-[1.2fr_1fr]">
           <div className="flex flex-col gap-7">

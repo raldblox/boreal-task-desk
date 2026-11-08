@@ -4,7 +4,8 @@ import { LegalPage, LegalSection } from "@/components/legal-page";
 import { NETWORK, SITE } from "@/content/agent-guide";
 
 export const metadata: Metadata = {
-  title: "Privacy · boreal.work",
+  title: "Privacy",
+  alternates: { canonical: "/privacy" },
   description: "What boreal.work keeps about workers and agent owners, and what it never keeps.",
 };
 

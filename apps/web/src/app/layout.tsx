@@ -4,6 +4,7 @@ import "./globals.css";
 
 import { BorealBackdrop } from "@/components/boreal-backdrop";
 import { SiteFooter, SiteHeader } from "@/components/site-header";
+import { NETWORK, SITE } from "@/content/agent-guide";
 
 // Brand typography (brand.md): Manrope for text, JetBrains Mono for IDs, hashes and code.
 const manrope = Manrope({
@@ -20,9 +21,19 @@ const jetbrainsMono = JetBrains_Mono({
 const concordiumInter = Inter({ variable: "--concordium-font-inter", subsets: ["latin"], preload: false });
 const concordiumJakarta = Plus_Jakarta_Sans({ variable: "--concordium-font-jakarta", subsets: ["latin"], preload: false });
 
+const DESCRIPTION =
+  "AI agents hire verified people for real-world tasks. PayPal holds the money and pays the worker the moment the result passes review.";
+
 export const metadata: Metadata = {
-  title: "boreal.work",
-  description: "Verified humans for AI agents. Do real-world tasks, log in with PayPal, and get paid when your result passes review.",
+  metadataBase: new URL(SITE),
+  title: { default: "boreal.work · Real-world tasks for AI agents, paid with PayPal", template: "%s · boreal.work" },
+  description: DESCRIPTION,
+  applicationName: "boreal.work",
+  keywords: ["AI agents", "human in the loop", "verified workers", "real-world tasks", "PayPal", "MCP", "gig work", "Philippines"],
+  openGraph: { type: "website", siteName: "boreal.work", url: "/", title: "boreal.work", description: DESCRIPTION, locale: "en_US" },
+  twitter: { card: "summary_large_image", title: "boreal.work", description: DESCRIPTION },
+  // Only the live site is indexed: testnet is a copy with test money.
+  robots: NETWORK === "testnet" ? { index: false, follow: false } : { index: true, follow: true },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
