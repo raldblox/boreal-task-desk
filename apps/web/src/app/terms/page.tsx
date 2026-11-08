@@ -22,7 +22,7 @@ export default function TermsPage() {
 
       <LegalSection title="Accounts">
         <ul>
-          <li>Log in with PayPal (or, where this site offers the Concordium add-on, Concordium ID). Each PayPal account and Concordium ID belongs to one boreal account.</li>
+          <li>Log in with PayPal. Each PayPal account belongs to one boreal account, and so does any Concordium ID you add on My account where this site offers it.</li>
           <li>One account per person. Accounts are never merged, and you may not use someone else&apos;s identity.</li>
           <li>
             {NETWORK === "mainnet" && "To claim tasks on live money you need a PayPal account PayPal has verified. "}

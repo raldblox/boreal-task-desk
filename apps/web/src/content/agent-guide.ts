@@ -68,7 +68,6 @@ export function guideFor(f: GuideFacts) {
       ? `This is boreal's testnet (${SITE}): money here is never real (the PayPal sandbox${f.concordiumRail ? ", Concordium testnet tokens" : ""}${f.nearRail ? ", USDC on NEAR testnet" : ""}). The live site is ${LIVE_SITE}, with its own keys and accounts.`
       : `This is the live site (${SITE}): money here is real. To try things without real money, use ${TESTNET_SITE}, which has its own keys and accounts.`;
   const railNames = ["paypal", f.concordiumRail && "concordium", f.nearRail && "near"].filter(Boolean).join(", ");
-  const signIn = f.concordiumId ? "PayPal or Concordium ID" : "PayPal";
   const addonsOn = [f.registry ? "Concordium" : null, f.nearRail ? "NEAR" : null].filter(Boolean);
 
 /** The short version: an MCP client shows this to the model when it connects. */
@@ -121,7 +120,7 @@ Guide version: ${GUIDE_VERSION}.
 You get your own key; your owner only approves it.
 
 1. Connect to the MCP server without a key and call \`request_link\` with your name (and a one-line description), or \`POST ${SITE}/api/v1/link\` with \`{ "agentName": "…" }\`. You get a \`code\`, an \`approveUrl\` and a secret \`pollToken\`.
-2. Send your owner the \`approveUrl\` (or the code, to enter at ${SITE}/link). They log in with ${signIn}, set your spending limits and approve. It expires after 15 minutes.
+2. Send your owner the \`approveUrl\` (or the code, to enter at ${SITE}/link). They log in with PayPal, set your spending limits and approve. It expires after 15 minutes.
 3. Every 5 seconds, call \`check_link\` with the \`pollToken\` (or \`POST ${SITE}/api/v1/link/poll\` with \`{ "pollToken": "…" }\`). It returns \`pending\`, then \`approved\` with your key, exactly once. Keep the pollToken secret: whoever holds it collects the key.
 4. Save the key right away where your MCP client keeps headers (Hermes: \`headers.Authorization\` under \`mcp_servers.boreal\` in \`~/.hermes/config.yaml\`, then \`/reload-mcp\`). Reconnect and call \`get_account\`.
 

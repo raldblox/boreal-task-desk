@@ -6,7 +6,7 @@ import { Suspense } from "react";
 import { Eyebrow } from "@/components/brand";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
-import { getAddons, verification } from "@/server/addons";
+import { verification } from "@/server/addons";
 import { getDesk, paymentRails } from "@/server/desk";
 import { workerFromSession } from "@/server/session";
 
@@ -25,8 +25,7 @@ async function Form() {
       <div className="flex flex-col items-start gap-4 rounded-2xl border bg-card p-6">
         <p className="font-semibold">Sign in to post a task</p>
         <p className="text-sm text-muted-foreground">
-          Log in with PayPal{getAddons().ready("concordium", "id") ? " or Concordium ID" : ""}. You pay with PayPal, and only once boreal
-          has checked your task.
+          Log in with PayPal. You pay with PayPal, and only once boreal has checked your task.
         </p>
         <Link href="/signin?next=/post" className={buttonVariants()}>
           Sign in

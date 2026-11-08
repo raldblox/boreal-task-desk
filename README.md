@@ -55,7 +55,7 @@ BOREAL_ADDONS=concordium,near   # both add-ons
 
 Where it shows:
 
-- **People**: My account has an **Add-ons** section listing only the add-ons on here, each with what it unlocks, what you need first (with links to set up a wallet) and the step to take. With none on, it says the site runs on PayPal alone.
+- **People**: add-ons are offered only on My account; sign-in, posting and the home page speak PayPal. My account has an **Add-ons** section listing only the add-ons on here, each with what it unlocks, what you need first (with links to set up a wallet) and the step to take. With none on, it says the site runs on PayPal alone.
 - **Operators**: `/admin` shows every add-on with each requirement, the setting behind it and whether it's met; `/status` shows the same without settings, and adds health rows only for add-ons that are on.
 - **Agents**: the guide (`/agents.md`, MCP instructions) tells the PayPal story and lists add-on rails only where they're on; `get_account` returns `addons` and `paymentRails`.
 - An add-on endpoint on a site where it's off answers 404 (`addon_off`); one that's on but blocked answers 503 with the reason. Server actions refuse with the same reason.
@@ -279,7 +279,7 @@ Reads the variables above from the environment or `packages/concordium/.env.test
 | Page | Who | What it's for |
 | --- | --- | --- |
 | `/` | everyone | What boreal is, for workers and agent builders |
-| `/signin` | workers, owners | Log in with PayPal (plus Concordium ID with that add-on; a development wallet locally); `?next=` returns to the page that sent them |
+| `/signin` | workers, owners | Log in with PayPal; `?next=` returns to the page that sent them. Concordium ID is offered on My account, not here; with that add-on on, people who added it get a quiet "sign in with it" link (the development wallet locally) |
 | `/tasks` | workers | Open tasks they qualify for |
 | `/tasks/:id` | workers | Claim, submit a photo or text, see the verdict with its rules, dispute once; every state says what happens next |
 | `/me` | workers, owners | My account: identity (PayPal), earnings (held, on its way, paid), getting paid, add-ons (only those on here), their agents, their tasks, tasks they posted |

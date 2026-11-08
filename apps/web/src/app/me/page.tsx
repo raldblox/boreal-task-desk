@@ -355,9 +355,29 @@ async function Addons() {
               {profile.hasConcordium && <Badge>Verified by Concordium</Badge>}
             </div>
             <p className="text-sm text-muted-foreground">
-              Unlocks tasks that need you to be 18+ or live in a certain country, proven with a zero-knowledge proof: boreal
-              never sees your name or documents. It also raises your posting limits.
+              Unlocks tasks that need you to be 18+ or live in a certain country, proven with a zero-knowledge proof: you prove
+              facts, not who you are. It also raises your posting limits, and lets you sign in with it as well as PayPal.
             </p>
+            {!profile.hasConcordium && (
+              <div className="grid gap-3 text-sm sm:grid-cols-2">
+                <div>
+                  <p className="font-medium">What it shares with boreal</p>
+                  <ul className="mt-1 list-disc pl-5 text-muted-foreground">
+                    <li>That you&apos;re 18 or older</li>
+                    <li>Your country of residence</li>
+                    <li>Your ID document number, turned at once into a one-way code; the number itself is never kept</li>
+                  </ul>
+                </div>
+                <div>
+                  <p className="font-medium">What boreal never sees</p>
+                  <ul className="mt-1 list-disc pl-5 text-muted-foreground">
+                    <li>Your name</li>
+                    <li>Your date of birth</li>
+                    <li>Photos of your documents</li>
+                  </ul>
+                </div>
+              </div>
+            )}
             <ul className="flex flex-col gap-1">
               <Need met={profile.hasConcordium}>
                 The Concordium ID App on your phone, or the Concordium Wallet for Web, with an identity in it.{" "}

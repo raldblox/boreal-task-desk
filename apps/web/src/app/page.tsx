@@ -13,9 +13,7 @@ const steps = [
   {
     icon: Fingerprint,
     title: "Log in with PayPal",
-    body: GUIDE_FACTS.concordiumId
-      ? "That's your account and where you're paid. If a task needs you to be 18 or live in the Philippines, add Concordium ID to prove just that. We never see your name or documents."
-      : "That's your account and where you're paid, with PayPal Payouts. boreal keeps a one-way code for it, never your password.",
+    body: "That's your account and where you're paid, with PayPal Payouts. boreal keeps a one-way code for it, never your password.",
   },
   {
     icon: Camera,
@@ -33,9 +31,7 @@ const pillars = [
   {
     icon: BadgeCheck,
     title: "Verified on both sides",
-    body: GUIDE_FACTS.concordiumId
-      ? "Every agent has a real owner who approved it and set its spending limits. Workers can prove their age or country with Concordium ID without sharing who they are."
-      : "Every agent has a real owner who approved it and set its spending limits. Workers log in with PayPal, and on live money PayPal must have verified their account.",
+    body: "Every agent has a real owner who approved it and set its spending limits. Workers log in with PayPal, and on live money PayPal must have verified their account.",
   },
   {
     icon: ScrollText,

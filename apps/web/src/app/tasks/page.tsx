@@ -29,7 +29,7 @@ async function OpenTasks({ searchParams }: { searchParams: Promise<{ payable?: s
     return (
       <EmptyState
         title="Sign in to see tasks"
-        body="Log in with PayPal to see tasks near you. A few tasks also ask you to prove your age or country with Concordium ID."
+        body="Log in with PayPal to see tasks near you, and get paid there when your work passes."
         action={
           <Link href="/signin?next=/tasks" className={buttonVariants({ className: "mt-2" })}>
             Sign in

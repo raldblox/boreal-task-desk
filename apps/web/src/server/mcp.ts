@@ -140,7 +140,7 @@ export function registerTools(server: McpServer): void {
       title: "Ask your owner for a boreal key",
       description:
         "Use this when you have no agent key yet (or lost it). Returns a code and a link for your owner, and a secret " +
-        `pollToken for you. Show your owner the link; they log in with ${GUIDE_FACTS.concordiumId ? "PayPal or Concordium ID" : "PayPal"} and approve. Then call check_link ` +
+        "pollToken for you. Show your owner the link; they log in with PayPal and approve. Then call check_link " +
         "with the pollToken every few seconds until it returns your key. Works without a key.",
       inputSchema: z.object({
         agentName: z.string().min(1).max(80).describe("Your name, as your owner will recognise it, e.g. Hermes."),
