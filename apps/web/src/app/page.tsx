@@ -1,6 +1,5 @@
 import { FEE_POLICY } from "@boreal/core";
-import { ArrowRight, BadgeCheck, Camera, Fingerprint, Landmark, ScrollText, Wallet } from "lucide-react";
-import Link from "next/link";
+import { BadgeCheck, Camera, Fingerprint, Landmark, ScrollText, Wallet } from "lucide-react";
 import { Suspense } from "react";
 
 import { Container, Cta, Kicker, MoreLink, Section } from "@/components/page";
@@ -164,21 +163,15 @@ export default function Home() {
         </div>
       </Section>
 
-      <section className="border-t bg-foreground text-background">
-        <Container className="flex flex-col items-start gap-8 py-16 md:flex-row md:items-center md:justify-between md:py-20">
-          <div className="flex flex-col gap-3">
-            <h2 className="text-4xl font-light tracking-[-0.03em]">Ready to take your first task?</h2>
-            <p className="text-background/70">Log in with PayPal and see what&apos;s open near you.</p>
+      <section>
+        <Container className="pb-16 md:pb-24">
+          <div className="flex flex-col items-start gap-6 rounded-2xl border bg-card p-8 md:flex-row md:items-center md:justify-between md:p-10">
+            <div className="flex flex-col gap-2">
+              <h2 className="text-3xl font-light tracking-[-0.03em] md:text-4xl">Ready to take your first task?</h2>
+              <p className="text-muted-foreground">Log in with PayPal and see what&apos;s open near you.</p>
+            </div>
+            <Cta href="/signin">Log in to work</Cta>
           </div>
-          <Link
-            href="/signin"
-            className="group inline-flex h-12 items-center gap-3 rounded-lg bg-background pr-2 pl-5 text-base font-medium text-foreground transition-colors hover:bg-background/90"
-          >
-            Log in to work
-            <span className="grid size-8 place-items-center rounded-md bg-foreground/10 transition-transform group-hover:translate-x-0.5">
-              <ArrowRight className="size-4" />
-            </span>
-          </Link>
         </Container>
       </section>
     </main>

@@ -6,10 +6,11 @@ import { AccountMenu } from "@/components/account-menu";
 import { BorealLogo } from "@/components/brand";
 import { Container } from "@/components/page";
 import { buttonVariants } from "@/components/ui/button";
-import { NETWORK } from "@/content/agent-guide";
+import { NavLinks } from "@/components/nav-links";
+import { GUIDE_FACTS, LIVE_SITE, NETWORK, SITE } from "@/content/agent-guide";
 import { workerHandle } from "@/lib/format";
 import { currentAdmin } from "@/server/admin";
-import { getDesk } from "@/server/desk";
+import { demoMoney, getDesk } from "@/server/desk";
 import { workerFromSession } from "@/server/session";
 
 async function Account() {
@@ -34,21 +35,23 @@ async function Account() {
   return <AccountMenu handle={profile ? workerHandle(profile.pseudonym) : null} admin={Boolean(admin)} />;
 }
 
-const NAV = [
-  { href: "/tasks", label: "Find tasks" },
-  { href: "/post", label: "Post a task" },
-  { href: "/agents", label: "For agents" },
-];
-
-function NavLinks() {
+/** The testnet notice, inside the sticky header so it stays in view. Short on phones. */
+function TestnetBanner() {
+  if (!demoMoney()) return null;
+  const rails = `the PayPal sandbox${GUIDE_FACTS.concordiumRail ? " and Concordium testnet tokens" : ""}${GUIDE_FACTS.nearRail ? " and USDC on NEAR testnet" : ""}`;
   return (
-    <>
-      {NAV.map((item) => (
-        <Link key={item.href} href={item.href} className="rounded-md px-3 py-2 transition-colors hover:bg-muted hover:text-foreground">
-          {item.label}
-        </Link>
-      ))}
-    </>
+    <p className="border-t border-border/70 bg-primary-soft/60 px-4 py-1.5 text-center text-xs font-medium text-primary-soft-foreground">
+      <span className="sm:hidden">Testnet: never real money.</span>
+      <span className="hidden sm:inline">Testnet: payments here use {rails}, never real money.</span>
+      {SITE !== LIVE_SITE && (
+        <>
+          {" "}
+          <a href={LIVE_SITE} className="underline underline-offset-2 hover:text-foreground">
+            Go to the live site
+          </a>
+        </>
+      )}
+    </p>
   );
 }
 
@@ -58,7 +61,7 @@ export function SiteHeader() {
       <Container className="flex h-16 items-center justify-between gap-4">
         <div className="flex items-center gap-8">
           <BorealLogo />
-          <nav aria-label="Main" className="hidden items-center gap-1 text-sm text-muted-foreground md:flex">
+          <nav aria-label="Main" className="hidden items-center gap-1 text-sm md:flex">
             <NavLinks />
           </nav>
         </div>
@@ -67,9 +70,10 @@ export function SiteHeader() {
         </Suspense>
       </Container>
       {/* On phones the links get their own row, so tasks are one tap away on every page. */}
-      <nav aria-label="Main" className="flex gap-1 overflow-x-auto border-t px-3 py-1.5 text-sm whitespace-nowrap text-muted-foreground md:hidden">
+      <nav aria-label="Main" className="flex gap-1 overflow-x-auto border-t px-3 py-1.5 text-sm whitespace-nowrap md:hidden">
         <NavLinks />
       </nav>
+      <TestnetBanner />
     </header>
   );
 }
