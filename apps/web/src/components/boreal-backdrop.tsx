@@ -88,10 +88,18 @@ export function BorealBackdrop() {
             <stop offset="0.4" stopColor="#f4f9f8" stopOpacity="0.6" />
             <stop offset="0.68" stopColor="#f4f9f8" stopOpacity="0" />
           </linearGradient>
-          <filter id="bb-soft" x="-20%" y="-50%" width="140%" height="200%">
+          {/* Fades the wash in from above, so it has no top edge. */}
+          <linearGradient id="bb-wash-fade" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0.3" stopColor="#fff" stopOpacity="0" />
+            <stop offset="0.6" stopColor="#fff" stopOpacity="1" />
+          </linearGradient>
+          <mask id="bb-wash-mask" maskContentUnits="userSpaceOnUse">
+            <rect width={W} height={H} fill="url(#bb-wash-fade)" />
+          </mask>
+          <filter id="bb-soft" filterUnits="userSpaceOnUse" x="-300" y="-300" width={W + 600} height={H + 600}>
             <feGaussianBlur stdDeviation="22" />
           </filter>
-          <filter id="bb-haze" x="-10%" y="-50%" width="120%" height="200%">
+          <filter id="bb-haze" filterUnits="userSpaceOnUse" x="-300" y="-300" width={W + 600} height={H + 600}>
             <feGaussianBlur stdDeviation="8" />
           </filter>
         </defs>
@@ -120,9 +128,9 @@ export function BorealBackdrop() {
         </g>
 
         {/* Mountains */}
-        <path d="M0 470 L120 430 L230 445 L360 380 L470 420 L560 400 L700 330 L790 370 L880 350 L990 300 L1080 345 L1180 320 L1300 360 L1420 330 L1520 370 L1600 350 L1600 640 L0 640 Z" fill="#c2d8de" />
+        <path d="M0 400 L60 425 L140 415 L230 445 L360 380 L470 420 L560 400 L700 330 L790 370 L880 350 L990 300 L1080 345 L1180 320 L1300 360 L1420 330 L1520 370 L1600 350 L1600 640 L0 640 Z" fill="#c2d8de" />
         <path d="M990 300 L1030 322 L1012 324 L1050 338 L1080 345 L1040 333 Z M700 330 L735 350 L718 352 L760 362 Z" fill="#eef5f6" />
-        <path d="M0 500 L150 470 L300 485 L420 450 L560 470 L700 440 L860 465 L1000 430 L1140 460 L1280 440 L1440 470 L1600 450 L1600 640 L0 640 Z" fill="#b2cdd2" />
+        <path d="M0 470 L90 492 L170 468 L300 485 L420 450 L560 470 L700 440 L860 465 L1000 430 L1140 460 L1280 440 L1440 470 L1600 450 L1600 640 L0 640 Z" fill="#b2cdd2" />
 
         <rect y="400" width={W} height="160" fill="url(#bb-mist)" />
         <path d={FAR} fill="#93b8b8" />
@@ -130,7 +138,7 @@ export function BorealBackdrop() {
         <path d={MID} fill="#6e9c9a" />
         <rect y="540" width={W} height="120" fill="url(#bb-mist)" opacity="0.6" />
         {/* Keep the left, where the headline and text sit, calm and readable. */}
-        <rect y="260" width={W} height={H - 260} fill="url(#bb-wash)" />
+        <rect width={W} height={H} fill="url(#bb-wash)" mask="url(#bb-wash-mask)" />
         <path d={NEAR} fill="#4a7b78" />
       </svg>
     </div>
