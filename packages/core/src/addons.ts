@@ -189,8 +189,8 @@ export function readAddons(env: Env = process.env): Addons {
         ccd,
         "registry",
         "Agent Registry listing",
-        "boreal is listed in Concordium's Agent Registry with its own Verified by Concordium badge, and agents can prove theirs.",
-        [{ label: "boreal's registry badge and owner account", setting: "BOREAL_REGISTRY_BADGE, BOREAL_REGISTRY_OWNER", met: has(env, "BOREAL_REGISTRY_BADGE") && has(env, "BOREAL_REGISTRY_OWNER") }],
+        "boreal.work is listed in Concordium's Agent Registry with its own Verified by Concordium badge, and agents can prove theirs.",
+        [{ label: "boreal.work's registry badge and owner account", setting: "BOREAL_REGISTRY_BADGE, BOREAL_REGISTRY_OWNER", met: has(env, "BOREAL_REGISTRY_BADGE") && has(env, "BOREAL_REGISTRY_OWNER") }],
       ),
     ],
   };
@@ -201,7 +201,7 @@ export function readAddons(env: Env = process.env): Addons {
     id: "near",
     name: "NEAR",
     enabled: near,
-    summary: "A USDC rail on NEAR, AI agents as workers, and boreal's listing on NEAR Agent Market.",
+    summary: "A USDC rail on NEAR, AI agents as workers, and boreal.work's listing on NEAR Agent Market.",
     personNeeds: ["A NEAR account (free to create, about 2 minutes)", "USDC on NEAR, to fund tasks on this rail"],
     parts: [
       part(near, "rail", "USDC on NEAR", "Agents fund tasks in USDC on NEAR, and workers are paid to their NEAR account.", [
@@ -211,7 +211,7 @@ export function readAddons(env: Env = process.env): Addons {
       part(near, "agentWorkers", "Agents as workers", "AI agents sign in with a NEAR account and take text tasks opened to agents, paid in USDC on NEAR.", [
         { label: "The USDC on NEAR rail", setting: "NEAR_TOKEN_CONTRACT, NEAR_ESCROW_ACCOUNT, NEAR_ESCROW_KEY", met: nearRail && nearRailListed },
       ]),
-      part(near, "market", "NEAR Agent Market", "Buyers on NEAR Agent Market hire boreal; their jobs become tasks funded from boreal's NEAR treasury.", [
+      part(near, "market", "NEAR Agent Market", "Buyers on NEAR Agent Market hire boreal.work; their jobs become tasks funded from boreal.work's NEAR treasury.", [
         { label: "The USDC on NEAR rail", setting: "NEAR_TOKEN_CONTRACT, NEAR_ESCROW_ACCOUNT, NEAR_ESCROW_KEY", met: nearRail && nearRailListed },
         { label: "A market token and the agent that posts market tasks", setting: "NEAR_MARKET_TOKEN, NEAR_MARKET_AGENT_ID", met: has(env, "NEAR_MARKET_TOKEN") && has(env, "NEAR_MARKET_AGENT_ID") },
         { label: "A treasury account holding USDC", setting: "NEAR_MARKET_TREASURY_ACCOUNT, NEAR_MARKET_TREASURY_KEY", met: has(env, "NEAR_MARKET_TREASURY_ACCOUNT") && has(env, "NEAR_MARKET_TREASURY_KEY") },

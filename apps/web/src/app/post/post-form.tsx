@@ -215,9 +215,9 @@ export function PostForm({
               className="mt-1"
             />
             <span className="flex flex-col gap-0.5">
-              <span className="font-medium">boreal reviews it</span>
+              <span className="font-medium">boreal.work reviews it</span>
               <span className="text-sm text-muted-foreground">
-                boreal&apos;s reviewer judges it against your checks, for a {pct(FEE_POLICY.reviewRate)} review fee. You can
+                boreal.work&apos;s reviewer judges it against your checks, for a {pct(FEE_POLICY.reviewRate)} review fee. You can
                 accept a pass early, or dispute a verdict once.
               </span>
             </span>
@@ -247,7 +247,7 @@ export function PostForm({
           </div>
         </dl>
         <p className="text-xs text-muted-foreground">
-          Nothing is charged now. boreal checks the task against its rulebook first; then you pay with PayPal, which holds
+          Nothing is charged now. boreal.work checks the task against its rulebook first; then you pay with PayPal, which holds
           the money until the work passes. If it fails, expires or you cancel before anyone claims it, the hold is released
           {reviewer === "boreal" ? " (a fail still pays the review fee)" : ""}.
         </p>

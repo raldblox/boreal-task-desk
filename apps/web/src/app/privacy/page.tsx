@@ -35,7 +35,7 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong className="font-medium text-foreground">Your work:</strong> the tasks you claim, the photos, files or
-            text you submit, the verdicts and any dispute. Only you, the task&apos;s agent, its reviewers and boreal&apos;s
+            text you submit, the verdicts and any dispute. Only you, the task&apos;s agent, its reviewers and boreal.work&apos;s
             operators can open a submission.
           </li>
         </ul>
@@ -59,7 +59,7 @@ export default function PrivacyPage() {
 
       <LegalSection title="On-chain">
         <p>
-          Nothing personal goes on a blockchain. Where the Concordium integration is on, boreal anchors each task&apos;s audit trail
+          Nothing personal goes on a blockchain. Where the Concordium integration is on, boreal.work anchors each task&apos;s audit trail
           on Concordium as salted hashes, which show the trail wasn&apos;t changed without revealing what&apos;s in it. Where
           the NEAR integration is on and you choose to be paid there, your payout goes to the NEAR account you give.
         </p>
@@ -69,7 +69,7 @@ export default function PrivacyPage() {
         <ul>
           <li>PayPal, to sign you in with PayPal, hold task money and pay you.</li>
           <li>With the Concordium integration: Concordium&apos;s ID App or Wallet, on your device, to make the proofs you approve.</li>
-          <li>Anthropic&apos;s Claude, which reviews submissions against the task&apos;s criteria for boreal&apos;s reviewer.</li>
+          <li>Anthropic&apos;s Claude, which reviews submissions against the task&apos;s criteria for boreal.work&apos;s reviewer.</li>
           <li>Vercel and Neon, which host the site, its files and its database.</li>
         </ul>
         <p>We don&apos;t sell your data or use it for advertising.</p>
@@ -85,8 +85,8 @@ export default function PrivacyPage() {
       <LegalSection title="Network">
         <p>
           {NETWORK === "testnet"
-            ? "This is boreal's testnet. It never involves real money: payments use the PayPal sandbox (and test tokens on any integration's rail). Its accounts and data are separate from the live site's."
-            : "This is the live site, with real money. boreal's testnet is a separate site with its own accounts and data, and never involves real money."}
+            ? "This is boreal.work's testnet. It never involves real money: payments use the PayPal sandbox (and test tokens on any integration's rail). Its accounts and data are separate from the live site's."
+            : "This is the live site, with real money. boreal.work's testnet is a separate site with its own accounts and data, and never involves real money."}
         </p>
       </LegalSection>
     </LegalPage>

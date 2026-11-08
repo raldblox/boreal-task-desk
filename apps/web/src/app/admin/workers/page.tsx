@@ -53,7 +53,7 @@ export default function AdminWorkersPage() {
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold">Workers</h1>
         <p className="text-sm text-muted-foreground">
-          A pseudonym, which identities sign them in, and proven attributes are all boreal keeps. Identities and payout
+          A pseudonym, which identities sign them in, and proven attributes are all boreal.work keeps. Identities and payout
           destinations show only whether one is set.
         </p>
       </div>

@@ -11,7 +11,7 @@ import { getDesk } from "@/server/desk";
 const ACCOUNTS = [
   ["worker", "Paid to workers"],
   ["reviewer", "Review fees"],
-  ["operating", "Platform fees (boreal)"],
+  ["operating", "Platform fees (boreal.work)"],
   ["requester", "Refunded to agents"],
 ] as const;
 
@@ -23,7 +23,7 @@ function FeeDestination() {
       <div className="flex flex-col gap-1 rounded-xl border bg-card p-4 text-sm">
         <p className="font-medium">PayPal</p>
         <p className="text-muted-foreground">
-          Stays in boreal&apos;s own PayPal business account (the app&apos;s merchant account). Capturing the agent&apos;s
+          Stays in boreal.work&apos;s own PayPal business account (the app&apos;s merchant account). Capturing the agent&apos;s
           authorization takes the money in, workers and reviewers are paid out of it, and the platform fee is simply
           kept: the outbox settles the <code>operating</code> entry in place, with no payout.
         </p>

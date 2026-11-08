@@ -535,7 +535,7 @@ describe("money views", () => {
 
     const ledger = await desk.getLedger(requester, { taskId: id });
     expect(ledger.map((e) => e.what)).toEqual(
-      expect.arrayContaining(["funded into escrow", "paid to the worker", "review fee to the reviewer", "platform fee to boreal"]),
+      expect.arrayContaining(["funded into escrow", "paid to the worker", "review fee to the reviewer", "platform fee to boreal.work"]),
     );
     expect((await desk.getWorkerEarnings(manilaWorker)).real).toEqual({ paid: 0, settling: quote.budget, upcoming: 0 });
     expect(await desk.getLedger(otherRequester, { taskId: id })).toEqual([]);

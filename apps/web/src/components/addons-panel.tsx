@@ -102,7 +102,7 @@ export function AddonsPanel({
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-muted-foreground">
-        boreal runs on PayPal: Log in with PayPal, PayPal escrow, saved PayPal accounts for agents and PayPal Payouts.{" "}
+        boreal.work runs on PayPal: Log in with PayPal, PayPal escrow, saved PayPal accounts for agents and PayPal Payouts.{" "}
         {on.length === 0 ? "No integrations are on here." : `Integrations on here: ${on.map((a) => a.name).join(", ")}.`}
         {operator && source === "inferred" && (
           <>

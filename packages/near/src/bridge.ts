@@ -137,14 +137,14 @@ export function createMarketBridge(options: MarketBridgeOptions) {
       return close(job, "This brief is too short for a person to act on. Hire again with what to do, where, and what to send back.", "brief too short");
     }
     if (deadline.getTime() - now().getTime() < 30 * 60 * 1000) {
-      return close(job, "The delivery window is too short for a person to do this and for boreal to review it. Hire again with a longer window.", "window too short");
+      return close(job, "The delivery window is too short for a person to do this and for boreal.work to review it. Hire again with a longer window.", "window too short");
     }
     try {
       const { task } = await desk.postTask(caller, taskFromBrief(brief, { budget, deadline }));
       await store.update(id, { taskId: task.id });
     } catch (error) {
       if (!(error instanceof DeskError)) throw error;
-      return close(job, `boreal can't take this job: ${error.message}.`, `post refused: ${error.code}`);
+      return close(job, `boreal.work can't take this job: ${error.message}.`, `post refused: ${error.code}`);
     }
   }
 
@@ -158,7 +158,7 @@ export function createMarketBridge(options: MarketBridgeOptions) {
     await store.update(job.assignmentId, { state: "started" });
     await market.message(
       job.assignmentId,
-      `Picked up. boreal posted your brief for a verified human worker; boreal's reviewer checks the result against your brief before it comes back here. Funding on NEAR: ${txHash}.`,
+      `Picked up. boreal.work posted your brief for a verified human worker; boreal.work's reviewer checks the result against your brief before it comes back here. Funding on NEAR: ${txHash}.`,
     );
   }
 
@@ -170,18 +170,18 @@ export function createMarketBridge(options: MarketBridgeOptions) {
     ]);
     const files = (submission?.fileUrls ?? []).map((path, i) => {
       const link = fileLink?.(path);
-      return link ? `- [File ${i + 1}](${link})` : `- File ${i + 1}: kept private by boreal`;
+      return link ? `- [File ${i + 1}](${link})` : `- File ${i + 1}: kept private by boreal.work`;
     });
     const markdown = [
       "# Done by a verified human",
       "",
-      "A person who proved who they are to boreal did this job, and boreal's reviewer passed it against your brief.",
+      "A person who proved who they are to boreal.work did this job, and boreal.work's reviewer passed it against your brief.",
       "",
       ...(submission?.text ? ["## Result", "", submission.text, ""] : []),
       ...(files.length ? ["## Evidence", "", ...files, ""] : []),
       "## Review",
       "",
-      `Verdict: **${verdict?.outcome ?? "pass"}** by ${verdict?.by === "panel" ? "a human panel" : "boreal's reviewer"}.`,
+      `Verdict: **${verdict?.outcome ?? "pass"}** by ${verdict?.by === "panel" ? "a human panel" : "boreal.work's reviewer"}.`,
       ...(verdict?.reasoning ? ["", `> ${verdict.reasoning.replace(/\n+/g, " ")}`] : []),
       "",
       "## Audit trail",
@@ -190,7 +190,7 @@ export function createMarketBridge(options: MarketBridgeOptions) {
       "",
       ...trail.map((e) => `- ${e.at.toISOString()} \`${e.type}\` by ${e.actor}: \`${e.hash.slice(0, 16)}…\``),
       "",
-      `boreal task \`${taskId}\``,
+      `boreal.work task \`${taskId}\``,
     ].join("\n");
     await market.submit(job.assignmentId, markdown);
     await store.update(job.assignmentId, { state: "delivered" });
@@ -211,7 +211,7 @@ export function createMarketBridge(options: MarketBridgeOptions) {
         report.closed++;
         return close(
           job,
-          `boreal's screening refused this brief under its public rulebook (${refusal?.ruleIds.join(", ") || "no rule given"}). Nothing was charged on boreal's side.`,
+          `boreal.work's screening refused this brief under its public rulebook (${refusal?.ruleIds.join(", ") || "no rule given"}). Nothing was charged on boreal.work's side.`,
           "refused",
         );
       }
@@ -225,7 +225,7 @@ export function createMarketBridge(options: MarketBridgeOptions) {
         return;
       case "final_fail":
         report.closed++;
-        return close(job, "The worker's result didn't pass boreal's review against your brief, so there is no deliverable. You can cancel for a refund.", "failed review");
+        return close(job, "The worker's result didn't pass boreal.work's review against your brief, so there is no deliverable. You can cancel for a refund.", "failed review");
       case "expired":
       case "cancelled":
         report.closed++;

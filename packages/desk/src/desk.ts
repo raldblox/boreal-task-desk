@@ -354,7 +354,7 @@ export function createDesk({
       if (worker.testMode) throw new DeskError("forbidden", "tester accounts can't add a PayPal account or Concordium ID");
       const current = kind === "paypal" ? worker.paypalRef : worker.concordiumRef;
       if (current && current !== ref) {
-        throw new DeskError("conflict", `your account already has a different ${name}; boreal never swaps one for another`);
+        throw new DeskError("conflict", `your account already has a different ${name}; boreal.work never swaps one for another`);
       }
       const [other] = await tx
         .select()
@@ -372,7 +372,7 @@ export function createDesk({
         const mine = bring === "paypal" ? worker.paypalRef : worker.concordiumRef;
         const theirs = bring === "paypal" ? other.paypalRef : other.concordiumRef;
         if (mine && theirs && mine !== theirs) {
-          throw new DeskError("conflict", `that account already has a different ${bring === "paypal" ? "PayPal account" : "Concordium ID"}; boreal never merges two of them`);
+          throw new DeskError("conflict", `that account already has a different ${bring === "paypal" ? "PayPal account" : "Concordium ID"}; boreal.work never merges two of them`);
         }
         await tx.delete(workers).where(eq(workers.id, worker.id));
         const carried: Partial<typeof workers.$inferInsert> =
@@ -390,7 +390,7 @@ export function createDesk({
       } else if (other) {
         throw new DeskError(
           "conflict",
-          `this ${name} already belongs to another boreal account that has its own tasks or money. Sign out and sign in with it to use that account; boreal never merges two accounts with history`,
+          `this ${name} already belongs to another boreal.work account that has its own tasks or money. Sign out and sign in with it to use that account; boreal.work never merges two accounts with history`,
         );
       }
       const [updated] = await tx
@@ -1345,7 +1345,7 @@ export function createDesk({
       requireRole(caller, "requester");
       const task = await this.getTask(caller, taskId);
       if (task.reviewMode !== "requester") {
-        throw new DeskError("forbidden", "boreal's reviewer judges this task; you can accept a pass early or dispute");
+        throw new DeskError("forbidden", "boreal.work's reviewer judges this task; you can accept a pass early or dispute");
       }
       if (verdict.outcome === "fail" && verdict.ruleIds.length === 0) {
         throw new DeskError("invalid", "a fail must cite at least one rule (R5.3)");

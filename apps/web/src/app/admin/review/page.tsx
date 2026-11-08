@@ -57,7 +57,7 @@ export default function AdminReviewPage() {
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold">Review queue</h1>
         <p className="text-sm text-muted-foreground">
-          Tasks waiting on boreal, oldest first: screening, submissions boreal reviews, and disputes. Without an AI reviewer
+          Tasks waiting on boreal.work, oldest first: screening, submissions boreal.work reviews, and disputes. Without an AI reviewer
           key, this is how live tasks get screened. Cite rule IDs from the rulebook for any refusal or fail.
         </p>
       </div>

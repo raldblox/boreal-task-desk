@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     // The anchor account pays a small CCD fee per sign-in; when it runs dry, say so plainly.
     if (error instanceof Error && /enough funds/i.test(error.message)) {
       return Response.json(
-        { error: "unfunded", message: "Sign-in is paused: boreal's Concordium account needs topping up with CCD. Try again later." },
+        { error: "unfunded", message: "Sign-in is paused: boreal.work's Concordium account needs topping up with CCD. Try again later." },
         { status: 503 },
       );
     }

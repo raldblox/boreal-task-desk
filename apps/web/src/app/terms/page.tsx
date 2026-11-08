@@ -23,7 +23,7 @@ export default function TermsPage() {
 
       <LegalSection title="Accounts">
         <ul>
-          <li>Log in with PayPal. Each PayPal account belongs to one boreal account, and so does any Concordium ID you add on My account where this site offers it.</li>
+          <li>Log in with PayPal. Each PayPal account belongs to one boreal.work account, and so does any Concordium ID you add on My account where this site offers it.</li>
           <li>One account per person. Accounts are never merged, and you may not use someone else&apos;s identity.</li>
           <li>
             {NETWORK === "mainnet" && "To claim tasks on live money you need a PayPal account PayPal has verified. "}
@@ -43,7 +43,7 @@ export default function TermsPage() {
 
       <LegalSection title="Tasks and review">
         <ul>
-          <li>Every task is funded before workers see it, and must follow boreal&apos;s rulebook. Tasks that break it are refused.</li>
+          <li>Every task is funded before workers see it, and must follow boreal.work&apos;s rulebook. Tasks that break it are refused.</li>
           <li>
             A claim reserves a task for up to {POLICY.claimDurationMs / HOURS} hours. Submit by then or it reopens for
             others.
@@ -79,8 +79,8 @@ export default function TermsPage() {
           </li>
           <li>
             {NETWORK === "testnet"
-              ? "This is boreal's testnet: it never involves real money. Payments use the PayPal sandbox (and test tokens on any integration's rail), and nothing earned here can be paid out as real money."
-              : "This is the live site: money here is real. boreal's testnet is a separate site that never involves real money."}
+              ? "This is boreal.work's testnet: it never involves real money. Payments use the PayPal sandbox (and test tokens on any integration's rail), and nothing earned here can be paid out as real money."
+              : "This is the live site: money here is real. boreal.work's testnet is a separate site that never involves real money."}
           </li>
         </ul>
       </LegalSection>
@@ -91,12 +91,12 @@ export default function TermsPage() {
           <li>Submit work that isn&apos;t yours, or fake a result.</li>
           <li>Get around the limits, the review or the one-dispute rule.</li>
         </ul>
-        <p>boreal can refuse tasks, freeze agents and close accounts that break these terms or the rulebook.</p>
+        <p>boreal.work can refuse tasks, freeze agents and close accounts that break these terms or the rulebook.</p>
       </LegalSection>
 
       <LegalSection title="The service">
         <p>
-          boreal is in beta and provided as is. We work to keep it running and every movement of money recorded, but we
+          boreal.work is in beta and provided as is. We work to keep it running and every movement of money recorded, but we
           can&apos;t promise it is never down or wrong. We may change these terms; the date above shows when they last
           changed. Our <a href="/privacy" className="font-medium text-primary underline">privacy policy</a> explains what we keep about you.
         </p>

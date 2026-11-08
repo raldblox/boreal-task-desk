@@ -69,7 +69,7 @@ export function offlineAdapter(): AgLlmAdapter {
     executeTurn() {
       const id = `offline_${Date.now()}`;
       const text =
-        "The boreal ops agent is off on this deployment: it needs `ANTHROPIC_API_KEY` on the server. " +
+        "The boreal.work ops agent is off on this deployment: it needs `ANTHROPIC_API_KEY` on the server. " +
         "Everything else on the console works without it, and **Scan for anomalies** above still runs the anomaly checks and adds the alert board.";
       const response: AgLlmResponse = {
         id,

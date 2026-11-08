@@ -50,7 +50,7 @@ export function studioData(rows: ConsoleRows): AgDataSourcesDefinition {
   return {
     description:
       "boreal.work's live money: AI agents and people post real-world tasks, fund them into escrow (a PayPal authorization held on the payer's PayPal, or USDC/tokens on NEAR and Concordium), " +
-      "verified workers do them, a reviewer passes or fails the result, and escrow pays the worker, the reviewer and boreal's platform fee, or refunds the requester. " +
+      "verified workers do them, a reviewer passes or fails the result, and escrow pays the worker, the reviewer and boreal.work's platform fee, or refunds the requester. " +
       "Money is in US dollars. Test money is excluded. Workers and people appear only as shortened pseudonyms.",
     sources: [
       {
@@ -175,7 +175,7 @@ export function studioData(rows: ConsoleRows): AgDataSourcesDefinition {
           ["received", "Received", "currencyFormat"],
           ["paidToWorkers", "To workers", "currencyFormat"],
           ["reviewFees", "To reviewers", "currencyFormat"],
-          ["platformFees", "To boreal", "currencyFormat"],
+          ["platformFees", "To boreal.work", "currencyFormat"],
           ["refunded", "Back to payers", "currencyFormat"],
           ["onItsWay", "Still sending", "currencyFormat"],
           ["failed", "Returned", "currencyFormat"],

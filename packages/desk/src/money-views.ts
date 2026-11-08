@@ -62,7 +62,7 @@ function describe(entry: Entry): string {
     case "reviewer":
       return "review fee to the reviewer";
     case "operating":
-      return "platform fee to boreal";
+      return "platform fee to boreal.work";
     case "requester":
       return "refunded to you";
     default:

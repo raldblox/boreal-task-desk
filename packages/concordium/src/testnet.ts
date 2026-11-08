@@ -255,7 +255,7 @@ export function createTestnetConcordium(config: TestnetConfig, options: TestnetO
         }
         const accepted = p.accepted as unknown as X402PaymentRequirement;
         const sealed = typeof accepted.extra?.seal === "string" ? accepted.extra.seal : "";
-        if (!sealed || !equalStrings(seal(accepted), sealed)) throw new TestnetConcordiumError("payment requirement was not issued by boreal or was changed");
+        if (!sealed || !equalStrings(seal(accepted), sealed)) throw new TestnetConcordiumError("payment requirement was not issued by boreal.work or was changed");
         if (accepted.extra.resource !== taskId) throw new TestnetConcordiumError("payment is for another task");
         if (new Date(accepted.extra.expiresAt) <= now()) throw new TestnetConcordiumError("payment request has expired; ask for a new one");
 

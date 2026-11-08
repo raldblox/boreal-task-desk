@@ -10,7 +10,7 @@ const error = (status: number, message: string) => Response.json({ error: { mess
 
 export async function POST(request: Request) {
   if (!(await currentAdmin())) return new Response("Not found", { status: 404 });
-  if (!consoleAiEnabled()) return error(503, "The boreal ops agent is off: set ANTHROPIC_API_KEY on the server to turn it on.");
+  if (!consoleAiEnabled()) return error(503, "The boreal.work ops agent is off: set ANTHROPIC_API_KEY on the server to turn it on.");
   let body: AgLlmRequest;
   try {
     body = (await request.json()) as AgLlmRequest;

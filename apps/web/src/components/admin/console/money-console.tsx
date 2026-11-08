@@ -139,7 +139,7 @@ export default function MoneyConsole({ rows, anomalies, licenseKey, aiEnabled, d
               "hidden items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs xl:flex",
               aiEnabled ? "text-foreground" : "text-muted-foreground",
             )}
-            title={aiEnabled ? "boreal ops and the anomaly agent run on Claude Sonnet 5.5 with AG Studio's built-in agents" : "Set ANTHROPIC_API_KEY on the server to turn the agents on"}
+            title={aiEnabled ? "boreal.work ops and the anomaly agent run on Claude Sonnet 5.5 with AG Studio's built-in agents" : "Set ANTHROPIC_API_KEY on the server to turn the agents on"}
           >
             <Bot className="size-3.5" />
             {aiEnabled ? "Ops agent on · Claude" : "Ops agent off"}
@@ -153,7 +153,7 @@ export default function MoneyConsole({ rows, anomalies, licenseKey, aiEnabled, d
             variant={mode === "edit" ? "default" : "outline"}
             size="sm"
             onClick={() => setMode(mode === "edit" ? "view" : "edit")}
-            title="Rearrange widgets, add boreal's and Studio's widgets, and ask the ops agent"
+            title="Rearrange widgets, add boreal.work's and Studio's widgets, and ask the ops agent"
           >
             <PencilRuler />
             {mode === "edit" ? "Done editing" : "Edit · Ask AI"}

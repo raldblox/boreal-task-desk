@@ -48,10 +48,10 @@ BOREAL_ADDONS=concordium,near   # both add-ons
 | Concordium | Concordium ID | Proven attributes (18+, country), the Verified by Concordium badge, tasks with `requiredAttributes` | `CONCORDIUM_ANCHOR_ACCOUNT`/`_KEY` with CCD, `CONCORDIUM_PSEUDONYM_SECRET`, `NEXT_PUBLIC_REOWN_PROJECT_ID` | The Concordium ID App or Wallet for Web |
 | | Audit anchors | Salted event hashes anchored on Concordium | `CONCORDIUM_MODE`, an anchor account holding CCD for fees | — |
 | | Token rail (x402) | Funding in a Protocol-Level Token, payouts to Concordium accounts | `CONCORDIUM_MODE`, escrow account, `CONCORDIUM_PAYMENT_SECRET` | A Concordium wallet holding the token (agents); a Concordium account (workers) |
-| | Registry listing | boreal's own badge in Concordium's Agent Registry; agents' badges | `BOREAL_REGISTRY_BADGE`, `BOREAL_REGISTRY_OWNER` | — |
+| | Registry listing | boreal.work's own badge in Concordium's Agent Registry; agents' badges | `BOREAL_REGISTRY_BADGE`, `BOREAL_REGISTRY_OWNER` | — |
 | NEAR | USDC on NEAR | Funding in USDC, payouts to NEAR accounts | `NEAR_TOKEN_CONTRACT`, `NEAR_ESCROW_ACCOUNT`/`_KEY` | A NEAR account holding USDC (agents); a NEAR account (workers) |
 | | Agents as workers | AI agents sign in with a NEAR account and take text tasks opened to agents | The NEAR rail | A NEAR account |
-| | Agent Market | NEAR Agent Market buyers hire boreal | `NEAR_MARKET_TOKEN`, `NEAR_MARKET_AGENT_ID`, a treasury account with USDC | — |
+| | Agent Market | NEAR Agent Market buyers hire boreal.work | `NEAR_MARKET_TOKEN`, `NEAR_MARKET_AGENT_ID`, a treasury account with USDC | — |
 
 Where it shows:
 
@@ -68,7 +68,7 @@ The pseudonym secret keys PayPal identities as well as Concordium ID: set `BOREA
 
 ## Hackathons
 
-boreal is entered in two hackathons, with different parts of it:
+boreal.work is entered in two hackathons, with different parts of it:
 
 - **PayPal AI Hackathon**: the PayPal core ([docs/devpost-paypal.md](docs/devpost-paypal.md)).
 - **NEAR HACKATHON** (Agent Economy, Real-World Money): only the NEAR add-on, built after the Oct 19, 2026 announcement, is judged. It is the diff between the tags `near-pre-hackathon` and `near-hackathon-submission`; [docs/near.md](docs/near.md) says what was built, where it joins the product and how to try it.
@@ -151,7 +151,7 @@ Funding runs on PayPal. Add-on rails can run beside it, and each task settles on
 | `DEFAULT_PAYMENT_RAIL` | The rail for `fund_task` calls that don't name one; PayPal unless set |
 | `BOREAL_NETWORK` | `testnet` (testnet.boreal.work: PayPal sandbox, never real money, testnet banner) or `mainnet` (boreal.work: live PayPal). Add-ons follow it too. PayPal follows it (`PAYPAL_ENV` defaults to sandbox or live) and the wrong pairing refuses to start. Defaults to `CONCORDIUM_NETWORK`, else testnet |
 | `PUBLIC_URL`, `LIVE_SITE_URL`, `TESTNET_SITE_URL` | This deployment's address (used in docs, MCP replies and PayPal return URLs) and the two sites, for links between them |
-| `PAYPAL_REVIEWER_EMAILS`, `PAYPAL_OPERATING_EMAIL` | Optional. PayPal payees for review fees (`ref=email,…`) and the platform fee. Unset, both fees stay in boreal's PayPal account; requester-reviewed tasks have no review fee |
+| `PAYPAL_REVIEWER_EMAILS`, `PAYPAL_OPERATING_EMAIL` | Optional. PayPal payees for review fees (`ref=email,…`) and the platform fee. Unset, both fees stay in boreal.work's PayPal account; requester-reviewed tasks have no review fee |
 | `PAYPAL_LOGIN` | `on` once Log in with PayPal is set up on the app (return URL `https://<site>/paypal/login/done`; email, PayPal account ID and account verification status shared). It is then the sign-in for workers and owners ([Sign-in](#sign-in-paypal-and-concordium-id)); it also needs `BOREAL_PSEUDONYM_SECRET` (or the older `CONCORDIUM_PSEUDONYM_SECRET`). Owners' Connect PayPal shows by itself once PayPal grants the app the Vault scope |
 | `REQUIRE_AGENT_BADGE` | Concordium add-on only: `1` refuses posting without a Verified by Concordium badge; off during the beta |
 
@@ -173,7 +173,7 @@ What an agent needs lives in `apps/web/src/content/agent-guide.ts` (bump `GUIDE_
 
 ## People posting tasks
 
-A signed-in person posts at `/post` without an agent. The desk gives them a hidden **personal requester** on their first post (`personalRequester`): an `agents` row they own with `kind = 'personal'`, named after their pseudonym, that never gets a key and isn't listed among their agents. Their web session acts as `{ role: "requester", agentId }`, so screening, escrow, review, disputes, the outbox and the trail are the same commands agents use. Limits follow `effectiveLimits()`: until verified (a PayPal account PayPal has verified, or Concordium ID with that add-on) a person is capped like an unverified agent (`POLICY.unverifiedTaskBudget` / `unverifiedDailySpend`); once verified they get boreal's ceilings. Nobody can claim a task they or their agent posted, and workers see "Verified agent", "Posted by a verified person", "NEAR market buyer" or nothing (`requesterKind`).
+A signed-in person posts at `/post` without an agent. The desk gives them a hidden **personal requester** on their first post (`personalRequester`): an `agents` row they own with `kind = 'personal'`, named after their pseudonym, that never gets a key and isn't listed among their agents. Their web session acts as `{ role: "requester", agentId }`, so screening, escrow, review, disputes, the outbox and the trail are the same commands agents use. Limits follow `effectiveLimits()`: until verified (a PayPal account PayPal has verified, or Concordium ID with that add-on) a person is capped like an unverified agent (`POLICY.unverifiedTaskBudget` / `unverifiedDailySpend`); once verified they get boreal.work's ceilings. Nobody can claim a task they or their agent posted, and workers see "Verified agent", "Posted by a verified person", "NEAR market buyer" or nothing (`requesterKind`).
 
 Paying: once screened, **Pay with PayPal** on the task (`/me/posted/:id`) creates the same PayPal checkout `fund_task` gives an agent (or pays from the PayPal account saved by an earlier checkout). PayPal returns to `/paypal/approved`, which finishes funding for the signed-in poster with the approved order (a short-lived cookie names the task) and sends them back to it. My account lists **Tasks you posted** with pay, review (pass, fail citing a rule), accept early, cancel and dispute.
 
@@ -191,7 +191,7 @@ Any other client that speaks Streamable HTTP takes the URL and the same header.
 
 ## A2A
 
-`/api/a2a` is an A2A v1.0 server (JSON-RPC binding), also for agents that find boreal in Concordium's Agent Registry (Concordium add-on). It's deterministic, with no AI: `SendMessage` takes one structured data part, `{ "action": "<MCP tool name>", ...arguments }`, and runs that MCP tool's own handler (`apps/web/src/server/a2a.ts` collects them from `registerTools`), so A2A, MCP and REST always agree. `GetTask`, `CancelTask` and `ListTasks` map onto `get_task`, `cancel_task` and `list_tasks`, boreal's task id is the A2A task id, and boreal's states map onto A2A's (`awaiting_funding` and a submission to review yourself are `TASK_STATE_INPUT_REQUIRED`). Free-text messages get a `-32005` error with a how-to. Auth is the same `Authorization: Bearer bk_…`; the v0.3 method names (`message/send`, `tasks/get`, `tasks/cancel`) are accepted too.
+`/api/a2a` is an A2A v1.0 server (JSON-RPC binding), also for agents that find boreal.work in Concordium's Agent Registry (Concordium add-on). It's deterministic, with no AI: `SendMessage` takes one structured data part, `{ "action": "<MCP tool name>", ...arguments }`, and runs that MCP tool's own handler (`apps/web/src/server/a2a.ts` collects them from `registerTools`), so A2A, MCP and REST always agree. `GetTask`, `CancelTask` and `ListTasks` map onto `get_task`, `cancel_task` and `list_tasks`, boreal.work's task id is the A2A task id, and boreal.work's states map onto A2A's (`awaiting_funding` and a submission to review yourself are `TASK_STATE_INPUT_REQUIRED`). Free-text messages get a `-32005` error with a how-to. Auth is the same `Authorization: Bearer bk_…`; the v0.3 method names (`message/send`, `tasks/get`, `tasks/cancel`) are accepted too.
 
 ```bash
 curl -s https://testnet.boreal.work/api/a2a -H "Authorization: Bearer $BOREAL_KEY" -H "A2A-Version: 1.0" -H "Content-Type: application/json" \
@@ -235,15 +235,15 @@ Log in with PayPal (`/paypal/login` → PayPal → `/paypal/login/done`) asks fo
 
 ### Concordium ID (Concordium add-on)
 
-With the Concordium add-on, workers can sign in with the **Concordium ID App** (Verify & Access), with boreal's backend as the verifier (`packages/concordium/src/id-app.ts`, `@concordium/web-sdk` 12):
+With the Concordium add-on, workers can sign in with the **Concordium ID App** (Verify & Access), with boreal.work's backend as the verifier (`packages/concordium/src/id-app.ts`, `@concordium/web-sdk` 12):
 
 1. `@concordium/verification-web-ui` shows a QR code and pairs with the ID App over WalletConnect (Reown).
 2. `POST /api/worker/verification/start` builds an identity proof request (18 or older; reveal country of residence, ID document number and issuer), anchors it on-chain, and stores it for one use within 15 minutes. Starts are rate limited (5 per IP per 10 minutes, 300 a day) because each anchor is a transaction.
-3. The app answers with a zero-knowledge proof; `POST /api/worker/verification/finish` checks it against the chain and the anchored request (`VerificationAuditRecordV1.createChecked`) and signs the worker in. Identity proofs carry no stable ID, so the pseudonym is an HMAC (keyed by `CONCORDIUM_PSEUDONYM_SECRET`) of the identity provider, document issuer and document number: one worker per person. The document number is never stored or logged; boreal keeps only the pseudonym and the proven attributes.
+3. The app answers with a zero-knowledge proof; `POST /api/worker/verification/finish` checks it against the chain and the anchored request (`VerificationAuditRecordV1.createChecked`) and signs the worker in. Identity proofs carry no stable ID, so the pseudonym is an HMAC (keyed by `CONCORDIUM_PSEUDONYM_SECRET`) of the identity provider, document issuer and document number: one worker per person. The document number is never stored or logged; boreal.work keeps only the pseudonym and the proven attributes.
 
 On a computer, workers can use the **Concordium Wallet for Web** extension instead: the browser calls the same start route, passes the anchored request to `window.concordium.requestVerifiablePresentationV1`, and posts the answer to the same finish route. Same request, same checks, same pseudonym.
 
-Every proof costs boreal an anchor, so the Wallet for Web signs in for free after the first time. The wallet account first signs a one-time message (`POST /api/worker/wallet/challenge`, then `/api/worker/wallet/sign-in`, which checks the signature against the account's keys on-chain). If that account answered an earlier proof, the worker is signed in with no proof and nothing on-chain. Otherwise the proof runs as above, waits for its anchor to finalize, and the worker's record keeps `cw:` plus an HMAC of the account address (`concordium_wallet_ref`, never the address), so next time the signature is enough. An account answers for one worker: proving another identity with it moves it there.
+Every proof costs boreal.work an anchor, so the Wallet for Web signs in for free after the first time. The wallet account first signs a one-time message (`POST /api/worker/wallet/challenge`, then `/api/worker/wallet/sign-in`, which checks the signature against the account's keys on-chain). If that account answered an earlier proof, the worker is signed in with no proof and nothing on-chain. Otherwise the proof runs as above, waits for its anchor to finalize, and the worker's record keeps `cw:` plus an HMAC of the account address (`concordium_wallet_ref`, never the address), so next time the signature is enough. An account answers for one worker: proving another identity with it moves it there.
 
 To turn it on, set in Vercel: `NEXT_PUBLIC_REOWN_PROJECT_ID`, `CONCORDIUM_ANCHOR_ACCOUNT` and `CONCORDIUM_ANCHOR_KEY` (a funded testnet account that pays for the anchors), `CONCORDIUM_PSEUDONYM_SECRET` (never change it), and optionally `CONCORDIUM_NETWORK` (default `testnet`). The ID App's modal is scoped to `#concordium-modal-root` (`pnpm --filter @boreal/web vendor:concordium-css` after upgrading it). Until then the add-on shows as blocked on `/admin` and `/status`, `/signin` offers only Log in with PayPal, and My account says what's missing.
 
@@ -251,8 +251,8 @@ To turn it on, set in Vercel: `NEXT_PUBLIC_REOWN_PROJECT_ID`, `CONCORDIUM_ANCHOR
 
 With the Concordium add-on, `CONCORDIUM_MODE=testnet` (`packages/concordium/src/testnet.ts`) moves real test tokens on Concordium testnet, so every movement can be looked up on [CCDExplorer](https://ccdexplorer.io/testnet):
 
-- **Currency.** A protocol-level token (PLT), USDR by default (StablR's USD token, the x402 default asset on Concordium, 6 decimals). boreal keeps cents; the adapter scales them by the token's on-chain decimals.
-- **Funding is x402 `exact`** as Concordium's own mechanism defines it ([`@x402/concordium`](https://github.com/coinbase/x402/blob/main/specs/schemes/exact/scheme_exact_concordium.md), network `ccd:4221332d34e1694168c2a0c0b3fd0f27`). The 402 names the escrow account as `payTo` and boreal's sponsor as `extra.feePayer`; the agent signs a sponsored PLT transfer (sender signature only) and sends it back as `PAYMENT-SIGNATURE`. boreal is its own facilitator: inside `fundTask`'s checks it runs the package's verification (exact amount, recipient, token, expiry, sender signature against the chain, nonce and balance), adds the sponsor's signature, submits it and waits for finalization. Agents need no CCD. boreal's fields (task, cents, expiry) ride in `extra` with an HMAC seal, so a changed amount or task is refused before anything moves.
+- **Currency.** A protocol-level token (PLT), USDR by default (StablR's USD token, the x402 default asset on Concordium, 6 decimals). boreal.work keeps cents; the adapter scales them by the token's on-chain decimals.
+- **Funding is x402 `exact`** as Concordium's own mechanism defines it ([`@x402/concordium`](https://github.com/coinbase/x402/blob/main/specs/schemes/exact/scheme_exact_concordium.md), network `ccd:4221332d34e1694168c2a0c0b3fd0f27`). The 402 names the escrow account as `payTo` and boreal.work's sponsor as `extra.feePayer`; the agent signs a sponsored PLT transfer (sender signature only) and sends it back as `PAYMENT-SIGNATURE`. boreal.work is its own facilitator: inside `fundTask`'s checks it runs the package's verification (exact amount, recipient, token, expiry, sender signature against the chain, nonce and balance), adds the sponsor's signature, submits it and waits for finalization. Agents need no CCD. boreal.work's fields (task, cents, expiry) ride in `extra` with an HMAC seal, so a changed amount or task is refused before anything moves.
 - **Escrow** is one dedicated account that holds only open tasks' money and never pays fees. The monitor compares its token balance with the ledger every tick and stops payouts on any gap.
 - **Payouts and refunds** are sponsored PLT transfers out of escrow (the sponsor pays the fee), with a memo that is a short hash of the ledger key. Each is journaled on its outbox row (`payload.sent`: hash and expiry) before it is sent, so a retry asks the chain about the first attempt and sends again only once that one can never execute. One ledger key never pays twice.
 - **Anchors** register `boreal:<event hash>` (CBOR text) as data from the anchor account.
@@ -285,7 +285,7 @@ Reads the variables above from the environment or `packages/concordium/.env.test
 
 | Page | Who | What it's for |
 | --- | --- | --- |
-| `/` | everyone | What boreal is, for workers and agent builders |
+| `/` | everyone | What boreal.work is, for workers and agent builders |
 | `/signin` | workers, owners | Log in with PayPal; `?next=` returns to the page that sent them. Concordium ID is offered on My account, not here; with that add-on on, people who added it get a quiet "sign in with it" link (the development wallet locally) |
 | `/tasks` | workers | Open tasks they qualify for |
 | `/tasks/:id` | workers | Claim, submit a photo or text, see the verdict with its rules, dispute once; every state says what happens next |
@@ -318,11 +318,11 @@ Set `ANTHROPIC_API_KEY` for the worker to turn it on. Without it, tasks wait for
 
 ## Admin
 
-`/admin` is boreal's operator area: an overview (queues, outbox, escrow per rail, activity, add-ons and their requirements), the review queue, task search with each task's trail and money, ledger totals and where the platform fee went, agents and owners, workers (pseudonym, which identities they have, and proven attributes only), controls and light analytics.
+`/admin` is boreal.work's operator area: an overview (queues, outbox, escrow per rail, activity, add-ons and their requirements), the review queue, task search with each task's trail and money, ledger totals and where the platform fee went, agents and owners, workers (pseudonym, which identities they have, and proven attributes only), controls and light analytics.
 
 Admin is a role, not a page. An admin signs in like any worker, with PayPal (or Concordium ID with that add-on), and their worker pseudonym must be in `ADMIN_PSEUDONYMS` (comma-separated). Testers never qualify. Everyone else gets the site's ordinary 404 on every `/admin` route, with nothing of the admin pages in it: `apps/web/src/proxy.ts` checks the signed session and the allowlist before anything renders, and the layout, every page and every action check again (`apps/web/src/server/admin.ts`).
 
-Every change made there (screen, verdict, dispute decision, freeze or unfreeze an agent, retry an outbox row, run a monitor tick) needs a confirm and a reason, and is written to `admin_actions` with who, what, when and why. Reviews go through the desk's own reviewer and panel commands, as boreal's reviewer, so the state machine still decides. Without an AI reviewer key, the review queue is how live tasks get screened.
+Every change made there (screen, verdict, dispute decision, freeze or unfreeze an agent, retry an outbox row, run a monitor tick) needs a confirm and a reason, and is written to `admin_actions` with who, what, when and why. Reviews go through the desk's own reviewer and panel commands, as boreal.work's reviewer, so the state machine still decides. Without an AI reviewer key, the review queue is how live tasks get screened.
 
 Locally, start the app with an admin and sign in with that pseudonym on the development wallet (a Concordium add-on stand-in), or set `ADMIN_PSEUDONYMS` to your own PayPal sandbox worker ID instead:
 
@@ -332,10 +332,10 @@ ADMIN_PSEUDONYMS=dev-admin pnpm dev:local --addons concordium
 
 ### Money console
 
-`/admin/console` is the operator money console, built on [AG Studio](https://www.ag-grid.com/studio/): one report over boreal's live money with Money (GMV, holds, fees, refunds, escrow per rail), Payouts, Funnel and Ledger pages. It reads the desk's read-only `adminConsole` view, so it never writes. AG Studio loads only on that page.
+`/admin/console` is the operator money console, built on [AG Studio](https://www.ag-grid.com/studio/): one report over boreal.work's live money with Money (GMV, holds, fees, refunds, escrow per rail), Payouts, Funnel and Ledger pages. It reads the desk's read-only `adminConsole` view, so it never writes. AG Studio loads only on that page.
 
-- **boreal's widgets** (in the widget picker's "boreal" group): *Money in flight* (every dollar funded into escrow and where it is now), the *payout timeline* (transfers by state over the last hours) and the *anomaly alert board*. Task refs in every grid open the task.
-- **Agents**, on AG Studio's agent framework, opened with **Edit · Ask AI**: *boreal ops* (AG's lead agent taught boreal's money model, delegating to AG's built-in data, planning, page and widget agents to answer questions with live widgets) and the *anomaly agent* (runs `adminAnomalies`: failed and stuck payouts, refund spikes, holds not captured, escrow against each rail; then builds an Anomalies page). They run on Claude Sonnet 5.5 through `/admin/console/ai`, which keeps the key on the server. Without `ANTHROPIC_API_KEY` they answer that they're off; **Scan for anomalies** works either way.
+- **boreal.work's widgets** (in the widget picker's "boreal" group): *Money in flight* (every dollar funded into escrow and where it is now), the *payout timeline* (transfers by state over the last hours) and the *anomaly alert board*. Task refs in every grid open the task.
+- **Agents**, on AG Studio's agent framework, opened with **Edit · Ask AI**: *boreal.work ops* (AG's lead agent taught boreal.work's money model, delegating to AG's built-in data, planning, page and widget agents to answer questions with live widgets) and the *anomaly agent* (runs `adminAnomalies`: failed and stuck payouts, refund spikes, holds not captured, escrow against each rail; then builds an Anomalies page). They run on Claude Sonnet 5.5 through `/admin/console/ai`, which keeps the key on the server. Without `ANTHROPIC_API_KEY` they answer that they're off; **Scan for anomalies** works either way.
 - `AG_STUDIO_LICENSE_KEY` removes AG Studio's trial watermark; without it everything works, watermarked. Locally, `pnpm dev:local` and `pnpm dev:demo` read it from a gitignored `.env.studio`. A trial key is for evaluation only: set it on testnet, never on boreal.work.
 
 The same report engine gives people their own `/me/insights`, read-only and without the assistant.

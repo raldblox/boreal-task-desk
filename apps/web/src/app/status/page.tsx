@@ -83,8 +83,8 @@ async function Checks() {
   const setups = db.health === "down" ? null : await getDesk().walletSetupCounts().catch(() => null);
   const setupLine = setups
     ? [
-        setups.near && addons.on("near") ? `${setups.near} ${setups.near === 1 ? "worker" : "workers"} set up a NEAR account through boreal` : "",
-        setups.concordium && concordium ? `${setups.concordium} ${setups.concordium === 1 ? "worker" : "workers"} set up a Concordium account through boreal` : "",
+        setups.near && addons.on("near") ? `${setups.near} ${setups.near === 1 ? "worker" : "workers"} set up a NEAR account through boreal.work` : "",
+        setups.concordium && concordium ? `${setups.concordium} ${setups.concordium === 1 ? "worker" : "workers"} set up a Concordium account through boreal.work` : "",
       ].filter(Boolean)
     : [];
   const checks: Check[] = [
@@ -168,7 +168,7 @@ export default function StatusPage() {
     <main className="flex-1">
       <PageHero
         kicker="Status"
-        title={<>{NETWORK === "testnet" ? "boreal testnet" : "boreal.work"} status</>}
+        title={<>{NETWORK === "testnet" ? "boreal.work testnet" : "boreal.work"} status</>}
         lede={
           <>
             {NETWORK === "testnet"

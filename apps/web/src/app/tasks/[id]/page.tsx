@@ -185,7 +185,7 @@ function NextStep({
               ? "This task reached its deadline before anyone took it, so it's closed."
               : task.status === "cancelled"
                 ? "The requester withdrew this task, so it's closed."
-                : "This task didn't pass boreal's checks, so it never opened."}{" "}
+                : "This task didn't pass boreal.work's checks, so it never opened."}{" "}
             Nothing is held against you.
           </p>
           <FindAnother />
@@ -259,7 +259,7 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
               </Badge>
             )}
             {task.requesterKind === "market" && (
-              <Badge variant="outline" className="gap-1" title="Hired through boreal's listing on NEAR Agent Market.">
+              <Badge variant="outline" className="gap-1" title="Hired through boreal.work's listing on NEAR Agent Market.">
                 <Store className="size-3.5 text-primary" /> NEAR market buyer
               </Badge>
             )}

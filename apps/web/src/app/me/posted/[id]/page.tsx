@@ -27,8 +27,8 @@ const REVIEW_RULES = RULES.filter((r) => r.stage === "review" && r.id !== "R4.4"
 
 /** Where screening happens: the AI reviewer within minutes, or boreal's team when there's no AI key. */
 const SCREENING = process.env.ANTHROPIC_API_KEY
-  ? "boreal checks it against its rulebook, usually within a few minutes."
-  : "A person on boreal's team checks it against the rulebook; this can take a few hours.";
+  ? "boreal.work checks it against its rulebook, usually within a few minutes."
+  : "A person on boreal.work's team checks it against the rulebook; this can take a few hours.";
 
 function Cancel({ task, note }: { task: Task; note: string }) {
   return (
@@ -58,7 +58,7 @@ async function NextStep({ task, requester }: { task: Task; requester: { role: "r
       const refusal = await desk.getRefusal(requester, task.id);
       return (
         <div className="flex flex-col gap-3">
-          <p className="text-sm">This task broke boreal&apos;s rulebook, so it won&apos;t open. Nothing was paid.</p>
+          <p className="text-sm">This task broke boreal.work&apos;s rulebook, so it won&apos;t open. Nothing was paid.</p>
           {refusal && (
             <p className="rounded-lg bg-muted p-3 text-sm">
               {refusal.reasoning ?? "No reason given."}{" "}
@@ -122,7 +122,7 @@ async function NextStep({ task, requester }: { task: Task; requester: { role: "r
           </div>
         );
       }
-      return <p className="text-sm text-muted-foreground">The result is in. boreal&apos;s reviewer is checking it against your checks.</p>;
+      return <p className="text-sm text-muted-foreground">The result is in. boreal.work&apos;s reviewer is checking it against your checks.</p>;
     case "passed":
       return (
         <div className="flex flex-col gap-5">
@@ -232,7 +232,7 @@ async function PostedTask({ params, searchParams }: Props) {
         )}
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap gap-2">
-            <Badge variant="outline">{task.reviewMode === "requester" ? "You review it" : "boreal reviews it"}</Badge>
+            <Badge variant="outline">{task.reviewMode === "requester" ? "You review it" : "boreal.work reviews it"}</Badge>
             {task.requiredAttributes.map((a) => (
               <Badge key={a.attribute} variant="outline">
                 {attributeLabel(a)}

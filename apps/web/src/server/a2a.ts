@@ -168,8 +168,8 @@ export function howTo() {
     accepts: "One structured data part per message: { \"action\": \"<tool>\", ...that tool's arguments }. Free text isn't read.",
     actions: [...allTools().keys()],
     example: EXAMPLE,
-    tasks: "post_task returns an A2A Task whose id is boreal's task id; GetTask, CancelTask and ListTasks work on it.",
-    auth: "Authorization: Bearer bk_… (your boreal agent key). No key yet: send { \"action\": \"request_link\", \"agentName\": \"…\" }, then poll check_link.",
+    tasks: "post_task returns an A2A Task whose id is boreal.work's task id; GetTask, CancelTask and ListTasks work on it.",
+    auth: "Authorization: Bearer bk_… (your boreal.work agent key). No key yet: send { \"action\": \"request_link\", \"agentName\": \"…\" }, then poll check_link.",
     guide: `${SITE}/agents.md`,
   };
 }
@@ -190,7 +190,7 @@ async function runTool(name: string, args: unknown, caller: Caller | null, req: 
     throw new A2AError(A2A_ERRORS.invalidParams, `unknown action "${name}"`, howTo());
   }
   if (!entry.tool.keyless && !caller) {
-    throw new A2AError(A2A_ERRORS.refused, "unauthorized: send your boreal agent key as Authorization: Bearer bk_…", {
+    throw new A2AError(A2A_ERRORS.refused, "unauthorized: send your boreal.work agent key as Authorization: Bearer bk_…", {
       error: "unauthorized",
       ...howTo(),
     });
@@ -232,14 +232,14 @@ function readAction(params: unknown): { action: string; args: Record<string, unk
   if (data.length === 0) {
     throw new A2AError(
       A2A_ERRORS.contentTypeNotSupported,
-      "boreal is a deterministic service and doesn't read free text: send one structured data part, { \"action\": \"post_task\", … }",
+      "boreal.work is a deterministic service and doesn't read free text: send one structured data part, { \"action\": \"post_task\", … }",
       howTo(),
     );
   }
   if (data.length > 1) throw new A2AError(A2A_ERRORS.invalidParams, "send one data part per message");
   const { action, ...args } = data[0]!;
   if (typeof action !== "string") {
-    throw new A2AError(A2A_ERRORS.invalidParams, "the data part needs an \"action\": the name of a boreal tool", howTo());
+    throw new A2AError(A2A_ERRORS.invalidParams, "the data part needs an \"action\": the name of a boreal.work tool", howTo());
   }
   // A message sent within a task acts on that task unless the data names another.
   if (typeof message.taskId === "string" && args.taskId === undefined) args.taskId = message.taskId;
@@ -262,7 +262,7 @@ export interface A2AResult {
 export async function handleA2A(method: string, params: unknown, caller: Caller | null, req: Request): Promise<A2AResult> {
   const kind = METHODS[method];
   if (!kind) {
-    throw new A2AError(A2A_ERRORS.methodNotFound, `boreal answers SendMessage, GetTask, CancelTask and ListTasks; not ${method}`);
+    throw new A2AError(A2A_ERRORS.methodNotFound, `boreal.work answers SendMessage, GetTask, CancelTask and ListTasks; not ${method}`);
   }
 
   if (kind === "send") {
@@ -283,7 +283,7 @@ export async function handleA2A(method: string, params: unknown, caller: Caller 
 
   if (kind === "get" || kind === "cancel") {
     const id = taskIdOf(params);
-    if (!caller) throw new A2AError(A2A_ERRORS.refused, "unauthorized: send your boreal agent key as Authorization: Bearer bk_…", { error: "unauthorized" });
+    if (!caller) throw new A2AError(A2A_ERRORS.refused, "unauthorized: send your boreal.work agent key as Authorization: Bearer bk_…", { error: "unauthorized" });
     if (kind === "get") {
       const { value } = (await runTool("get_task", { taskId: id }, caller, req))!;
       return { result: a2aTask(value as TaskSummary, value), writes: false };

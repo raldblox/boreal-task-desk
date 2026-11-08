@@ -178,7 +178,7 @@ describe("linking identities", () => {
     await desk.claimTask(asWorker(paypalWorker), await openTask([]));
     const ccdWorker = asWorker(await desk.signInVerifiedWorker(concordium(1)));
     await desk.claimTask(ccdWorker, await openTask([]));
-    await expectDeskError(desk.linkPayPal(ccdWorker, paypal(1)), "conflict", /another boreal account/);
+    await expectDeskError(desk.linkPayPal(ccdWorker, paypal(1)), "conflict", /another boreal.work account/);
     expect((await desk.signInWithPayPal(paypal(1))).id).toBe(paypalWorker.id);
   });
 

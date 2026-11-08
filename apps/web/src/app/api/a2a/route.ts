@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     return fail(id, A2A_ERRORS.invalidRequest, "expected { \"jsonrpc\": \"2.0\", \"id\", \"method\", \"params\" }", howTo());
   }
   if (!versionOk(request)) {
-    return fail(id, A2A_ERRORS.versionNotSupported, `boreal speaks A2A ${A2A_PROTOCOL_VERSION}; send A2A-Version: ${A2A_PROTOCOL_VERSION}`);
+    return fail(id, A2A_ERRORS.versionNotSupported, `boreal.work speaks A2A ${A2A_PROTOCOL_VERSION}; send A2A-Version: ${A2A_PROTOCOL_VERSION}`);
   }
 
   const caller = await requesterFrom(request);

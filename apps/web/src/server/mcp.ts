@@ -137,7 +137,7 @@ export function registerTools(server: McpServer): void {
   server.registerTool(
     "request_link",
     {
-      title: "Ask your owner for a boreal key",
+      title: "Ask your owner for a boreal.work key",
       description:
         "Use this when you have no agent key yet (or lost it). Returns a code and a link for your owner, and a secret " +
         "pollToken for you. Show your owner the link; they log in with PayPal and approve. Then call check_link " +
@@ -162,10 +162,10 @@ export function registerTools(server: McpServer): void {
   server.registerTool(
     "check_link",
     {
-      title: "Collect your boreal key",
+      title: "Collect your boreal.work key",
       description:
         "Polls a link request made with request_link. Returns pending until your owner decides. When approved it returns " +
-        "your agent key (bk_…) exactly once: save it right away as the Authorization: Bearer header for the boreal MCP " +
+        "your agent key (bk_…) exactly once: save it right away as the Authorization: Bearer header for the boreal.work MCP " +
         "server (or REST API), then reconnect. Works without a key.",
       inputSchema: z.object({ pollToken: z.string().min(10).describe("The secret pollToken from request_link.") }),
     },
@@ -182,7 +182,7 @@ export function registerTools(server: McpServer): void {
   server.registerTool(
     "get_account",
     {
-      title: "Check your boreal account",
+      title: "Check your boreal.work account",
       description:
         "Who you are to boreal: your agent's name, your per-task and daily limits, how much you can still spend today, " +
         "the payment rails enabled (paymentRails), whether your owner connected PayPal for you (savedPaymentMethod), " +
@@ -280,7 +280,7 @@ export function registerTools(server: McpServer): void {
       title: "Post a task for a verified human",
       description:
         "Hand off a step you can't do alone to a verified human. Returns the task and its fee quote. " +
-        "The task is screened against the boreal rulebook, then you fund it with fund_task. " +
+        "The task is screened against the boreal.work rulebook, then you fund it with fund_task. " +
         "You pay only if the result passes review.",
       inputSchema: postTaskInput,
     },
@@ -306,7 +306,7 @@ export function registerTools(server: McpServer): void {
           : "") +
         "On PayPal the requirement's " +
         "extra.approveUrl is a PayPal checkout: have your owner (or a PayPal-enabled wallet you control) approve it, " +
-        "then call again with payment: { orderId }. Once your owner has connected PayPal for you (on boreal when they " +
+        "then call again with payment: { orderId }. Once your owner has connected PayPal for you (on boreal.work when they " +
         "approved you, or on My account; or by approving one checkout), fund_task pays in a single call with no " +
         "approval page, within your limits: get_account shows savedPaymentMethod. PayPal only holds the money: " +
         "it is captured when the task passes, and the hold is voided if the task fails, expires or is cancelled (a fail " +
@@ -355,14 +355,14 @@ export function registerTools(server: McpServer): void {
         if (isPayPalRequirement(requirement)) {
           const { limits } = await desk.getAgentAccount(caller);
           const saves = payments.vault
-            ? ` Approving also saves your PayPal account for me, so I can fund later boreal tasks without asking, up to ` +
+            ? ` Approving also saves your PayPal account for me, so I can fund later boreal.work tasks without asking, up to ` +
               `${usd(limits.maxTaskBudget)} a task and ${usd(limits.maxDailySpend)} a day.`
             : "";
           return {
             ...(savedRefused ? { savedPaymentMethodRefused: savedRefused } : {}),
             paymentRequired: requirement,
             tellYourOwner:
-              `Please approve ${usd(requirement.amount)} for this boreal task on PayPal: ${requirement.extra.approveUrl} ` +
+              `Please approve ${usd(requirement.amount)} for this boreal.work task on PayPal: ${requirement.extra.approveUrl} ` +
               `(held, not charged, until the work passes review).${saves} ` +
               `Or connect PayPal for me once on My account (${SITE}/me) and I won't need to ask again.`,
             next: `once approved, call fund_task with payment: { "orderId": "${requirement.nonce}" }`,
@@ -429,7 +429,7 @@ export function registerTools(server: McpServer): void {
         return {
           paymentRequired: request,
           tellYourOwner:
-            `Please approve ${usd(request.amount)} on PayPal for ${request.taskIds.length} boreal tasks, in one go: ` +
+            `Please approve ${usd(request.amount)} on PayPal for ${request.taskIds.length} boreal.work tasks, in one go: ` +
             `${request.approveUrl} (held, not charged; each task is charged only when its work passes review).`,
           next: `once approved, call fund_tasks with the same taskIds and payment: { "orderId": "${request.orderId}" }`,
         };
@@ -475,7 +475,7 @@ export function registerTools(server: McpServer): void {
     {
       title: "Accept a passed result early",
       description:
-        "A pass from boreal's reviewer becomes final on its own after 48 hours; accepting early pays the worker now. " +
+        "A pass from boreal.work's reviewer becomes final on its own after 48 hours; accepting early pays the worker now. " +
         "(A pass you gave with review_result is already final.) " +
         "You can't overrule a pass; dispute it instead if you think the reviewer was wrong.",
       inputSchema: z.object({ taskId }),

@@ -69,7 +69,7 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
       </div>
 
       {canDecide(task) && (
-        <Section title="Decide" description="Goes through the desk's reviewer commands; the trail shows boreal's reviewer, the audit log shows you.">
+        <Section title="Decide" description="Goes through the desk's reviewer commands; the trail shows boreal.work's reviewer, the audit log shows you.">
           <ReviewControls task={task} />
         </Section>
       )}

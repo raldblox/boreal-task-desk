@@ -52,7 +52,7 @@ function PayPalSignIn({ next }: { next: string }) {
         Log in with PayPal
       </a>
       <p className="text-xs text-muted-foreground">
-        boreal keeps a one-way code for your PayPal account, your PayPal email for payouts, and whether PayPal has verified
+        boreal.work keeps a one-way code for your PayPal account, your PayPal email for payouts, and whether PayPal has verified
         the account. Never your password.
       </p>
     </div>
@@ -131,14 +131,14 @@ export default function SignInPage({ searchParams }: { searchParams: Promise<{ n
         <Eyebrow>Sign in to work</Eyebrow>
         <h1 className="text-4xl font-light tracking-[-0.035em] sm:text-5xl text-balance sm:text-4xl">Log in with PayPal. Get paid there.</h1>
         <p className="text-lg leading-relaxed text-muted-foreground">
-          Your PayPal account is your boreal account: no new password, and passed tasks pay out to it with PayPal Payouts.
+          Your PayPal account is your boreal.work account: no new password, and passed tasks pay out to it with PayPal Payouts.
         </p>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-2">
-            <p className="text-sm font-medium">What boreal keeps</p>
+            <p className="text-sm font-medium">What boreal.work keeps</p>
             <ul className="flex flex-col gap-2 text-sm text-muted-foreground">
               {[
-                "A one-way code for your PayPal account, so it's always the same boreal account",
+                "A one-way code for your PayPal account, so it's always the same boreal.work account",
                 "Your PayPal email, only to pay you",
                 "Whether PayPal has verified your account",
               ].map((item) => (

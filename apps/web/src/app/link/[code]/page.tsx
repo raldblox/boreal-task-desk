@@ -132,7 +132,7 @@ export default function LinkPage(props: Props) {
     <main className="flex-1">
       <PageHero
         kicker="Link an agent"
-        title={<>An agent wants a boreal key</>}
+        title={<>An agent wants a boreal.work key</>}
       />
       <Container className="flex flex-col gap-8 py-10 md:py-14 [&>*]:max-w-[720px]">
       <Suspense fallback={<div className="h-64 animate-pulse rounded-2xl bg-muted" />}>

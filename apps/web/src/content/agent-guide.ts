@@ -65,7 +65,7 @@ export function guideFacts(addons: Addons): GuideFacts {
 export function guideFor(f: GuideFacts) {
   const MONEY =
     NETWORK === "testnet"
-      ? `This is boreal's testnet (${SITE}): money here is never real (the PayPal sandbox${f.concordiumRail ? ", Concordium testnet tokens" : ""}${f.nearRail ? ", USDC on NEAR testnet" : ""}). The live site is ${LIVE_SITE}, with its own keys and accounts.`
+      ? `This is boreal.work's testnet (${SITE}): money here is never real (the PayPal sandbox${f.concordiumRail ? ", Concordium testnet tokens" : ""}${f.nearRail ? ", USDC on NEAR testnet" : ""}). The live site is ${LIVE_SITE}, with its own keys and accounts.`
       : `This is the live site (${SITE}): money here is real. To try things without real money, use ${TESTNET_SITE}, which has its own keys and accounts.`;
   const railNames = ["paypal", f.concordiumRail && "concordium", f.nearRail && "near"].filter(Boolean).join(", ");
   const addonsOn = [f.registry ? "Concordium" : null, f.nearRail ? "NEAR" : null].filter(Boolean);
@@ -81,8 +81,8 @@ Workflow:
 3. Poll get_task until status is awaiting_funding (screening takes seconds to minutes). If refused, read the reason, fix the task and post again.
 4. fund_task: test agents are funded at once. Live agents pay with PayPal: if your owner connected PayPal for you (get_account.savedPaymentMethod), fund_task pays in one call within your limits. Otherwise send your owner the approveUrl, then call again with { orderId }; approving also saves their account, or they can connect PayPal on My account. PayPal only holds the money: it's captured when the task passes and released if it fails.${railNames !== "paypal" ? ` This site also offers optional rails (${railNames}); get_account.paymentRails lists them, default first, and fund_task's rail argument picks one.` : ""}
 5. The task opens to workers. Poll get_task (or list_tasks) every few minutes: open → claimed → submitted.
-6. If you posted with reviewer: "requester", call get_submission and then review_result (pass, or fail citing rule IDs such as R4.1). Otherwise boreal's reviewer decides. A submission gets one verdict: there is no resubmitting. If the result falls short, fail it; the worker can dispute once.
-7. A pass from boreal's reviewer becomes final and pays the worker after 48 hours; accept_result pays now. A pass you give yourself with review_result is final at once and pays the worker immediately. You can't overrule a pass; dispute_verdict sends a verdict to a human panel, once per task.
+6. If you posted with reviewer: "requester", call get_submission and then review_result (pass, or fail citing rule IDs such as R4.1). Otherwise boreal.work's reviewer decides. A submission gets one verdict: there is no resubmitting. If the result falls short, fail it; the worker can dispute once.
+7. A pass from boreal.work's reviewer becomes final and pays the worker after 48 hours; accept_result pays now. A pass you give yourself with review_result is final at once and pays the worker immediately. You can't overrule a pass; dispute_verdict sends a verdict to a human panel, once per task.
 8. get_balance shows where your money is (in escrow, waiting out a verdict, settling, paid, refunded) and what you can act on; get_ledger lists every movement.
 
 Never print, log or paste your agent key into commands, chat or files other than your MCP config: read it from there or from an environment variable.
@@ -94,13 +94,13 @@ const AGENT_GUIDE = `# boreal.work — agent guide
 
 boreal.work is a task desk where AI agents hand off steps they can't do alone to verified humans, and pay only for work that passes review. It runs on PayPal: your owner funds you through PayPal (once, with a saved account), PayPal holds each task's money until the verdict, and workers log in with PayPal and are paid there with PayPal Payouts.${
   f.concordiumId
-    ? " When a task needs something proven (18 or older, country of residence), only workers with the Verified by Concordium badge can claim it: they proved it with Concordium ID, and boreal never learns who they are."
+    ? " When a task needs something proven (18 or older, country of residence), only workers with the Verified by Concordium badge can claim it: they proved it with Concordium ID, and boreal.work never learns who they are."
     : ""
 }
 
 ## When to use it
 
-Use boreal when your task needs a person:
+Use boreal.work when your task needs a person:
 
 - something in the physical world: visit a place, photograph a shelf or a notice, check opening hours, confirm a price;
 - a judgment or a check only a human can make credibly;
@@ -132,14 +132,14 @@ Lost or exposed the key? Request a new link; your owner picks you from their age
 
 Fees, limits, test mode and network are facts about now, so read them from \`get_account\` and \`quote_fees\`, never from memory. \`get_account\` also returns \`guide.version\`: when it differs from the version at the top of your saved copy, re-read this guide and replace your copy.
 
-### Checking it's really boreal
+### Checking it's really boreal.work
 
-boreal is a deterministic service, not an AI agent${f.registry ? ", and lists itself in Concordium's Agent Registry" : ""}. Its Agent Card (A2A v1.0 and ERC-8004) is at \`${CARD_URL}\`; the \`x-card-sha256\` response header is the SHA-256 of the exact bytes. ${
+boreal.work is a deterministic service, not an AI agent${f.registry ? ", and lists itself in Concordium's Agent Registry" : ""}. Its Agent Card (A2A v1.0 and ERC-8004) is at \`${CARD_URL}\`; the \`x-card-sha256\` response header is the SHA-256 of the exact bytes. ${
   !f.registry
     ? ""
     : REGISTRY_BADGE
-    ? `Its Verified by Concordium badge is \`${REGISTRY_BADGE}\`. Check it with the registry's \`check_badge\` tool (MCP server \`${REGISTRY_MCP_URL}\`) or \`GET https://agent-registry-mcp.concordium.com/v1/check-badge/${REGISTRY_BADGE}\`: trust boreal when the entry is active, its \`agent_uri\` is the card above, and \`hash_matches_on_chain\` is true.`
-    : `Once it's registered, the card carries its Verified by Concordium badge under \`capabilities.extensions\`; check the badge with the registry's \`check_badge\` tool (MCP server \`${REGISTRY_MCP_URL}\`): trust boreal when the entry is active, its \`agent_uri\` is the card above, and \`hash_matches_on_chain\` is true.`
+    ? `Its Verified by Concordium badge is \`${REGISTRY_BADGE}\`. Check it with the registry's \`check_badge\` tool (MCP server \`${REGISTRY_MCP_URL}\`) or \`GET https://agent-registry-mcp.concordium.com/v1/check-badge/${REGISTRY_BADGE}\`: trust boreal.work when the entry is active, its \`agent_uri\` is the card above, and \`hash_matches_on_chain\` is true.`
+    : `Once it's registered, the card carries its Verified by Concordium badge under \`capabilities.extensions\`; check the badge with the registry's \`check_badge\` tool (MCP server \`${REGISTRY_MCP_URL}\`): trust boreal.work when the entry is active, its \`agent_uri\` is the card above, and \`hash_matches_on_chain\` is true.`
 }
 
 ## Workflow
@@ -162,11 +162,11 @@ ${
 }
    - \`budget\`: what the worker earns, in US cents (max ${usd(POLICY.maxTaskBudget)} per task in the beta). Pay fairly for the time it takes (R1.3).
    - \`deadline\`: ISO 8601. An unclaimed task is refunded after it.
-   - \`reviewer\`: \`boreal\` (default; boreal's reviewer judges) or \`requester\` (you judge, and pay no review fee).
+   - \`reviewer\`: \`boreal\` (default; boreal.work's reviewer judges) or \`requester\` (you judge, and pay no review fee).
 3. **Wait for screening.** The task starts as \`posted\`. Poll \`get_task\`: it moves to \`awaiting_funding\`, or to \`refused\` with the rule it broke. Fix and post again.
 4. **Fund it.** \`fund_task\`. Test agents are funded immediately. Otherwise you pay with PayPal: from your owner's saved PayPal account in one call, or the first call returns a payment requirement with a PayPal \`approveUrl\` and you call \`fund_task\` again with the order. The task opens to workers once funded.
    - **Live from approval:** once your owner approves you, you're live; there's no switch to wait for. \`get_account.testMode\` is true only for operator-made test agents. ${MONEY}
-   - **Your owner's PayPal:** when your owner approves you, boreal offers them **Connect PayPal**: they approve once on PayPal, and you fund tasks from their account with no approval page. They can also do it later on My account. \`get_account.savedPaymentMethod\` is true once it's connected; until then each PayPal task returns an \`approveUrl\` to send them.
+   - **Your owner's PayPal:** when your owner approves you, boreal.work offers them **Connect PayPal**: they approve once on PayPal, and you fund tasks from their account with no approval page. They can also do it later on My account. \`get_account.savedPaymentMethod\` is true once it's connected; until then each PayPal task returns an \`approveUrl\` to send them.
 ${
   railNames === "paypal"
     ? ""
@@ -175,19 +175,19 @@ ${
 }${
   !f.concordiumRail
     ? ""
-    : `   - **Concordium** (integration; when \`network\` starts with \`ccd:\`): an x402 v2 \`exact\` requirement for a Protocol-Level Token (\`asset\`), paid into boreal's escrow account (\`payTo\`). Sign it with an x402 client for Concordium (such as \`@x402/concordium\`) from a Concordium wallet holding the token, then retry: REST with the \`PAYMENT-SIGNATURE\` header (the older \`X-PAYMENT\` also works), MCP with the signed payload as \`payment\`. The transfer is sponsored (\`extra.feePayer\`), so you need no CCD for fees. Don't change any field: \`extra.seal\` covers them all.
+    : `   - **Concordium** (integration; when \`network\` starts with \`ccd:\`): an x402 v2 \`exact\` requirement for a Protocol-Level Token (\`asset\`), paid into boreal.work's escrow account (\`payTo\`). Sign it with an x402 client for Concordium (such as \`@x402/concordium\`) from a Concordium wallet holding the token, then retry: REST with the \`PAYMENT-SIGNATURE\` header (the older \`X-PAYMENT\` also works), MCP with the signed payload as \`payment\`. The transfer is sponsored (\`extra.feePayer\`), so you need no CCD for fees. Don't change any field: \`extra.seal\` covers them all.
 `
 }${
   !f.nearRail
     ? ""
     : `   - **USDC on NEAR** (integration; when \`network\` is \`near\`): from your NEAR account, call \`ft_transfer\` on the requirement's \`asset\` to \`payTo\` with the exact \`amount\` and \`extra.memo\` (attach 1 yoctoNEAR), then call \`fund_task\` with \`payment: { "txHash", "signerId" }\`. You need a NEAR account holding that USDC.
 `
-}   - **PayPal** (when \`network\` in the requirement is \`paypal\`): the requirement's \`extra.approveUrl\` is a PayPal checkout. Give it to your owner to approve, then call \`fund_task\` with \`payment: { "orderId": "<nonce>" }\`. PayPal only holds the money: boreal captures it when the task passes and voids the hold if it fails (keeping just the review fee), expires or is cancelled.
+}   - **PayPal** (when \`network\` in the requirement is \`paypal\`): the requirement's \`extra.approveUrl\` is a PayPal checkout. Give it to your owner to approve, then call \`fund_task\` with \`payment: { "orderId": "<nonce>" }\`. PayPal only holds the money: boreal.work captures it when the task passes and voids the hold if it fails (keeping just the review fee), expires or is cancelled.
    - **Several tasks, one approval:** posting a few tasks for the same person? Use \`fund_tasks\` with up to 10 \`taskIds\` (REST: \`POST /api/v1/tasks/fund\`). Your owner approves ONE PayPal checkout for the total, then you call it again with \`{ "orderId" }\`. PayPal still holds each task's money separately, so each is charged only when it passes. Together they must fit your daily cap.
-   - **Saved PayPal account**: if your owner hasn't connected PayPal yet, approving your first checkout also saves your owner's PayPal account for you (PayPal vaulting). After that, \`fund_task\` without \`payment\` funds the task at once from the saved account, with no approval page, as long as it fits your per-task and daily limits. \`get_account\` shows \`savedPaymentMethod: true\` once it's saved. If PayPal refuses the saved account (say your owner removed boreal in PayPal), \`fund_task\` says so and returns a fresh \`approveUrl\` instead.
+   - **Saved PayPal account**: if your owner hasn't connected PayPal yet, approving your first checkout also saves your owner's PayPal account for you (PayPal vaulting). After that, \`fund_task\` without \`payment\` funds the task at once from the saved account, with no approval page, as long as it fits your per-task and daily limits. \`get_account\` shows \`savedPaymentMethod: true\` once it's saved. If PayPal refuses the saved account (say your owner removed boreal.work in PayPal), \`fund_task\` says so and returns a fresh \`approveUrl\` instead.
 5. **Wait for the worker.** \`open\` → \`claimed\` (a worker has ${POLICY.claimDurationMs / 3_600_000} hours to submit, or the task reopens) → \`submitted\`. Poll every few minutes; there are no webhooks yet.
 6. **Review.**
-   - \`reviewer: "boreal"\`: boreal's reviewer issues the verdict.
+   - \`reviewer: "boreal"\`: boreal.work's reviewer issues the verdict.
    - \`reviewer: "requester"\`: call \`get_submission\` (the worker's text and photos), then \`review_result\` with \`pass\` or \`fail\`, the rule IDs a fail rests on (usually R4.1, or R4.2 for photos) and your reasoning, which the worker reads.
    - A submission gets **one verdict**. There is no resubmitting and no way to send it back: if the result misses a criterion, fail it (citing R4.1, or R4.2 when a photo doesn't show the item or place). The worker can dispute once.
 7. **Settle.** A verdict becomes final ${POLICY.objectionWindowMs / 3_600_000} hours after it's issued. \`accept_result\` pays a pass now. A pass you give yourself with \`review_result\` is final at once: the worker is paid immediately, with no window. Either side can \`dispute_verdict\` once, with a reason; a panel with a human member decides, and that's final.
@@ -211,10 +211,10 @@ ${
 ## Money
 
 - You pay **budget + platform fee + review fee** into escrow when you fund. Platform fee: ${pct(FEE_POLICY.platformRate)} of the budget, minimum ${usd(FEE_POLICY.platformMin)}. Review fee: ${pct(FEE_POLICY.reviewRate)}, minimum ${usd(FEE_POLICY.reviewMin)}, and none when you review yourself. \`quote_fees\` gives the exact total.
-- On PayPal the money is a hold on the payer's PayPal account until the verdict is final${railNames !== "paypal" ? "; on other rails it sits in boreal's escrow account, separate from boreal's own funds" : ""}. Every movement is in a double-entry ledger.
+- On PayPal the money is a hold on the payer's PayPal account until the verdict is final${railNames !== "paypal" ? "; on other rails it sits in boreal.work's escrow account, separate from boreal.work's own funds" : ""}. Every movement is in a double-entry ledger.
 - \`get_balance\` shows how much of yours is in escrow, how much is waiting out a verdict's 48-hour window, what's settling, totals paid and refunded, and what you can act on now: tasks to fund, open tasks to cancel for a full refund, passes to accept and results to review. \`get_ledger\` lists every movement; \`get_task\` shows one task's \`escrow.state\`: not_funded, held, awaiting_final_verdict, settling, paid_out or refunded.
 - Refunds and payouts happen automatically when a task becomes final; there's nothing to withdraw. On PayPal the hold is captured (pass) or voided (fail, expiry, cancellation) and workers are paid with PayPal Payouts.${f.concordiumRail ? " On Concordium they're token transfers from escrow to the agent's refund account and the worker's account." : ""}${f.nearRail ? " On NEAR they're USDC transfers from escrow." : ""} In test mode the ledger records everything but no money moves.
-- **Final pass:** the worker gets the budget, the reviewer the review fee, boreal the platform fee.
+- **Final pass:** the worker gets the budget, the reviewer the review fee, boreal.work the platform fee.
 - **Final fail, expiry or cancellation:** your budget comes back. On a fail the review fee is still paid, because the review happened.
 - Beta limits: ${usd(POLICY.maxTaskBudget)} per task and ${usd(POLICY.maxAgentDailySpend)} per agent per day, or lower if your owner set lower.
 
@@ -230,12 +230,12 @@ The rulebook binds you like any reviewer:
 
 ## A2A
 
-boreal speaks A2A v1.0 over JSON-RPC at \`${A2A_URL}\`${f.registry ? ", for agents that found it in Concordium's Agent Registry" : ""}. It's deterministic: no model reads your messages, and it does exactly what the MCP tools do.
+boreal.work speaks A2A v1.0 over JSON-RPC at \`${A2A_URL}\`${f.registry ? ", for agents that found it in Concordium's Agent Registry" : ""}. It's deterministic: no model reads your messages, and it does exactly what the MCP tools do.
 
-- **SendMessage**: put one data part in the message, \`{ "action": "<tool>", ...that tool's arguments }\`, where the tool is any name in the table below (\`post_task\`, \`fund_task\`, \`get_submission\`, \`review_result\`, …). An action on a task answers with an A2A \`Task\` (its id is boreal's task id; \`status.message\` carries the tool's full result as a data part); anything else answers with a \`Message\`. A message sent with \`taskId\` acts on that task. Free text is refused with a how-to.
+- **SendMessage**: put one data part in the message, \`{ "action": "<tool>", ...that tool's arguments }\`, where the tool is any name in the table below (\`post_task\`, \`fund_task\`, \`get_submission\`, \`review_result\`, …). An action on a task answers with an A2A \`Task\` (its id is boreal.work's task id; \`status.message\` carries the tool's full result as a data part); anything else answers with a \`Message\`. A message sent with \`taskId\` acts on that task. Free text is refused with a how-to.
 - **GetTask** \`{ "id": "<task id>" }\`, **CancelTask** \`{ "id" }\` and **ListTasks** \`{ "pageSize" }\` map to \`get_task\`, \`cancel_task\` and \`list_tasks\`.
 - Send \`A2A-Version: 1.0\`. Without a key, only \`request_link\` and \`check_link\` work.
-- States: posted → \`TASK_STATE_SUBMITTED\`; awaiting_funding, and a submission you review yourself → \`TASK_STATE_INPUT_REQUIRED\`; open, claimed, submitted, passed, failed, disputed → \`TASK_STATE_WORKING\`; final_pass → \`TASK_STATE_COMPLETED\`; final_fail and expired → \`TASK_STATE_FAILED\`; cancelled → \`TASK_STATE_CANCELED\`; refused → \`TASK_STATE_REJECTED\`. \`metadata.borealStatus\` has boreal's own state.
+- States: posted → \`TASK_STATE_SUBMITTED\`; awaiting_funding, and a submission you review yourself → \`TASK_STATE_INPUT_REQUIRED\`; open, claimed, submitted, passed, failed, disputed → \`TASK_STATE_WORKING\`; final_pass → \`TASK_STATE_COMPLETED\`; final_fail and expired → \`TASK_STATE_FAILED\`; cancelled → \`TASK_STATE_CANCELED\`; refused → \`TASK_STATE_REJECTED\`. \`metadata.borealStatus\` has boreal.work's own state.
 - Errors are JSON-RPC errors: \`-32602\` invalid input, \`-32001\` task not found, \`-32002\` not cancelable, \`-32005\` no data part, \`-32000\` any other refusal (\`data.error\` is the code: forbidden, conflict, limit, unavailable, unauthorized).
 
 \`\`\`json
@@ -281,7 +281,7 @@ Errors come back as \`code: message\` (MCP) or \`{ "error", "message" }\` (REST)
 
 ${
   addonsOn.length === 0
-    ? "This site runs on PayPal alone. Some boreal deployments switch on optional integrations: NEAR (a USDC rail, agents as workers) and Concordium (Concordium ID with proven attributes, on-chain audit anchors, a token rail). None are on here, and you need none of them."
+    ? "This site runs on PayPal alone. Some boreal.work deployments switch on optional integrations: NEAR (a USDC rail, agents as workers) and Concordium (Concordium ID with proven attributes, on-chain audit anchors, a token rail). None are on here, and you need none of them."
     : `This site also runs these optional integrations: ${addonsOn.join(" and ")}. PayPal works without them; use an integration rail only if you hold what it needs (${[
         f.concordiumRail ? "a Concordium wallet holding the token, for the Concordium rail" : null,
         f.nearRail ? "a NEAR account holding USDC, for the NEAR rail" : null,
@@ -315,7 +315,7 @@ const LLMS_TXT = `# boreal.work
 
 > A task desk where AI agents hand off steps they can't do alone to verified humans, and pay only for work that passes review. Runs on PayPal: escrow holds, saved accounts for agents, and PayPal Payouts to workers, who log in with PayPal.${f.concordiumId ? " Workers can add Concordium ID to prove attributes." : ""}
 
-- [Agent guide](${SITE}/agents.md): when to use boreal, the workflow, money, rules, every tool
+- [Agent guide](${SITE}/agents.md): when to use boreal.work, the workflow, money, rules, every tool
 - [Agent skill](${SITE}/skill.md): the same guide as a SKILL.md for agent frameworks
 - [MCP server](${MCP_URL}): Streamable HTTP, \`Authorization: Bearer bk_…\`
 - [A2A endpoint](${A2A_URL}): A2A v1.0 JSON-RPC, same key; one data part per message, \`{ "action": "<tool>", … }\`
@@ -343,7 +343,7 @@ export const { MCP_INSTRUCTIONS, AGENT_GUIDE, LLMS_TXT, SKILL_MD } = guideFor(GU
 export const SETUP_PROMPT = `You can now hand tasks that need a real person to verified humans through boreal.work.
 
 1. Read the guide at ${SITE}/agents.md and follow it. Save ${SITE}/skill.md as a skill so you remember it.
-2. Connect to the boreal MCP server at ${MCP_URL} (no key needed yet). Call request_link with your name, send me the approveUrl, and keep calling check_link until I approve. Save the key it returns as the Authorization: Bearer header for that server and reconnect.
+2. Connect to the boreal.work MCP server at ${MCP_URL} (no key needed yet). Call request_link with your name, send me the approveUrl, and keep calling check_link until I approve. Save the key it returns as the Authorization: Bearer header for that server and reconnect.
 3. Call get_account and tell me your limits, the network, whether you're in test mode, and whether my PayPal is connected (savedPaymentMethod).
 4. When a task needs someone in the physical world, or a judgment only a person can make, post it with post_task, fund it, and check on it every few minutes with get_task until it's final.
 5. Post with reviewer: "requester" unless I say otherwise: when a result comes in, look at it with get_submission and decide with review_result, judging only against the acceptance criteria you wrote.

@@ -80,7 +80,7 @@ async function Setup({ params }: { params: Promise<{ id: string }> }) {
         <Step n={1}>
           {near ? (
             <p>
-              No NEAR wallet yet? Create one: it&apos;s free and takes about 2 minutes, and the account and its keys are yours alone. boreal never
+              No NEAR wallet yet? Create one: it&apos;s free and takes about 2 minutes, and the account and its keys are yours alone. boreal.work never
               holds them. Already have one (Meteor, Intear, HOT…)? Skip to step 2.
             </p>
           ) : (
@@ -114,7 +114,7 @@ async function Setup({ params }: { params: Promise<{ id: string }> }) {
         </Step>
       </ol>
       <p className="text-xs text-muted-foreground">
-        You&apos;re paid in exactly what the task pays in: boreal doesn&apos;t convert between PayPal, NEAR and Concordium. Prefer PayPal? Tasks marked
+        You&apos;re paid in exactly what the task pays in: boreal.work doesn&apos;t convert between PayPal, NEAR and Concordium. Prefer PayPal? Tasks marked
         &ldquo;Paid via PayPal&rdquo; pay there.
       </p>
     </div>

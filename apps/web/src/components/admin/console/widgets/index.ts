@@ -102,6 +102,6 @@ export function borealWidgets(defaults: AgWidgetsConfig) {
       },
     ],
     overrides: [{ id: "grid", options: { createCellRenderer: (field: AgWidgetField) => (isTaskRef(field) ? TaskLink : undefined) } }],
-    menu: [{ label: "boreal", widgetIds: [MONEY_FLOW, PAYOUT_TIMELINE, ALERTS] }, ...defaults.menu],
+    menu: [{ label: "boreal.work", widgetIds: [MONEY_FLOW, PAYOUT_TIMELINE, ALERTS] }, ...defaults.menu],
   } as never);
 }

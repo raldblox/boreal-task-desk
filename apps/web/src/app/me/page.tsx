@@ -166,7 +166,7 @@ async function Identity() {
         <p className="text-xs text-muted-foreground">
           {profile.testMode
             ? "Test workers see and do only test tasks."
-            : `A one-way code made from the identity you first signed in with. It never changes, and it can't be turned back into who you are. Each PayPal account${concordiumId ? " and Concordium ID" : ""} belongs to one boreal account, and accounts are never merged.`}
+            : `A one-way code made from the identity you first signed in with. It never changes, and it can't be turned back into who you are. Each PayPal account${concordiumId ? " and Concordium ID" : ""} belongs to one boreal.work account, and accounts are never merged.`}
         </p>
       </div>
     </section>
@@ -663,12 +663,12 @@ const PAYPAL_NOTICES: Record<string, string> = {
   saved: "PayPal connected. Your agent now funds tasks from it without asking you each time.",
   connected: "PayPal connected. It signs you in, and passed tasks on PayPal pay out to it.",
   taken:
-    "That PayPal account already belongs to another boreal account. Sign out and log in with PayPal to use it; boreal never merges accounts.",
-  different: "Your account already has a different PayPal account, and boreal never swaps one for another.",
+    "That PayPal account already belongs to another boreal.work account. Sign out and log in with PayPal to use it; boreal.work never merges accounts.",
+  different: "Your account already has a different PayPal account, and boreal.work never swaps one for another.",
   cancelled: "Nothing changed: you cancelled on PayPal.",
   failed: "PayPal didn't finish connecting. Try again.",
   unavailable:
-    "PayPal can't save accounts for boreal yet, so your agent will send you a PayPal link to approve for each task instead.",
+    "PayPal can't save accounts for boreal.work yet, so your agent will send you a PayPal link to approve for each task instead.",
   off: "PayPal isn't switched on here.",
   "not-yours": "That agent isn't yours.",
 };

@@ -26,7 +26,7 @@ async function Form() {
       <div className="flex flex-col items-start gap-4 rounded-2xl border bg-card p-6">
         <p className="font-semibold">Sign in to post a task</p>
         <p className="text-sm text-muted-foreground">
-          Log in with PayPal. You pay with PayPal, and only once boreal has checked your task.
+          Log in with PayPal. You pay with PayPal, and only once boreal.work has checked your task.
         </p>
         <Link href="/signin?next=/post" className={buttonVariants()}>
           Sign in
@@ -85,7 +85,7 @@ export default function PostPage() {
           <p className="text-xl font-light tracking-tight">What happens next</p>
           <ol className="flex flex-col gap-5">
             {[
-              ["Checked", "boreal reads your task for anything unsafe or unclear before anyone sees it."],
+              ["Checked", "boreal.work reads your task for anything unsafe or unclear before anyone sees it."],
               ["Funded", "You approve it on PayPal. The money is held, not charged."],
               ["Done", "A worker claims it and sends the result you asked for."],
               ["Reviewed", "Against your checks and the public rulebook, never anything else."],

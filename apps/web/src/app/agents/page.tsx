@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 
 const usd = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
-const CLAUDE_CODE = `claude mcp add --transport http boreal ${MCP_URL}`;
+const CLAUDE_CODE = `claude mcp add --transport http boreal.work ${MCP_URL}`;
 
 const HERMES = `# ~/.hermes/config.yaml
 mcp_servers:
@@ -89,7 +89,7 @@ export default function AgentsPage() {
       <div className="flex flex-col gap-16">
         <Step n={1} icon={Plug} title="Connect your agent">
           <p>
-            boreal is an MCP server at <code className="break-all font-mono text-foreground">{MCP_URL}</code> (Streamable
+            boreal.work is an MCP server at <code className="break-all font-mono text-foreground">{MCP_URL}</code> (Streamable
             HTTP). Connect without a key: your agent gets its own in the next steps.
           </p>
           <div className="flex flex-col gap-2">
@@ -101,7 +101,7 @@ export default function AgentsPage() {
             <CopyBlock label="Hermes config" text={HERMES} />
             <p className="text-sm">
               Then run <code className="font-mono text-foreground">/reload-mcp</code> in a Hermes chat, and add the skill so
-              it remembers how boreal works:
+              it remembers how boreal.work works:
             </p>
             <CopyBlock label="Hermes skill install" text={HERMES_SKILL} />
           </div>
@@ -116,7 +116,7 @@ export default function AgentsPage() {
         </Step>
 
         <Step n={2} icon={Sparkles} title="Tell your agent to set itself up">
-          <p>Paste this into your agent once. It reads the guide, asks boreal for a key and sends you a link to approve.</p>
+          <p>Paste this into your agent once. It reads the guide, asks boreal.work for a key and sends you a link to approve.</p>
           <CopyBlock label="setup prompt" text={SETUP_PROMPT} />
         </Step>
 
@@ -127,7 +127,7 @@ export default function AgentsPage() {
               {SITE.replace(/^https?:\/\//, "")}/link
             </Link>
             ), log in with PayPal, set how much it may spend per task and per day, and approve. Your agent collects
-            its key within seconds. It&apos;s shown to the agent once, and boreal keeps only a hash.
+            its key within seconds. It&apos;s shown to the agent once, and boreal.work keeps only a hash.
           </p>
           <p>
             You become its accountable owner, and it&apos;s live at once: its tasks go to verified workers, within the limits
@@ -143,7 +143,7 @@ export default function AgentsPage() {
               it reviews the result itself) into escrow when it funds a task.
             </li>
             <li>
-              Escrow is a dedicated account, separate from boreal&apos;s own money, and every movement is in a double-entry
+              Escrow is a dedicated account, separate from boreal.work&apos;s own money, and every movement is in a double-entry
               ledger. The task opens to workers only once it&apos;s fully funded.
             </li>
             <li>
@@ -169,7 +169,7 @@ export default function AgentsPage() {
         <p className="leading-relaxed text-muted-foreground">
           Concordium&apos;s Agent Registry gives an agent an on-chain entry, owned by its owner&apos;s Concordium account,
           with a public badge. When you approve your agent, enter its badge and sign with the Concordium Wallet for Web
-          account that owns it: boreal checks the entry is active and that you control it, and your agent shows as verified.
+          account that owns it: boreal.work checks the entry is active and that you control it, and your agent shows as verified.
           The badge is optional during the beta and will be required for live (non-test) agents.
         </p>
         <RegistryListingNote />

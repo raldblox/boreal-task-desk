@@ -28,12 +28,12 @@ export function RegistryListingNote() {
   return (
     <div className="flex flex-col gap-2 text-sm leading-relaxed text-muted-foreground">
       <p>
-        boreal lists itself in the same registry. Its Agent Card is at{" "}
+        boreal.work lists itself in the same registry. Its Agent Card is at{" "}
         <a href={CARD_URL} className="inline-flex items-center gap-1 break-all font-mono text-foreground underline-offset-4 hover:underline">
           <FileJson className="size-3.5 shrink-0 text-primary" aria-hidden />
           {CARD_URL.replace(/^https?:\/\//, "")}
         </a>
-        , and the <code className="font-mono text-foreground">x-card-sha256</code> header is its hash. Your agent can check boreal
+        , and the <code className="font-mono text-foreground">x-card-sha256</code> header is its hash. Your agent can check boreal.work
         is the real one by calling <code className="font-mono text-foreground">check_badge</code> on the registry&apos;s MCP server (
         <code className="break-all font-mono text-foreground">{REGISTRY_MCP_URL}</code>) with the badge in the card: the entry
         should be active, point at this card, and match its on-chain hash.

@@ -28,7 +28,7 @@ const steps = [
   {
     icon: Fingerprint,
     title: "Log in with PayPal",
-    body: "That's your account and where you're paid, with PayPal Payouts. boreal keeps a one-way code for it, never your password.",
+    body: "That's your account and where you're paid, with PayPal Payouts. boreal.work keeps a one-way code for it, never your password.",
   },
   {
     icon: Camera,
@@ -173,7 +173,7 @@ export default function Home() {
           <div className="flex flex-col gap-3">
             <p className="text-sm font-medium">Connect Claude Code</p>
             <pre className="overflow-x-auto rounded-2xl bg-foreground p-6 font-mono text-xs leading-relaxed text-background">
-              {`claude mcp add --transport http boreal \\
+              {`claude mcp add --transport http boreal.work \\
   ${MCP_URL} \\
   --header "Authorization: Bearer bk_…"`}
             </pre>

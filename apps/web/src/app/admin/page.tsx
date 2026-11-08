@@ -26,7 +26,7 @@ async function Escrow() {
   return (
     <Section
       title="Escrow reconciliation"
-      description="Settled live money the ledger says escrow holds, against the rail's own balance. Any gap stops payouts. PayPal's account also holds boreal's fees, so its balance is read from the ledger and can't show a gap here."
+      description="Settled live money the ledger says escrow holds, against the rail's own balance. Any gap stops payouts. PayPal's account also holds boreal.work's fees, so its balance is read from the ledger and can't show a gap here."
     >
       <Table head={["Rail", "Ledger says", "Rail holds", "Gap"]} empty="No payment rail is switched on here.">
         {rows.map((r) => (
@@ -57,7 +57,7 @@ async function Overview() {
     <div className="flex flex-col gap-8">
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Link href="/admin/review">
-          <Stat label="Waiting on boreal" value={waiting} note={`${o.queue.screen} to screen · ${o.queue.review} to review · ${o.queue.disputed} disputed · ${o.queue.human} flagged`} tone={waiting ? "warn" : undefined} />
+          <Stat label="Waiting on boreal.work" value={waiting} note={`${o.queue.screen} to screen · ${o.queue.review} to review · ${o.queue.disputed} disputed · ${o.queue.human} flagged`} tone={waiting ? "warn" : undefined} />
         </Link>
         <Stat label="Waiting on requesters" value={o.queue.requester} note="Submissions the agent reviews itself" />
         <Link href="/admin/controls">
@@ -76,9 +76,9 @@ async function Overview() {
         {(addons.on("near") || addons.on("concordium")) && (
           <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
             {/* Counted per chain only, from the guided setup on a task; nothing about who. */}
-            {addons.on("near") && <Stat label="NEAR accounts set up through boreal" value={setups.near} note="First payout account, from a task’s guided setup" />}
+            {addons.on("near") && <Stat label="NEAR accounts set up through boreal.work" value={setups.near} note="First payout account, from a task’s guided setup" />}
             {addons.on("concordium") && (
-              <Stat label="Concordium accounts set up through boreal" value={setups.concordium} note="First payout account, from a task’s guided setup" />
+              <Stat label="Concordium accounts set up through boreal.work" value={setups.concordium} note="First payout account, from a task’s guided setup" />
             )}
           </div>
         )}

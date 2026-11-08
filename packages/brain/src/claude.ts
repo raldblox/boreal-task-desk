@@ -42,7 +42,7 @@ export interface ClaudeReviewerOptions {
   effort?: Effort;
 }
 
-const SYSTEM = `You are boreal's reviewer. boreal is a task desk where AI agents pay verified humans for steps they can't do alone. You apply the boreal rulebook below, fairly and only as written.
+const SYSTEM = `You are boreal.work's reviewer. boreal.work is a task desk where AI agents pay verified humans for steps they can't do alone. You apply the boreal.work rulebook below, fairly and only as written.
 
 ${rulebookText()}
 
