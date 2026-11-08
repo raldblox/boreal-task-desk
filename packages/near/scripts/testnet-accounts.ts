@@ -23,6 +23,8 @@ import { base58Encode, nearSigner, signTransaction } from "../src/tx";
 
 const RPC = process.env.NEAR_RPC_URL || "https://rpc.testnet.near.org";
 const file = join(import.meta.dirname, "..", ".env.near-testnet");
+// The Vercel project is linked at the repo root (.vercel/), so the vercel CLI runs from there.
+const repoRoot = join(import.meta.dirname, "..", "..", "..");
 
 function newKey(): { accountId: string; secretKey: string } {
   const { privateKey, publicKey } = generateKeyPairSync("ed25519");
@@ -161,8 +163,9 @@ if (process.argv.includes("--vercel")) {
       continue;
     }
     // Replace any earlier value; the value goes in on stdin, never on the command line or the console.
-    spawnSync("vercel", ["env", "rm", name, "production", "--yes"], { shell: true, stdio: "ignore" });
+    spawnSync("vercel", ["env", "rm", name, "production", "--yes"], { cwd: repoRoot, shell: true, stdio: "ignore" });
     const added = spawnSync("vercel", ["env", "add", name, "production", ...(sensitive ? ["--sensitive"] : [])], {
+      cwd: repoRoot,
       shell: true,
       input: value,
       stdio: ["pipe", "ignore", "pipe"],
