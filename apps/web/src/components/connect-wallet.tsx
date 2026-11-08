@@ -24,9 +24,15 @@ function freshNonce(): Uint8Array {
   return nonce;
 }
 
-function ConnectButton({ busy, label, onClick }: { busy: string | null; label: string; onClick: () => void }) {
+/** `quiet`: an outline button, for changing an account that's already connected. */
+function ConnectButton({ busy, label, onClick, quiet = false }: { busy: string | null; label: string; onClick: () => void; quiet?: boolean }) {
   return (
-    <Button onClick={onClick} disabled={busy !== null} size="lg" className="h-auto min-h-11 w-full gap-2 whitespace-normal sm:w-fit">
+    <Button
+      onClick={onClick}
+      disabled={busy !== null}
+      variant={quiet ? "outline" : "default"}
+      className="h-auto min-h-10 w-fit gap-2 whitespace-normal"
+    >
       <Wallet className="size-4" aria-hidden />
       {busy ?? label}
     </Button>
@@ -40,6 +46,7 @@ export function ConnectNear({
   message,
   taskId,
   label = "Connect NEAR wallet",
+  quiet = false,
 }: {
   network: "mainnet" | "testnet";
   /** The site's host, as the signature's recipient. */
@@ -49,6 +56,7 @@ export function ConnectNear({
   /** On a task's setup: claim it once connected. */
   taskId?: string;
   label?: string;
+  quiet?: boolean;
 }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -98,7 +106,7 @@ export function ConnectNear({
 
   return (
     <div className="flex flex-col gap-3">
-      <ConnectButton busy={busy} label={label} onClick={connect} />
+      <ConnectButton quiet={quiet} busy={busy} label={label} onClick={connect} />
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
@@ -109,7 +117,15 @@ export function ConnectNear({
 }
 
 /** Connect the Concordium Wallet for Web: the account picked in the wallet is the payout account. */
-export function ConnectConcordiumAccount({ taskId, label = "Connect Concordium Wallet" }: { taskId?: string; label?: string }) {
+export function ConnectConcordiumAccount({
+  taskId,
+  label = "Connect Concordium Wallet",
+  quiet = false,
+}: {
+  taskId?: string;
+  label?: string;
+  quiet?: boolean;
+}) {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [missing, setMissing] = useState(false);
@@ -142,7 +158,7 @@ export function ConnectConcordiumAccount({ taskId, label = "Connect Concordium W
 
   return (
     <div className="flex flex-col gap-3">
-      <ConnectButton busy={busy} label={label} onClick={connect} />
+      <ConnectButton quiet={quiet} busy={busy} label={label} onClick={connect} />
       {missing && (
         <Alert>
           <AlertDescription>
