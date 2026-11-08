@@ -39,9 +39,11 @@ const Glass = ({ tone = "dark", children, style }: { tone?: "dark" | "light"; ch
         borderRadius: 30,
         overflow: "hidden",
         color: dark ? "#fff" : C.ink,
-        background: dark
-          ? "linear-gradient(150deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,.08) 45%, rgba(120,220,210,.10) 100%)"
-          : "linear-gradient(150deg, rgba(255,255,255,.82) 0%, rgba(240,250,249,.62) 60%, rgba(200,236,232,.55) 100%)",
+        // A tinted base under the frost keeps text readable whatever is behind the card.
+        backgroundImage: dark
+          ? "linear-gradient(150deg, rgba(255,255,255,.16) 0%, rgba(255,255,255,.04) 45%, rgba(120,220,210,.08) 100%)"
+          : "linear-gradient(150deg, rgba(255,255,255,.55) 0%, rgba(255,255,255,.2) 60%, rgba(200,236,232,.25) 100%)",
+        backgroundColor: dark ? "rgba(8,26,28,.62)" : "rgba(246,252,251,.82)",
         backdropFilter: "blur(28px) saturate(185%)",
         WebkitBackdropFilter: "blur(28px) saturate(185%)",
         border: `1px solid ${dark ? "rgba(255,255,255,.30)" : "rgba(255,255,255,.95)"}`,
