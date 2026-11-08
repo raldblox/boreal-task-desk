@@ -2,12 +2,15 @@ import { DeskError } from "@boreal/desk";
 
 import { getDesk } from "@/server/desk";
 import { clientHash, getIdAppVerifier } from "@/server/id-app";
+import { addonRefusal } from "@/server/addons";
 
 // Step 1 of Concordium ID sign-in: once the ID App has paired over WalletConnect, build and
 // anchor the proof request for that session. The browser forwards it to the app.
 export const maxDuration = 60;
 
 export async function POST(request: Request) {
+  const off = addonRefusal("concordium", "id");
+  if (off) return off;
   const verifier = getIdAppVerifier();
   if (!verifier) {
     return Response.json({ error: "unavailable", message: "Concordium ID sign-in isn't set up yet" }, { status: 503 });

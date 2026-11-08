@@ -5,6 +5,7 @@ import { NETWORK } from "@/content/agent-guide";
 import { holdPendingWallet, takeChallenge, walletRef } from "@/server/concordium-wallet";
 import { getDesk } from "@/server/desk";
 import { startWorkerSession } from "@/server/session";
+import { addonRefusal } from "@/server/addons";
 
 // Wallet sign-in, step 2: check the wallet account signed this browser's challenge, then sign
 // in its worker, creating one for a new wallet: no proof, nothing on-chain, no CCD. When linking
@@ -12,6 +13,8 @@ import { startWorkerSession } from "@/server/session";
 export const maxDuration = 30;
 
 export async function POST(request: Request) {
+  const off = addonRefusal("concordium", "id");
+  if (off) return off;
   const body = (await request.json().catch(() => null)) as { account?: unknown; signature?: unknown; link?: unknown } | null;
   const message = await takeChallenge();
   if (!message) return Response.json({ error: "expired", message: "The sign-in took too long. Try again." }, { status: 400 });

@@ -5,8 +5,10 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 import { Suspense } from "react";
 
+import { AddonsPanel } from "@/components/addons-panel";
 import { Eyebrow } from "@/components/brand";
 import { GUIDE_VERSION, LIVE_SITE, NETWORK, SITE, TESTNET_SITE } from "@/content/agent-guide";
+import { getAddons, gatedEnv } from "@/server/addons";
 import { getConcordium, getDesk, paymentRails } from "@/server/desk";
 import { getIdAppVerifier } from "@/server/id-app";
 import { paypalLoginEnabled } from "@/server/paypal-accounts";
@@ -57,15 +59,17 @@ function ago(at: Date): string {
 async function Checks() {
   await connection();
   const db = await databaseCheck();
+  const addons = getAddons();
+  const concordium = addons.on("concordium");
   const [queue, registry] = await Promise.all([
     db.health === "down" ? null : queueCheck(Boolean(getConcordium()?.anchor)).catch(() => null),
-    registryCheck(),
+    concordium ? registryCheck() : null,
   ]);
 
   const rails = paymentRails();
   let paypalMode = "";
   try {
-    paypalMode = rails.includes("paypal") ? (paypalTarget(process.env).mode === "live" ? "PayPal (live)" : "PayPal sandbox") : "";
+    paypalMode = rails.includes("paypal") ? (paypalTarget(gatedEnv()).mode === "live" ? "PayPal (live)" : "PayPal sandbox") : "";
   } catch {
     paypalMode = "PayPal (misconfigured)";
   }
@@ -78,8 +82,8 @@ async function Checks() {
   const setups = db.health === "down" ? null : await getDesk().walletSetupCounts().catch(() => null);
   const setupLine = setups
     ? [
-        setups.near ? `${setups.near} ${setups.near === 1 ? "worker" : "workers"} set up a NEAR account through boreal` : "",
-        setups.concordium ? `${setups.concordium} ${setups.concordium === 1 ? "worker" : "workers"} set up a Concordium account through boreal` : "",
+        setups.near && addons.on("near") ? `${setups.near} ${setups.near === 1 ? "worker" : "workers"} set up a NEAR account through boreal` : "",
+        setups.concordium && concordium ? `${setups.concordium} ${setups.concordium === 1 ? "worker" : "workers"} set up a Concordium account through boreal` : "",
       ].filter(Boolean)
     : [];
   const checks: Check[] = [
@@ -88,7 +92,9 @@ async function Checks() {
     {
       name: "Payments",
       health: railNames.length ? "ok" : "off",
-      detail: railNames.length ? `Tasks can be funded with ${railNames.join(", ")}` : "Funding isn't switched on here yet; agents can link but not pay",
+      detail: railNames.length
+        ? `Tasks can be funded with ${railNames.join(", ")}`
+        : "PayPal isn't configured here yet (PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET); agents can link but not pay",
     },
     {
       name: "Log in with PayPal",
@@ -97,16 +103,33 @@ async function Checks() {
         ? `Workers and owners sign in with ${NETWORK === "testnet" ? "PayPal sandbox" : "PayPal"} accounts`
         : "Not switched on here yet",
     },
-    {
-      name: "Concordium ID (verified badge)",
-      health: getIdAppVerifier() ? "ok" : "off",
-      detail: getIdAppVerifier()
-        ? `Workers can add Concordium ID to prove their age or country (Concordium ${NETWORK})`
-        : "Not set up on this site yet",
-    },
     queue?.money ?? { name: "Payouts and refunds", health: db.health === "down" ? "down" : "degraded", detail: "Couldn't read the queue" },
-    ...(queue ? [queue.anchors] : []),
-    registry,
+    // Add-on checks show only where the add-on is on; a PayPal-only site has none of them.
+    ...(concordium
+      ? [
+          {
+            name: "Concordium ID (add-on)",
+            health: getIdAppVerifier() || addons.ready("concordium", "id") ? "ok" : "degraded",
+            detail:
+              getIdAppVerifier() || addons.ready("concordium", "id")
+                ? `Workers can add Concordium ID to prove their age or country (Concordium ${NETWORK})`
+                : (addons.concordium.parts.find((p) => p.id === "id")?.reason ?? "Not ready"),
+          } satisfies Check,
+          ...(queue ? [{ ...queue.anchors, name: "On-chain audit anchors (add-on)" }] : []),
+          ...(registry ? [{ ...registry, name: "Registry listing (add-on)" }] : []),
+        ]
+      : []),
+    ...(addons.on("near")
+      ? [
+          {
+            name: "USDC on NEAR (add-on)",
+            health: rails.includes("near") ? "ok" : "degraded",
+            detail: rails.includes("near")
+              ? `Agents can fund in USDC on NEAR ${NETWORK}; workers are paid to their NEAR account`
+              : (addons.near.parts.find((p) => p.id === "rail")?.reason ?? "Not ready"),
+          } satisfies Check,
+        ]
+      : []),
   ];
   const state = overall(checks);
   const look = LOOK[state];
@@ -130,6 +153,10 @@ async function Checks() {
         ))}
       </ul>
       {setupLine.length > 0 && <p className="text-sm text-muted-foreground">{setupLine.join(". ")}.</p>}
+      <section className="flex flex-col gap-3">
+        <h2 className="text-lg font-semibold">Add-ons</h2>
+        <AddonsPanel addons={[addons.concordium, addons.near]} source={addons.source} />
+      </section>
     </div>
   );
 }

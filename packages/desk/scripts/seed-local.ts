@@ -5,6 +5,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { loadConcordium, signDevPayment } from "@boreal/concordium";
+import { readAddons } from "@boreal/core";
 import { agents, createDb, owners } from "@boreal/db";
 
 import { type Caller, createDesk } from "../src/desk";
@@ -61,10 +62,12 @@ const tasks = [
   },
 ];
 
-// On the PayPal rail the tasks wait for funding, so the agent funds them through PayPal.
-const paypal = process.env.PAYMENTS_RAIL === "paypal";
+// Without the Concordium add-on (PayPal only) the tasks wait for funding, so the agent funds them
+// through PayPal, and they ask for no proven attributes, which need Concordium ID.
+const concordiumOn = readAddons(process.env).on("concordium");
+const paypal = process.env.PAYMENTS_RAIL === "paypal" || !concordiumOn;
 for (const input of tasks) {
-  const { task, quote } = await desk.postTask(hermes, input);
+  const { task, quote } = await desk.postTask(hermes, concordiumOn ? input : { ...input, requiredAttributes: [] });
   await desk.screenTask(reviewer, task.id, { outcome: "ok" });
   if (paypal) continue;
   const requirement = await payments.createPaymentRequest(task.id, quote.total);

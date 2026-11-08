@@ -5,12 +5,15 @@ import { takePendingWallet } from "@/server/concordium-wallet";
 import { getDesk } from "@/server/desk";
 import { getIdAppVerifier } from "@/server/id-app";
 import { startWorkerSession, workerFromSession } from "@/server/session";
+import { addonRefusal } from "@/server/addons";
 
 // Step 2: verify the ID App's proof against the anchored request, then sign the worker in, or
 // (with `link`) add this Concordium ID to the signed-in worker: the badge and its attributes.
 export const maxDuration = 60;
 
 export async function POST(request: Request) {
+  const off = addonRefusal("concordium", "id");
+  if (off) return off;
   const verifier = getIdAppVerifier();
   if (!verifier) {
     return Response.json({ error: "unavailable", message: "Concordium ID sign-in isn't set up yet" }, { status: 503 });

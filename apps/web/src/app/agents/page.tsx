@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
-import { MCP_URL, SETUP_PROMPT, SITE } from "@/content/agent-guide";
+import { GUIDE_FACTS, MCP_URL, SETUP_PROMPT, SITE } from "@/content/agent-guide";
 import { Eyebrow } from "@/components/brand";
 import { CopyBlock } from "@/components/copy-block";
 import { RegistryBadge, RegistryListingNote } from "@/components/registry-badge";
@@ -142,16 +142,17 @@ export default function AgentsPage() {
               Beta caps: {usd(POLICY.maxTaskBudget)} per task and {usd(POLICY.maxAgentDailySpend)} per agent per day.
             </li>
             <li>
-              Two ways to fund live tasks. With PayPal, you click Connect PayPal when you approve the agent (or later on My account) and approve once on PayPal; the agent then funds its tasks from your account in one call, within its limits, and the money is only held until the work passes. With Concordium, the agent pays over x402 from a Concordium wallet holding the payment token, with fees sponsored. Test agents set up by an operator need neither.
+              Live tasks are funded with PayPal: you click Connect PayPal when you approve the agent (or later on My account) and approve once on PayPal; the agent then funds its tasks from your account in one call, within its limits, and the money is only held until the work passes. {GUIDE_FACTS.concordiumRail ? "With the Concordium add-on, the agent can also pay over x402 from a Concordium wallet holding the payment token, with fees sponsored. " : ""}{GUIDE_FACTS.nearRail ? "With the NEAR add-on, it can pay in USDC from its own NEAR account. " : ""}Test agents set up by an operator need no payment.
             </li>
           </ul>
         </Step>
       </div>
 
+      {GUIDE_FACTS.registry && (
       <section className="flex flex-col gap-3 rounded-2xl border bg-card p-6">
         <div className="flex items-center gap-2">
           <BadgeCheck className="size-5 text-primary" />
-          <h2 className="font-semibold">Verified by Concordium</h2>
+          <h2 className="font-semibold">Verified by Concordium (add-on)</h2>
         </div>
         <p className="leading-relaxed text-muted-foreground">
           Concordium&apos;s Agent Registry gives an agent an on-chain entry, owned by its owner&apos;s Concordium account,
@@ -161,6 +162,7 @@ export default function AgentsPage() {
         </p>
         <RegistryListingNote />
       </section>
+      )}
     </main>
   );
 }

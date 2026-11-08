@@ -6,7 +6,8 @@ import { Suspense } from "react";
 import { Eyebrow } from "@/components/brand";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
-import { getDesk } from "@/server/desk";
+import { getAddons, verification } from "@/server/addons";
+import { getDesk, paymentRails } from "@/server/desk";
 import { workerFromSession } from "@/server/session";
 
 import { postTask } from "./actions";
@@ -24,7 +25,8 @@ async function Form() {
       <div className="flex flex-col items-start gap-4 rounded-2xl border bg-card p-6">
         <p className="font-semibold">Sign in to post a task</p>
         <p className="text-sm text-muted-foreground">
-          Log in with PayPal or Concordium ID. You pay with PayPal, and only once boreal has checked your task.
+          Log in with PayPal{getAddons().ready("concordium", "id") ? " or Concordium ID" : ""}. You pay with PayPal, and only once boreal
+          has checked your task.
         </p>
         <Link href="/signin?next=/post" className={buttonVariants()}>
           Sign in
@@ -37,13 +39,27 @@ async function Form() {
   if (profile?.testMode) {
     return (
       <Alert>
-        <AlertDescription>Test worker accounts can&apos;t post tasks. Sign in with PayPal or Concordium ID.</AlertDescription>
+        <AlertDescription>Test worker accounts can&apos;t post tasks. Log in with PayPal instead.</AlertDescription>
       </Alert>
     );
   }
-  // Same rule as for agents: without Concordium ID, a person posts up to the unverified cap.
-  const verified = Boolean(profile?.hasConcordium);
-  return <PostForm action={postTask} maxTask={verified ? POLICY.maxTaskBudget : POLICY.unverifiedTaskBudget} verified={verified} />;
+  // Same rule as for agents: unverified, a person posts up to the unverified cap. Concordium ID
+  // verifies where the Concordium add-on is on; a PayPal-verified account does where it isn't.
+  const how = verification();
+  const verified = Boolean(profile && ((how.concordiumId && profile.hasConcordium) || (how.paypal && profile.paypalVerified)));
+  const liftWith = [how.concordiumId && "adding Concordium ID on My account", how.paypal && "verifying your PayPal account with PayPal (then log in again)"]
+    .filter(Boolean)
+    .join(" or ");
+  return (
+    <PostForm
+      action={postTask}
+      maxTask={verified ? POLICY.maxTaskBudget : POLICY.unverifiedTaskBudget}
+      verified={verified}
+      liftWith={liftWith}
+      attributes={how.concordiumId}
+      addonRails={paymentRails().filter((r) => r !== "paypal")}
+    />
+  );
 }
 
 export default function PostPage() {

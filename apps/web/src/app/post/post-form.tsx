@@ -39,9 +39,26 @@ const selectClass = "h-9 rounded-lg border border-input bg-background px-2.5 tex
 
 /**
  * A person's task, field for field what post_task takes, with the fee quote worked out as they
- * type. `maxTask` is what they can post per task today (lower without Concordium ID).
+ * type. `maxTask` is what they can post per task today (lower until they're verified).
  */
-export function PostForm({ action, maxTask, verified }: { action: Action; maxTask: number; verified: boolean }) {
+export function PostForm({
+  action,
+  maxTask,
+  verified,
+  liftWith,
+  attributes,
+  addonRails,
+}: {
+  action: Action;
+  maxTask: number;
+  verified: boolean;
+  /** What raises the cap here, as a phrase ("verifying your PayPal account with PayPal"). */
+  liftWith: string;
+  /** Tasks may require proven attributes (the Concordium add-on's Concordium ID is on). */
+  attributes: boolean;
+  /** Add-on rails switched on here, besides PayPal. */
+  addonRails: string[];
+}) {
   const [state, formAction, pending] = useActionState(action, null);
   const [budget, setBudget] = useState("5.00");
   const [reviewer, setReviewer] = useState<"requester" | "boreal">("requester");
@@ -100,7 +117,9 @@ export function PostForm({ action, maxTask, verified }: { action: Action; maxTas
         <div className="flex flex-col gap-1">
           <h2 className="font-semibold">Who can take it</h2>
           <p className="text-sm text-muted-foreground">
-            Optional. Either one limits the task to workers who proved it with Concordium ID, so it may take longer to fill.
+            {attributes
+              ? "Optional. Either one limits the task to workers who proved it with Concordium ID, so it may take longer to fill."
+              : "Any verified worker who logs in with PayPal can take it."}
           </p>
         </div>
         <fieldset className="flex flex-col gap-2">
@@ -113,19 +132,23 @@ export function PostForm({ action, maxTask, verified }: { action: Action; maxTas
             <input type="radio" name="fulfilment" value="people_or_agents" disabled /> People or agents (coming soon)
           </label>
         </fieldset>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" name="adult" /> Only workers who are 18 or older
-        </label>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="country">Worker lives in</Label>
-          <select id="country" name="country" defaultValue="" className={selectClass}>
-            {COUNTRIES.map((c) => (
-              <option key={c.code} value={c.code}>
-                {c.label}
-              </option>
-            ))}
-          </select>
-        </div>
+        {attributes && (
+          <>
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" name="adult" /> Only workers who are 18 or older
+            </label>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="country">Worker lives in</Label>
+              <select id="country" name="country" defaultValue="" className={selectClass}>
+                {COUNTRIES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </>
+        )}
       </section>
 
       <section className="flex flex-col gap-5 rounded-2xl border bg-card p-6">
@@ -146,7 +169,7 @@ export function PostForm({ action, maxTask, verified }: { action: Action; maxTas
             />
             <p className={`text-xs ${overCap ? "text-destructive" : "text-muted-foreground"}`}>
               Up to {usd(maxTask)} a task
-              {verified ? "." : ` until you add Concordium ID on My account (then up to ${usd(POLICY.maxTaskBudget)}).`} Pay
+              {verified ? "." : ` until you're verified, by ${liftWith} (then up to ${usd(POLICY.maxTaskBudget)}).`} Pay
               fairly for the time it takes.
             </p>
           </div>
@@ -228,10 +251,13 @@ export function PostForm({ action, maxTask, verified }: { action: Action; maxTas
           the money until the work passes. If it fails, expires or you cancel before anyone claims it, the hold is released
           {reviewer === "boreal" ? " (a fail still pays the review fee)" : ""}.
         </p>
-        <p className="text-xs text-muted-foreground">
-          PayPal tasks reach the most workers today, since every worker can be paid there. Tasks paid in crypto (USDC on NEAR, or
-          tokens on Concordium) help grow that chain&apos;s workforce: workers set up their own wallet to take them.
-        </p>
+        {addonRails.length > 0 && (
+          <p className="text-xs text-muted-foreground">
+            PayPal tasks reach the most workers, since every worker can be paid there. This site also runs add-on rails (
+            {addonRails.map((r) => (r === "near" ? "USDC on NEAR" : "tokens on Concordium")).join(", ")}) for agents that pay in
+            crypto; workers set up their own wallet to take those tasks.
+          </p>
+        )}
       </section>
 
       {state?.error && (

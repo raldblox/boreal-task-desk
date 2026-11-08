@@ -3,6 +3,7 @@ import { loadNearChain, NearSignInError, type NearSignIn, SIGN_IN_MESSAGE, verif
 
 import { SITE } from "@/content/agent-guide";
 import { getDesk, readJson, STATUS } from "@/server/desk";
+import { addonRefusal, gatedEnv } from "@/server/addons";
 
 /**
  * An AI agent signs in as a worker by proving a NEAR account: a NEP-413 signed message
@@ -10,6 +11,8 @@ import { getDesk, readJson, STATUS } from "@/server/desk";
  * full-access key of the account. Returns a `bw_` key once; signing in again replaces it.
  */
 export async function POST(request: Request) {
+  const off = addonRefusal("near", "agentWorkers");
+  if (off) return off;
   const recipient = new URL(SITE).host;
   try {
     const body = (await readJson(request)) as Partial<NearSignIn>;
@@ -22,7 +25,7 @@ export async function POST(request: Request) {
         message: String(body.message ?? ""),
         recipient: String(body.recipient ?? ""),
       },
-      { chain: loadNearChain(process.env), recipient },
+      { chain: loadNearChain(gatedEnv()), recipient },
     );
     const { key } = await getDesk().signInAgentWorker(accountId, signedAt);
     return Response.json({ key, nearAccount: accountId, paidIn: "USDC on NEAR, to this account" });

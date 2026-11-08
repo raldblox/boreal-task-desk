@@ -9,6 +9,12 @@
 // database (~/.boreal-task-desk/pg-demo), filled once with 30 days of generated sandbox
 // activity, and the dashboard labelled "Demo dataset". `pnpm dev:demo --fresh` regenerates it
 // so the last hours' activity (payouts on their way, retries) lines up with now.
+//
+// Add-ons: `--addons concordium,near` (or `--addons none`) picks BOREAL_ADDONS. Without it,
+// dev:local runs PayPal only when .env.paypal sets up the PayPal sandbox, and otherwise turns
+// on the Concordium add-on's stand-ins so there's still money to move. The stand-in settings
+// (CONCORDIUM_MODE=dev) stay set either way for the seed script; the app ignores them while
+// the Concordium add-on is off.
 
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
@@ -36,7 +42,10 @@ mkdirSync(join(localDir, "uploads"), { recursive: true });
 const demo = process.argv.includes("--demo");
 const paypalEnv = join(root, ".env.paypal");
 if (!demo && existsSync(paypalEnv)) process.loadEnvFile(paypalEnv);
-const paypal = !demo && process.env.PAYMENTS_RAIL === "paypal";
+const paypal = !demo && (process.env.PAYMENTS_RAIL === "paypal" || (process.env.PAYMENT_RAILS ?? "").includes("paypal"));
+const addonsFlag = process.argv.indexOf("--addons");
+const addons =
+  addonsFlag > 0 ? (process.argv[addonsFlag + 1] ?? "none") : paypal ? "none" : "concordium";
 
 // The AG Studio licence for the money console and /me/insights, if you have one (a trial key is
 // fine locally). Without it they work with AG's watermark.
@@ -92,11 +101,12 @@ const env = {
   // Labels the admin console's data as generated (`pnpm dev:demo`), and keeps any PayPal
   // settings from the shell out of it.
   BOREAL_DEMO_DATA: demo ? "1" : "",
+  BOREAL_ADDONS: addons,
   ...(demo && { PAYMENTS_RAIL: "", PAYMENT_RAILS: "concordium", PAYPAL_CLIENT_ID: "", PAYPAL_CLIENT_SECRET: "", PAYPAL_LOGIN: "" }),
 };
 
 console.log(
-  `[local] Postgres (PGlite) on ${databaseUrl}, data in .local/${paypal ? "; payments on the PayPal sandbox" : ""}${demo ? "; demo dataset" : ""}`,
+  `[local] Postgres (PGlite) on ${databaseUrl}, data in .local/${paypal ? "; payments on the PayPal sandbox" : ""}${demo ? "; demo dataset" : ""}; add-ons: ${addons === "none" ? "none (PayPal only)" : addons}${!paypal && addonsFlag < 0 ? " (no .env.paypal: Concordium stand-ins move the money; pass --addons none for PayPal only)" : ""}`,
 );
 
 const run = (command: string) => spawn(command, { cwd: root, env, shell: true, stdio: "inherit" });

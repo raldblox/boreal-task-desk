@@ -4,7 +4,9 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { Section, Stat, Table } from "@/components/admin/parts";
+import { AddonsPanel } from "@/components/addons-panel";
 import { usd, when } from "@/lib/format";
+import { getAddons } from "@/server/addons";
 import { requireAdmin } from "@/server/admin";
 import { getDesk } from "@/server/desk";
 
@@ -49,6 +51,7 @@ async function Overview() {
   const count = (status: string, test: boolean) => o.byStatus.find((s) => s.status === status && s.test === test)?.n ?? 0;
   const failing = o.outbox.reduce((sum, r) => sum + r.failing, 0);
   const backlog = o.outbox.reduce((sum, r) => sum + r.n, 0);
+  const addons = getAddons();
   const waiting = o.queue.screen + o.queue.review + o.queue.human + o.queue.disputed;
   return (
     <div className="flex flex-col gap-8">
@@ -65,11 +68,21 @@ async function Overview() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        {/* Counted per chain only, from the guided setup on a task; nothing about who. */}
-        <Stat label="NEAR accounts set up through boreal" value={setups.near} note="First payout account, from a task’s guided setup" />
-        <Stat label="Concordium accounts set up through boreal" value={setups.concordium} note="First payout account, from a task’s guided setup" />
-      </div>
+      <Section
+        title="Add-ons"
+        description="PayPal is the core. NEAR and Concordium are optional, switched on per deployment with BOREAL_ADDONS; each lists what it needs before it can run."
+      >
+        <AddonsPanel addons={[addons.concordium, addons.near]} source={addons.source} operator />
+        {(addons.on("near") || addons.on("concordium")) && (
+          <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+            {/* Counted per chain only, from the guided setup on a task; nothing about who. */}
+            {addons.on("near") && <Stat label="NEAR accounts set up through boreal" value={setups.near} note="First payout account, from a task’s guided setup" />}
+            {addons.on("concordium") && (
+              <Stat label="Concordium accounts set up through boreal" value={setups.concordium} note="First payout account, from a task’s guided setup" />
+            )}
+          </div>
+        )}
+      </Section>
 
       <Section title="Activity" description="Live money only; test money never leaves the ledger.">
         <Table head={["Window", "Posted (live / test)", "Funded", "Paid to workers"]}>

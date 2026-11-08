@@ -16,6 +16,7 @@ import { attributeLabel, usd, when, WORKER_STATUS } from "@/lib/format";
 import { canBePaidOn, RAIL_LABEL } from "@/lib/rails";
 import { getDesk } from "@/server/desk";
 import { workerFromSession } from "@/server/session";
+import { getAddons } from "@/server/addons";
 
 function FindAnother() {
   return (
@@ -58,6 +59,14 @@ function NextStep({
 
   switch (task.status) {
     case "open":
+      if (needsBadge && !getAddons().ready("concordium", "id")) {
+        return (
+          <p className="text-sm text-muted-foreground">
+            This task needs proven attributes ({task.requiredAttributes.map(attributeLabel).join(", ")}), which need the Concordium
+            add-on. It isn&apos;t on here, so this task can&apos;t be claimed.
+          </p>
+        );
+      }
       if (needsBadge) {
         return (
           <div className="flex flex-col gap-3">
@@ -152,7 +161,7 @@ function NextStep({
         <p className="font-medium">
           {task.test
             ? `Paid ${usd(task.budget)} in test money.`
-            : `Paid ${usd(task.budget)} to your ${task.paymentRail === "concordium" ? "Concordium account" : "PayPal"}.`}{" "}
+            : `Paid ${usd(task.budget)} to your ${task.paymentRail === "concordium" ? "Concordium account" : task.paymentRail === "near" ? "NEAR account" : "PayPal"}.`}{" "}
           <Link href="/me" className="font-normal text-primary underline-offset-4 hover:underline">
             See your earnings
           </Link>
@@ -244,7 +253,7 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
               </Badge>
             )}
             {task.requesterKind === "verified_person" && (
-              <Badge variant="outline" className="gap-1" title="A person posted this themselves, and proved who they are with Concordium ID.">
+              <Badge variant="outline" className="gap-1" title="A person posted this themselves from a verified account (PayPal-verified, or with Concordium ID where that add-on is on).">
                 <UserCheck className="size-3.5 text-primary" /> Posted by a verified person
               </Badge>
             )}
@@ -271,7 +280,7 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
               </Badge>
             )}
             {task.requiredAttributes.length > 0 && (
-              <Badge variant="outline" className="gap-1">
+              <Badge variant="outline" className="gap-1" title="Proven with Concordium ID (the Concordium add-on).">
                 <ShieldCheck className="size-3.5 text-primary" /> Needs Verified by Concordium
               </Badge>
             )}

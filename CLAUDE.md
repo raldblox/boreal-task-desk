@@ -12,6 +12,7 @@ pnpm workspace. See README.md for the layout. The product spec lives in the "bor
 - Money is integer minor units. Every movement is a ledger entry with an idempotency key, written before the on-chain transfer.
 - Side effects (anchors, payouts, refunds, webhooks) go through the outbox in the same transaction as the state change.
 - Nothing personal goes on-chain: anchors are salted hashes. Workers are stored as a pseudonym plus proven attributes.
+- PayPal is the core; NEAR and Concordium are add-ons (`BOREAL_ADDONS`, `packages/core/src/addons.ts`). With every add-on off the app must run on PayPal alone. Loaders read add-on settings only through `addonEnv()` (web: `gatedEnv()` in `apps/web/src/server/addons.ts`), and add-on UI, routes and actions check `getAddons()` / `addonRefusal()` / `requireAddonPart()` so an add-on that's off or blocked says why instead of failing.
 - `packages/concordium` holds the interfaces, stand-in (`dev`) adapters and the testnet adapters (`CONCORDIUM_MODE=testnet`). Never set `CONCORDIUM_MODE=dev` against the production database: the stand-ins accept fake payments.
 - A payout or refund is journaled on its outbox row before it is sent, and resent only once the chain can never execute the first one.
 - Funding confirms the payment inside `fundTask`'s checks, so a refused task never takes money.

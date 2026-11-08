@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 
 import { getDesk } from "@/server/desk";
 import { workerFromSession } from "@/server/session";
+import { getAddons } from "@/server/addons";
 
 export type LinkActionState = { error?: string } | null;
 
@@ -20,6 +21,9 @@ const cents = (value: FormDataEntryValue | null) => Math.round(Number(String(val
 async function verifyBadge(code: string, form: FormData): Promise<VerifiedBadge | undefined> {
   const badge = String(form.get("badge") ?? "").trim();
   if (!badge) return undefined;
+  if (!getAddons().on("concordium")) {
+    throw new BadgeError("the Verified by Concordium badge needs the Concordium add-on, which isn't on here; approve without it");
+  }
   const account = String(form.get("badgeAccount") ?? "");
   const signature = String(form.get("badgeSignature") ?? "");
   if (!account || !signature) throw new BadgeError("sign with the Concordium wallet that owns the badge first");

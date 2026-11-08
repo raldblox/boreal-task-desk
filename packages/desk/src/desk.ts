@@ -36,7 +36,6 @@ import {
   walletSetups,
   workers,
   sql,
-  isNotNull,
 } from "@boreal/db";
 
 import { adminCommands } from "./admin";
@@ -83,6 +82,14 @@ export interface DeskOptions {
    * (`verified_account`). On for live money (mainnet); the sandbox's accounts are all test ones.
    */
   requireVerifiedPayPal?: boolean;
+  /**
+   * How people and owners verify on this deployment. `concordiumId`: the Concordium add-on's
+   * Concordium ID is on, so tasks may require proven attributes and Concordium ID lifts the
+   * unverified caps. `paypal`: a PayPal account PayPal has verified lifts them too (on when
+   * Concordium ID is off, so a PayPal-only deployment isn't stuck at the caps). Defaults to
+   * Concordium ID only.
+   */
+  verification?: { concordiumId: boolean; paypal: boolean };
 }
 
 /**
@@ -165,7 +172,12 @@ export function createDesk({
   requireBadge = false,
   requireVerifiedPayPal = false,
   autoScreen = false,
+  verification = { concordiumId: true, paypal: false },
 }: DeskOptions) {
+  // What lifts the unverified caps here, in words for refusals.
+  const liftWith = [verification.concordiumId && "Concordium ID", verification.paypal && "a PayPal account PayPal has verified"]
+    .filter(Boolean)
+    .join(" or ");
   // The rail a task funds on when none is named: the default rail's name.
   const defaultRail: PaymentRail | null = payments
     ? ((Object.entries(rails) as [PaymentRail, Payments][]).find(([, r]) => r === payments)?.[0] ??
@@ -392,19 +404,23 @@ export function createDesk({
 
   /**
    * Whether a requester is verified: an agent by its Agent Registry badge, a person's own
-   * requester by the Concordium ID on their account.
+   * requester by the Concordium ID on their account. Where PayPal verifies (see
+   * `verification`), a person or an agent's owner with a PayPal account PayPal has verified counts too.
    */
   async function requesterVerified(
     agent: { kind: "agent" | "personal" | "market"; ownerId: string; badgeVerifiedAt: Date | null },
     q: Pick<Database, "select"> = db,
   ): Promise<boolean> {
-    if (agent.kind !== "personal") return agent.badgeVerifiedAt !== null;
+    if (agent.kind !== "personal" && agent.badgeVerifiedAt !== null) return true;
+    if (agent.kind !== "personal" && !verification.paypal) return false;
     const [person] = await q
-      .select({ id: workers.id })
+      .select({ concordium: workers.concordiumRef, paypalVerified: workers.paypalVerified, paypalRef: workers.paypalRef })
       .from(owners)
       .innerJoin(workers, eq(workers.pseudonym, owners.verifiedRef))
-      .where(and(eq(owners.id, agent.ownerId), isNotNull(workers.concordiumRef)));
-    return Boolean(person);
+      .where(eq(owners.id, agent.ownerId));
+    if (!person) return false;
+    const byPayPal = verification.paypal && person.paypalVerified && person.paypalRef !== null;
+    return agent.kind === "personal" ? person.concordium !== null || byPayPal : byPayPal;
   }
 
   /** A requester's limits in force: its owner's, capped until it's verified (see requesterVerified). */
@@ -436,7 +452,7 @@ export function createDesk({
           ),
     );
     const found = await db
-      .select({ id: agents.id, kind: agents.kind, badge: agents.badgeVerifiedAt, person: workers.concordiumRef })
+      .select({ id: agents.id, kind: agents.kind, badge: agents.badgeVerifiedAt, person: workers.concordiumRef, paypalVerified: workers.paypalVerified })
       .from(agents)
       .innerJoin(owners, eq(owners.id, agents.ownerId))
       .leftJoin(workers, eq(workers.pseudonym, owners.verifiedRef))
@@ -447,7 +463,7 @@ export function createDesk({
         a.kind === "market"
           ? "market"
           : a.kind === "personal"
-            ? a.person
+            ? a.person || (verification.paypal && a.paypalVerified)
               ? "verified_person"
               : "person"
             : a.badge
@@ -526,6 +542,9 @@ export function createDesk({
         throw new DeskError("invalid", issues.join("; "));
       }
       const data = parsed.data;
+      if (data.requiredAttributes.length > 0 && !verification.concordiumId) {
+        throw new DeskError("invalid", "requiredAttributes need the Concordium add-on (Concordium ID), which isn't on here; post without them");
+      }
       // An agent can't prove an attribute, take a photo or go somewhere: those stay with people.
       if (data.fulfillers === "people_or_agents" && (data.requiredAttributes.length > 0 || data.resultFormat !== "text")) {
         throw new DeskError("invalid", "only text tasks with no required attributes can be open to agents; this one stays with verified people");
@@ -538,8 +557,8 @@ export function createDesk({
           throw new DeskError(
             "limit",
             agent.kind === "personal"
-              ? `without Concordium ID you can post up to ${POLICY.unverifiedTaskBudget} cents a task; add Concordium ID on My account for more`
-              : `agents without a Verified by Concordium badge can post up to ${POLICY.unverifiedTaskBudget} cents a task; ask your owner to add the badge`,
+              ? `unverified, you can post up to ${POLICY.unverifiedTaskBudget} cents a task; add ${liftWith} on My account for more`
+              : `unverified agents can post up to ${POLICY.unverifiedTaskBudget} cents a task; ${verification.paypal ? "your owner can verify their PayPal account with PayPal" : "ask your owner to add the Verified by Concordium badge"}`,
           );
         }
         throw new DeskError("limit", "budget exceeds this agent's per-task cap");
@@ -629,7 +648,7 @@ export function createDesk({
             throw new DeskError(
               "limit",
               agent!.kind === "personal"
-                ? "this payment would pass your daily spending cap (add Concordium ID on My account to raise it)"
+                ? `this payment would pass your daily spending cap (add ${liftWith} on My account to raise it)`
                 : "this payment would pass the agent's daily spending cap",
             );
           }
@@ -766,10 +785,20 @@ export function createDesk({
           // (An agent proved its NEAR account instead, and only takes tasks with no attributes.)
           if (worker.kind === "person" && !worker.testMode && !worker.concordiumRef) {
             if (task.requiredAttributes.length > 0) {
-              throw new DeskError("forbidden", "this task needs the Verified by Concordium badge: add Concordium ID on My account");
+              throw new DeskError(
+                "forbidden",
+                verification.concordiumId
+                  ? "this task needs the Verified by Concordium badge: add Concordium ID on My account"
+                  : "this task needs proven attributes, which need the Concordium add-on; it isn't on here",
+              );
             }
             if (requireVerifiedPayPal && !worker.paypalVerified) {
-              throw new DeskError("forbidden", "verify your PayPal account with PayPal, or add Concordium ID on My account, before claiming tasks");
+              throw new DeskError(
+                "forbidden",
+                verification.concordiumId
+                  ? "verify your PayPal account with PayPal, or add Concordium ID on My account, before claiming tasks"
+                  : "verify your PayPal account with PayPal, then log in with PayPal again, before claiming tasks",
+              );
             }
           }
           if (!meetsAttributes(task.requiredAttributes, worker.provenAttributes)) {
@@ -1291,7 +1320,8 @@ export function createDesk({
           // An agent sees only tasks open to agents that pay on its rail (USDC on NEAR).
           (worker.kind === "person" || (task.fulfillers === "people_or_agents" && task.paymentRail === "near")) &&
           (task.test ? worker.testMode || mine.has(task.agentId) : !worker.testMode && !mine.has(task.agentId)) &&
-          (meetsAttributes(task.requiredAttributes, worker.provenAttributes) || (!worker.testMode && !worker.concordiumRef)),
+          (meetsAttributes(task.requiredAttributes, worker.provenAttributes) ||
+            (verification.concordiumId && !worker.testMode && !worker.concordiumRef)),
       ));
     },
 
@@ -1431,7 +1461,8 @@ export function createDesk({
         );
       const spentLast24h = spent?.total ?? 0;
       // In force now: an unverified requester is capped below its owner's limits.
-      const limits = effectiveLimits(agent, await requesterVerified(agent));
+      const verified = await requesterVerified(agent);
+      const limits = effectiveLimits(agent, verified);
       return {
         agentId: agent.id,
         name: agent.name,
@@ -1444,6 +1475,8 @@ export function createDesk({
         verifiedByConcordium: agent.badgeVerifiedAt
           ? { badge: agent.registryId, network: agent.badgeNetwork, ownerAccount: agent.ownerAccount, verifiedAt: agent.badgeVerifiedAt }
           : null,
+        /** Verified (badge, Concordium ID, or a PayPal-verified owner where PayPal verifies): the owner's full limits apply. */
+        verified,
         limits,
         /** The owner saved a payment method: fund_task pays without an approval page. */
         savedPaymentMethod: agent.paymentVaultId !== null,

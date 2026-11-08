@@ -1,5 +1,6 @@
 import { verifyFileLink } from "@boreal/near";
 
+import { gatedEnv } from "@/server/addons";
 import { readSubmissionFile } from "@/server/files";
 
 /**
@@ -10,7 +11,7 @@ export async function GET(request: Request, ctx: RouteContext<"/api/market/files
   const { path: segments } = await ctx.params;
   const path = segments.join("/");
   const missing = () => new Response("Not found", { status: 404 });
-  const secret = process.env.NEAR_MARKET_LINK_SECRET;
+  const secret = gatedEnv().NEAR_MARKET_LINK_SECRET;
   const url = new URL(request.url);
   if (!secret || segments[0] !== "submissions") return missing();
   if (!verifyFileLink(secret, path, url.searchParams.get("expires"), url.searchParams.get("sig"))) return missing();

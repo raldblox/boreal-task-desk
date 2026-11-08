@@ -107,7 +107,7 @@ export async function payTask(taskId: string): Promise<ActionState> {
     const total = taskTotal(task);
     if (total > account.leftToday) {
       return {
-        error: `This would pass your daily limit: $${(account.leftToday / 100).toFixed(2)} left today. Add Concordium ID on My account to raise it, or try tomorrow.`,
+        error: `This would pass your daily limit: $${(account.leftToday / 100).toFixed(2)} left today. Get verified on My account to raise it, or try tomorrow.`,
       };
     }
     if (account.savedPaymentMethod && paypal.vault) {

@@ -6,6 +6,8 @@ import { cookies } from "next/headers";
 
 import { SITE } from "@/content/agent-guide";
 
+import { pseudonymSecret } from "./addons";
+
 // Quick sign-in with the Concordium Wallet for Web. A worker's first sign-in is a full identity
 // proof, which costs boreal an on-chain anchor. The wallet account that answered it is then
 // remembered as a keyed hash, and later sign-ins only ask that account to sign a one-time
@@ -17,10 +19,7 @@ const CHALLENGE_TTL_S = 5 * 60;
 const PENDING_TTL_S = 15 * 60;
 const COOKIE = { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict", path: "/api/worker" } as const;
 
-function secret(): string | null {
-  const value = process.env.CONCORDIUM_PSEUDONYM_SECRET;
-  return value && value.length >= 32 ? value : null;
-}
+const secret = pseudonymSecret;
 
 function tag(key: string, value: string): string {
   return createHmac("sha256", key).update(`wallet-cookie:${value}`).digest("hex");

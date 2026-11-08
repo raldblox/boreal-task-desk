@@ -12,6 +12,7 @@ import { ApproveLinkForm } from "@/app/link/approve-form";
 import { Eyebrow } from "@/components/brand";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { getAddons, verification } from "@/server/addons";
 import { getDesk, paymentRails } from "@/server/desk";
 import { paypalAccounts } from "@/server/paypal-accounts";
 import { workerFromSession } from "@/server/session";
@@ -105,6 +106,13 @@ async function LinkRequest({ params, searchParams }: Props) {
         myAgents={myAgents.map((a) => ({ id: a.id, name: a.name }))}
         maxTaskBudget={POLICY.maxTaskBudget}
         maxDailySpend={POLICY.maxAgentDailySpend}
+        badges={getAddons().on("concordium")}
+        verifiedBy={[
+          verification().paypal && "once your PayPal account is verified by PayPal",
+          getAddons().on("concordium") && "with the Verified by Concordium badge below",
+        ]
+          .filter(Boolean)
+          .join(" or ")}
       />
       <form action={denyLink.bind(null, link.code)}>
         <Button type="submit" variant="ghost" className="text-muted-foreground">

@@ -1,18 +1,14 @@
 import { loadPayPalAccounts, type PayPalAccounts, type PayPalLogin, paypalPseudonym } from "@boreal/paypal";
 import type { PayPalIdentity } from "@boreal/desk";
 
+import { gatedEnv, pseudonymSecret } from "./addons";
+
 let accounts: PayPalAccounts | null | undefined;
 
 /** Connecting PayPal accounts to boreal, or null when the PayPal rail is off. */
 export function paypalAccounts(): PayPalAccounts | null {
-  if (accounts === undefined) accounts = loadPayPalAccounts(process.env);
+  if (accounts === undefined) accounts = loadPayPalAccounts(gatedEnv());
   return accounts;
-}
-
-/** Keys the hash of PayPal's payer_id, like Concordium ID's pseudonyms. Never change it. */
-function pseudonymSecret(): string | null {
-  const secret = process.env.CONCORDIUM_PSEUDONYM_SECRET;
-  return secret && secret.length >= 32 ? secret : null;
 }
 
 /** Log in with PayPal is on: the app has it set up, and there is a secret to hash identities with. */
@@ -23,7 +19,7 @@ export function paypalLoginEnabled(): boolean {
 /** The worker's PayPal identity: only a keyed hash of the payer_id leaves this function. */
 export function paypalIdentity(login: PayPalLogin): PayPalIdentity {
   const secret = pseudonymSecret();
-  if (!secret) throw new Error("CONCORDIUM_PSEUDONYM_SECRET (32+ characters) is required for Log in with PayPal");
+  if (!secret) throw new Error("BOREAL_PSEUDONYM_SECRET (32+ characters) is required for Log in with PayPal");
   return { ref: paypalPseudonym(login.payerId, secret), email: login.email, verified: login.verified };
 }
 

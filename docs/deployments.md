@@ -9,8 +9,9 @@ own database, file storage, secrets, keys and accounts. Nothing is shared betwee
 | `BOREAL_NETWORK` | `testnet` | `mainnet` |
 | Database (Neon, Singapore) | `boreal-testnet-db`: all history since the start | `boreal-mainnet-db`: started empty on 2026-11-01 |
 | Files (Vercel Blob) | `boreal-task-desk-submissions` | `boreal-mainnet-files` |
-| Money | PayPal sandbox, Concordium testnet tokens: never real | Live PayPal once approved; Concordium mainnet later |
-| Sign-in | Log in with PayPal (sandbox) or Concordium ID on testnet | Log in with PayPal (live), or Concordium ID on mainnet (needs a mainnet anchor account) |
+| Add-ons (`BOREAL_ADDONS`) | `concordium` (anchors, registry listing, Concordium ID) | `none`: PayPal only |
+| Money | PayPal sandbox: never real | Live PayPal once approved |
+| Sign-in | Log in with PayPal (sandbox), plus Concordium ID on testnet (add-on) | Log in with PayPal (live) |
 | Banner | "Testnet … never real money", with a link to the live site | None |
 | Worker IDs | Testnet pseudonym secret | Its own secret, so IDs differ from testnet |
 
@@ -27,18 +28,26 @@ skip it.
 
 ## Variables
 
+PayPal is the core; NEAR and Concordium are add-ons that only run where `BOREAL_ADDONS` names
+them (README, "Add-ons"). Until `BOREAL_ADDONS` is set on a project, its add-ons are inferred
+from the older settings below: testnet comes out as `concordium` (it has `CONCORDIUM_MODE` and
+the registry badge), mainnet as PayPal only. `/admin` lists each add-on's requirements and says
+when they were inferred. Set it explicitly on both projects: `BOREAL_ADDONS=concordium` on
+`boreal-testnet`, `BOREAL_ADDONS=none` on `boreal-mainnet`.
+
 Set each project's variables on that project only. Vercel "sensitive" values can't be read
 back, so keep their source (a local env file) or generate new ones.
 
 - **Both:** `BOREAL_NETWORK`, `CONCORDIUM_NETWORK` (same value), `PUBLIC_URL`, `SESSION_SECRET`,
-  `CRON_SECRET`, `CONCORDIUM_PSEUDONYM_SECRET` (never change it, or every worker gets a new
-  ID), `NEXT_PUBLIC_REOWN_PROJECT_ID`, `ADMIN_PSEUDONYMS` (that site's worker IDs), the Neon
+  `CRON_SECRET`, `BOREAL_ADDONS`, `CONCORDIUM_PSEUDONYM_SECRET` (it keys PayPal identities
+  too; `BOREAL_PSEUDONYM_SECRET` is its new name, with the same value. Never change it, or every
+  worker gets a new ID), `NEXT_PUBLIC_REOWN_PROJECT_ID` (Concordium add-on), `ADMIN_PSEUDONYMS` (that site's worker IDs), the Neon
   connection (`DATABASE_URL`, …) and `BLOB_READ_WRITE_TOKEN` from their Vercel integrations.
 - **Both, optional:** `AG_STUDIO_LICENSE_KEY` (AG Studio licence or trial key for the money
   console and `/me/insights`; unset, they show AG's watermark) and `ANTHROPIC_API_KEY` on the web
   project (the money console's agents; unset, they say they're off). The AI reviewer reads the
   same key where the monitor runs.
-- **Testnet only:** `CONCORDIUM_MODE=testnet`, `CONCORDIUM_ANCHOR_ACCOUNT`/`_KEY` (a testnet
+- **Testnet only (Concordium add-on):** `CONCORDIUM_MODE=testnet`, `CONCORDIUM_ANCHOR_ACCOUNT`/`_KEY` (a testnet
   account), `PAYMENT_RAILS=paypal`, `PAYPAL_ENV=sandbox` and the sandbox app's `PAYPAL_CLIENT_ID`,
   `PAYPAL_CLIENT_SECRET`, `PAYPAL_WEBHOOK_ID`, `PAYPAL_LOGIN=on` (optional `PAYPAL_REVIEWER_EMAILS`: unset, boreal's review fee stays in its own PayPal account), plus
   `BOREAL_REGISTRY_BADGE`/`_OWNER` (docs/registry.md).
@@ -48,14 +57,15 @@ back, so keep their source (a local env file) or generate new ones.
     and dropping `PAYMENT_RAILS=paypal`, turns on x402 funding; that flips the card's
     `x402Support`, so pin the new card hash afterwards.
 - **Mainnet, still to add:**
-  - `CONCORDIUM_ANCHOR_ACCOUNT`/`_KEY` for a **mainnet** account holding a little CCD. Sign-in
-    anchors each proof request on-chain; without it boreal.work shows "sign-in opening soon".
+  - Only to turn on the Concordium add-on there: `BOREAL_ADDONS=concordium` and
+    `CONCORDIUM_ANCHOR_ACCOUNT`/`_KEY` for a **mainnet** account holding a little CCD. Sign-in
+    anchors each proof request on-chain; `/admin` shows Concordium ID as blocked until it's set.
   - Live PayPal: a live app on boreal's PayPal business account with Payouts, Save payment
     methods and Log in with PayPal (return URL `https://boreal.work/paypal/login/done`; share
     email, PayPal account ID and account verification status), and a webhook to
     `https://boreal.work/api/paypal/webhook`. Then set the PayPal variables above (live values,
-    no `PAYPAL_ENV` needed), `PAYMENT_RAILS=paypal` and `PAYPAL_LOGIN=on`. Workers can then sign in
-    and be paid before boreal has CCD for Concordium ID.
+    no `PAYPAL_ENV` needed), `PAYMENT_RAILS=paypal` and `PAYPAL_LOGIN=on`. That is all boreal.work
+    needs: workers sign in and are paid with PayPal, with no add-on.
   - `ADMIN_PSEUDONYMS`: your mainnet worker ID, after your first sign-in there.
   - Concordium escrow on mainnet needs mainnet adapters, which aren't built yet.
 

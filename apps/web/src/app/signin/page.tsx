@@ -9,6 +9,7 @@ import { ConcordiumWalletSignIn } from "@/components/concordium-wallet-sign-in";
 import { DevWallet } from "@/components/worker-forms";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
+import { gatedEnv, getAddons } from "@/server/addons";
 import { demoMoney, getConcordium, getDesk } from "@/server/desk";
 import { getIdAppVerifier } from "@/server/id-app";
 import { paypalLoginEnabled } from "@/server/paypal-accounts";
@@ -58,7 +59,7 @@ function PayPalSignIn({ next }: { next: string }) {
 async function ConcordiumOption({ next, alone }: { next: string; alone: boolean }) {
   const title = alone ? "Sign in with Concordium ID" : "Or sign in with Concordium ID";
   if (getIdAppVerifier()) {
-    const network = process.env.CONCORDIUM_NETWORK === "mainnet" ? "mainnet" : "testnet";
+    const network = gatedEnv().CONCORDIUM_NETWORK === "mainnet" ? "mainnet" : "testnet";
     return (
       <div className="flex flex-col gap-5 rounded-2xl border bg-card p-6 shadow-sm">
         <div className="flex items-center gap-3">
@@ -75,7 +76,7 @@ async function ConcordiumOption({ next, alone }: { next: string; alone: boolean 
           <li>2. Approve the request in the app.</li>
           <li>3. You&apos;re signed in. No password, no email.</li>
         </ol>
-        <ConcordiumSignIn projectId={process.env.NEXT_PUBLIC_REOWN_PROJECT_ID!} network={network} next={next} />
+        <ConcordiumSignIn projectId={gatedEnv().NEXT_PUBLIC_REOWN_PROJECT_ID!} network={network} next={next} />
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <span className="h-px flex-1 bg-border" />
           or on a computer
@@ -86,7 +87,7 @@ async function ConcordiumOption({ next, alone }: { next: string; alone: boolean 
     );
   }
 
-  if (getConcordium() && process.env.CONCORDIUM_MODE === "dev") {
+  if (getConcordium() && gatedEnv().CONCORDIUM_MODE === "dev") {
     // Local stand-in mode (pnpm dev:local): a fresh, signed challenge each time.
     const request = await getDesk().workerProofRequest([]);
     return (
@@ -98,18 +99,17 @@ async function ConcordiumOption({ next, alone }: { next: string; alone: boolean 
     );
   }
 
+  // The Concordium add-on is on but Concordium ID isn't ready: say why rather than show a dead button.
+  const reason = getAddons().concordium.parts.find((p) => p.id === "id")?.reason;
   if (!alone) {
-    return (
-      <p className="px-1 text-sm text-muted-foreground">
-        Concordium ID sign-in is opening soon. You&apos;ll be able to add it on My account for the Verified by Concordium
-        badge.
-      </p>
-    );
+    return <p className="px-1 text-sm text-muted-foreground">Concordium ID sign-in isn&apos;t ready on this site yet. {reason}</p>;
   }
   return (
     <Alert>
-      <AlertTitle>Sign-in is opening soon</AlertTitle>
-      <AlertDescription>Workers will sign in with PayPal or Concordium ID.</AlertDescription>
+      <AlertTitle>Sign-in isn&apos;t ready yet</AlertTitle>
+      <AlertDescription>
+        Log in with PayPal isn&apos;t set up here, and Concordium ID isn&apos;t ready. {reason}
+      </AlertDescription>
     </Alert>
   );
 }
@@ -129,7 +129,19 @@ async function SignInOptions({ searchParams }: { searchParams: Promise<{ next?: 
         </Alert>
       )}
       {paypal && <PayPalSignIn next={next} />}
-      <ConcordiumOption next={next} alone={!paypal} />
+      {getAddons().on("concordium") ? (
+        <ConcordiumOption next={next} alone={!paypal} />
+      ) : (
+        !paypal && (
+          <Alert>
+            <AlertTitle>Sign-in isn&apos;t ready yet</AlertTitle>
+            <AlertDescription>
+              This site signs people in with Log in with PayPal, which isn&apos;t switched on here yet (PAYPAL_LOGIN and a
+              pseudonym secret).
+            </AlertDescription>
+          </Alert>
+        )
+      )}
     </div>
   );
 }
@@ -141,9 +153,23 @@ export default function SignInPage({ searchParams }: { searchParams: Promise<{ n
         <Eyebrow>Sign in to work</Eyebrow>
         <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">Your identity stays with you.</h1>
         <p className="text-lg leading-relaxed text-muted-foreground">
-          Sign in with PayPal and get paid there. Add Concordium ID for the Verified by Concordium badge: a zero-knowledge
-          proof of what some tasks need, like your age or country. You prove facts, not who you are.
+          Log in with PayPal and get paid there. boreal keeps a one-way code for your account, never your password.
+          {getAddons().on("concordium") &&
+            " Add Concordium ID for the Verified by Concordium badge: a zero-knowledge proof of what some tasks need, like your age or country. You prove facts, not who you are."}
         </p>
+        <ConcordiumFacts />
+      </div>
+      <Suspense fallback={<div className="h-64 animate-pulse rounded-2xl border bg-card" />}>
+        <SignInOptions searchParams={searchParams} />
+      </Suspense>
+    </main>
+  );
+}
+
+/** What Concordium ID shares and never shares; only where the Concordium add-on is on. */
+function ConcordiumFacts() {
+  if (!getAddons().on("concordium")) return null;
+  return (
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-2">
             <p className="text-sm font-medium">What Concordium ID shares</p>
@@ -170,10 +196,5 @@ export default function SignInPage({ searchParams }: { searchParams: Promise<{ n
             </ul>
           </div>
         </div>
-      </div>
-      <Suspense fallback={<div className="h-64 animate-pulse rounded-2xl border bg-card" />}>
-        <SignInOptions searchParams={searchParams} />
-      </Suspense>
-    </main>
   );
 }

@@ -6,6 +6,7 @@ import { refresh } from "next/cache";
 import { after } from "next/server";
 import { redirect } from "next/navigation";
 
+import { requireAddonPart } from "@/server/addons";
 import { getDesk } from "@/server/desk";
 import { FileRejected, saveSubmissionFile } from "@/server/files";
 import { kickMonitor } from "@/server/monitor";
@@ -31,6 +32,7 @@ async function asWorker(action: (worker: Caller) => Promise<void>): Promise<Acti
 
 export async function signIn(_prev: ActionState, form: FormData): Promise<ActionState> {
   try {
+    requireAddonPart("concordium", "id");
     const request = JSON.parse(String(form.get("request"))) as ProofRequest;
     const pseudonym = String(form.get("pseudonym") ?? "").trim();
     // The dev wallet answers for the stand-in adapter; the real wallet sends a Concordium proof.
@@ -53,6 +55,7 @@ export async function linkConcordium(_prev: ActionState, form: FormData): Promis
   const worker = await workerFromSession();
   if (!worker) return { error: "Your session has ended. Sign in again." };
   try {
+    requireAddonPart("concordium", "id");
     const request = JSON.parse(String(form.get("request"))) as ProofRequest;
     const attributes: Record<string, string> = {};
     const country = String(form.get("country") ?? "");
@@ -100,6 +103,7 @@ export async function setPayoutAddress(_prev: ActionState, form: FormData): Prom
   return asWorker(async (worker) => {
     const named = form.get("rail");
     const rail = named === "paypal" || named === "near" ? named : "concordium";
+    if (rail !== "paypal") requireAddonPart(rail, "rail");
     await getDesk().setPayoutAddress(worker, String(form.get("payoutAddress") ?? ""), rail);
   });
 }
@@ -119,6 +123,7 @@ export async function setUpPayoutAndClaim(taskId: string, rail: "near" | "concor
   const worker = await workerFromSession();
   if (!worker) return { error: "Your session has ended. Sign in again." };
   try {
+    requireAddonPart(rail, "rail");
     await getDesk().setPayoutAddress(worker, String(form.get("payoutAddress") ?? ""), rail, { guided: true });
   } catch (error) {
     if (error instanceof DeskError) return { error: error.message };

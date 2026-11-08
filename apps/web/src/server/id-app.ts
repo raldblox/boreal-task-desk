@@ -4,13 +4,15 @@ import { createHash } from "node:crypto";
 
 import { createIdAppVerifier, idAppConfigFromEnv, type IdAppVerifier } from "@boreal/concordium";
 
+import { gatedEnv } from "./addons";
+
 let verifier: IdAppVerifier | null | undefined;
 
 /** The Concordium ID App verifier, or null until its anchor account and the Reown project ID are set. */
 export function getIdAppVerifier(): IdAppVerifier | null {
   if (verifier === undefined) {
-    const config = idAppConfigFromEnv();
-    verifier = config && process.env.NEXT_PUBLIC_REOWN_PROJECT_ID ? createIdAppVerifier(config) : null;
+    const config = idAppConfigFromEnv(gatedEnv());
+    verifier = config && gatedEnv().NEXT_PUBLIC_REOWN_PROJECT_ID ? createIdAppVerifier(config) : null;
   }
   return verifier;
 }

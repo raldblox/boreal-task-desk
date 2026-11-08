@@ -21,6 +21,7 @@ import { loadNear } from "@boreal/near";
 import { loadRails, type PayPalPayments } from "@boreal/paypal";
 import { after } from "next/server";
 
+import { addonRefusal, gatedEnv, verification } from "./addons";
 import { getDb } from "./db";
 import { kickMonitor, kickMonitorSoon } from "./monitor";
 import { NETWORK } from "@/content/agent-guide";
@@ -29,10 +30,10 @@ let desk: Desk | undefined;
 let concordium: Concordium | null | undefined;
 let loaded: { rails: PaymentRails; payments: Payments | null } | undefined;
 
-/** The configured adapters, or null when `CONCORDIUM_MODE` is unset (payments and sign-in off). */
+/** The Concordium adapters, or null when the Concordium add-on is off or `CONCORDIUM_MODE` is unset. */
 export function getConcordium(): Concordium | null {
   if (concordium === undefined) {
-    concordium = loadConcordium(process.env, {
+    concordium = loadConcordium(gatedEnv(), {
       escrowBalance: () => ledgerEscrowBalance(getDb(), "concordium"),
       journal: outboxTransferJournal(getDb()),
     });
@@ -41,9 +42,9 @@ export function getConcordium(): Concordium | null {
 }
 
 function rails() {
-  loaded ??= loadRails(process.env, getConcordium(), {
+  loaded ??= loadRails(gatedEnv(), getConcordium(), {
     escrowBalance: (rail) => ledgerEscrowBalance(getDb(), rail),
-    near: loadNear(process.env, { journal: outboxTransferJournal(getDb()) }),
+    near: loadNear(gatedEnv(), { journal: outboxTransferJournal(getDb()) }),
   });
   return loaded;
 }
@@ -104,7 +105,8 @@ export function getDesk(): Desk {
     concordium: getConcordium(),
     payments: getPayments(),
     rails: getRails(),
-    requireBadge: process.env.REQUIRE_AGENT_BADGE === "1",
+    requireBadge: gatedEnv().REQUIRE_AGENT_BADGE === "1",
+    verification: verification(),
     // Testnet only: pass screening automatically when no reviewer runs. Never on live money.
     autoScreen: NETWORK === "testnet" && process.env.AUTO_SCREEN === "1",
     // Live money: workers without Concordium ID need an account PayPal has verified.
@@ -173,6 +175,9 @@ export async function asRequester(
  * that proved a NEAR account), then turns desk refusals into JSON errors like `asRequester`.
  */
 export async function asAgentWorker(request: Request, action: (caller: Caller) => Promise<Response>): Promise<Response> {
+  // Agents as workers are part of the NEAR add-on.
+  const off = addonRefusal("near", "agentWorkers");
+  if (off) return off;
   const header = request.headers.get("authorization") ?? "";
   const key = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
   const workerId = key ? await verifyWorkerKey(getDb(), key) : null;

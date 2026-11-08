@@ -4,7 +4,7 @@ import "./globals.css";
 
 import { SiteFooter, SiteHeader } from "@/components/site-header";
 import { demoMoney } from "@/server/desk";
-import { LIVE_SITE, SITE } from "@/content/agent-guide";
+import { GUIDE_FACTS, LIVE_SITE, SITE } from "@/content/agent-guide";
 
 // Brand typography (brand.md): Manrope for text, JetBrains Mono for IDs, hashes and code.
 const manrope = Manrope({
@@ -36,7 +36,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <SiteHeader />
         {demoMoney() && (
           <p className="border-b border-border/70 bg-primary-soft px-4 py-2 text-center text-xs font-medium text-primary-soft-foreground">
-            Testnet: payments here use the PayPal sandbox and Concordium testnet tokens, never real money.
+            Testnet: payments here use the PayPal sandbox{GUIDE_FACTS.concordiumRail ? " and Concordium testnet tokens" : ""}
+            {GUIDE_FACTS.nearRail ? " and USDC on NEAR testnet" : ""}, never real money.
             {SITE !== LIVE_SITE && (
               <>
                 {" "}

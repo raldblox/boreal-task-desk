@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { loadReviewer, type Reviewer } from "@boreal/brain";
+import { addonEnv, deskVerification, readAddons } from "@boreal/core";
 import { type Concordium, loadConcordium, type PaymentRail, type Payments } from "@boreal/concordium";
 import { and, type Database, eq, leases, lt } from "@boreal/db";
 import {
@@ -158,12 +159,14 @@ export function createMonitor({
 }
 
 /** The monitor wired from the environment: Concordium and the AI reviewer turn on when configured. */
-export async function loadMonitor(db: Database, env: Record<string, string | undefined> = process.env): Promise<Monitor> {
+export async function loadMonitor(db: Database, raw: Record<string, string | undefined> = process.env): Promise<Monitor> {
+  // NEAR and Concordium settings only reach the loaders when their add-on is on.
+  const env = addonEnv(raw);
   const escrowBalance = () => ledgerEscrowBalance(db, "concordium");
   const concordium = loadConcordium(env, { escrowBalance, journal: outboxTransferJournal(db) });
   const near = loadNear(env, { journal: outboxTransferJournal(db) });
   const { rails, payments } = loadRails(env, concordium, { escrowBalance: (rail) => ledgerEscrowBalance(db, rail), near });
-  const desk = createDesk({ db, concordium, payments, rails, addresses: addressesFromEnv(env), requireBadge: env.REQUIRE_AGENT_BADGE === "1" });
+  const desk = createDesk({ db, concordium, payments, rails, addresses: addressesFromEnv(env), requireBadge: env.REQUIRE_AGENT_BADGE === "1", verification: deskVerification(readAddons(raw)) });
   const reviewer = await loadReviewer(env);
   const market = loadMarketBridge(db, desk, env, { near });
   return createMonitor({ db, desk, concordium, payments, reviewer, readFile: readSubmissionBytes, market });
@@ -184,4 +187,11 @@ export function describeTick(r: TickReport): string | null {
     ...r.errors,
   ].filter(Boolean);
   return parts.length ? parts.join("; ") : null;
+}
+
+/** The add-ons switched on, for logs: "none (PayPal only)" or e.g. "concordium, near". */
+export function addonSummary(env: Record<string, string | undefined> = process.env): string {
+  const addons = readAddons(env);
+  const on = (["concordium", "near"] as const).filter((id) => addons.on(id));
+  return `${on.length ? on.join(", ") : "none (PayPal only)"}${addons.source === "inferred" ? " (inferred; set BOREAL_ADDONS)" : ""}`;
 }

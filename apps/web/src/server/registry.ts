@@ -6,6 +6,7 @@ import { cacheLife } from "next/cache";
 import { agentCardBytes } from "@/content/agent-card";
 import { CARD_URL, LIVE_SITE, NETWORK, SITE } from "@/content/agent-guide";
 
+import { gatedEnv } from "./addons";
 import { getRails } from "./desk";
 
 // boreal.work's own listing in Concordium's Agent Registry: the card this deployment serves,
@@ -14,8 +15,8 @@ import { getRails } from "./desk";
 
 /** boreal's own badge, when this deployment has one. */
 export function ownBadge(): { token: string; owner: string } | null {
-  const token = process.env.BOREAL_REGISTRY_BADGE?.trim();
-  const owner = process.env.BOREAL_REGISTRY_OWNER?.trim();
+  const token = gatedEnv().BOREAL_REGISTRY_BADGE?.trim();
+  const owner = gatedEnv().BOREAL_REGISTRY_OWNER?.trim();
   return token && owner ? { token, owner } : null;
 }
 

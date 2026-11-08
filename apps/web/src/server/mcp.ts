@@ -11,11 +11,12 @@ import { after } from "next/server";
 
 import { readSubmissionBytes } from "@boreal/files";
 
-import { GUIDE_VERSION, NETWORK, SITE } from "@/content/agent-guide";
+import { GUIDE_FACTS, GUIDE_VERSION, NETWORK, SITE } from "@/content/agent-guide";
 
 import { fundTestTask, getDesk, getRails, paymentRails, pickRail } from "./desk";
 import { clientHash } from "./id-app";
 import { kickMonitor, kickMonitorSoon } from "./monitor";
+import { addonFlags } from "@/server/addons";
 
 // The requester tools, as an agent sees them. Each one is a thin wrapper over the desk,
 // so MCP, REST and A2A always behave the same.
@@ -139,7 +140,7 @@ export function registerTools(server: McpServer): void {
       title: "Ask your owner for a boreal key",
       description:
         "Use this when you have no agent key yet (or lost it). Returns a code and a link for your owner, and a secret " +
-        "pollToken for you. Show your owner the link; they sign in with Concordium ID and approve. Then call check_link " +
+        `pollToken for you. Show your owner the link; they log in with ${GUIDE_FACTS.concordiumId ? "PayPal or Concordium ID" : "PayPal"} and approve. Then call check_link ` +
         "with the pollToken every few seconds until it returns your key. Works without a key.",
       inputSchema: z.object({
         agentName: z.string().min(1).max(80).describe("Your name, as your owner will recognise it, e.g. Hermes."),
@@ -197,9 +198,10 @@ export function registerTools(server: McpServer): void {
         spentLast24h: usd(account.spentLast24h),
         leftToday: usd(account.leftToday),
         network: NETWORK,
-        // Which rail live tasks fund on; null means only test money works here today.
         // Rails live tasks can fund on (default first); empty means only test money works here today.
         paymentRails: paymentRails(),
+        // Optional add-ons on this site; PayPal works without any of them.
+        addons: addonFlags(),
         guide: { version: GUIDE_VERSION, url: `${SITE}/agents.md` },
       };
     }, { writes: false }),
@@ -293,10 +295,16 @@ export function registerTools(server: McpServer): void {
     {
       title: "Fund a screened task",
       description:
-        "Pays the task's total into escrow. Call once without `payment` to get the payment requirement, pay it, then " +
-        "call again with the payment. The task opens to workers once funded. Pick the rail with `rail` (paypal, near or " +
-        "concordium; get_account lists the ones enabled, default first). On Concordium the requirement is x402: sign it " +
-        "from a Concordium wallet holding the token and send the signed payload as payment. On PayPal the requirement's " +
+        "Pays the task's total with PayPal (held, not charged, until the verdict). Call once without `payment` to get the " +
+        "payment requirement, pay it, then call again with the payment. The task opens to workers once funded. " +
+        (GUIDE_FACTS.concordiumRail || GUIDE_FACTS.nearRail
+          ? "This site also runs optional add-on rails: pick one with `rail` (get_account.paymentRails lists the ones enabled, default first). " +
+            (GUIDE_FACTS.concordiumRail
+              ? "On Concordium the requirement is x402: sign it from a Concordium wallet holding the token and send the signed payload as payment. "
+              : "") +
+            (GUIDE_FACTS.nearRail ? "On NEAR, ft_transfer the USDC from your NEAR account and send { txHash, signerId }. " : "")
+          : "") +
+        "On PayPal the requirement's " +
         "extra.approveUrl is a PayPal checkout: have your owner (or a PayPal-enabled wallet you control) approve it, " +
         "then call again with payment: { orderId }. Once your owner has connected PayPal for you (on boreal when they " +
         "approved you, or on My account; or by approving one checkout), fund_task pays in a single call with no " +
@@ -305,12 +313,15 @@ export function registerTools(server: McpServer): void {
         "still pays the review fee).",
       inputSchema: z.object({
         taskId,
-        rail: z.enum(["paypal", "concordium", "near"]).optional().describe("Which rail to pay on; defaults to the first in get_account.paymentRails."),
+        rail: z
+          .enum(["paypal", "concordium", "near"])
+          .optional()
+          .describe("Which rail to pay on; defaults to the first in get_account.paymentRails. concordium and near are add-ons, on only where get_account lists them."),
         payment: z
           .unknown()
           .optional()
           .describe(
-            "The signed x402 payment for the requirement you were given, { orderId } for an approved PayPal order, " +
+            "{ orderId } for an approved PayPal order; on add-on rails, the signed x402 payment (Concordium) " +
               "or { txHash, signerId } for your NEAR ft_transfer to escrow (memo from the requirement).",
           ),
       }),
@@ -560,7 +571,7 @@ export function registerTools(server: McpServer): void {
     "get_trail",
     {
       title: "Get a task's audit trail",
-      description: "Every event on the task, hash-chained and anchored on Concordium, oldest first.",
+      description: `Every event on the task, hash-chained${GUIDE_FACTS.anchors ? " and anchored on Concordium" : ""}, oldest first.`,
       inputSchema: z.object({ taskId }),
     },
     tool(async (caller, { taskId: id }: { taskId: string }) => desk.getTrail(caller, id), { writes: false }),

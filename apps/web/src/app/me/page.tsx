@@ -1,6 +1,6 @@
 import { POLICY } from "@boreal/core";
 import { taskTotal } from "@boreal/desk";
-import { BadgeCheck, BarChart3, Bot, CheckCircle2, ChevronRight, ShieldCheck, Wallet } from "lucide-react";
+import { BadgeCheck, BarChart3, Bot, CheckCircle2, ChevronRight, CircleAlert, ExternalLink, Puzzle, ShieldCheck, Wallet } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { attributeLabel, posterStatus, usd, when, workerHandle } from "@/lib/format";
 import { NETWORK } from "@/content/agent-guide";
+import { gatedEnv, getAddons } from "@/server/addons";
 import { getConcordium, getDesk, paymentRails } from "@/server/desk";
 import { getIdAppVerifier } from "@/server/id-app";
 import { kickMonitorSoon } from "@/server/monitor";
@@ -26,22 +27,33 @@ import { workerFromSession } from "@/server/session";
 
 const ACTIVE = new Set(["claimed", "submitted", "passed", "failed", "disputed"]);
 
+/** Where a person sets up the wallets an add-on needs: accounts they hold themselves, never boreal. */
+const NEAR_WALLET = process.env.NEAR_WALLET_URL || (NETWORK === "mainnet" ? "https://app.mynearwallet.com" : "https://testnet.mynearwallet.com");
+const CONCORDIUM_WALLET =
+  process.env.CONCORDIUM_WALLET_URL || "https://chromewebstore.google.com/detail/concordium-wallet/mnnkpffndmickbiakofclnpoiajlegmg";
+
 /** How a worker adds Concordium ID here: the ID App and Wallet for Web, or the development wallet locally. */
 async function AddConcordium() {
   if (getIdAppVerifier()) {
-    const network = process.env.CONCORDIUM_NETWORK === "mainnet" ? "mainnet" : "testnet";
+    const network = gatedEnv().CONCORDIUM_NETWORK === "mainnet" ? "mainnet" : "testnet";
     return (
       <div className="flex flex-col gap-3">
-        <ConcordiumSignIn projectId={process.env.NEXT_PUBLIC_REOWN_PROJECT_ID!} network={network} next="/me?concordium=added" link />
+        <ConcordiumSignIn projectId={gatedEnv().NEXT_PUBLIC_REOWN_PROJECT_ID!} network={network} next="/me?concordium=added" link />
         <ConcordiumWalletSignIn next="/me?concordium=added" link />
       </div>
     );
   }
-  if (getConcordium() && process.env.CONCORDIUM_MODE === "dev") {
+  if (getConcordium() && gatedEnv().CONCORDIUM_MODE === "dev") {
     const request = await getDesk().workerProofRequest([]);
     return <DevWallet action={linkConcordium} request={JSON.stringify(request)} submitLabel="Add Concordium ID" />;
   }
-  return <p className="text-sm text-muted-foreground">Adding Concordium ID opens soon.</p>;
+  const reason = getAddons().concordium.parts.find((p) => p.id === "id")?.reason;
+  return (
+    <p className="flex items-start gap-2 text-sm text-amber-600 dark:text-amber-400">
+      <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+      Concordium ID can&apos;t be added here yet{reason ? `: ${reason.charAt(0).toLowerCase()}${reason.slice(1)}` : "."}
+    </p>
+  );
 }
 
 /** Who the desk knows you as: a pseudonym, the identities that sign you in, and what you proved. */
@@ -54,6 +66,7 @@ async function Identity() {
   const paypalLogin = paypalLoginEnabled();
   // On live money, a worker with only PayPal claims once PayPal has verified their account.
   const needsVerifiedPayPal = NETWORK === "mainnet" && !profile.hasConcordium && !profile.paypalVerified;
+  const concordiumId = getAddons().on("concordium");
   return (
     <section className="flex flex-col gap-4 rounded-2xl border bg-card p-6">
       <div className="flex items-start gap-3">
@@ -104,20 +117,20 @@ async function Identity() {
               )
             )}
           </div>
-          <div className="flex flex-col gap-3 p-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <ShieldCheck className="size-5 shrink-0 text-primary" />
-              <div className="min-w-0 flex-1">
-                <p className="font-medium">Concordium ID</p>
-                <p className="text-sm text-muted-foreground">
-                  {profile.hasConcordium
-                    ? "Signs you in, and proves what tasks ask for."
-                    : "Optional. Proves your age or country with a zero-knowledge proof, for tasks that need it."}
-                </p>
+          {profile.hasConcordium && (
+            <div className="flex flex-col gap-3 p-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <ShieldCheck className="size-5 shrink-0 text-primary" />
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium">Concordium ID</p>
+                  <p className="text-sm text-muted-foreground">
+                    {concordiumId
+                      ? "Signs you in, and proves what tasks ask for."
+                      : "Added earlier. The Concordium add-on is off on this site, so it isn't used here."}
+                  </p>
+                </div>
+                <Badge variant={concordiumId ? "default" : "outline"}>Verified by Concordium</Badge>
               </div>
-              {profile.hasConcordium && <Badge>Verified by Concordium</Badge>}
-            </div>
-            {profile.hasConcordium ? (
               <div className="flex flex-wrap gap-2">
                 {Object.entries(profile.provenAttributes).map(([attribute, value]) => (
                   <Badge key={attribute} variant="outline">
@@ -125,15 +138,15 @@ async function Identity() {
                   </Badge>
                 ))}
               </div>
-            ) : (
-              <AddConcordium />
-            )}
-          </div>
+            </div>
+          )}
         </div>
       )}
       {needsVerifiedPayPal && (
         <Alert>
-          <AlertDescription>To claim tasks, verify your account with PayPal and log in again, or add Concordium ID.</AlertDescription>
+          <AlertDescription>
+            To claim tasks, verify your account with PayPal and log in again{concordiumId && getAddons().ready("concordium", "id") ? ", or add Concordium ID under Add-ons" : ""}.
+          </AlertDescription>
         </Alert>
       )}
 
@@ -143,7 +156,7 @@ async function Identity() {
         <p className="text-xs text-muted-foreground">
           {profile.testMode
             ? "Test workers see and do only test tasks."
-            : "A one-way code made from the identity you first signed in with. It never changes, and it can't be turned back into who you are. Each PayPal account and Concordium ID belongs to one boreal account, and accounts are never merged."}
+            : `A one-way code made from the identity you first signed in with. It never changes, and it can't be turned back into who you are. Each PayPal account${concordiumId ? " and Concordium ID" : ""} belongs to one boreal account, and accounts are never merged.`}
         </p>
       </div>
     </section>
@@ -163,8 +176,8 @@ async function Earnings() {
       money: earnings.real,
       note:
         NETWORK === "testnet"
-          ? "Paid to your PayPal sandbox or Concordium testnet account: practice money, never real."
-          : "Real money, paid to your PayPal or Concordium account.",
+          ? "Paid to your PayPal sandbox account (or an add-on account): practice money, never real."
+          : "Real money, paid to your PayPal account (or an add-on account you set up).",
     },
     { label: "Test money", money: earnings.test, note: "From test tasks. Not real money." },
   ].filter((r, i) => i === 0 || r.money.paid + r.money.settling + r.money.upcoming > 0);
@@ -227,14 +240,14 @@ async function InsightsLink() {
   );
 }
 
-/** Where passed tasks pay out, per rail: a PayPal email (never on-chain) and/or a Concordium account. */
+/** Where passed tasks pay out on PayPal (never on-chain). Add-on rails are set up under Add-ons. */
 async function Payouts() {
   const worker = await workerFromSession();
   if (!worker) redirect("/signin");
   const profile = await getDesk().getWorker(worker);
   if (!profile || profile.testMode) return null;
   const rails = paymentRails();
-  if (rails.length === 0) return null;
+  if (!rails.includes("paypal")) return null;
   const paypalLogin = paypalLoginEnabled();
   return (
     <section className="flex flex-col gap-4 rounded-2xl border bg-card p-6">
@@ -243,7 +256,7 @@ async function Payouts() {
         <p className="text-sm text-muted-foreground">Passed tasks pay out here the moment they&apos;re final.</p>
       </div>
       <div className="flex flex-col divide-y rounded-xl border">
-        {rails.includes("paypal") && (
+        {(
           <div className="flex items-center gap-3 p-4">
             <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary-soft text-primary-soft-foreground">
               <Wallet className="size-5" />
@@ -269,19 +282,142 @@ async function Payouts() {
             )}
           </div>
         )}
-        {rails.includes("concordium") && (
-          <div className="p-4">
-            <PayoutForm action={setPayoutAddress} current={profile.payoutAddress} paypal={false} />
-          </div>
-        )}
-        {rails.includes("near") && (
-          <div className="p-4">
-            <PayoutForm action={setPayoutAddress} current={profile.nearAccount} paypal={false} near />
-          </div>
-        )}
       </div>
       <p className="text-xs text-muted-foreground">
         Used only to pay you. Agents never see it, and nothing about it goes on-chain.
+      </p>
+    </section>
+  );
+}
+
+/** A requirement line: met, or what to do about it. */
+function Need({ met, children }: { met: boolean; children: React.ReactNode }) {
+  return (
+    <li className="flex items-start gap-2 text-sm">
+      {met ? (
+        <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+      ) : (
+        <CircleAlert className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
+      )}
+      <span className="min-w-0">{children}</span>
+    </li>
+  );
+}
+
+function WalletLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <a href={href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline">
+      {children} <ExternalLink className="size-3.5" aria-hidden />
+    </a>
+  );
+}
+
+/**
+ * Optional add-ons on top of PayPal: what each unlocks, what it needs from you first, and the
+ * step to take. Only the add-ons this site switched on are offered; nothing here is needed to
+ * work or post with PayPal.
+ */
+async function Addons() {
+  const worker = await workerFromSession();
+  if (!worker) redirect("/signin");
+  const profile = await getDesk().getWorker(worker);
+  if (!profile || profile.testMode) return null;
+  const addons = getAddons();
+  const rails = paymentRails();
+  const on = (["concordium", "near"] as const).filter((id) => addons.on(id));
+  return (
+    <section id="addons" className="flex scroll-mt-20 flex-col gap-4 rounded-2xl border bg-card p-6">
+      <div className="flex items-start gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-muted">
+          <Puzzle className="size-5 text-muted-foreground" aria-hidden />
+        </span>
+        <div className="flex flex-col gap-1">
+          <h2 className="font-semibold">Add-ons</h2>
+          <p className="text-sm text-muted-foreground">
+            {on.length === 0
+              ? "This site runs on PayPal alone: you sign in, work and get paid with PayPal. No add-ons are switched on here."
+              : "Optional extras on top of PayPal. You don't need any of them to work or post here; each says what it needs before you start."}
+          </p>
+        </div>
+      </div>
+
+      {addons.on("concordium") && (
+        <div className="flex flex-col gap-4 rounded-xl border p-4">
+          <div>
+            <p className="font-medium">Concordium</p>
+            <p className="text-sm text-muted-foreground">{addons.concordium.summary}</p>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <ShieldCheck className="size-4 text-primary" aria-hidden />
+              <p className="text-sm font-medium">Concordium ID</p>
+              {profile.hasConcordium && <Badge>Verified by Concordium</Badge>}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Unlocks tasks that need you to be 18+ or live in a certain country, proven with a zero-knowledge proof: boreal
+              never sees your name or documents. It also raises your posting limits.
+            </p>
+            <ul className="flex flex-col gap-1">
+              <Need met={profile.hasConcordium}>
+                The Concordium ID App on your phone, or the Concordium Wallet for Web, with an identity in it.{" "}
+                {!profile.hasConcordium && <WalletLink href={CONCORDIUM_WALLET}>Concordium Wallet for Web</WalletLink>}
+              </Need>
+            </ul>
+            {!profile.hasConcordium && <AddConcordium />}
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <p className="text-sm font-medium">Paid in tokens on Concordium</p>
+            {rails.includes("concordium") ? (
+              <>
+                <p className="text-sm text-muted-foreground">Unlocks tasks that pay in tokens. They&apos;re paid to a Concordium account you hold.</p>
+                <ul className="flex flex-col gap-1">
+                  <Need met={!!profile.payoutAddress}>
+                    A Concordium account of your own. <WalletLink href={CONCORDIUM_WALLET}>Concordium Wallet for Web</WalletLink>
+                  </Need>
+                </ul>
+                <PayoutForm action={setPayoutAddress} current={profile.payoutAddress} paypal={false} />
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Not offered on this site yet{addons.concordium.parts.find((p) => p.id === "rail")?.reason ? ` (${addons.concordium.parts.find((p) => p.id === "rail")!.reason!.replace(/\.$/, "")})` : ""}.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {addons.on("near") && (
+        <div className="flex flex-col gap-4 rounded-xl border p-4">
+          <div>
+            <p className="font-medium">NEAR</p>
+            <p className="text-sm text-muted-foreground">{addons.near.summary}</p>
+          </div>
+          {rails.includes("near") ? (
+            <div className="flex flex-col gap-2">
+              <p className="text-sm font-medium">Paid in USDC on NEAR</p>
+              <p className="text-sm text-muted-foreground">
+                Unlocks tasks that pay in USDC on NEAR, paid to a NEAR account you hold. Posting on NEAR is for agents, which fund
+                tasks with USDC from their own NEAR account.
+              </p>
+              <ul className="flex flex-col gap-1">
+                <Need met={!!profile.nearAccount}>
+                  A NEAR account of your own (free, about 2 minutes). <WalletLink href={NEAR_WALLET}>Create one</WalletLink>
+                </Need>
+              </ul>
+              <PayoutForm action={setPayoutAddress} current={profile.nearAccount} paypal={false} near />
+            </div>
+          ) : (
+            <p className="text-sm text-amber-600 dark:text-amber-400">
+              USDC on NEAR isn&apos;t ready on this site yet. {addons.near.parts.find((p) => p.id === "rail")?.reason}
+            </p>
+          )}
+        </div>
+      )}
+      <p className="text-xs text-muted-foreground">
+        Accounts you add are yours: boreal never holds a wallet for anyone, never converts between rails, and puts nothing
+        personal on-chain.
       </p>
     </section>
   );
@@ -304,7 +440,7 @@ async function MyAgents() {
         <div key={agent.id} className="flex items-center gap-3 rounded-2xl border bg-card p-4">
           <Bot className="size-5 shrink-0 text-primary" />
           <p className="min-w-0 flex-1 truncate font-medium">{agent.name}</p>
-          {agent.badgeVerifiedAt && <Badge>Verified by Concordium</Badge>}
+          {agent.badgeVerifiedAt && getAddons().on("concordium") && <Badge>Verified by Concordium</Badge>}
           {agent.testMode && <Badge variant="outline">Test money</Badge>}
           {paypal &&
             (agent.paypalConnected ? (
@@ -461,6 +597,9 @@ export default function MyTasksPage({ searchParams }: { searchParams: Promise<{ 
       </Suspense>
       <Suspense fallback={<div className="h-32 animate-pulse rounded-2xl bg-muted" />}>
         <Payouts />
+      </Suspense>
+      <Suspense fallback={<div className="h-32 animate-pulse rounded-2xl bg-muted" />}>
+        <Addons />
       </Suspense>
       <Suspense fallback={null}>
         <MyAgents />
