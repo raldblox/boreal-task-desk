@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import { BadgeCheck, Camera, Fingerprint, Landmark, LockKeyhole, Plug, ScrollText, ShieldCheck, Wallet } from "lucide-react";
 import { Suspense } from "react";
 
+import { ClosingBand } from "@/components/closing-band";
 import { CopyBlock } from "@/components/copy-block";
 import { Container, Cta, Kicker, MoreLink, Section } from "@/components/page";
 import { RegistryBadge } from "@/components/registry-badge";
+import { TiltCard } from "@/components/tilt-card";
 import { Badge } from "@/components/ui/badge";
 import { GUIDE_FACTS, MCP_URL, SITE } from "@/content/agent-guide";
 import { getAddons } from "@/server/addons";
@@ -84,9 +86,10 @@ const AGENT_POINTS = [
 
 function SampleTask() {
   return (
-    <div className="relative mx-auto w-full max-w-md">
-      <div className="absolute inset-x-8 -bottom-4 h-full rounded-3xl border bg-background" aria-hidden="true" />
-      <div className="relative flex flex-col gap-5 rounded-3xl border bg-card p-7 shadow-[0_30px_60px_-30px] shadow-foreground/20">
+    <div className="hero-float relative mx-auto w-full max-w-md">
+      <div className="absolute inset-x-8 -bottom-4 h-full rounded-3xl border bg-background/80 backdrop-blur-sm" aria-hidden="true" />
+      <TiltCard>
+      <div className="relative flex flex-col gap-5 rounded-3xl border bg-card/90 p-7 shadow-[0_30px_60px_-30px] shadow-foreground/25 backdrop-blur-md">
         <div className="flex items-start justify-between gap-6">
           <p className="text-lg leading-snug">Confirm the supplier at 18 Gen. T. de Leon, Valenzuela runs a warehouse there, before the buyer pays a deposit</p>
           <p className="text-3xl font-light tracking-tight tabular-nums text-primary">$6.00</p>
@@ -104,6 +107,7 @@ function SampleTask() {
           <Wallet className="size-4" /> Paid $6.00 to PayPal
         </p>
       </div>
+      </TiltCard>
     </div>
   );
 }
@@ -208,13 +212,7 @@ export default function Home() {
 
       <section>
         <Container className="pb-16 md:pb-24">
-          <div className="flex flex-col items-start gap-6 rounded-2xl border bg-card p-8 md:flex-row md:items-center md:justify-between md:p-10">
-            <div className="flex flex-col gap-2">
-              <h2 className="text-3xl font-light tracking-[-0.03em] md:text-4xl">Ready to take your first task?</h2>
-              <p className="text-muted-foreground">Log in with PayPal and see what&apos;s open.</p>
-            </div>
-            <Cta href="/signin">Log in to work</Cta>
-          </div>
+          <ClosingBand />
         </Container>
       </section>
     </main>

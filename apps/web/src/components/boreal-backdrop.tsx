@@ -40,8 +40,8 @@ function spruce(x: number, base: number, h: number, rand: () => number) {
   return `M${left.join("L")}L${right.join("L")}Z`;
 }
 
-/** A row of spruces between x0 and x1, heights in [hMin, hMax], as one path. */
-function forest(seed: number, { base, hMin, hMax, gap, x0 = -40, x1 = W + 40, keepOut }: { base: number; hMin: number; hMax: number; gap: number; x0?: number; x1?: number; keepOut?: [number, number] }) {
+/** A row of spruces between x0 and x1, heights in [hMin, hMax], as one path (also drawn in the home page's closing band). */
+export function forest(seed: number, { base, hMin, hMax, gap, x0 = -40, x1 = W + 40, keepOut }: { base: number; hMin: number; hMax: number; gap: number; x0?: number; x1?: number; keepOut?: [number, number] }) {
   const rand = seeded(seed);
   let d = "";
   for (let x = x0; x < x1; x += gap * (0.55 + rand() * 0.9)) {
@@ -74,9 +74,9 @@ export function BorealBackdrop() {
             <stop offset="1" stopColor="#fffaf0" stopOpacity="0" />
           </radialGradient>
           <linearGradient id="bb-aurora" x1="0" y1="1" x2="0" y2="0">
-            <stop offset="0" stopColor="#5fd6a4" stopOpacity="0.75" />
-            <stop offset="0.35" stopColor="#4fc3b0" stopOpacity="0.45" />
-            <stop offset="1" stopColor="#7ab8e0" stopOpacity="0" />
+            <stop offset="0" stopColor="#3fd99a" stopOpacity="0.95" />
+            <stop offset="0.35" stopColor="#2fbfae" stopOpacity="0.6" />
+            <stop offset="1" stopColor="#7aa8f0" stopOpacity="0" />
           </linearGradient>
           <linearGradient id="bb-mist" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor="#f4f9f8" stopOpacity="0" />
@@ -96,6 +96,11 @@ export function BorealBackdrop() {
           <mask id="bb-wash-mask" maskContentUnits="userSpaceOnUse">
             <rect width={W} height={H} fill="url(#bb-wash-fade)" />
           </mask>
+          <linearGradient id="bb-aurora-violet" x1="0" y1="1" x2="0" y2="0">
+            <stop offset="0" stopColor="#5fe0c0" stopOpacity="0.7" />
+            <stop offset="0.5" stopColor="#9b8cf0" stopOpacity="0.35" />
+            <stop offset="1" stopColor="#9b8cf0" stopOpacity="0" />
+          </linearGradient>
           <filter id="bb-soft" filterUnits="userSpaceOnUse" x="-300" y="-300" width={W + 600} height={H + 600}>
             <feGaussianBlur stdDeviation="22" />
           </filter>
@@ -111,15 +116,17 @@ export function BorealBackdrop() {
 
       {/* Aurora: soft curtains, faint as it would be by day. Each sits on its own layer and drifts
           slowly (globals.css: .bb-aurora-*), moved by the compositor so the blur isn't redrawn. */}
+      <div className="bb-par absolute inset-0 [--d:0.55]">
       <div className="bb-aurora bb-aurora-a absolute inset-y-0 -inset-x-[6%]">
         <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" className="size-full">
-          <path d="M-60 250 C 220 150, 420 300, 700 200 S 1150 110, 1380 190 S 1620 150, 1700 120 L 1700 -40 L -60 -40 Z" fill="url(#bb-aurora)" filter="url(#bb-soft)" opacity="0.6" transform="translate(0 -30) scale(1 0.8)" />
+          <path d="M-60 250 C 220 150, 420 300, 700 200 S 1150 110, 1380 190 S 1620 150, 1700 120 L 1700 -40 L -60 -40 Z" fill="url(#bb-aurora)" filter="url(#bb-soft)" opacity="0.95" transform="translate(0 -30) scale(1 0.8)" />
+          <path d="M-60 150 C 260 230, 520 120, 820 170 S 1200 240, 1700 150 L 1700 -40 L -60 -40 Z" fill="url(#bb-aurora-violet)" filter="url(#bb-soft)" opacity="0.6" />
         </svg>
       </div>
       <div className="bb-aurora bb-aurora-b absolute inset-y-0 -inset-x-[6%]">
         <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" className="size-full">
-          <path d="M520 240 C 760 170, 960 250, 1160 190 S 1460 150, 1660 210 L 1660 20 L 520 20 Z" fill="url(#bb-aurora)" filter="url(#bb-soft)" opacity="0.36" />
-          <g opacity="0.3" filter="url(#bb-haze)" stroke="#6fd8b2" strokeWidth="5" fill="none">
+          <path d="M520 240 C 760 170, 960 250, 1160 190 S 1460 150, 1660 210 L 1660 20 L 520 20 Z" fill="url(#bb-aurora)" filter="url(#bb-soft)" opacity="0.7" />
+          <g opacity="0.55" filter="url(#bb-haze)" stroke="#6fd8b2" strokeWidth="5" fill="none">
             {Array.from({ length: 26 }, (_, i) => {
               const x = 560 + i * 34;
               const top = 60 + Math.sin(i * 0.7) * 30;
@@ -128,25 +135,33 @@ export function BorealBackdrop() {
           </g>
         </svg>
       </div>
+      </div>
 
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" className="absolute inset-0 size-full">
+      {/* Parallax: each layer below slides at its own rate as the page scrolls (globals.css: .bb-par),
+          far layers slowest, so the scene has depth. */}
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" className="bb-par absolute inset-0 size-full [--d:0.45]">
         {/* Clouds */}
         <g fill="#ffffff" filter="url(#bb-soft)" opacity="0.8">
           <ellipse cx="260" cy="120" rx="220" ry="34" />
           <ellipse cx="1180" cy="90" rx="260" ry="30" />
           <ellipse cx="760" cy="60" rx="180" ry="22" />
         </g>
-
+      </svg>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" className="bb-par absolute inset-0 size-full [--d:0.32]">
         {/* Mountains */}
         <path d="M0 400 L60 425 L140 415 L230 445 L360 380 L470 420 L560 400 L700 330 L790 370 L880 350 L990 300 L1080 345 L1180 320 L1300 360 L1420 330 L1520 370 L1600 350 L1600 640 L0 640 Z" fill="#c2d8de" />
         <path d="M990 300 L1030 322 L1012 324 L1050 338 L1080 345 L1040 333 Z M700 330 L735 350 L718 352 L760 362 Z" fill="#eef5f6" />
         <path d="M0 470 L90 492 L170 468 L300 485 L420 450 L560 470 L700 440 L860 465 L1000 430 L1140 460 L1280 440 L1440 470 L1600 450 L1600 640 L0 640 Z" fill="#b2cdd2" />
 
         <rect y="400" width={W} height="160" fill="url(#bb-mist)" />
+      </svg>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" className="bb-par absolute inset-0 size-full [--d:0.16]">
         <path d={FAR} fill="#93b8b8" />
         <rect y="470" width={W} height="140" fill="url(#bb-mist)" opacity="0.8" />
         <path d={MID} fill="#6e9c9a" />
         <rect y="540" width={W} height="120" fill="url(#bb-mist)" opacity="0.6" />
+      </svg>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" className="absolute inset-0 size-full">
         {/* Keep the left, where the headline and text sit, calm and readable. */}
         <rect width={W} height={H} fill="url(#bb-wash)" mask="url(#bb-wash-mask)" />
         <path d={NEAR} fill="#4a7b78" />

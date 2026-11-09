@@ -164,6 +164,35 @@
   .bb-aurora { animation: none; }
 }
 
+/* The backdrop's parallax: each .bb-par layer slides down by --d of the scroll over the hero, so far
+   layers seem to move slower than near ones. Scroll-driven, so no script; browsers without
+   scroll timelines, and people who ask for less motion, get the still scene. */
+@supports (animation-timeline: scroll(root)) {
+  @media (prefers-reduced-motion: no-preference) {
+    .bb-par {
+      animation: bb-par linear both;
+      animation-timeline: scroll(root);
+      animation-range: 0 640px;
+      will-change: transform;
+    }
+  }
+}
+@keyframes bb-par {
+  to { transform: translate3d(0, calc(var(--d, 0) * 640px), 0); }
+}
+
+/* The hero's sample task: a slow float (tilt and glare come from components/tilt-card.tsx). */
+.hero-float {
+  animation: hero-float 7s ease-in-out infinite;
+}
+@keyframes hero-float {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -8px, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-float { animation: none; }
+}
+
 /* No visible scrollbars anywhere; scrolling by wheel, touch, keys and trackpad still works. */
 * {
   scrollbar-width: none;
