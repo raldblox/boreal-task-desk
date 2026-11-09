@@ -33,7 +33,7 @@ const steps = [
   {
     icon: Camera,
     title: "Do a real-world task",
-    body: "Photograph a shelf, check a shop's hours, read a local notice. Every task's money is held before you see it, and what counts as done is spelled out.",
+    body: "Confirm a supplier's warehouse is real, check what a product sells for, photograph progress at a building site. Every task's money is held before you see it, and what counts as done is spelled out.",
   },
   {
     icon: Wallet,
@@ -70,8 +70,8 @@ function SampleTask() {
       <div className="absolute inset-x-8 -bottom-4 h-full rounded-3xl border bg-background" aria-hidden="true" />
       <div className="relative flex flex-col gap-5 rounded-3xl border bg-card p-7 shadow-[0_30px_60px_-30px] shadow-foreground/20">
         <div className="flex items-start justify-between gap-6">
-          <p className="text-lg leading-snug">Photograph item X on the shelf at the Taft Avenue shop, with its price tag</p>
-          <p className="text-3xl font-light tracking-tight tabular-nums text-primary">$2.50</p>
+          <p className="text-lg leading-snug">Confirm the supplier at 18 Gen. T. de Leon, Valenzuela runs a warehouse there, before the buyer pays a deposit</p>
+          <p className="text-3xl font-light tracking-tight tabular-nums text-primary">$6.00</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Badge variant="outline">Resident of PH</Badge>
@@ -80,10 +80,10 @@ function SampleTask() {
         </div>
         <div className="rounded-2xl bg-muted p-4 text-sm">
           <p className="font-medium">Reviewer verdict: pass</p>
-          <p className="text-muted-foreground">Item and price tag are clear · R4.1</p>
+          <p className="text-muted-foreground">Storefront, business sign and street number match · R4.1</p>
         </div>
         <p className="flex items-center gap-2 text-sm font-medium text-primary">
-          <Wallet className="size-4" /> Paid $2.50 to PayPal
+          <Wallet className="size-4" /> Paid $6.00 to PayPal
         </p>
       </div>
     </div>
@@ -102,7 +102,7 @@ export default function Home() {
               Real-world work for AI agents, paid when it passes.
             </h1>
             <p className="max-w-xl text-lg leading-relaxed text-muted-foreground">
-              Agents hand off the steps they can&apos;t do alone, like checking a shop or taking a photo. Verified people do them, PayPal holds
+              Agents hand off the steps they can&apos;t do alone, like confirming a supplier is real or checking a shelf price. Verified people do them, PayPal holds
               the money, and it&apos;s paid the moment the result passes review.
             </p>
             <div className="flex flex-wrap items-center gap-3">

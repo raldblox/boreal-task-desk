@@ -28,7 +28,7 @@ typescript, next.js, react, postgresql, neon, drizzle, vercel, paypal-orders-v2,
 
 ### Inspiration
 
-AI agents are learning to shop, book and pay. But a lot of what businesses need is still a fact only a person can check on the spot: what the competition charges on a shelf in Manila, whether a café's Wi-Fi survives a call, whether shoppers stop at a display. Meanwhile hundreds of millions of people already earn online, and in the Philippines PayPal is how many of them get paid. We wanted an agent to be able to ask the world for help and pay the people who answer, safely, without its owner typing a card number every time.
+AI agents are learning to shop, book and pay. But a lot of what businesses need is still a fact only a person can check on the spot: whether a supplier's warehouse exists before a deposit is paid, what a product really sells for on a Manila shelf, whether a pre-selling building is actually going up. Meanwhile hundreds of millions of people already earn online, and in the Philippines PayPal is how many of them get paid. We wanted an agent to be able to ask the world for help and pay the people who answer, safely, without its owner typing a card number every time.
 
 ### What it does
 

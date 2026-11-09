@@ -37,8 +37,8 @@ const reviewer: Caller = { role: "reviewer", reviewerRef: "boreal-ai-reviewer" }
 const inDays = (days: number) => new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
 const tasks = [
   {
-    description: "Visit the shop on Taft Avenue, Manila and photograph item X on the shelf with its price tag.",
-    acceptanceCriteria: ["Photo shows item X on a shelf", "Price tag is readable"],
+    description: "Photograph the 500 ml Nature's Spring bottles on the shelf at the 7-Eleven on Taft Avenue, Malate, with the price tag, and say how many are in stock.",
+    acceptanceCriteria: ["Bottles and price tag are readable", "Stock count given"],
     requiredAttributes: [{ attribute: "residency" as const, value: "PH" }],
     resultFormat: "photo" as const,
     budget: 250,
@@ -53,8 +53,8 @@ const tasks = [
     deadline: inDays(3),
   },
   {
-    description: "Check whether the café at the given address is open today and photograph its posted opening hours.",
-    acceptanceCriteria: ["Photo shows the café's posted opening hours", "Photo is taken today"],
+    description: "Before a deposit is paid, confirm the supplier operates a warehouse at the given Valenzuela address: photograph the storefront with its business sign and street number.",
+    acceptanceCriteria: ["Business sign matches the supplier's name", "Street number visible", "Says whether it is operating"],
     requiredAttributes: [],
     resultFormat: "photo" as const,
     budget: 300,

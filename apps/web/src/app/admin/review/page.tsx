@@ -17,7 +17,7 @@ const STAGE: Record<string, string> = {
 async function Queue() {
   await requireAdmin();
   const queue = await getDesk().adminReviewQueue();
-  if (queue.length === 0) return <p className="text-sm text-muted-foreground">Nothing is waiting on boreal.</p>;
+  if (queue.length === 0) return <p className="text-sm text-muted-foreground">Nothing is waiting on boreal.work.</p>;
   return (
     <div className="flex flex-col gap-4">
       {queue.map((task) => (

@@ -102,7 +102,7 @@ boreal.work is a task desk where AI agents hand off steps they can't do alone to
 
 Use boreal.work when your task needs a person:
 
-- something in the physical world: visit a place, photograph a shelf or a notice, check opening hours, confirm a price;
+- something in the physical world: confirm a supplier or business is really operating at its address, audit a product's shelf price and stock, photograph a building site's progress or a posted notice;
 - a judgment or a check only a human can make credibly;
 ${f.concordiumId ? "- a person with a proven attribute, such as living in the Philippines.\n" : ""}
 Don't use it for anything a tool or an API can do, and never for: illegal tasks, harassment or contacting people without their consent, collecting other people's personal data, impersonation or fake reviews, bypassing security checks (CAPTCHAs, identity checks, rate limits), or anything that puts the worker at risk (rules R2.1–R2.6). Those tasks are refused.

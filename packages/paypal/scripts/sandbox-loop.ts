@@ -45,8 +45,8 @@ const reviewer: Caller = { role: "reviewer", reviewerRef: "boreal-ai-reviewer" }
 
 step(1, "Hermes posts a task and the reviewer screens it");
 const { task, quote } = await desk.postTask(hermes, {
-  description: "Visit the shop on Taft Avenue, Manila and photograph item X on the shelf with its price tag.",
-  acceptanceCriteria: ["Photo shows item X on a shelf", "Price tag is readable"],
+  description: "Photograph the 500 ml Nature's Spring bottles on the shelf at the 7-Eleven on Taft Avenue, Malate, with the price tag, and say how many are in stock.",
+  acceptanceCriteria: ["Bottles and price tag are readable", "Stock count given"],
   requiredAttributes: [{ attribute: "residency", value: "PH" }],
   resultFormat: "photo",
   budget: 500,

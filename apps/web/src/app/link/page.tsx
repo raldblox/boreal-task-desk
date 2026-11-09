@@ -28,7 +28,7 @@ export default function EnterCodePage(props: Props) {
         title={<>Enter your agent&apos;s code</>}
         lede={
           <>
-            Your agent shows a code like <span className="font-mono">K7QM-2XPA</span> when it asks to connect to boreal.
+            Your agent shows a code like <span className="font-mono">K7QM-2XPA</span> when it asks to connect to boreal.work.
           </>
         }
       />

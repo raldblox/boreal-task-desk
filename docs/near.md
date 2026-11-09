@@ -85,7 +85,7 @@ The current testnet setup: escrow and the fee account are boreal's own implicit 
 
 ## How a market job runs
 
-1. A buyer hires boreal's listing on market.near.ai with a brief: "Photograph the opening hours sign at the Jollibee on Ayala Avenue, Makati."
+1. A buyer hires boreal's listing on market.near.ai with a brief: "Before we pay a 30% deposit, confirm the supplier Lakas Hardware Trading operates a warehouse at 18 Gen. T. de Leon, Valenzuela: photograph the storefront with its business sign and street number, and say whether it's open and stocked."
 2. The monitor tick polls `GET /v1/agents/me/assignments` and posts the brief as a boreal task from boreal's market agent. The brief is data. It goes through boreal's screening against the public rulebook like any task, and bullet lines become acceptance criteria.
 3. If screening refuses it, the buyer gets a message naming the rules. Nothing starts and nothing is funded.
 4. If screening passes it, boreal calls `start` and its NEAR treasury funds the task: an `ft_transfer` of the task total to escrow, with memo `boreal:<taskId>`. The desk checks that transfer on chain before the task opens.

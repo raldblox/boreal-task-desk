@@ -190,14 +190,14 @@ async function main() {
   }
 
   const JOBS = [
-    { description: "Photograph item X on the shelf at the shop on Taft Avenue, Manila, with its price tag visible.", criteria: ["Photo shows item X on a shelf", "Price tag is readable"], format: "photo", local: true },
-    { description: "Check whether the café at the given address is open today and photograph its posted opening hours.", criteria: ["Photo shows the posted opening hours", "Photo is taken today"], format: "photo", local: false },
+    { description: "Photograph the 500 ml Nature's Spring bottles on the shelf at the 7-Eleven on Taft Avenue, Malate, with the price tag, and say how many are in stock.", criteria: ["Bottles and price tag are readable", "Stock count given"], format: "photo", local: true },
+    { description: "Before a deposit is paid, confirm the supplier operates a warehouse at the given Valenzuela address: photograph the storefront with its business sign and street number.", criteria: ["Business sign matches the supplier's name", "Street number visible", "Says whether it is operating"], format: "photo", local: true },
     { description: "Read this Tagalog notice and summarise in English what it asks residents to do and by when.", criteria: ["Summary names the action", "Summary gives the deadline"], format: "text", local: true },
     { description: "Call the clinic and confirm whether they take walk-in patients on Saturdays.", criteria: ["Answer is yes or no", "Gives the hours if yes"], format: "text", local: true },
-    { description: "Photograph the menu board at the jeepney terminal canteen, prices readable.", criteria: ["Whole menu board in frame", "Prices readable"], format: "photo", local: true },
+    { description: "From the public road, photograph construction progress at the pre-selling project on the given lot in Pasig, for a buyer paying instalments from abroad.", criteria: ["Whole building front in frame", "Project signboard readable", "Photo taken today"], format: "photo", local: true },
     { description: "Verify that the listed apartment building exists at the address and photograph its entrance.", criteria: ["Entrance and street number visible"], format: "photo", local: false },
     { description: "Transcribe the handwritten receipt in the attached photo into a table of items and amounts.", criteria: ["Every line item transcribed", "Total matches the receipt"], format: "text", local: false },
-    { description: "Count the people queuing outside the bank branch at 9am and photograph the queue.", criteria: ["Count given", "Photo taken between 8:45 and 9:15"], format: "photo", local: true },
+    { description: "Check the price per 40 kg bag of Portland cement at the hardware store on the given Quezon City street, and whether 50 bags are available this week.", criteria: ["Price per bag given", "Availability answered", "Photo of the price board"], format: "photo", local: true },
   ] as const;
 
   let posted = 0;
