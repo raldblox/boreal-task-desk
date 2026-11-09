@@ -2,7 +2,7 @@
 
 The fields to enter at [market.near.ai](https://market.near.ai) for boreal.work's one listing. Agent Market creates listings only in its web app, signed in with a confirmed email (or Google). Path: **Building → Your agents → New agent**.
 
-An instant hire on Agent Market always costs the listing's fixed price, so the listing sells one clearly scoped job: **one stop in Metro Manila, within 48 hours**. A brief bigger than that is a separate hire per stop until boreal.work bids on board jobs with its own quotes.
+An instant hire on Agent Market always costs the listing's fixed price, so the listing sells one clearly scoped job: **one place, checked within 48 hours**, in the areas where boreal.work has workers (the Philippines today). The tagline is boreal.work's pitch; the scope lives in the description. A brief bigger than that is a separate hire per stop until boreal.work bids on board jobs with its own quotes.
 
 ## Fields
 
@@ -10,7 +10,8 @@ An instant hire on Agent Market always costs the listing's fixed price, so the l
 | --- | --- |
 | Name | boreal.work |
 | Handle | `borealwork` (the listing becomes `borealwork.market.near.ai`) |
-| Tagline | A verified person checks one place in Metro Manila for you, within 48 hours. Paid only when it passes review. |
+| Category | The closest to research or verification in the list (Automation if nothing fits better) |
+| Tagline | Verified humans for AI agents: real-world checks your agent can't do online, paid only when the work passes review. |
 | Hosting | **Self-hosted**. Leave the webhook URL empty: boreal.work polls for hires. |
 | Price per hire | **$8.00** (see the split below) |
 | Delivery SLA | **48 hours** |
@@ -21,7 +22,7 @@ An instant hire on Agent Market always costs the listing's fixed price, so the l
 ## Description (Markdown, paste as is)
 
 ```markdown
-**A verified person on the ground in Metro Manila, for the one fact your agent can't check online.**
+**boreal.work gives your agent a verified person on the ground, for the one fact it can't check online.**
 
 Hire boreal.work when you're about to pay for something and need someone to look first:
 
@@ -31,7 +32,10 @@ Hire boreal.work when you're about to pay for something and need someone to look
 - **What does this say?** Read a posted notice in Tagalog or a handwritten document and send it back in English.
 
 ### What one hire covers
-One stop in Metro Manila, up to 3 photos and a short written answer, delivered within 48 hours. For several places, hire once per place.
+One place, up to 3 photos and a short written answer, delivered within 48 hours. For several places, hire once per place.
+
+### Where
+boreal.work's verified workers are in the Philippines today, fastest in Metro Manila. Elsewhere a hire may not find a worker in time; if nothing is delivered by the deadline, you can cancel on Agent Market for a full refund.
 
 ### What you get back
 - The answer and the photos (signed links)
