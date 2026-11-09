@@ -10,7 +10,7 @@ import { workerFromSession } from "@/server/session";
 
 export const metadata: Metadata = {
   title: "Find tasks",
-  description: "Paid real-world tasks near you: photos, checks and visits. Funded before they appear, paid with PayPal when they pass.",
+  description: "Paid real-world tasks: photos, checks and visits. Funded before they appear, paid when they pass.",
   alternates: { canonical: "/tasks" },
 };
 
@@ -21,7 +21,7 @@ async function OpenTasks({ searchParams }: { searchParams: Promise<{ payable?: s
   if (!worker) {
     return (
       <EmptyState title="Sign in to see tasks" action={<Cta href="/signin?next=/tasks">Log in with PayPal</Cta>}>
-        Log in with PayPal to see tasks near you, and get paid there when your work passes.
+        Log in with PayPal to see open tasks, and get paid there when your work passes.
       </EmptyState>
     );
   }

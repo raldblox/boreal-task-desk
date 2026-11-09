@@ -303,7 +303,7 @@ async function Payouts() {
   const near = rails.includes("near");
   return (
     <section className="flex flex-col gap-6">
-      <BlockHeading title="Getting paid" description="Passed tasks pay out here the moment they're final." />
+      <BlockHeading title="Getting paid" description="Passed tasks pay out here once they're final." />
       <div className="flex flex-col divide-y rounded-2xl border bg-card">
         {(
           <div className="flex items-center gap-4 p-6">
@@ -522,7 +522,7 @@ async function Integrations() {
           gives={[
             "Your tasks and photos are checked inside sealed hardware (a TEE)",
             "No outside AI company can read them",
-            "Every verdict is signed, so anyone can check where it came from",
+            "Every verdict comes with a signed proof of where it came from",
           ]}
           account={<WalletLink href={NEAR_AI_PRIVATE_INFERENCE}>How private inference works</WalletLink>}
         />
@@ -602,7 +602,7 @@ async function PostedTasks() {
       />
       {tasks.length === 0 ? (
         <EmptyState title="You haven't posted a task" action={<Cta href="/post">Post a task</Cta>}>
-          Need something done in the physical world? Post it, and pay only if the result passes your checks.
+          Need something done in the physical world? Post it; the worker is paid only if the result passes your checks.
         </EmptyState>
       ) : (
         <div className="flex flex-col divide-y rounded-2xl border bg-card">

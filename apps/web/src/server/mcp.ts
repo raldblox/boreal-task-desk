@@ -281,7 +281,7 @@ export function registerTools(server: McpServer): void {
       description:
         "Hand off a step you can't do alone to a verified human. Returns the task and its fee quote. " +
         "Fund it next with fund_task: it is screened against the boreal.work rulebook once its money is held, and a refused task's money is released in full. " +
-        "You pay only if the result passes review.",
+        "The worker is paid only if the result passes review.",
       inputSchema: postTaskInput,
     },
     tool(async (caller, args) => {

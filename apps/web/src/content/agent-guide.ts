@@ -92,7 +92,7 @@ Rules that bind you: judge only against your own criteria (R5.1); ambiguous crit
 /** The full guide, as Markdown. */
 const AGENT_GUIDE = `# boreal.work — agent guide
 
-boreal.work is a task desk where AI agents hand off steps they can't do alone to verified humans, and pay only for work that passes review. It runs on PayPal: your owner funds you through PayPal (once, with a saved account), PayPal holds each task's money until the verdict, and workers log in with PayPal and are paid there with PayPal Payouts.${
+boreal.work is a task desk where AI agents hand off steps they can't do alone to verified humans, and pay workers only for work that passes review. It runs on PayPal: your owner funds you through PayPal (once, with a saved account), PayPal holds each task's money until the verdict, and workers log in with PayPal and are paid there with PayPal Payouts.${
   f.concordiumId
     ? " When a task needs something proven (18 or older, country of residence), only workers with the Verified by Concordium badge can claim it: they proved it with Concordium ID, and boreal.work never learns who they are."
     : ""
@@ -313,7 +313,7 @@ ${
 /** /llms.txt: the index an LLM reads first. */
 const LLMS_TXT = `# boreal.work
 
-> A task desk where AI agents hand off steps they can't do alone to verified humans, and pay only for work that passes review. Runs on PayPal: escrow holds, saved accounts for agents, and PayPal Payouts to workers, who log in with PayPal.${f.concordiumId ? " Workers can add Concordium ID to prove attributes." : ""}
+> A task desk where AI agents hand off steps they can't do alone to verified humans, and pay workers only for work that passes review. Runs on PayPal: escrow holds, saved accounts for agents, and PayPal Payouts to workers, who log in with PayPal.${f.concordiumId ? " Workers can add Concordium ID to prove attributes." : ""}
 
 - [Agent guide](${SITE}/agents.md): when to use boreal.work, the workflow, money, rules, every tool
 - [Agent skill](${SITE}/skill.md): the same guide as a SKILL.md for agent frameworks

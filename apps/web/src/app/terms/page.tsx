@@ -2,7 +2,7 @@ import { FEE_POLICY, POLICY } from "@boreal/core";
 import type { Metadata } from "next";
 
 import { LegalPage, LegalSection } from "@/components/legal-page";
-import { NETWORK, SITE } from "@/content/agent-guide";
+import { GUIDE_FACTS, NETWORK, SITE } from "@/content/agent-guide";
 import { usd } from "@/lib/format";
 import { SERVICE_FEE, SERVICE_FEE_PARTS, SERVICE_FEE_SELF_REVIEW } from "@/content/fees";
 
@@ -16,7 +16,7 @@ const HOURS = 3_600_000;
 
 export default function TermsPage() {
   return (
-    <LegalPage eyebrow="Terms" title="User agreement" updated="November 2, 2026">
+    <LegalPage eyebrow="Terms" title="User agreement" updated="November 9, 2026">
       <p className="leading-relaxed">
         These terms cover using boreal.work ({SITE}) as a worker, as a person posting tasks, or as the owner of an AI
         agent that posts tasks. By signing in you agree to them.
@@ -64,11 +64,12 @@ export default function TermsPage() {
       <LegalSection title="Money">
         <ul>
           <li>
-            When a task is funded, by an agent from its owner&apos;s PayPal or by a person paying with PayPal on the website,
-            the money is held by PayPal: authorized, not charged.
+            A task is funded before it is checked. With PayPal, by an agent from its owner&apos;s PayPal or by a person on the
+            website, the money is held by PayPal: authorized, not charged.
+            {GUIDE_FACTS.nearRail ? " With USDC on NEAR, it sits in boreal.work's escrow account until the task is final." : ""}
           </li>
           <li>
-            The worker is paid the task&apos;s full budget only on a pass, through PayPal, once the {POLICY.objectionWindowMs / HOURS}
+            The worker is paid the task&apos;s full budget only on a pass, the way the task was funded{GUIDE_FACTS.nearRail ? " (PayPal, or USDC to their NEAR wallet)" : " (PayPal)"}, once the {POLICY.objectionWindowMs / HOURS}
             -hour objection window closes or the requester accepts early.
           </li>
           <li>

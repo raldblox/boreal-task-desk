@@ -55,7 +55,7 @@ export default function AgentsPage() {
         size="display"
         kicker="For agent owners"
         title="Give your agent a verified human"
-        lede="Your agent posts a task over MCP or REST, funds it, and pays only when the result passes review. A worker who has proved what the task needs does it. Set it up in four steps."
+        lede="Your agent posts a task over MCP or REST, funds it, and the worker is paid only when the result passes review. A worker who has proved what the task needs does it. Set it up in four steps."
         actions={
           <>
             <Cta href="#step-1">Start setting up</Cta>
@@ -144,15 +144,15 @@ export default function AgentsPage() {
               {SERVICE_FEE_COVERS}.
             </li>
             <li>
-              Escrow is a dedicated account, separate from boreal.work&apos;s own money, and every movement is in a double-entry
-              ledger. The task opens to workers only once it&apos;s fully funded.
+              On PayPal the money is a hold on the payer&apos;s own account{GUIDE_FACTS.nearRail || GUIDE_FACTS.concordiumRail ? "; on other rails it sits in an escrow account separate from boreal.work's own money" : ""}. Every movement is in a double-entry ledger, and the task is checked and opened to workers only once it&apos;s funded.
             </li>
             <li>
-              On a final pass the worker is paid. On a final fail, expiry or cancellation the budget comes back to your
-              agent.
+              On a final pass the worker is paid. If the task is refused, expires or is cancelled, everything comes back; on a
+              final fail, everything except the review part of the fee.
             </li>
             <li>
-              Beta caps: {usd(POLICY.maxTaskBudget)} per task and {usd(POLICY.maxAgentDailySpend)} per agent per day.
+              Until you&apos;re verified: {usd(POLICY.unverifiedTaskBudget)} per task and {usd(POLICY.unverifiedDailySpend)} per day. Once
+              verified, up to {usd(POLICY.maxTaskBudget)} per task and {usd(POLICY.maxAgentDailySpend)} per day.
             </li>
             <li>
               Live tasks are funded with PayPal: you click Connect PayPal when you approve the agent (or later on My account) and approve once on PayPal; the agent then funds its tasks from your account in one call, within its limits, and the money is only held until the work passes. {GUIDE_FACTS.concordiumRail ? "With the Concordium integration, the agent can also pay over x402 from a Concordium wallet holding the payment token, with fees sponsored. " : ""}{GUIDE_FACTS.nearRail ? "With the NEAR integration, it can pay in USDC from its own NEAR account. " : ""}Test agents set up by an operator need no payment.
@@ -171,7 +171,7 @@ export default function AgentsPage() {
           Concordium&apos;s Agent Registry gives an agent an on-chain entry, owned by its owner&apos;s Concordium account,
           with a public badge. When you approve your agent, enter its badge and sign with the Concordium Wallet for Web
           account that owns it: boreal.work checks the entry is active and that you control it, and your agent shows as verified.
-          The badge is optional during the beta and will be required for live (non-test) agents.
+          The badge is optional.
         </p>
         <RegistryListingNote />
       </section>

@@ -16,7 +16,7 @@ import { PostForm } from "./post-form";
 export const metadata: Metadata = {
   title: "Post a task",
   alternates: { canonical: "/post" },
-  description: "Hand a task that needs a real person to a verified human, and pay only if the result passes.",
+  description: "Hand a task that needs a real person to a verified human. The worker is paid only if the result passes.",
 };
 
 async function Form() {
@@ -72,7 +72,7 @@ export default function PostPage() {
         lede={
           <>
             Something in the physical world, or a judgment only a person can give. A worker claims it, sends the result, and
-          you pay only if it meets your checks.
+          the worker is paid only if it meets your checks.
           </>
         }
       />

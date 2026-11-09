@@ -87,10 +87,10 @@ function NextStep({
           <div className="flex flex-col gap-3">
             <p className="text-sm text-muted-foreground">
               {task.paymentRail === "near"
-                ? "This task pays in USDC on NEAR. Create a free NEAR account (about 2 minutes) and you’re paid the moment it passes."
+                ? "This task pays in USDC on NEAR. Create a free NEAR account (about 2 minutes) and you’re paid there once it passes."
                 : task.paymentRail === "concordium"
-                  ? "This task pays in tokens on Concordium. Set up the Concordium ID App and add your account: you’re paid there the moment it passes."
-                  : "This task pays via PayPal. Log in with PayPal so you’re paid the moment it passes."}
+                  ? "This task pays in tokens on Concordium. Set up the Concordium ID App and add your account: you’re paid there once it passes."
+                  : "This task pays via PayPal. Log in with PayPal so you’re paid there once it passes."}
             </p>
             <Link href={`/tasks/${task.id}/payout`} className={buttonVariants({ className: "w-full" })}>
               Set up and claim

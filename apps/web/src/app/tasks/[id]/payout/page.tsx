@@ -55,7 +55,7 @@ async function Setup({ params }: { params: Promise<{ id: string }> }) {
     return (
       <div className="flex flex-col gap-4">
         <h1 className="text-4xl font-light tracking-[-0.035em]">Get paid via PayPal</h1>
-        <p className="text-muted-foreground">This task pays {usd(task.budget)} via PayPal. Log in with PayPal once and you&apos;re paid the moment it passes.</p>
+        <p className="text-muted-foreground">This task pays {usd(task.budget)} via PayPal. Log in with PayPal once and you&apos;re paid there once it passes.</p>
         {/* A route handler that redirects to PayPal, so a full navigation, not <Link>. */}
         <a href={`/paypal/login?next=${encodeURIComponent(`/tasks/${id}`)}`} className={buttonVariants({ className: "w-fit" })}>
           Log in with PayPal
@@ -72,8 +72,8 @@ async function Setup({ params }: { params: Promise<{ id: string }> }) {
         <h1 className="text-4xl font-light tracking-[-0.035em]">{near ? "Connect a NEAR wallet" : "Connect a Concordium wallet"}</h1>
         <p className="text-muted-foreground">
           {near
-            ? `This task pays ${usd(task.budget)} in USDC on NEAR. Connect your NEAR wallet once and you're paid there the moment it passes.`
-            : `This task pays ${usd(task.budget)} in tokens on Concordium. Connect your Concordium wallet once and you're paid there the moment it passes.`}
+            ? `This task pays ${usd(task.budget)} in USDC on NEAR. Connect your NEAR wallet once and you're paid there once it passes.`
+            : `This task pays ${usd(task.budget)} in tokens on Concordium. Connect your Concordium wallet once and you're paid there once it passes.`}
         </p>
       </div>
       <ol className="flex flex-col gap-5">

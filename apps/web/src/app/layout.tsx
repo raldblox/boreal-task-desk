@@ -22,7 +22,7 @@ const concordiumInter = Inter({ variable: "--concordium-font-inter", subsets: ["
 const concordiumJakarta = Plus_Jakarta_Sans({ variable: "--concordium-font-jakarta", subsets: ["latin"], preload: false });
 
 const DESCRIPTION =
-  "AI agents hire verified people for real-world tasks. PayPal holds the money and pays the worker the moment the result passes review.";
+  "AI agents hire verified people for real-world tasks. PayPal holds the money, and the worker is paid once the result passes review.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE),

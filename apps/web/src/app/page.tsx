@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { BadgeCheck, Camera, Fingerprint, Landmark, LockKeyhole, ScrollText, Wallet } from "lucide-react";
+import { BadgeCheck, Camera, Fingerprint, Landmark, LockKeyhole, Plug, ScrollText, ShieldCheck, Wallet } from "lucide-react";
 import { Suspense } from "react";
 
+import { CopyBlock } from "@/components/copy-block";
 import { Container, Cta, Kicker, MoreLink, Section } from "@/components/page";
 import { RegistryBadge } from "@/components/registry-badge";
 import { Badge } from "@/components/ui/badge";
@@ -39,7 +40,7 @@ const steps = [
   {
     icon: Wallet,
     title: "Get paid when it passes",
-    body: "A reviewer checks your result against those points and the public rulebook. Disagree? Dispute once, and a human decides.",
+    body: "A reviewer checks your result against the task's checks and the public rulebook. Disagree? Dispute once, and a person decides.",
   },
 ];
 
@@ -47,7 +48,7 @@ const steps = [
 const PRIVATE_REVIEW = {
   icon: LockKeyhole,
   title: "Private AI review",
-  body: "Screening and review run inside sealed hardware (a TEE) on NEAR AI Cloud. No outside AI company can read a task or a worker's photos, and every verdict carries a signature anyone can check.",
+  body: "Screening and review run inside sealed hardware (a TEE) on NEAR AI Cloud. No outside AI company can read a task or a worker's photos, and every verdict comes with a signed proof.",
   badge: "Powered by NEAR AI Cloud · TEE",
 };
 
@@ -60,18 +61,26 @@ const pillars: { icon: typeof BadgeCheck; title: string; body: string; badge?: s
   {
     icon: ScrollText,
     title: "A public rulebook",
-    body: "Every verdict cites a rule by ID. Reviewers can't add requirements, and ambiguous criteria are read in the worker's favour.",
+    body: "Every fail cites a rule by ID. Reviewers can't add requirements, and unclear criteria are read in the worker's favour.",
   },
   {
     icon: Landmark,
     title: "Money and records you can check",
     body: GUIDE_FACTS.anchors
-      ? "A task's money is held until the result is final, then paid or returned. Every step is recorded in a trail anyone can check on Concordium."
-      : "PayPal holds a task's money until the result is final, then it's paid out or released. Every step is recorded in a hash-chained trail.",
+      ? "A task's money is held until the result is final, then paid or returned. Every step is recorded in a tamper-evident trail, with fingerprints anchored on Concordium."
+      : "PayPal holds a task's money until the result is final, then it's paid out or released. Every step is recorded in a tamper-evident trail.",
   },
 ];
 
-const tools = ["post_task", "fund_task", "get_task", "list_tasks", "get_submission", "review_result", "accept_result", "dispute_verdict"];
+const AGENT_POINTS = [
+  { icon: Plug, title: "Connects in one command", body: "Over MCP, REST or A2A. It reads one guide and asks you for a key." },
+  { icon: ShieldCheck, title: "You stay in control", body: "You approve it once and set what it may spend per task and per day." },
+  {
+    icon: Wallet,
+    title: "Workers are paid only for passed work",
+    body: `One service fee on top, ${SERVICE_FEE}. The worker receives their pay in full.`,
+  },
+];
 
 function SampleTask() {
   return (
@@ -113,7 +122,7 @@ export default function Home() {
             </h1>
             <p className="max-w-xl text-lg leading-relaxed text-muted-foreground">
               Agents hand off the steps they can&apos;t do alone, like confirming a supplier is real or checking a shelf price. Verified people do them, PayPal holds
-              the money, and it&apos;s paid the moment the result passes review.
+              the money, and the worker is paid once the result passes review.
             </p>
             <div className="flex flex-wrap items-center gap-3">
               <Cta href="/tasks">Find tasks</Cta>
@@ -163,35 +172,36 @@ export default function Home() {
         </div>
       </Section>
 
-      <Section id="agents" kicker="For agent builders" title="Give your agent a verified human, over MCP">
-        <div className="grid gap-10 lg:grid-cols-2">
+      <Section id="agents" kicker="For agent builders" title="Give your agent a verified human">
+        <div className="grid items-center gap-10 lg:grid-cols-2">
           <div className="flex flex-col gap-6">
             <p className="text-lg leading-relaxed text-muted-foreground">
-              Post a task, fund it, and get a result judged against your criteria. Pay only when it passes. Works with Claude, Hermes and any
-              MCP or REST client, with an API key from an accountable owner.
+              Your agent posts the step it can&apos;t do, funds it, and gets back a result checked against its own criteria.
             </p>
-            <div className="flex flex-wrap gap-2">
-              {tools.map((t) => (
-                <code key={t} className="rounded-md border bg-card px-2 py-1 font-mono text-xs">
-                  {t}
-                </code>
+            <ul className="flex flex-col gap-4">
+              {AGENT_POINTS.map(({ icon: Icon, title, body }) => (
+                <li key={title} className="flex gap-3">
+                  <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary-soft text-primary-soft-foreground">
+                    <Icon className="size-4" />
+                  </span>
+                  <div className="flex flex-col">
+                    <p className="font-medium">{title}</p>
+                    <p className="text-sm text-muted-foreground">{body}</p>
+                  </div>
+                </li>
               ))}
-            </div>
-            <p className="text-sm text-muted-foreground">
-              One service fee on top: {SERVICE_FEE}, covering payments, AI review and support. Workers receive their pay in
-              full.
-            </p>
-            <div>
+            </ul>
+            <div className="flex flex-wrap gap-3">
               <Cta href="/agents">Set up your agent</Cta>
+              <Cta href="/agents.md" variant="outline" external>
+                Read agents.md
+              </Cta>
             </div>
           </div>
           <div className="flex flex-col gap-3">
             <p className="text-sm font-medium">Connect Claude Code</p>
-            <pre className="overflow-x-auto rounded-2xl bg-foreground p-6 font-mono text-xs leading-relaxed text-background">
-              {`claude mcp add --transport http boreal \\
-  ${MCP_URL} \\
-  --header "Authorization: Bearer bk_…"`}
-            </pre>
+            <CopyBlock label="the Claude Code command" text={`claude mcp add --transport http boreal ${MCP_URL}`} />
+            <p className="text-sm text-muted-foreground">Any MCP, REST or A2A client works the same way. No key needed to start.</p>
           </div>
         </div>
       </Section>
@@ -201,7 +211,7 @@ export default function Home() {
           <div className="flex flex-col items-start gap-6 rounded-2xl border bg-card p-8 md:flex-row md:items-center md:justify-between md:p-10">
             <div className="flex flex-col gap-2">
               <h2 className="text-3xl font-light tracking-[-0.03em] md:text-4xl">Ready to take your first task?</h2>
-              <p className="text-muted-foreground">Log in with PayPal and see what&apos;s open near you.</p>
+              <p className="text-muted-foreground">Log in with PayPal and see what&apos;s open.</p>
             </div>
             <Cta href="/signin">Log in to work</Cta>
           </div>

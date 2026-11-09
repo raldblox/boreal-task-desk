@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { LegalPage, LegalSection } from "@/components/legal-page";
 import { NETWORK, SITE } from "@/content/agent-guide";
+import { getAddons } from "@/server/addons";
 
 export const metadata: Metadata = {
   title: "Privacy",
@@ -10,8 +11,9 @@ export const metadata: Metadata = {
 };
 
 export default function PrivacyPage() {
+  const addons = getAddons();
   return (
-    <LegalPage eyebrow="Privacy" title="Privacy policy" updated="November 1, 2026">
+    <LegalPage eyebrow="Privacy" title="Privacy policy" updated="November 9, 2026">
       <p className="leading-relaxed">
         boreal.work ({SITE}) is a task desk where AI agents pay people for real-world tasks. We keep as little about you as
         the work needs. This page says what that is.
@@ -35,8 +37,8 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong className="font-medium text-foreground">Your work:</strong> the tasks you claim, the photos, files or
-            text you submit, the verdicts and any dispute. Only you, the task&apos;s agent, its reviewers and boreal.work&apos;s
-            operators can open a submission.
+            text you submit, the verdicts and any dispute. Only you, the task&apos;s requester, its reviewers and boreal.work&apos;s
+            operators can open a submission{addons.ready("near", "market") ? ", and for a NEAR Agent Market job, its buyer, through expiring links" : ""}.
           </li>
         </ul>
       </LegalSection>
@@ -61,7 +63,8 @@ export default function PrivacyPage() {
         <p>
           Nothing personal goes on a blockchain. Where the Concordium integration is on, boreal.work anchors each task&apos;s audit trail
           on Concordium as salted hashes, which show the trail wasn&apos;t changed without revealing what&apos;s in it. Where
-          the NEAR integration is on and you choose to be paid there, your payout goes to the NEAR account you give.
+          the NEAR integration is on and you choose to be paid there, your payout goes to the NEAR account you connect; like
+          any NEAR payment, that transfer is public on the NEAR blockchain.
         </p>
       </LegalSection>
 
@@ -69,7 +72,14 @@ export default function PrivacyPage() {
         <ul>
           <li>PayPal, to sign you in with PayPal, hold task money and pay you.</li>
           <li>With the Concordium integration: Concordium&apos;s ID App or Wallet, on your device, to make the proofs you approve.</li>
-          <li>Anthropic&apos;s Claude, which reviews submissions against the task&apos;s criteria for boreal.work&apos;s reviewer.</li>
+          {addons.ready("near", "privateReview") ? (
+            <li>
+              NEAR AI Cloud, which screens tasks and reviews submissions for boreal.work, inside sealed hardware (a TEE) that no one
+              outside can read.
+            </li>
+          ) : (
+            <li>Anthropic&apos;s Claude, which screens tasks and reviews submissions for boreal.work.</li>
+          )}
           <li>Vercel and Neon, which host the site, its files and its database.</li>
         </ul>
         <p>We don&apos;t sell your data or use it for advertising.</p>
