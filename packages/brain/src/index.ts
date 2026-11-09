@@ -5,7 +5,7 @@ export { type ClaudeReviewerOptions, createClaudeReviewer } from "./claude";
 export type { Reviewer, ReviewInput, ReviewResult, ScreenInput, ScreenResult } from "./judge";
 export { createNearAiReviewer, NEAR_AI_DEFAULT_MODEL, NEAR_AI_URL, type NearAiReviewerOptions } from "./near-ai";
 export { type Rule, RULEBOOK_VERSION, ruleById, rulebookText, RULES } from "./rulebook";
-export { checkProof, type PrivateInferenceProof, quoteReportData, recoverSigner } from "./tee-proof";
+export { checkProof, type PrivateInferenceProof, type ProofCheck, proofChecks, quoteReportData, recoverSigner } from "./tee-proof";
 
 /**
  * The configured reviewer: private review on NEAR AI Cloud when the NEAR add-on passes a

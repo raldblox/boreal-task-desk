@@ -16,6 +16,7 @@ import { BlockHeading, Container, Cta, EmptyState, LinkTile, MoreLink, PageHero 
 import { ConcordiumSignIn } from "@/components/concordium-sign-in";
 import { ConcordiumWalletSignIn } from "@/components/concordium-wallet-sign-in";
 import { TaskCard } from "@/components/task-card";
+import { TxLink } from "@/components/tx-link";
 import { DevWallet } from "@/components/worker-forms";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +25,7 @@ import { attributeLabel, posterStatus, usd, when, workerHandle } from "@/lib/for
 import { NETWORK, SITE } from "@/content/agent-guide";
 import { gatedEnv, getAddons } from "@/server/addons";
 import { getConcordium, getDesk, paymentRails } from "@/server/desk";
+import { EXPLORER, txUrl } from "@/server/explorer";
 import { getIdAppVerifier } from "@/server/id-app";
 import { kickMonitorSoon } from "@/server/monitor";
 import { paypalAccounts, paypalLoginEnabled } from "@/server/paypal-accounts";
@@ -206,6 +208,14 @@ async function Earnings() {
   const perRail = (Object.entries(earnings.byRail) as [keyof typeof RAIL_LABEL, { paid: number; settling: number; upcoming: number }][]).filter(
     ([, m]) => m.paid + m.settling + m.upcoming > 0,
   );
+  // Settled payouts on a chain, each linked to its transfer on the chain's explorer.
+  const onChain = earnings.payouts
+    .flatMap((p) => {
+      if (p.test || p.status !== "settled" || (p.rail !== "near" && p.rail !== "concordium")) return [];
+      const url = txUrl(p.rail, p.txHash);
+      return url ? [{ ...p, rail: p.rail, url }] : [];
+    })
+    .slice(0, 5);
   const rows = [
     {
       label: "Paid to you",
@@ -244,6 +254,21 @@ async function Earnings() {
               <dd className="text-lg tabular-nums">{usd(money.upcoming)}</dd>
             </div>
           </dl>
+          {label === "Paid to you" && onChain.length > 0 && (
+            <ul className="flex flex-col divide-y border-t text-sm">
+              {onChain.map((p) => (
+                <li key={`${p.taskId}-${p.at.toISOString()}`} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2.5">
+                  <span>
+                    <span className="tabular-nums">{usd(p.amount)}</span>{" "}
+                    <span className="text-muted-foreground">
+                      · {RAIL_LABEL[p.rail]} · {when(p.at)}
+                    </span>
+                  </span>
+                  <TxLink href={p.url}>{EXPLORER[p.rail]}</TxLink>
+                </li>
+              ))}
+            </ul>
+          )}
           <p className="text-xs text-muted-foreground">
             {note} A passed task is held for {POLICY.objectionWindowMs / 3_600_000} hours, then paid. It&apos;s paid
             sooner if the requester accepts early.

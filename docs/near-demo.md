@@ -114,8 +114,8 @@ If the Agent Market listing is live by Nov 11, add a 4-second cutaway after line
 
 The product has the pieces, but some aren't visible enough to film:
 
-1. **Explorer links in the UI.** No page links to nearblocks yet. Add a link on the posted task (the funding tx), the payout row in earnings, and the refund row. (Lines 6 and 13.)
-2. **A "check the proof" view.** `PrivateReviewNote` is one line with a tooltip. Add a small expandable panel under the verdict, or a `/proof/[taskId]` page, showing the model, the request and response hashes, the signer recovered from the signature, and the attestation's report data matching the address and nonce, each with a ✓. (Line 12, the strongest moment for these judges.)
+1. ~~**Explorer links in the UI.**~~ Done: the posted task's sidebar lists the funding, payout and refund on nearblocks (or CCDScan); the worker's task page links its payment; earnings list recent on-chain payouts. (Lines 6 and 13.)
+2. ~~**A "check the proof" view.**~~ Done: under a private verdict, "Proof checks out" opens the three checks with ✓ (the signature covers this exact review, it was signed by the model's own key, that key lives inside a TEE), the model and completion, a download of the proof, and a link to NEAR's verifier. (Line 12.)
 3. **A full testnet run with real transactions:** fund in USDC from a wallet, screen, claim with a NEAR-connected worker, one failing and one passing submission, payout, and a refund. Keep the explorer links for the README and the post.
 4. **The fake-photo case** on the private reviewer: GLM-5.3-flash with the "copy the text exactly" rule. Re-run it on the demo photos so line 9 is real, not staged.
 

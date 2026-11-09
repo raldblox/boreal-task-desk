@@ -59,28 +59,44 @@ export function quoteReportData(intelQuote: string): string {
   return quote.subarray(48 + 520, 48 + 584).toString("hex");
 }
 
-/** Every problem with a proof; empty when all three checks pass. */
-export function checkProof(proof: PrivateInferenceProof): string[] {
-  const problems: string[] = [];
-  if (proof.signedText !== `${proof.model}:${proof.requestSha256}:${proof.responseSha256}`) {
-    problems.push("the signed text doesn't cover this request and response");
-  }
+/** One of the three checks, for showing beside a verdict. `problem` says what failed. */
+export interface ProofCheck {
+  id: "covers" | "signature" | "attestation";
+  ok: boolean;
+  problem?: string;
+}
+
+/** The three checks, each on its own, so a page can show which held. */
+export function proofChecks(proof: PrivateInferenceProof): ProofCheck[] {
+  const covers: ProofCheck =
+    proof.signedText === `${proof.model}:${proof.requestSha256}:${proof.responseSha256}`
+      ? { id: "covers", ok: true }
+      : { id: "covers", ok: false, problem: "the signed text doesn't cover this request and response" };
+  let signature: ProofCheck;
   try {
-    if (recoverSigner(proof.signedText, proof.signature) !== proof.signingAddress.toLowerCase()) {
-      problems.push("the signature doesn't recover to the signing address");
-    }
+    signature =
+      recoverSigner(proof.signedText, proof.signature) === proof.signingAddress.toLowerCase()
+        ? { id: "signature", ok: true }
+        : { id: "signature", ok: false, problem: "the signature doesn't recover to the signing address" };
   } catch (error) {
-    problems.push(`the signature can't be read: ${error instanceof Error ? error.message : String(error)}`);
+    signature = { id: "signature", ok: false, problem: `the signature can't be read: ${error instanceof Error ? error.message : String(error)}` };
   }
+  let attestation: ProofCheck;
   try {
     const reportData = quoteReportData(proof.attestation.intelQuote);
     const address = proof.signingAddress.replace(/^0x/, "").toLowerCase();
     // The address, zero-padded to 32 bytes, then the 32-byte nonce.
-    if (reportData !== `${address.padEnd(64, "0")}${proof.attestation.nonce.toLowerCase()}`) {
-      problems.push("the TEE quote doesn't bind this signing address and nonce");
-    }
+    attestation =
+      reportData === `${address.padEnd(64, "0")}${proof.attestation.nonce.toLowerCase()}`
+        ? { id: "attestation", ok: true }
+        : { id: "attestation", ok: false, problem: "the TEE quote doesn't bind this signing address and nonce" };
   } catch (error) {
-    problems.push(`the TEE quote can't be read: ${error instanceof Error ? error.message : String(error)}`);
+    attestation = { id: "attestation", ok: false, problem: `the TEE quote can't be read: ${error instanceof Error ? error.message : String(error)}` };
   }
-  return problems;
+  return [covers, signature, attestation];
+}
+
+/** Every problem with a proof; empty when all three checks pass. */
+export function checkProof(proof: PrivateInferenceProof): string[] {
+  return proofChecks(proof).flatMap((c) => (c.problem ? [c.problem] : []));
 }

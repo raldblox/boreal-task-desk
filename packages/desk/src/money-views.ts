@@ -183,7 +183,11 @@ export function moneyViews(db: Database) {
         if (t.test || !t.paymentRail || (t.status !== "passed" && t.status !== "disputed")) continue;
         (byRail[t.paymentRail] ??= { paid: 0, settling: 0, upcoming: 0 }).upcoming += t.budget;
       }
-      return { real: bucket(false), test: bucket(true), byRail, payouts: paid.slice(0, 20).map((e) => ({ at: e.createdAt, taskId: e.taskId, amount: e.amount, status: e.status, test: test.get(e.taskId ?? "") ?? false })) };
+      return { real: bucket(false), test: bucket(true), byRail, payouts: paid.slice(0, 20).map((e) => {
+          const isTest = test.get(e.taskId ?? "") ?? false;
+          // The rail and transaction, so a page can link to the transfer on its explorer.
+          return { at: e.createdAt, taskId: e.taskId, amount: e.amount, status: e.status, test: isTest, rail: rail.get(e.taskId ?? "") ?? null, txHash: isTest ? null : e.txHash };
+        }) };
     },
   };
 }

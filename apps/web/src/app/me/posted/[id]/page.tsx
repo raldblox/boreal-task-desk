@@ -11,6 +11,7 @@ import { Suspense } from "react";
 import { acceptResult, cancelTask, disputeAsPoster, payTask, reviewResult } from "@/app/post/actions";
 import { PayWithNear } from "@/components/connect-wallet";
 import { PrivateReviewNote } from "@/components/private-review";
+import { TxLink } from "@/components/tx-link";
 import { Eyebrow } from "@/components/brand";
 import { Container } from "@/components/page";
 import { ReviewForm } from "@/components/poster-forms";
@@ -20,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { attributeLabel, posterStatus, usd, when } from "@/lib/format";
 import { gatedEnv } from "@/server/addons";
 import { getDesk, getRails } from "@/server/desk";
+import { EXPLORER, txUrl } from "@/server/explorer";
 import { kickMonitorSoon } from "@/server/monitor";
 import { posterFromSession } from "@/server/poster";
 import { SERVICE_FEE_COVERS } from "@/content/fees";
@@ -50,6 +52,37 @@ function Cancel({ task, note }: { task: Task; note: string }) {
 }
 
 /** What the poster can do next, for each state: the desk's requester commands. */
+/** The task's money on its chain: funding, payout and refund, each linked to its explorer. */
+async function OnChain({ requester, task }: { requester: { role: "requester"; agentId: string }; task: Task }) {
+  const rail = task.paymentRail === "near" || task.paymentRail === "concordium" ? task.paymentRail : null;
+  if (!rail) return null;
+  const entries = await getDesk().getLedger(requester, { taskId: task.id });
+  const rows = entries
+    .flatMap((e) => {
+      const what =
+        e.from === "requester" ? "Funded into escrow" : e.to === "worker" ? "Paid to the worker" : e.to === "requester" ? "Refunded to you" : null;
+      const url = e.status === "settled" ? txUrl(rail, e.txHash) : null;
+      return what && url ? [{ what, amount: e.amount, url, at: e.at }] : [];
+    })
+    .reverse();
+  if (rows.length === 0) return null;
+  return (
+    <div className="flex flex-col gap-2 border-t pt-4 text-sm">
+      <p className="text-muted-foreground">On {rail === "near" ? "NEAR" : "Concordium"}</p>
+      <ul className="flex flex-col gap-1.5">
+        {rows.map((r) => (
+          <li key={r.url} className="flex items-center justify-between gap-3">
+            <span>
+              {r.what} <span className="tabular-nums text-muted-foreground">{usd(r.amount)}</span>
+            </span>
+            <TxLink href={r.url}>{EXPLORER[rail]}</TxLink>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 async function NextStep({ task, requester }: { task: Task; requester: { role: "requester"; agentId: string } }) {
   const desk = getDesk();
   const windowEnds = task.verdictAt ? new Date(task.verdictAt.getTime() + POLICY.objectionWindowMs) : null;
@@ -203,10 +236,11 @@ async function PostedTask({ params, searchParams }: Props) {
   }
   // Someone is watching their task: move timers and payouts along now.
   after(kickMonitorSoon);
-  const [submission, verdict, query] = await Promise.all([
+  const [submission, verdict, query, proof] = await Promise.all([
     desk.getSubmission(poster.requester, id),
     desk.getVerdict(poster.requester, id),
     searchParams,
+    desk.getReviewProof(poster.requester, id),
   ]);
   const status = posterStatus(task);
 
@@ -229,6 +263,11 @@ async function PostedTask({ params, searchParams }: Props) {
             <dd className="tabular-nums">{usd(task.platformFee + task.reviewFee)}</dd>
           </div>
         </dl>
+        {!task.test && (task.paymentRail === "near" || task.paymentRail === "concordium") && (
+          <Suspense fallback={null}>
+            <OnChain requester={poster.requester} task={task} />
+          </Suspense>
+        )}
         <div className="border-t pt-5">
           <NextStep task={task} requester={poster.requester} />
         </div>
@@ -287,7 +326,7 @@ async function PostedTask({ params, searchParams }: Props) {
             <p className="font-mono text-xs text-muted-foreground">
               {verdict.ruleIds.length ? verdict.ruleIds.join(" · ") : "No rules cited"} · {when(verdict.at)}
             </p>
-            <PrivateReviewNote review={verdict.privateReview} />
+            <PrivateReviewNote review={verdict.privateReview} proof={proof} />
           </section>
         )}
 

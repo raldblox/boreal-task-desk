@@ -1442,6 +1442,26 @@ export function createDesk({
       return { outcome, ruleIds, reasoning, by: event.actor as "reviewer" | "panel", at: event.createdAt, privateReview };
     },
 
+    /**
+     * The standing verdict's full private-review proof (signature, hashes, the TEE quote), so
+     * anyone who can see the task can repeat the checks. Null when it wasn't reviewed privately.
+     */
+    async getReviewProof(caller: Caller, taskId: string): Promise<PrivateInferenceProof | null> {
+      await this.getTask(caller, taskId);
+      const [event] = await db
+        .select({ payload: taskEvents.payload })
+        .from(taskEvents)
+        .where(
+          and(
+            eq(taskEvents.taskId, taskId),
+            inArray(taskEvents.type, ["verdict_pass", "verdict_fail", "panel_pass", "panel_fail"]),
+          ),
+        )
+        .orderBy(desc(taskEvents.id))
+        .limit(1);
+      return (event?.payload as { proof?: PrivateInferenceProof } | undefined)?.proof ?? null;
+    },
+
     /** Why screening refused a task: the rules it broke and the screener's reasoning. */
     async getRefusal(caller: Caller, taskId: string) {
       await this.getTask(caller, taskId);

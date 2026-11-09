@@ -8,6 +8,7 @@ import { Suspense } from "react";
 
 import { claimTask, disputeVerdict, releaseTask, submitResult } from "@/app/actions";
 import { PrivateReviewNote } from "@/components/private-review";
+import { TxLink } from "@/components/tx-link";
 import { TaskProgress } from "@/components/task-progress";
 import { Container } from "@/components/page";
 import { ActionButton, DisputeForm, SubmitForm } from "@/components/worker-forms";
@@ -19,6 +20,7 @@ import { canBePaidOn, RAIL_LABEL } from "@/lib/rails";
 import { getDesk } from "@/server/desk";
 import { workerFromSession } from "@/server/session";
 import { getAddons } from "@/server/addons";
+import { EXPLORER, txUrl } from "@/server/explorer";
 
 function FindAnother() {
   return (
@@ -167,6 +169,13 @@ function NextStep({
           <Link href="/me" className="font-normal text-primary underline-offset-4 hover:underline">
             See your earnings
           </Link>
+          {!task.test && (task.paymentRail === "near" || task.paymentRail === "concordium") && (
+            <Suspense fallback={null}>
+              <span className="mt-1 block text-sm font-normal">
+                <PayoutTx worker={worker} task={task} />
+              </span>
+            </Suspense>
+          )}
         </p>
       );
     case "final_fail":
@@ -197,6 +206,15 @@ function NextStep({
   }
 }
 
+/** The worker's payout for this task on its chain's explorer, once it has settled. */
+async function PayoutTx({ worker, task }: { worker: Extract<Caller, { role: "worker" }>; task: Task }) {
+  const { payouts } = await getDesk().getWorkerEarnings(worker);
+  const payout = payouts.find((p) => p.taskId === task.id && p.status === "settled");
+  const rail = task.paymentRail === "near" || task.paymentRail === "concordium" ? task.paymentRail : null;
+  if (!payout || !rail) return null;
+  return <TxLink href={txUrl(rail, payout.txHash)}>See the payment on {EXPLORER[rail]}</TxLink>;
+}
+
 async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const worker = await workerFromSession();
@@ -219,11 +237,12 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
     if (error instanceof DeskError && error.code === "not_found") notFound();
     throw error;
   }
-  const [submission, verdict, profile, mine] = await Promise.all([
+  const [submission, verdict, profile, mine, proof] = await Promise.all([
     desk.getSubmission(worker, id),
     desk.getVerdict(worker, id),
     desk.getWorker(worker),
     desk.findPersonalRequester(worker.workerId),
+    desk.getReviewProof(worker, id),
   ]);
   const needsBadge = task.requiredAttributes.length > 0 && !!profile && !profile.testMode && !profile.hasConcordium;
   const needsPayout = !task.test && !canBePaidOn(profile, task.paymentRail);
@@ -322,7 +341,7 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
             <p className="font-mono text-xs text-muted-foreground">
               {verdict.ruleIds.length ? verdict.ruleIds.join(" · ") : "No rules cited"} · {when(verdict.at)}
             </p>
-            <PrivateReviewNote review={verdict.privateReview} />
+            <PrivateReviewNote review={verdict.privateReview} proof={proof} />
           </section>
         )}
 
