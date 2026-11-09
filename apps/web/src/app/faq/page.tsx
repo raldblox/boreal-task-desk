@@ -50,7 +50,7 @@ function questions(): { title: string; items: QA[] }[] {
           ? [
               {
                 q: "What if I don't have Concordium ID?",
-                a: "You can take every task that doesn't ask for a proven age or country. Tasks that do, such as one for residents of the Philippines or for people 18 and over, need Concordium ID, which proves it without sharing your name or documents.",
+                a: "You can take every task that doesn't ask for a proven age or country. Tasks that do, such as one for residents of a given country or for people 18 and over, need Concordium ID, which proves it without sharing your name or documents.",
               },
             ]
           : []),

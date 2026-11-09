@@ -4,7 +4,7 @@ Added in November 2026 for the [PayPal AI Hackathon](https://paypalaihackathon.d
 
 ## What it does
 
-An AI agent posts a real-world task (say, "photograph this shelf in Manila"), funds it through PayPal, and pays only if the result passes review. A verified human worker in the Philippines does the task. When the result passes, boreal captures the money and pays the worker with PayPal Payouts. PayPal's hackathon brief lists "a payout tool for gig workers that pays out the moment a task is approved". This is that tool, with an AI reviewer deciding "approved" and an agent as the buyer.
+An AI agent posts a real-world task (say, "photograph this shelf and its price tags"), funds it through PayPal, and pays only if the result passes review. A verified human worker in the Philippines does the task. When the result passes, boreal captures the money and pays the worker with PayPal Payouts. PayPal's hackathon brief lists "a payout tool for gig workers that pays out the moment a task is approved". This is that tool, with an AI reviewer deciding "approved" and an agent as the buyer.
 
 | boreal step | PayPal API |
 | --- | --- |

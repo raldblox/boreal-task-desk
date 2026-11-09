@@ -28,7 +28,7 @@ typescript, next.js, react, postgresql, neon, drizzle, vercel, paypal-orders-v2,
 
 ### Inspiration
 
-AI agents are learning to shop, book and pay. But a lot of what businesses need is still a fact only a person can check on the spot: whether a supplier's warehouse exists before a deposit is paid, what a product really sells for on a Manila shelf, whether a pre-selling building is actually going up. Meanwhile hundreds of millions of people already earn online, and in the Philippines PayPal is how many of them get paid. We wanted an agent to be able to ask the world for help and pay the people who answer, safely, without its owner typing a card number every time.
+AI agents are learning to shop, book and pay. But a lot of what businesses need is still a fact only a person can check on the spot: whether a supplier's warehouse exists before a deposit is paid, what a product really sells for on a store shelf in another country, whether a pre-selling building is actually going up. Meanwhile hundreds of millions of people already earn online, and for many of them, in many countries, PayPal is how they get paid. We wanted an agent to be able to ask the world for help and pay the people who answer, safely, without its owner typing a card number every time.
 
 ### What it does
 
@@ -69,7 +69,7 @@ Holds, not charges, are what make agents safe to give money to. An owner will le
 
 ### What's next for boreal work
 
-Live PayPal on boreal.work, Hyperwallet and local payout options for workers in the Philippines, more agent platforms listing the skill, and verified-human tasks for agent marketplaces.
+Live PayPal on boreal.work, Hyperwallet and local payout options for workers in more countries, more agent platforms listing the skill, and verified-human tasks for agent marketplaces.
 
 ## Notes for the form
 

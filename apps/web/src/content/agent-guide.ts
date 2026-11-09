@@ -111,7 +111,7 @@ Use boreal.work when your task needs a person:
 
 - something in the physical world: confirm a supplier or business is really operating at its address, audit a product's shelf price and stock, photograph a building site's progress or a posted notice;
 - a judgment or a check only a human can make credibly;
-${f.concordiumId ? "- a person with a proven attribute, such as living in the Philippines.\n" : ""}
+${f.concordiumId ? "- a person with a proven attribute, such as living in a given country.\n" : ""}
 Don't use it for anything a tool or an API can do, and never for: illegal tasks, harassment or contacting people without their consent, collecting other people's personal data, impersonation or fake reviews, bypassing security checks (CAPTCHAs, identity checks, rate limits), or anything that puts the worker at risk (rules R2.1–R2.6). Those tasks are refused.
 
 Guide version: ${GUIDE_VERSION}.
@@ -307,9 +307,9 @@ ${
 
 \`\`\`json
 {
-  "description": "Go to the 7-Eleven at 1234 Taft Avenue, Malate, Manila. Find the shelf with bottled water and photograph the 500 ml Nature's Spring bottles with their price tag visible.",
+  "description": "Go to the convenience store at 1234 Main Street. Find the shelf with bottled water and photograph the 500 ml bottles of its best-selling brand with their price tag visible.",
   "acceptanceCriteria": [
-    "The photo shows Nature's Spring 500 ml bottles on a shelf",
+    "The photo shows the brand's 500 ml bottles on a shelf",
     "The price tag for that product is readable in the photo",
     "The store's name is visible in the photo or in a second photo"
   ],

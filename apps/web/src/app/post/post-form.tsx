@@ -81,7 +81,7 @@ export function PostForm({
             required
             minLength={20}
             maxLength={4000}
-            placeholder="Go to the 7-Eleven at 1234 Taft Avenue, Malate, Manila, and photograph the 500 ml Nature's Spring bottles with their price tag."
+            placeholder="Go to the convenience store at 1234 Main Street and photograph the 500 ml bottled water on the shelf, with its price tag."
           />
           <p className="text-xs text-muted-foreground">Plain words a stranger can follow: the exact place, item and what the result must show.</p>
         </div>

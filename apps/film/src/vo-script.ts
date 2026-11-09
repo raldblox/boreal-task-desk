@@ -29,6 +29,12 @@ export const SHARED_VO_SCRIPT = {
   checkedReviewer: { voice: "narrator", text: "But not every answer is honest. [pause] The reviewer checks the proof, and two photos don't hold up." },
   payHer: { voice: "jiwoo", text: "The shelf count looks right. Pay her now." },
   doneEyes: { voice: "narrator", text: "Ji-woo never left Seoul. [pause] She had many hands, [pause] and no extra eyes." },
+  // Place-neutral replacements: judges and viewers are everywhere, so no line names a city.
+  introAway: { voice: "narrator", text: "Every question has a place where the answer lives. [pause] Ji-woo's are in the city where she launches next month. [pause] She's a long flight away." },
+  hiLaunch: { voice: "jiwoo", text: "Hi, Hermes. Can you get real people where I'm launching to check a few things for me?" },
+  workersThere: { voice: "narrator", text: "Where her answers are, people are already out: running errands, meeting friends, waiting for a ride. [pause] boreal work turns the place they happen to be into a few minutes of paid work." },
+  paidThere: { voice: "narrator", text: "One passes. [pause] And a worker gets paid for being in the right place." },
+  doneDesk: { voice: "narrator", text: "Ji-woo never left her desk. [pause] She had many hands, [pause] and no extra eyes." },
 } as const;
 
 // The NEAR film's chain slot.

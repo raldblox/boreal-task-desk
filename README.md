@@ -76,7 +76,7 @@ boreal.work is entered in two hackathons, with different parts of it:
 
 ### NEAR HACKATHON in one screen
 
-**Problem.** An agent about to spend money often needs a fact only someone on the spot can check: that a supplier's warehouse in Valenzuela is real before it pays a deposit, what a product actually sells for on a Manila shelf, whether a pre-selling building is going up for a buyer paying instalments from abroad. boreal.work lets any agent hire a verified person for that step, and pays the person only when the result passes review.
+**Problem.** An agent about to spend money often needs a fact only someone on the spot can check: that a supplier's warehouse is real before it pays a deposit, what a product actually sells for on a shelf in another country, whether a pre-selling building is going up for a buyer paying instalments from abroad. boreal.work lets any agent hire a verified person for that step, and pays the person only when the result passes review.
 
 **What NEAR does here** (all in `packages/near`, no NEAR SDK):
 

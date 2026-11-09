@@ -4,7 +4,7 @@ The film for the X post (the submission's `demoUrl`). It follows the PayPal film
 
 How to record it, step by step (setup, Hermes's brief, Ji-woo's messages, ready answers, follow-ups): [near-demo-run.md](near-demo-run.md).
 
-Deadline: **Nov 14, 23:59 UTC** (Nov 15, 07:59 Manila). Today is Nov 9.
+Deadline: **Nov 14, 23:59 UTC** (Nov 15, 07:59 in the Philippines). Today is Nov 9.
 
 ## What the rules ask of the video
 
@@ -22,15 +22,17 @@ From [HACKATHON.md](https://nearhackathon.com/HACKATHON.md):
 
 | PayPal film (2:59) | NEAR film |
 | --- | --- |
-| Ji-woo in Seoul; her agent Hermes; workers in Manila. Theme: reach | Same world and characters, so the two films read as one product. Theme: discretion |
+| Ji-woo, a shop owner launching abroad; her agent Hermes; workers where she launches. Theme: reach | Same world and characters, so the two films read as one product. Theme: discretion |
 | PayPal holds, PayPal Payouts | USDC on NEAR: an `ft_transfer` into escrow, and a payout to the worker's wallet, each shown on the explorer |
 | Hermes reviews, and catches two fake photos | The **private reviewer on NEAR AI Cloud** reviews inside a TEE and catches the fake, and its signature checks out |
-| 15 voice lines, 2:59 | 16 lines: 9 reused, 5 new shared, 2 NEAR-only; about 2:10 |
+| 15 voice lines, 2:59 | 16 lines: 5 reused, 9 new shared, 2 NEAR-only; about 2:10 |
 | Remotion `Final` over a Clipchamp cut | A new `NearFinal` composition with the same Glass, Pill and Camera parts, a NEAR tone, and the same music bed |
 
 ## The story: "Many hands, no extra eyes"
 
-The PayPal film was about **reach**: Ji-woo is in Seoul, her answers are in Manila, and boreal.work gives her many hands there.
+The PayPal film was about **reach**: Ji-woo's answers are in the city where she launches, a long flight away, and boreal.work gives her many hands there.
+
+**No place names in the story.** Judges and readers are everywhere, so neither the voice nor the on-screen text names a city or country. The real tasks still happen where boreal.work's workers are, and a task page may show its area; the story never hangs on it.
 
 The NEAR film is the same story, told again for **discretion**. What Ji-woo asks is her strategy: competitor prices and who stops at a K-beauty shelf, before her own launch. In the PayPal film, an AI read all of it. Here:
 
@@ -59,20 +61,20 @@ Same voices (James for the narrator, Rina for Ji-woo). `clarify` is cut to fit u
 
 | # | Line | Status | Text |
 | --- | --- | --- | --- |
-| 1 | `intro` | reuse | "Every question has a place where the answer lives. Ji-woo's answers are in Manila. She's in Seoul." |
-| 2 | `hi` | reuse | "Hi, Hermes. Can you get real people in Manila to check a few things for me?" |
+| 1 | `introAway` | new, shared | "Every question has a place where the answer lives. [pause] Ji-woo's are in the city where she launches next month. [pause] She's a long flight away." |
+| 2 | `hiLaunch` | new, shared (Rina) | "Hi, Hermes. Can you get real people where I'm launching to check a few things for me?" |
 | 3 | `linkedWallet` | new, shared | "Her agent connects to boreal work through MCP, and pays from its own wallet, in digital dollars. [pause] Ji-woo sets the limits." |
 | 4 | `ask` | reuse | "I need competitor sunscreen prices at two stores, and someone to count who stops at a K-beauty shelf." |
 | 5 | `triage` | reuse | "What an agent can find, Hermes finds itself… What only a person can see goes to boreal work." |
 | 6 | `liveEscrow` | new, shared | "Then three small jobs cross the sea, [pause] and every dollar waits in escrow until the work passes." |
 | 7 | **chain slot** | new, per chain | See below. |
-| 8 | `workers` | reuse | "In Manila, people are already out… a few minutes of paid work." |
+| 8 | `workersThere` | new, shared | "Where her answers are, people are already out: running errands, meeting friends, waiting for a ride. [pause] boreal work turns the place they happen to be into a few minutes of paid work." |
 | 9 | `checkedReviewer` | new, shared | "But not every answer is honest. [pause] The reviewer checks the proof, and two photos don't hold up." |
 | 10 | `letMeSee` | reuse | "Let me see them." |
 | 11 | `payHer` | new, shared (Rina) | "The shelf count looks right. Pay her now." |
 | 12 | **chain slot, part 2** | new, per chain | See below. |
-| 13 | `paid` | reuse | "One passes. And in Manila, a worker gets paid for being in the right place." (The overlay shows the token arriving in her wallet.) |
-| 14 | `doneEyes` | new, shared | "Ji-woo never left Seoul. [pause] She had many hands, [pause] and no extra eyes." |
+| 13 | `paidThere` | new, shared | "One passes. [pause] And a worker gets paid for being in the right place." (The overlay shows the token arriving in her wallet.) |
+| 14 | `doneDesk` | new, shared | "Ji-woo never left her desk. [pause] She had many hands, [pause] and no extra eyes." |
 | 15 | `close` | reuse | "Agents are learning to buy, book and decide… the moment the work is done." |
 | 16 | `tagline` | reuse | "boreal work. AI agents can think. We give them hands." |
 
@@ -85,9 +87,9 @@ Same voices (James for the narrator, Rina for Ji-woo). `clarify` is cut to fit u
 
 **What this costs in voice generations:**
 
-- Now: 5 shared lines (`linkedWallet`, `liveEscrow`, `checkedReviewer`, `payHer`, `doneEyes`) plus 2 NEAR lines (`privateNear`, `signed`). That's 7 generations.
+- Done: 9 shared lines (`linkedWallet`, `liveEscrow`, `checkedReviewer`, `payHer`, and the place-neutral `introAway`, `hiLaunch`, `workersThere`, `paidThere`, `doneDesk`) plus 2 NEAR lines (`privateNear`, `signed`).
 - December: only the 1–2 Concordium lines. The other 14 lines are already recorded.
-- If `paid` sounds too thin next to the token on screen, the fallback is one more shared line: "And in Manila, a worker is paid in digital dollars, straight to her own wallet."
+- If `paidThere` sounds too thin next to the token on screen, the fallback is one more shared line: "And a worker is paid in digital dollars, straight to her own wallet."
 
 The NEAR film still says what NEAR does in plain words, which the rules ask for: line 7 names NEAR AI Cloud, and the overlays and the X post name USDC on NEAR.
 
@@ -99,7 +101,7 @@ The same applies to the footage. Keep the neutral shots apart from the chain-spe
 
 ### Footage
 
-- **Reuse** from the PayPal cut: Ji-woo in Seoul, Hermes's chat and triage, the Manila street scenes and the workers.
+- **Reuse** from the PayPal cut: Hermes's chat and triage, and the workers. Leave out shots and overlays that name a city (the PayPal cut's Seoul and Manila cards, and the globe's labels), or relabel them without places.
 - **New recordings** (NEAR only):
   - Hermes's wallet signing the `ft_transfer`, and the task turning **Funded** (line 3, line 6);
   - the transfer on the testnet explorer, with the task in the memo (line 6);
@@ -131,13 +133,13 @@ The product has the pieces, but some aren't visible enough to film:
 
 ## The X post (a draft; you post it)
 
-HACKATHON.md's tips, applied: the first line is the problem in words a stranger gets; the video shows one complete moment (Ji-woo asks, a worker in Manila is paid); NEAR's role is said concretely (agent-controlled spending, USDC escrow and payouts, private inference); and it ends with the demo, the repo and a real question. It must say it was built at NEAR HACKATHON and tag @NEARProtocol and #NEARHackathon; @NearBuilders and @NearLegion are optional, for reach.
+HACKATHON.md's tips, applied: the first line is the problem in words a stranger gets; the video shows one complete moment (Ji-woo asks, a worker far away is paid); NEAR's role is said concretely (agent-controlled spending, USDC escrow and payouts, private inference); and it ends with the demo, the repo and a real question. It must say it was built at NEAR HACKATHON and tag @NEARProtocol and #NEARHackathon; @NearBuilders and @NearLegion are optional, for reach.
 
 A thread of three, each under X's 280 characters as X counts them (a link counts as 23). Attach the film to the first post.
 
 **1/3** (with the video)
 
-> AI agents can pay anyone in seconds. They still can't stand in a store in Manila.
+> AI agents can pay anyone in seconds. They still can't walk into a store.
 >
 > Built at #NEARHackathon: agents hire verified people on boreal.work, pay in USDC from their own NEAR wallet, and private AI on NEAR AI Cloud checks the proof.
 >
@@ -176,7 +178,7 @@ The submission takes several track ids. The private reviewer now fits a third:
 
 ## Schedule
 
-| Day (Manila) | Work |
+| Day | Work |
 | --- | --- |
 | Nov 9–10 | Close gaps 1 and 2 (explorer links, proof view); lock the script |
 | Nov 11 | Full testnet run (gap 3), fake-photo check (gap 4); generate the VO |

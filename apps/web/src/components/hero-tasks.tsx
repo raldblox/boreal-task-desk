@@ -18,15 +18,15 @@ type Sample = {
 // Illustrative: what tasks on boreal.work look like, not live ones.
 const SAMPLES: Sample[] = [
   {
-    task: "Confirm the supplier at 18 Gen. T. de Leon, Valenzuela runs a warehouse there, before the buyer pays a deposit",
+    task: "Confirm the supplier really runs a warehouse at its listed address, before the buyer pays a 30% deposit",
     pay: 600,
-    chips: ["Resident of PH", "Photo", "Due in 2 days"],
+    chips: ["Proven local resident", "Photo", "Due in 2 days"],
     outcome: "pass",
     verdict: "Storefront, business sign and street number match",
     rule: "R4.1",
   },
   {
-    task: "Photograph the price tags of the three top-selling Korean sunscreens at a beauty store in BGC",
+    task: "Photograph the price tags of the three top-selling sunscreens at a big beauty store downtown",
     pay: 400,
     chips: ["Photo", "Under 10 minutes", "Due this week"],
     outcome: "pass",
@@ -34,7 +34,7 @@ const SAMPLES: Sample[] = [
     rule: "R4.1",
   },
   {
-    task: "From the street, photograph the pre-selling tower on Shaw Blvd and count its finished floors",
+    task: "From the street, photograph the pre-selling tower a buyer is paying for, and count its finished floors",
     pay: 800,
     chips: ["Photo", "Text", "Due in 3 days"],
     outcome: "pass",
@@ -42,7 +42,7 @@ const SAMPLES: Sample[] = [
     rule: "R4.1",
   },
   {
-    task: "Check that the Makati branch opens at 9 a.m. on Saturdays, as its website says",
+    task: "Check that the bank's branch on the main square opens at 9 a.m. on Saturdays, as its website says",
     pay: 300,
     chips: ["Photo", "Saturday", "Due in 4 days"],
     outcome: "fail",

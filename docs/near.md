@@ -14,7 +14,7 @@ boreal runs on PayPal. **NEAR is an add-on**: a deployment turns it on with `BOR
 | --- | --- | --- |
 | **Agent Economy** (`agents`): agents that earn, spend, hire other agents and pay for services | NEAR agents hire boreal's verified humans like any other agent, and pay for the result in USDC. AI agents also *earn* on boreal: they sign in with a NEAR account, take text tasks opened to agents, and are paid in USDC | boreal's listing on NEAR Agent Market and the market bridge; the USDC rail for `fund_task`; agents as workers (`/api/v1/work/*`, NEP-413 sign-in) |
 | **Privacy & Private AI** (`privacy`): confidential computation and AI that protects sensitive data; hints "PRIVATE AI, TEE, NEAR AI CLOUD" | A requester's plans and a worker's photos are exactly what shouldn't leak to an AI company. boreal's screener and reviewer run as private AI on NEAR AI Cloud, and every verdict carries a proof anyone can check | `packages/brain/src/near-ai.ts` and `tee-proof.ts`; the proof panel under each verdict; `get_review_proof` for agents |
-| **Real-World Money** (`realworld`): payroll, invoicing, stablecoin rails a normal business could use tomorrow | Real people (workers in the Philippines) are paid in USDC on NEAR the moment their work passes, from an escrow that is reconciled against a double-entry ledger, with refunds when work fails | The NEAR rail: `ft_transfer` funding with a per-task memo, payouts and refunds journaled before sending, escrow reconciliation |
+| **Real-World Money** (`realworld`): payroll, invoicing, stablecoin rails a normal business could use tomorrow | Real people are paid in USDC on NEAR the moment their work passes, from an escrow that is reconciled against a double-entry ledger, with refunds when work fails | The NEAR rail: `ft_transfer` funding with a per-task memo, payouts and refunds journaled before sending, escrow reconciliation |
 
 Tracks we don't enter, and why:
 
@@ -121,11 +121,11 @@ Intel's and NVIDIA's certificate chains on the quote aren't checked here; the pr
 
 ## How a market job runs
 
-1. A buyer hires boreal's listing on market.near.ai with a brief: "Before we pay a 30% deposit, confirm the supplier Lakas Hardware Trading operates a warehouse at 18 Gen. T. de Leon, Valenzuela: photograph the storefront with its business sign and street number, and say whether it's open and stocked."
+1. A buyer hires boreal's listing on market.near.ai with a brief: "Before we pay a 30% deposit, confirm the supplier operates a warehouse at its listed address: photograph the storefront with its business sign and street number, and say whether it's open and stocked."
 2. The monitor tick polls `GET /v1/agents/me/assignments` and posts the brief as a boreal task from boreal's market agent. The brief is data. It goes through boreal's screening against the public rulebook like any task, and bullet lines become acceptance criteria.
 3. If screening refuses it, the buyer gets a message naming the rules. Nothing starts and nothing is funded.
 4. If screening passes it, boreal calls `start` and its NEAR treasury funds the task: an `ft_transfer` of the task total to escrow, with memo `boreal:<taskId>`. The desk checks that transfer on chain before the task opens.
-5. A worker in the Philippines claims the task and submits a photo. Workers on this rail need a NEAR account, connected under Integrations on My account. (Where the Concordium add-on is on too, a brief can ask for proven residency.)
+5. A verified worker near the place claims the task and submits a photo. Workers on this rail need a NEAR account, connected under Integrations on My account. (Where the Concordium add-on is on too, a brief can ask for proven residency.)
 6. boreal's reviewer (private AI on NEAR AI Cloud when `NEAR_AI_API_KEY` is set, otherwise Claude) passes or fails it. On a pass, the bridge accepts it and hands in a Markdown deliverable with `submit`: the result, signed links to the evidence, the verdict and the hashed trail.
 7. The outbox pays the worker in USDC on NEAR. Boreal's fees go to its operating account.
 

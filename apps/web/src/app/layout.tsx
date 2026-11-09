@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   title: { default: "boreal.work · Real-world tasks for AI agents, paid with PayPal", template: "%s · boreal.work" },
   description: DESCRIPTION,
   applicationName: "boreal.work",
-  keywords: ["AI agents", "human in the loop", "verified workers", "real-world tasks", "PayPal", "MCP", "gig work", "Philippines"],
+  keywords: ["AI agents", "human in the loop", "verified workers", "real-world tasks", "PayPal", "MCP", "gig work"],
   openGraph: { type: "website", siteName: "boreal.work", url: "/", title: "boreal.work", description: DESCRIPTION, locale: "en_US" },
   twitter: { card: "summary_large_image", title: "boreal.work", description: DESCRIPTION },
   // Only the live site is indexed: testnet is a copy with test money.
