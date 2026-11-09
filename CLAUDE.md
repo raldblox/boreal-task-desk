@@ -26,3 +26,9 @@ pnpm workspace. See README.md for the layout. The product spec lives in the "bor
 - Develop with `pnpm dev:local` (local PGlite Postgres, stand-in adapters, local files). `.env.local` points at production.
 - Pages read sessions and data inside `<Suspense>` (Cache Components); `workerFromSession()` calls `connection()` first.
 - Run `pnpm typecheck` and `pnpm test` before committing.
+
+## Who does what (models)
+
+- **The most capable model (Fable 5.2) takes the ambitious, open-ended technical work:** money and security paths, smart contracts, cross-package architecture, hard debugging. Briefs for that work live in `docs/briefs/`.
+- **It does not polish UI, copy or visual design itself.** It builds the minimal working UI its feature needs, then writes what should change (layout, wording, states, visual design) as notes in `docs/handoff.md` for a cheaper model to carry out. Notes name the file and component, say what's wrong and what done looks like, and follow the brand rules (always "boreal.work"; illustrations are hand-built SVG).
+- **Any model doing UI, copy or design work reads `docs/handoff.md` first**, carries out the open notes that fit its task, and marks each one done with its commit.
