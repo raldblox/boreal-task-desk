@@ -72,7 +72,7 @@ The pseudonym secret keys PayPal identities as well as Concordium ID: set `BOREA
 boreal.work is entered in two hackathons, with different parts of it:
 
 - **PayPal AI Hackathon**: the PayPal core ([docs/devpost-paypal.md](docs/devpost-paypal.md)).
-- **NEAR HACKATHON** (Agent Economy, Real-World Money): only the NEAR add-on, built after the Oct 19, 2026 announcement, is judged. It is the diff between the tags `near-pre-hackathon` and `near-hackathon-submission`; [docs/near.md](docs/near.md) says what was built, where it joins the product and how to try it.
+- **NEAR HACKATHON** (Agent Economy, Real-World Money, Privacy & Private AI): only the NEAR add-on, built after the Oct 19, 2026 announcement, is judged. It is the diff between the tags `near-pre-hackathon` and `near-hackathon-submission`; [docs/near.md](docs/near.md) says what was built, where it joins the product and how to try it; [docs/near-submission.md](docs/near-submission.md) has the submission.
 
 ### NEAR HACKATHON in one screen
 
