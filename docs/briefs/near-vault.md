@@ -30,6 +30,7 @@ The upgrade is the NEAR-native version of PayPal's saved account, and it's non-c
 - The agent's flow: `get_account` shows the vault, its balance and its limits. A small helper (like `packages/near/scripts/agent-pay.ts`) calls `pay_task` with a function-call key.
 - The owner's flow: on the link page after Approve, and on My account → Your agents, **Set up a vault** does everything in one wallet approval (or as few as possible): create or reuse the vault, deposit USDC, register the agent with the limits the owner already set on boreal.work, and add the agent's restricted key. Build it working and plain; write the polish as notes in `docs/handoff.md`.
 - Keep yesterday's direct wallet funding as the fallback, so nothing that works today breaks.
+- The next brief (`rails-and-money.md`) turns rails into plug-ins. Keep the vault's boreal.work side inside `packages/near` and the agent tools, so it moves over cleanly.
 - agents.md (`apps/web/src/content/agent-guide.ts`): a short section on paying from a vault, with tests in `agent-guide.test.ts`.
 - `docs/near.md`: the vault in "What was built", the `security` track row, and a "do X, see Y" for it.
 
