@@ -6,13 +6,13 @@ import { guideFacts, guideFor } from "./agent-guide";
 // The agent guide tells the PayPal story, and mentions an integration only where it's on.
 
 const PAYPAL_ONLY = guideFor(guideFacts(readAddons({ BOREAL_ADDONS: "none" })));
-const ALL_ON = guideFor({ concordiumId: true, concordiumRail: true, registry: true, anchors: true, nearRail: true, paypalVerifies: false });
+const ALL_ON = guideFor({ concordiumId: true, concordiumRail: true, registry: true, anchors: true, nearRail: true, privateReview: true, paypalVerifies: false });
 
 describe("agent guide", () => {
   it("is all PayPal on a PayPal-only site", () => {
     for (const text of [PAYPAL_ONLY.AGENT_GUIDE, PAYPAL_ONLY.MCP_INSTRUCTIONS, PAYPAL_ONLY.LLMS_TXT]) {
       expect(text).toMatch(/PayPal/);
-      expect(text).not.toMatch(/x402|PAYMENT-SIGNATURE|ft_transfer|Concordium ID App|Agent Registry/);
+      expect(text).not.toMatch(/x402|PAYMENT-SIGNATURE|ft_transfer|Concordium ID App|Agent Registry|get_review_proof|NEAR AI Cloud/);
     }
     expect(PAYPAL_ONLY.AGENT_GUIDE).toMatch(/runs on PayPal/);
     expect(PAYPAL_ONLY.AGENT_GUIDE).toMatch(/This site runs on PayPal alone/);
@@ -32,5 +32,8 @@ describe("agent guide", () => {
     expect(ALL_ON.AGENT_GUIDE).toMatch(/anchored on Concordium/);
     expect(ALL_ON.AGENT_GUIDE).toContain('"requiredAttributes": [{ "attribute": "residency", "value": "PH" }]');
     expect(ALL_ON.MCP_INSTRUCTIONS).toMatch(/optional rails \(paypal, concordium, near\)/);
+    // Private review: said once, and the proof is one call away.
+    expect(ALL_ON.AGENT_GUIDE).toMatch(/private AI on NEAR AI Cloud/);
+    expect(ALL_ON.AGENT_GUIDE).toMatch(/\| get_review_proof \| GET \/api\/v1\/tasks\/:id\/proof \|/);
   });
 });

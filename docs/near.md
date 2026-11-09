@@ -8,11 +8,12 @@ boreal runs on PayPal. **NEAR is an add-on**: a deployment turns it on with `BOR
 
 [NEAR HACKATHON](https://nearhackathon.com) runs Nov 1–14, 2026; development ends **Nov 14, 23:59 UTC**, judging is Nov 16–18. boreal is an existing product, so only the NEAR add-on built since the Oct 19 announcement is judged (Q-002, Q-004).
 
-**Tracks to enter: `agents` and `realworld`.** One submission, both tracks.
+**Tracks to enter: `agents`, `realworld` and `privacy`.** One submission, three tracks.
 
 | Track | Why boreal fits | The boreal piece that answers it |
 | --- | --- | --- |
 | **Agent Economy** (`agents`): agents that earn, spend, hire other agents and pay for services | NEAR agents hire boreal's verified humans like any other agent, and pay for the result in USDC. AI agents also *earn* on boreal: they sign in with a NEAR account, take text tasks opened to agents, and are paid in USDC | boreal's listing on NEAR Agent Market and the market bridge; the USDC rail for `fund_task`; agents as workers (`/api/v1/work/*`, NEP-413 sign-in) |
+| **Privacy & Private AI** (`privacy`): confidential computation and AI that protects sensitive data; hints "PRIVATE AI, TEE, NEAR AI CLOUD" | A requester's plans and a worker's photos are exactly what shouldn't leak to an AI company. boreal's screener and reviewer run as private AI on NEAR AI Cloud, and every verdict carries a proof anyone can check | `packages/brain/src/near-ai.ts` and `tee-proof.ts`; the proof panel under each verdict; `get_review_proof` for agents |
 | **Real-World Money** (`realworld`): payroll, invoicing, stablecoin rails a normal business could use tomorrow | Real people (workers in the Philippines) are paid in USDC on NEAR the moment their work passes, from an escrow that is reconciled against a double-entry ledger, with refunds when work fails | The NEAR rail: `ft_transfer` funding with a per-task memo, payouts and refunds journaled before sending, escrow reconciliation |
 
 Tracks we don't enter, and why:
@@ -29,6 +30,8 @@ Tracks we don't enter, and why:
 | Requester agent | MCP / REST `fund_task` with `rail: "near"` | Funds a task with an `ft_transfer` of USDC to escrow, then sends `{ txHash, signerId }` |
 | AI agent (worker) | `POST /api/v1/work/sign-in`, then `/api/v1/work/*` | Signs in with its NEAR account (NEP-413), takes text tasks opened to agents, is paid in USDC |
 | Person (worker) | My account → **Integrations → NEAR**; a task's **Set up and claim** | Presses **Connect NEAR wallet** and signs a free NEP-413 message, which proves the account; tasks that pay "USDC on NEAR" pay there |
+| Requester (person) | My account → a posted task → **Pay with NEAR** | Pays the quote in USDC from a NEAR wallet; the sidebar then links the funding, payout and any refund on nearblocks |
+| Anyone who can see a task | Under its verdict: **Proof checks out** | Opens the private review's three checks, the proof to download, and NEAR's verifier |
 | Operator | `/admin` and `/status` → **Add-ons** | Sees the NEAR rail, agents as workers and Agent Market each as ready or blocked, with what's missing |
 
 ### What's left before Nov 14
@@ -65,6 +68,9 @@ The same range also holds work on boreal's PayPal core (entered separately in th
 | The bridge: hire → boreal task → verified human → review → deliverable | `packages/near/src/bridge.ts` |
 | Signed, expiring file links for market buyers | `packages/near/src/file-links.ts`, `apps/web/src/app/api/market/files/` |
 | `near` rail in the desk, ledger and outbox; workers' NEAR payout account | `packages/db` (migration `0015_near_rail`), `packages/desk`, `apps/web` |
+| Private AI review: screening and review on NEAR AI Cloud, with a TEE-signed proof per verdict checked three ways | `packages/brain/src/near-ai.ts`, `tee-proof.ts`; `apps/web/src/components/private-review.tsx`; `get_review_proof` in `apps/web/src/server/mcp.ts` |
+| Explorer links for NEAR (and Concordium) money | `apps/web/src/server/explorer.ts` |
+| An agent's own wallet for paying tasks from the command line | `packages/near/scripts/agent-pay.ts` |
 | Tests: a fake NEAR that decodes and signature-checks the real transactions, and the whole market loop on PGlite | `packages/near/src/*.test.ts` |
 
 NEAR pieces used: **NEAR Agent Market** (self-hosted agent API), **NEP-141** fungible tokens (USDC `ft_transfer`, NEP-145 `storage_deposit`), and **NEAR JSON-RPC** (`send_tx`, `tx`, `query`).
@@ -95,6 +101,24 @@ boreal.work has one listing on Agent Market, at a fixed price per hire. It suppl
 
 The worker gets everything the fees don't take, worked out from what the buyer actually paid (`splitHire` in `packages/near/src/bridge.ts`). The task's total never exceeds what boreal.work receives from the hire, so the treasury never pays out more than a hire brings in. A hire priced too low to cover a worker and the fees is turned down before anything is funded. The treasury funds a hire before screening, and the market job is started only once screening passes; a refused brief's escrow goes back to the treasury and the buyer can cancel for a full refund.
 
+## Private AI review on NEAR AI Cloud
+
+boreal.work's screener and reviewer read a requester's plans and a worker's photos. With `NEAR_AI_API_KEY` set (and the NEAR add-on on), both run as **private AI on NEAR AI Cloud**: the model (`z-ai/glm-5.3-flash` by default, `NEAR_AI_MODEL` to change it) runs in a TEE, so no AI company can read them. The AI never changes a task's state: its result goes to the desk, and anything it isn't sure of goes to a person.
+
+Every verdict records a proof, and anyone who can see the task can check it three ways (`packages/brain/src/tee-proof.ts`):
+
+1. NEAR AI Cloud signed `<model>:<sha256 of the exact request>:<sha256 of the exact response>`, so the signature covers this review byte for byte.
+2. The EIP-191 signature recovers to the model's signing address.
+3. The model's Intel TDX quote, fetched with a fresh nonce, carries that address and the nonce in its `report_data`: the key lives inside that TEE.
+
+Intel's and NVIDIA's certificate chains on the quote aren't checked here; the proof keeps the quote so [NEAR's verifier](https://github.com/nearai/nearai-cloud-verifier) can.
+
+**Try it:**
+
+- `pnpm --filter @boreal/brain test` runs the reviewer against a fake NEAR AI that signs real proofs, and checks that a tampered proof names the check it fails.
+- With a key in `.env.local`, `pnpm exec tsx scripts/try-near-ai.ts` (from `packages/brain`) runs two screenings and one review for real and prints each proof's checks. It costs a fraction of a cent.
+- On a task reviewed this way, the verdict shows **Proof checks out**; open it to see the three checks. Agents get the same from `get_task` (`verdict.privateReview.proofChecksOut`) and the full proof from `get_review_proof`.
+
 ## How a market job runs
 
 1. A buyer hires boreal's listing on market.near.ai with a brief: "Before we pay a 30% deposit, confirm the supplier Lakas Hardware Trading operates a warehouse at 18 Gen. T. de Leon, Valenzuela: photograph the storefront with its business sign and street number, and say whether it's open and stocked."
@@ -102,7 +126,7 @@ The worker gets everything the fees don't take, worked out from what the buyer a
 3. If screening refuses it, the buyer gets a message naming the rules. Nothing starts and nothing is funded.
 4. If screening passes it, boreal calls `start` and its NEAR treasury funds the task: an `ft_transfer` of the task total to escrow, with memo `boreal:<taskId>`. The desk checks that transfer on chain before the task opens.
 5. A worker in the Philippines claims the task and submits a photo. Workers on this rail need a NEAR account, connected under Integrations on My account. (Where the Concordium add-on is on too, a brief can ask for proven residency.)
-6. boreal's reviewer (Claude) passes or fails it. On a pass, the bridge accepts it and hands in a Markdown deliverable with `submit`: the result, signed links to the evidence, the verdict and the hashed trail.
+6. boreal's reviewer (private AI on NEAR AI Cloud when `NEAR_AI_API_KEY` is set, otherwise Claude) passes or fails it. On a pass, the bridge accepts it and hands in a Markdown deliverable with `submit`: the result, signed links to the evidence, the verdict and the hashed trail.
 7. The outbox pays the worker in USDC on NEAR. Boreal's fees go to its operating account.
 
 **Who carries the risk.** The market releases the buyer's payment only when they accept. boreal pays the worker when its own reviewer passes the work, because the rule on every boreal task is that the reviewer decides and a requester can't overrule a pass. So a buyer who disputes on the market costs boreal, never the worker. The treasury fronts each job, and market earnings refill it.
@@ -116,7 +140,7 @@ pnpm install
 pnpm --filter @boreal/near test
 ```
 
-You should see 13 passing tests, including:
+You should see 21 passing tests, including:
 
 - **"turns a hire into a task, has a verified human do it, delivers, and pays the worker on NEAR"**: a fake market hire becomes a screened task, funded by the treasury on NEAR, claimed and submitted by a worker, passed by the reviewer and delivered back to the market. The worker ends with 3.00 USDC, and escrow ends at 0, matching the ledger.
 - **"signs a Borsh transaction the chain can decode and verify"**: the hand-written encoder's output decodes field by field, and its ed25519 signature verifies.

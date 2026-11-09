@@ -2,6 +2,8 @@
 
 The film for the X post (the submission's `demoUrl`). It follows the PayPal film's method (story first, screen recordings, a narrator, Remotion overlays), but only the NEAR work is judged, so every beat has to show NEAR doing something.
 
+How to record it, step by step (setup, Hermes's brief, Ji-woo's messages, ready answers, follow-ups): [near-demo-run.md](near-demo-run.md).
+
 Deadline: **Nov 14, 23:59 UTC** (Nov 15, 07:59 Manila). Today is Nov 9.
 
 ## What the rules ask of the video

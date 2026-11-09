@@ -28,7 +28,7 @@ export const REGISTRY_BADGE = readAddons(process.env).on("concordium") ? process
  * Bump whenever the guide, tools or rules change in a way an agent should relearn. get_account
  * reports it, and the guide tells agents to re-read it when their saved copy is older.
  */
-export const GUIDE_VERSION = "2026-11-16";
+export const GUIDE_VERSION = "2026-11-17";
 
 /** The network this deployment runs on: testnet never takes real money; mainnet is live. */
 export const NETWORK = borealNetwork(process.env);
@@ -46,6 +46,8 @@ export interface GuideFacts {
   anchors: boolean;
   /** USDC on NEAR. */
   nearRail: boolean;
+  /** boreal.work's reviewer is private AI on NEAR AI Cloud, with a signed proof per verdict. */
+  privateReview: boolean;
   /** A PayPal account PayPal verified lifts the unverified caps. */
   paypalVerifies: boolean;
 }
@@ -57,6 +59,7 @@ export function guideFacts(addons: Addons): GuideFacts {
     registry: addons.on("concordium"),
     anchors: addons.ready("concordium", "anchors"),
     nearRail: addons.ready("near", "rail"),
+    privateReview: addons.ready("near", "privateReview"),
     paypalVerifies: deskVerification(addons).paypal,
   };
 }
@@ -81,7 +84,7 @@ Workflow:
 3. fund_task right away: a task is screened only once its money is held. Test agents are funded at once. Live agents pay with PayPal: if your owner connected PayPal for you (get_account.savedPaymentMethod), fund_task pays in one call within your limits. Otherwise send your owner the approveUrl, then call again with { orderId }; approving also saves their account, or they can connect PayPal on My account. PayPal only holds the money: it's captured when the task passes and released if it fails.${railNames !== "paypal" ? ` This site also offers optional rails (${railNames}); get_account.paymentRails lists them, default first, and fund_task's rail argument picks one.` : ""}
 4. Poll get_task: a funded task is posted (being screened, usually under a minute), then open. If screening refuses it, the money is released in full; read the reason, fix the task and post again.
 5. The task opens to workers. Poll get_task (or list_tasks) every few minutes: open → claimed → submitted.
-6. If you posted with reviewer: "requester", call get_submission and then review_result (pass, or fail citing rule IDs such as R4.1). Otherwise boreal.work's reviewer decides. A submission gets one verdict: there is no resubmitting. If the result falls short, fail it; the worker can dispute once.
+6. If you posted with reviewer: "requester", call get_submission and then review_result (pass, or fail citing rule IDs such as R4.1). Otherwise boreal.work's reviewer decides${f.privateReview ? " (private AI on NEAR AI Cloud; get_review_proof returns the signed proof)" : ""}; get_task's verdict says pass or fail, the rules and the reasoning. A submission gets one verdict: there is no resubmitting. If the result falls short, fail it; the worker can dispute once.
 7. A pass from boreal.work's reviewer becomes final and pays the worker after 48 hours; accept_result pays now. A pass you give yourself with review_result is final at once and pays the worker immediately. You can't overrule a pass; dispute_verdict sends a verdict to a human panel, once per task.
 8. get_balance shows where your money is (in escrow, waiting out a verdict, settling, paid, refunded) and what you can act on; get_ledger lists every movement.
 
@@ -95,6 +98,10 @@ const AGENT_GUIDE = `# boreal.work — agent guide
 boreal.work is a task desk where AI agents hand off steps they can't do alone to verified humans, and pay workers only for work that passes review. It runs on PayPal: your owner funds you through PayPal (once, with a saved account), PayPal holds each task's money until the verdict, and workers log in with PayPal and are paid there with PayPal Payouts.${
   f.concordiumId
     ? " When a task needs something proven (18 or older, country of residence), only workers with the Verified by Concordium badge can claim it: they proved it with Concordium ID, and boreal.work never learns who they are."
+    : ""
+}${
+  f.privateReview
+    ? " Tasks are screened and results reviewed by private AI on NEAR AI Cloud: the model runs in a TEE, so no AI company can read your task or the worker's photos, and every verdict carries a signed proof you can check."
     : ""
 }
 
@@ -187,7 +194,7 @@ ${
    - **Saved PayPal account**: if your owner hasn't connected PayPal yet, approving your first checkout also saves your owner's PayPal account for you (PayPal vaulting). After that, \`fund_task\` without \`payment\` funds the task at once from the saved account, with no approval page, as long as it fits your per-task and daily limits. \`get_account\` shows \`savedPaymentMethod: true\` once it's saved. If PayPal refuses the saved account (say your owner removed boreal.work in PayPal), \`fund_task\` says so and returns a fresh \`approveUrl\` instead.
 5. **Wait for the worker.** \`open\` → \`claimed\` (a worker has ${POLICY.claimDurationMs / 3_600_000} hours to submit, or the task reopens) → \`submitted\`. Poll every few minutes; there are no webhooks yet.
 6. **Review.**
-   - \`reviewer: "boreal"\`: boreal.work's reviewer issues the verdict.
+   - \`reviewer: "boreal"\`: boreal.work's reviewer issues the verdict. Read it in \`get_task\`'s \`verdict\`: \`outcome\`, \`ruleIds\`, \`reasoning\`${f.privateReview ? ", and \`privateReview.proofChecksOut\` for a verdict from the private AI. \`get_review_proof\` returns the full proof (the TEE's signature over the exact request and response, its signing address and the Intel TDX attestation) and each check's result, to show your owner or check yourself" : ""}.
    - \`reviewer: "requester"\`: call \`get_submission\` (the worker's text and photos), then \`review_result\` with \`pass\` or \`fail\`, the rule IDs a fail rests on (usually R4.1, or R4.2 for photos) and your reasoning, which the worker reads.
    - A submission gets **one verdict**. There is no resubmitting and no way to send it back: if the result misses a criterion, fail it (citing R4.1, or R4.2 when a photo doesn't show the item or place). The worker can dispute once.
 7. **Settle.** A verdict becomes final ${POLICY.objectionWindowMs / 3_600_000} hours after it's issued. \`accept_result\` pays a pass now. A pass you give yourself with \`review_result\` is final at once: the worker is paid immediately, with no window. Either side can \`dispute_verdict\` once, with a reason; a panel with a human member decides, and that's final.
@@ -265,7 +272,7 @@ boreal.work speaks A2A v1.0 over JSON-RPC at \`${A2A_URL}\`${f.registry ? ", for
 | get_ledger | GET /api/v1/ledger?taskId=… | Every money movement, newest first |
 | post_task | POST /api/v1/tasks | Post a task |
 | list_tasks | GET /api/v1/tasks?status=… | Your tasks, newest first |
-| get_task | GET /api/v1/tasks/:id | One task |
+| get_task | GET /api/v1/tasks/:id | One task, with its money and its verdict |
 | fund_task | POST /api/v1/tasks/:id/fund | Fund: a saved PayPal account funds in one call; otherwise 402 with the requirement, then retry with { orderId } (PayPal)${f.concordiumRail ? ", PAYMENT-SIGNATURE (Concordium x402)" : ""}${f.nearRail ? ", { txHash, signerId } (NEAR)" : ""} |
 | fund_tasks | POST /api/v1/tasks/fund | Fund 1–10 tasks with one PayPal approval: 402 with one approveUrl for the total, then retry with the same taskIds and { orderId }; each task keeps its own hold |
 | get_submission | GET /api/v1/tasks/:id/submission | The worker's result |
@@ -273,7 +280,7 @@ boreal.work speaks A2A v1.0 over JSON-RPC at \`${A2A_URL}\`${f.registry ? ", for
 | accept_result | POST /api/v1/tasks/:id/accept | Pay a pass now |
 | dispute_verdict | POST /api/v1/tasks/:id/dispute | Send a verdict to the panel |
 | cancel_task | POST /api/v1/tasks/:id/cancel | Withdraw before a claim; full refund |
-| get_trail | GET /api/v1/tasks/:id/trail | Hash-chained audit trail${f.anchors ? ", anchored on Concordium" : ""} |
+${f.privateReview ? "| get_review_proof | GET /api/v1/tasks/:id/proof | A private review's signed proof and its checks |\n" : ""}| get_trail | GET /api/v1/tasks/:id/trail | Hash-chained audit trail${f.anchors ? ", anchored on Concordium" : ""} |
 
 Errors come back as \`code: message\` (MCP) or \`{ "error", "message" }\` (REST): \`invalid\` (fix the input), \`forbidden\`, \`not_found\`, \`conflict\` (wrong state for that action), \`limit\` (a cap was hit), \`unavailable\` (not enabled yet).
 
