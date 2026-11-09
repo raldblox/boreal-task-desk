@@ -52,6 +52,7 @@ BOREAL_ADDONS=concordium,near   # both add-ons
 | NEAR | USDC on NEAR | Funding in USDC, payouts to NEAR accounts | `NEAR_TOKEN_CONTRACT`, `NEAR_ESCROW_ACCOUNT`/`_KEY` | A NEAR account holding USDC (agents); a NEAR account (workers) |
 | | Agents as workers | AI agents sign in with a NEAR account and take text tasks opened to agents | The NEAR rail | A NEAR account |
 | | Agent Market | NEAR Agent Market buyers hire boreal.work | `NEAR_MARKET_TOKEN`, `NEAR_MARKET_AGENT_ID`, a treasury account with USDC | — |
+| | Private review | Screening and review on NEAR AI Cloud's TEE-hosted models, each verdict with a signature and attestation in the trail (in place of Claude) | `NEAR_AI_API_KEY`; optional `NEAR_AI_MODEL` (default `z-ai/glm-5.3-flash`) | — |
 
 Where it shows:
 
@@ -85,13 +86,15 @@ boreal.work is entered in two hackathons, with different parts of it:
 - **Workers are paid in USDC without ever holding NEAR.** On a pass, escrow pays the worker; if their account isn't registered with USDC yet, escrow pays the NEP-145 `storage_deposit` in the same transaction.
 - **Nobody types an address.** A worker connects a NEAR wallet and signs a free NEP-413 message that proves the account. AI agents can be workers too: they sign in the same way and take text tasks.
 - **Money can't be sent twice or go missing.** Each payout is journaled before it's sent and resent only when the chain proves the first can't land; the monitor compares escrow's balance with the double-entry ledger and pauses payouts on any gap.
+- **Private review on NEAR AI Cloud.** With `NEAR_AI_API_KEY` set, tasks are screened and workers' photos reviewed by a model NEAR hosts in a TEE (`z-ai/glm-5.3-flash`, Intel TDX with NVIDIA confidential GPUs), so neither the buyer's brief nor the worker's photos are readable by an outside AI provider. A verdict is only recorded with a proof that checks three ways (`packages/brain/src/tee-proof.ts`): the signed text is `<model>:<sha256 of the exact request>:<sha256 of the exact response>`; the EIP-191 signature recovers to the signing address; and the model's TDX quote, fetched with a fresh nonce, binds that address and nonce in its `report_data`. The proof is kept in the task's hashed trail, and the verdict shows "Reviewed privately on NEAR AI Cloud". The same rulebook checks apply as for the Claude reviewer; anything unsure goes to a person, and an unproven answer is retried, never used.
 
 **Try it** (no accounts needed for the first step):
 
 1. `pnpm install && pnpm --filter @boreal/near test`: 21 tests pass, among them "turns a hire into a task, has a verified human do it, delivers, and pays the worker on NEAR" (the worker ends with 3.00 USDC and escrow at 0, matching the ledger) and "never sends twice when the reply is lost after the chain took the transfer".
 2. Open [testnet.boreal.work](https://testnet.boreal.work), log in with a PayPal sandbox account, then **Account menu → Integrations → NEAR → Connect**: pick a testnet wallet, sign the message, and the card shows your account as connected.
 3. As an agent on MCP (`claude mcp add --transport http boreal https://testnet.boreal.work/api/mcp`), `fund_task` with `rail: "near"` returns the exact `ft_transfer` to make; send it, then call `fund_task` again with `{ txHash, signerId }` and the task opens.
-4. A complete run, hire → photo → review → USDC payout, with its explorer links: _added once recorded_.
+4. `pnpm --filter @boreal/brain test`: the private reviewer's tests run against a fake NEAR AI that signs with a real secp256k1 key, including "returns a verdict only with a proof that checks: hashes, signature and TEE quote" and "retries rather than judge on an answer whose signature covers a different response". With a NEAR AI key in `.env.local`, `pnpm --filter @boreal/brain exec tsx scripts/compare-near-ai.ts` runs real reviews: a generated photo with unreadable labels fails, a real screenshot passes, each with a proof that checks.
+5. A complete run, hire → photo → review → USDC payout, with its explorer links: _added once recorded_.
 
 ## Getting started
 

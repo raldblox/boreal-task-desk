@@ -9,6 +9,7 @@ import { after } from "next/server";
 import { Suspense } from "react";
 
 import { acceptResult, cancelTask, disputeAsPoster, payTask, reviewResult } from "@/app/post/actions";
+import { PrivateReviewNote } from "@/components/private-review";
 import { Eyebrow } from "@/components/brand";
 import { Container } from "@/components/page";
 import { ReviewForm } from "@/components/poster-forms";
@@ -269,6 +270,7 @@ async function PostedTask({ params, searchParams }: Props) {
             <p className="font-mono text-xs text-muted-foreground">
               {verdict.ruleIds.length ? verdict.ruleIds.join(" · ") : "No rules cited"} · {when(verdict.at)}
             </p>
+            <PrivateReviewNote review={verdict.privateReview} />
           </section>
         )}
 

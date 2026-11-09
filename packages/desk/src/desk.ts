@@ -1,3 +1,4 @@
+import type { PrivateInferenceProof } from "@boreal/brain";
 import { timingSafeEqual } from "node:crypto";
 
 import {
@@ -604,7 +605,7 @@ export function createDesk({
     async screenTask(
       caller: Caller,
       taskId: string,
-      result: { outcome: "ok"; reasoning?: string } | { outcome: "refused"; ruleIds: string[]; reasoning?: string },
+      result: ({ outcome: "ok"; reasoning?: string } | { outcome: "refused"; ruleIds: string[]; reasoning?: string }) & { proof?: PrivateInferenceProof },
     ) {
       requireRole(caller, "reviewer");
       if (result.outcome === "refused" && result.ruleIds.length === 0) {
@@ -872,7 +873,7 @@ export function createDesk({
     async recordVerdict(
       caller: Caller,
       taskId: string,
-      verdict: { outcome: "pass" | "fail"; ruleIds: string[]; reasoning: string; model?: string },
+      verdict: { outcome: "pass" | "fail"; ruleIds: string[]; reasoning: string; model?: string; proof?: PrivateInferenceProof },
     ) {
       requireRole(caller, "reviewer");
       if (verdict.outcome === "fail" && verdict.ruleIds.length === 0) {
@@ -1408,12 +1409,17 @@ export function createDesk({
         .orderBy(desc(taskEvents.id))
         .limit(1);
       if (!event) return null;
-      const { outcome, ruleIds, reasoning } = event.payload as {
+      const { outcome, ruleIds, reasoning, proof } = event.payload as {
         outcome: "pass" | "fail";
         ruleIds: string[];
         reasoning: string;
+        proof?: PrivateInferenceProof;
       };
-      return { outcome, ruleIds, reasoning, by: event.actor as "reviewer" | "panel", at: event.createdAt };
+      // Reviewed privately in a TEE: enough to show it and to check it; the full proof is in the trail.
+      const privateReview = proof
+        ? { provider: proof.provider, model: proof.model, completionId: proof.completionId, signingAddress: proof.signingAddress, attestedAt: proof.attestation.checkedAt }
+        : null;
+      return { outcome, ruleIds, reasoning, by: event.actor as "reviewer" | "panel", at: event.createdAt, privateReview };
     },
 
     /** Why screening refused a task: the rules it broke and the screener's reasoning. */

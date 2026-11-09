@@ -54,7 +54,7 @@ export async function runAiReview(
         budgetCents: task.budget,
       });
       if (result.outcome === "ok") {
-        await desk.screenTask(AI_REVIEWER, task.id, { outcome: "ok", reasoning: result.reasoning });
+        await desk.screenTask(AI_REVIEWER, task.id, { outcome: "ok", reasoning: result.reasoning, proof: result.proof });
         pass.screened++;
       } else if (result.outcome === "refused") {
         await desk.screenTask(AI_REVIEWER, task.id, result);

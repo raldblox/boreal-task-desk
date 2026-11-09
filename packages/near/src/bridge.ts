@@ -220,6 +220,12 @@ export function createMarketBridge(options: MarketBridgeOptions) {
       "",
       `Verdict: **${verdict?.outcome ?? "pass"}** by ${verdict?.by === "panel" ? "a human panel" : "boreal.work's reviewer"}.`,
       ...(verdict?.reasoning ? ["", `> ${verdict.reasoning.replace(/\n+/g, " ")}`] : []),
+      ...(verdict?.privateReview
+        ? [
+            "",
+            `Reviewed privately on NEAR AI Cloud: model \`${verdict.privateReview.model}\` in a TEE, completion \`${verdict.privateReview.completionId}\`, signed by \`${verdict.privateReview.signingAddress}\`. The signature and attestation are kept in the task's trail.`,
+          ]
+        : []),
       "",
       "## Audit trail",
       "",

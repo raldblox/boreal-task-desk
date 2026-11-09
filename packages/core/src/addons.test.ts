@@ -103,7 +103,7 @@ describe("add-ons", () => {
 
   it("gates the NEAR rail, agents as workers and the market on the NEAR account settings", () => {
     const off = readAddons({ BOREAL_ADDONS: "near", ...PAYPAL });
-    expect(off.near.parts.map((p) => p.state)).toEqual(["blocked", "blocked", "blocked"]);
+    expect(off.near.parts.map((p) => p.state)).toEqual(["blocked", "blocked", "blocked", "blocked"]);
     expect(off.near.parts[0]!.reason).toMatch(/escrow account/);
     expect(addonEnv({ BOREAL_ADDONS: "near", ...PAYPAL, PAYMENT_RAILS: "paypal,near" }).PAYMENT_RAILS).toBe("paypal");
 
@@ -113,8 +113,13 @@ describe("add-ons", () => {
       ["rail", "ready"],
       ["agentWorkers", "ready"],
       ["market", "blocked"],
+      ["privateReview", "blocked"],
     ]);
     expect(state(env, "near", "market").reason).toMatch(/treasury account holding USDC/);
+    expect(state(env, "near", "privateReview").reason).toMatch(/NEAR AI Cloud API key/);
+    expect(state({ ...env, NEAR_AI_API_KEY: "sk-test" }, "near", "privateReview").state).toBe("ready");
+    // The key never reaches the loaders while NEAR is off.
+    expect(addonEnv({ BOREAL_ADDONS: "none", NEAR_AI_API_KEY: "sk-test" }).NEAR_AI_API_KEY).toBeUndefined();
     expect(addonEnv(env).PAYMENT_RAILS).toBe("paypal,near");
     // NEAR on leaves Concordium settings out.
     expect(addonEnv({ ...env, CONCORDIUM_MODE: "testnet" }).CONCORDIUM_MODE).toBeUndefined();

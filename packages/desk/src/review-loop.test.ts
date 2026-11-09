@@ -134,3 +134,41 @@ describe("result review", () => {
     expect((await desk.humanQueue())[0]).toMatchObject({ id: task.id, status: "submitted" });
   });
 });
+
+describe("private review", () => {
+  const proof = {
+    provider: "near-ai-cloud" as const,
+    model: "z-ai/glm-5.3-flash",
+    completionId: "chat-1",
+    requestSha256: "aa",
+    responseSha256: "bb",
+    signedText: "z-ai/glm-5.3-flash:aa:bb",
+    signature: "0x00",
+    signingAddress: "0x3b753b4406613c5e70ae640508632b600424fa0c",
+    attestation: { nonce: "cc", checkedAt: "2026-11-02T00:00:00.000Z", intelQuote: "dd" },
+  };
+
+  it("keeps each TEE proof in the task's trail and shows the verdict as reviewed privately", async () => {
+    const task = await submittedTask();
+    const { reviewer } = scripted({ outcome: "ok", reasoning: "fine", proof }, { outcome: "pass", ruleIds: ["R4.1"], reasoning: "sign readable", model: proof.model, proof });
+    await runAiReview(desk, reviewer, { readFile: photo });
+
+    const verdict = await desk.getVerdict(requester, task.id);
+    expect(verdict).toMatchObject({ outcome: "pass", privateReview: { provider: "near-ai-cloud", model: proof.model, completionId: "chat-1", signingAddress: proof.signingAddress } });
+    const [event] = await db.select().from(taskEvents).where(eq(taskEvents.type, "verdict_pass"));
+    expect((event!.payload as { proof: typeof proof }).proof).toEqual(proof);
+
+    const screened = await postTask();
+    await runAiReview(desk, reviewer, { readFile: photo });
+    const [screenEvent] = await db.select().from(taskEvents).where(eq(taskEvents.taskId, screened.id)).orderBy(asc(taskEvents.id));
+    const ok = (await db.select().from(taskEvents).where(eq(taskEvents.taskId, screened.id))).find((e) => e.type === "screen_ok");
+    expect(screenEvent).toBeDefined();
+    expect((ok!.payload as { proof: typeof proof }).proof.completionId).toBe("chat-1");
+  });
+
+  it("shows no private review for a verdict without a proof", async () => {
+    const task = await submittedTask();
+    await runAiReview(desk, scripted({ outcome: "ok", reasoning: "fine" }).reviewer, { readFile: photo });
+    expect((await desk.getVerdict(requester, task.id))?.privateReview).toBeNull();
+  });
+});

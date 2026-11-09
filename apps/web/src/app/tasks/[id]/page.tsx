@@ -7,6 +7,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { claimTask, disputeVerdict, releaseTask, submitResult } from "@/app/actions";
+import { PrivateReviewNote } from "@/components/private-review";
 import { TaskProgress } from "@/components/task-progress";
 import { Container } from "@/components/page";
 import { ActionButton, DisputeForm, SubmitForm } from "@/components/worker-forms";
@@ -321,6 +322,7 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
             <p className="font-mono text-xs text-muted-foreground">
               {verdict.ruleIds.length ? verdict.ruleIds.join(" · ") : "No rules cited"} · {when(verdict.at)}
             </p>
+            <PrivateReviewNote review={verdict.privateReview} />
           </section>
         )}
 

@@ -9,7 +9,7 @@ export const ADDON_IDS = ["concordium", "near"] as const;
 export type AddonId = (typeof ADDON_IDS)[number];
 
 export type ConcordiumPart = "id" | "anchors" | "rail" | "registry";
-export type NearPart = "rail" | "agentWorkers" | "market";
+export type NearPart = "rail" | "agentWorkers" | "market" | "privateReview";
 export type AddonPartId = ConcordiumPart | NearPart;
 
 /** One thing a part needs. `met: null` means it can only be checked live (a balance, say). */
@@ -201,7 +201,7 @@ export function readAddons(env: Env = process.env): Addons {
     id: "near",
     name: "NEAR",
     enabled: near,
-    summary: "A USDC rail on NEAR, AI agents as workers, and boreal.work's listing on NEAR Agent Market.",
+    summary: "A USDC rail on NEAR, AI agents as workers, boreal.work's listing on NEAR Agent Market, and private review on NEAR AI Cloud.",
     personNeeds: ["A NEAR account (free to create, about 2 minutes)", "USDC on NEAR, to fund tasks on this rail"],
     parts: [
       part(near, "rail", "USDC on NEAR", "Agents fund tasks in USDC on NEAR, and workers are paid to their NEAR account.", [
@@ -215,6 +215,9 @@ export function readAddons(env: Env = process.env): Addons {
         { label: "The USDC on NEAR rail", setting: "NEAR_TOKEN_CONTRACT, NEAR_ESCROW_ACCOUNT, NEAR_ESCROW_KEY", met: nearRail && nearRailListed },
         { label: "A market token and the agent that posts market tasks", setting: "NEAR_MARKET_TOKEN, NEAR_MARKET_AGENT_ID", met: has(env, "NEAR_MARKET_TOKEN") && has(env, "NEAR_MARKET_AGENT_ID") },
         { label: "A treasury account holding USDC", setting: "NEAR_MARKET_TREASURY_ACCOUNT, NEAR_MARKET_TREASURY_KEY", met: has(env, "NEAR_MARKET_TREASURY_ACCOUNT") && has(env, "NEAR_MARKET_TREASURY_KEY") },
+      ]),
+      part(near, "privateReview", "Private review on NEAR AI", "Tasks are screened and reviewed on NEAR AI Cloud's TEE-hosted models; each verdict carries a signature and attestation anyone can check.", [
+        { label: "A NEAR AI Cloud API key", setting: "NEAR_AI_API_KEY", met: has(env, "NEAR_AI_API_KEY") },
       ]),
     ],
   };
