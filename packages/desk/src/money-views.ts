@@ -169,7 +169,21 @@ export function moneyViews(db: Database) {
             .reduce((sum, t) => sum + t.budget, 0),
         };
       };
-      return { real: bucket(false), test: bucket(true), payouts: paid.slice(0, 20).map((e) => ({ at: e.createdAt, taskId: e.taskId, amount: e.amount, status: e.status, test: test.get(e.taskId ?? "") ?? false })) };
+      // Real money per rail, so a worker sees what came to PayPal and what came as USDC on NEAR.
+      const rail = new Map(claimed.map((t) => [t.id, t.paymentRail]));
+      const byRail: Partial<Record<"paypal" | "near" | "concordium", { paid: number; settling: number; upcoming: number }>> = {};
+      for (const e of paid) {
+        const r = rail.get(e.taskId ?? "");
+        if (!r || test.get(e.taskId ?? "")) continue;
+        const b = (byRail[r] ??= { paid: 0, settling: 0, upcoming: 0 });
+        if (e.status === "settled") b.paid += e.amount;
+        else b.settling += e.amount;
+      }
+      for (const t of claimed) {
+        if (t.test || !t.paymentRail || (t.status !== "passed" && t.status !== "disputed")) continue;
+        (byRail[t.paymentRail] ??= { paid: 0, settling: 0, upcoming: 0 }).upcoming += t.budget;
+      }
+      return { real: bucket(false), test: bucket(true), byRail, payouts: paid.slice(0, 20).map((e) => ({ at: e.createdAt, taskId: e.taskId, amount: e.amount, status: e.status, test: test.get(e.taskId ?? "") ?? false })) };
     },
   };
 }

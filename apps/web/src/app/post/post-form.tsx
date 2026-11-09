@@ -259,7 +259,7 @@ export function PostForm({
         </Alert>
       )}
       <Button type="submit" size="lg" disabled={pending || overCap || checks > 10} className="w-full sm:w-fit">
-        {pending ? "Posting…" : "Post for screening"}
+        {pending ? "Posting…" : "Post task"}
       </Button>
     </form>
   );

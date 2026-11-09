@@ -9,6 +9,7 @@ import { after } from "next/server";
 import { Suspense } from "react";
 
 import { acceptResult, cancelTask, disputeAsPoster, payTask, reviewResult } from "@/app/post/actions";
+import { PayWithNear } from "@/components/connect-wallet";
 import { PrivateReviewNote } from "@/components/private-review";
 import { Eyebrow } from "@/components/brand";
 import { Container } from "@/components/page";
@@ -86,22 +87,26 @@ async function NextStep({ task, requester }: { task: Task; requester: { role: "r
     case "awaiting_funding": {
       const account = await desk.getAgentAccount(requester);
       const paypal = getRails().paypal;
+      const near = Boolean(getRails().near);
       const saved = account.savedPaymentMethod && Boolean(paypal?.vault);
       return (
         <div className="flex flex-col gap-5">
           <p className="text-sm text-muted-foreground">
-            Pay {usd(taskTotal(task))} with PayPal: it&apos;s held, not charged, until the work passes. boreal.work then checks
-            the task against its rulebook and opens it to workers.
+            Pay {usd(taskTotal(task))}{near ? " with PayPal or in USDC on NEAR" : " with PayPal"}. It&apos;s held until the work passes,
+            then boreal.work checks the task against its rulebook and opens it to workers.
           </p>
           {paypal ? (
             <ActionButton action={payTask.bind(null, task.id)}>
               {saved ? `Pay ${usd(taskTotal(task))} with your saved PayPal` : `Pay ${usd(taskTotal(task))} with PayPal`}
             </ActionButton>
           ) : (
-            <Alert>
-              <AlertDescription>Paying on the website needs PayPal, which isn&apos;t switched on here yet.</AlertDescription>
-            </Alert>
+            !near && (
+              <Alert>
+                <AlertDescription>Paying on the website needs PayPal, which isn&apos;t switched on here yet.</AlertDescription>
+              </Alert>
+            )
           )}
+          {near && <PayWithNear taskId={task.id} total={usd(taskTotal(task))} />}
           <Cancel task={task} note="Nothing has been paid yet." />
         </div>
       );

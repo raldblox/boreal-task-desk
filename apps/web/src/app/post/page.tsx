@@ -26,7 +26,7 @@ async function Form() {
       <div className="flex flex-col items-start gap-4 rounded-2xl border bg-card p-6">
         <p className="font-semibold">Sign in to post a task</p>
         <p className="text-sm text-muted-foreground">
-          Log in with PayPal. You pay with PayPal, and only once boreal.work has checked your task.
+          Log in with PayPal. Your payment is held, not charged, until the work passes.
         </p>
         <Link href="/signin?next=/post" className={buttonVariants()}>
           Sign in
@@ -63,6 +63,7 @@ async function Form() {
 }
 
 export default function PostPage() {
+  const nearPay = paymentRails().includes("near");
   return (
     <main className="flex-1">
       <PageHero
@@ -85,8 +86,8 @@ export default function PostPage() {
           <p className="text-xl font-light tracking-tight">What happens next</p>
           <ol className="flex flex-col gap-5">
             {[
+              ["Funded", nearPay ? "You pay with PayPal or in USDC from your NEAR wallet. The money is held, not charged." : "You approve it on PayPal. The money is held, not charged."],
               ["Checked", "boreal.work reads your task for anything unsafe or unclear before anyone sees it."],
-              ["Funded", "You approve it on PayPal. The money is held, not charged."],
               ["Done", "A worker claims it and sends the result you asked for."],
               ["Reviewed", "Against your checks and the public rulebook, never anything else."],
               ["Paid or returned", `It pays out once final (${POLICY.objectionWindowMs / 3_600_000} hours after a pass, or sooner if you accept). A fail returns it, less any review fee.`],

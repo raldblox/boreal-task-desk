@@ -4,6 +4,7 @@ import { Wallet } from "lucide-react";
 import { useState, useTransition } from "react";
 
 import { connectPayoutAccount } from "@/app/actions";
+import { fundWithNear, nearTransferFor } from "@/app/post/actions";
 import { detectWallet, oncePromptCloses, STORE_URL } from "@/components/concordium-wallet-sign-in";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -170,6 +171,78 @@ export function ConnectConcordiumAccount({
           </AlertDescription>
         </Alert>
       )}
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Pay for a posted task with USDC from the person's NEAR wallet: one ft_transfer to boreal.work's
+ * escrow with the task's memo, then the desk checks it on chain and the task goes to screening.
+ * The wallet shows the amount and asks for approval; boreal.work never holds the keys.
+ */
+export function PayWithNear({ taskId, total }: { taskId: string; total: string }) {
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
+
+  async function pay() {
+    setError(null);
+    setBusy("Preparing the payment…");
+    const prepared = await nearTransferFor(taskId);
+    if ("error" in prepared) {
+      setError(prepared.error);
+      setBusy(null);
+      return;
+    }
+    const { transfer } = prepared;
+    try {
+      const { NearConnector } = await import("@hot-labs/near-connect");
+      const connector = new NearConnector({ network: transfer.network, features: { signAndSendTransaction: true, [transfer.network]: true }, footerBranding: null });
+      setBusy("Choose your wallet…");
+      const wallet = await connector.connect();
+      setBusy(`Approve ${total} in USDC in your wallet…`);
+      const outcome = await wallet.signAndSendTransaction({
+        receiverId: transfer.tokenContract,
+        actions: [
+          {
+            type: "FunctionCall",
+            params: {
+              methodName: "ft_transfer",
+              args: { receiver_id: transfer.payTo, amount: transfer.amount, memo: transfer.memo },
+              gas: "30000000000000",
+              // NEP-141 asks for exactly 1 yoctoNEAR on ft_transfer.
+              deposit: "1",
+            },
+          },
+        ],
+      });
+      const txHash = outcome.transaction.hash;
+      const signerId = outcome.transaction.signer_id;
+      await connector.disconnect(wallet).catch(() => {});
+      setBusy("Confirming on NEAR…");
+      startTransition(async () => {
+        const result = await fundWithNear(taskId, { txHash, signerId });
+        if (result?.error) setError(result.error);
+        setBusy(null);
+      });
+    } catch (e) {
+      const text = e instanceof Error ? e.message : "";
+      setError(/reject|cancel|closed/i.test(text) || !text ? "Nothing was sent. Try again when you're ready." : text);
+      setBusy(null);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <Button onClick={pay} disabled={busy !== null} variant="outline" className="h-auto min-h-10 w-fit gap-2 whitespace-normal">
+        <Wallet className="size-4" aria-hidden />
+        {busy ?? `Pay ${total} in USDC on NEAR`}
+      </Button>
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>

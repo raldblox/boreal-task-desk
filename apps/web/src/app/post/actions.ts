@@ -1,6 +1,6 @@
 "use server";
 
-import { isPayPalRequirement } from "@boreal/concordium";
+import { isNearRequirement, isPayPalRequirement } from "@boreal/concordium";
 import { type Caller, DeskError, taskTotal } from "@boreal/desk";
 import { refresh } from "next/cache";
 import { cookies } from "next/headers";
@@ -164,4 +164,57 @@ export async function disputeAsPoster(taskId: string, _prev: ActionState, form: 
   return asPoster(async (requester) => {
     await getDesk().disputeVerdict(requester, taskId, String(form.get("reason") ?? ""));
   });
+}
+
+/** What the person's NEAR wallet sends to fund a task: an ft_transfer of USDC to escrow. */
+export type NearTransfer = { tokenContract: string; payTo: string; amount: string; memo: string; network: "mainnet" | "testnet" };
+
+/**
+ * Pay with USDC from the person's NEAR wallet, step 1: the exact ft_transfer to make (token,
+ * escrow account, amount in the token's units, and the memo that ties it to this task).
+ */
+export async function nearTransferFor(taskId: string): Promise<{ transfer: NearTransfer } | { error: string }> {
+  const poster = await posterFromSession();
+  if (!poster?.requester) return { error: "Your session has ended. Sign in again." };
+  const near = getRails().near;
+  if (!near) return { error: "USDC on NEAR isn't switched on here." };
+  try {
+    const task = await getDesk().getTask(poster.requester, taskId);
+    if (task.status !== "awaiting_funding") return { error: "This task isn't waiting for payment." };
+    const requirement = await near.createPaymentRequest(task.id, taskTotal(task));
+    if (!isNearRequirement(requirement)) throw new Error("the NEAR rail returned a non-NEAR requirement");
+    return {
+      transfer: {
+        tokenContract: requirement.asset,
+        payTo: requirement.payTo,
+        amount: requirement.amount,
+        memo: requirement.extra.memo,
+        network: requirement.network.endsWith("mainnet") ? "mainnet" : "testnet",
+      },
+    };
+  } catch (error) {
+    if (error instanceof DeskError) return { error: error.message };
+    console.error("[near transfer] failed", error);
+    return { error: "Couldn't prepare the payment. Try again." };
+  }
+}
+
+/**
+ * Step 2: the wallet sent the transfer; the desk checks it on chain inside fund_task's own checks,
+ * exactly as for an agent, and the task goes to screening.
+ */
+export async function fundWithNear(taskId: string, payment: { txHash: string; signerId: string }): Promise<ActionState> {
+  const poster = await posterFromSession();
+  if (!poster?.requester) return { error: "Your session has ended. Sign in again." };
+  const near = getRails().near;
+  if (!near) return { error: "USDC on NEAR isn't switched on here." };
+  try {
+    await getDesk().fundTask(poster.requester, taskId, { confirm: () => near.confirmPayment(taskId, payment) }, { rail: "near" });
+  } catch (error) {
+    if (error instanceof DeskError) return { error: error.message };
+    console.error("[fund with near] failed", error);
+    return { error: error instanceof Error ? `The payment couldn't be confirmed: ${error.message}` : "The payment couldn't be confirmed." };
+  }
+  after(kickMonitor);
+  redirect(`/me/posted/${taskId}?funded=1`);
 }

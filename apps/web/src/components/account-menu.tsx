@@ -25,7 +25,11 @@ export function AccountMenu({ handle, admin }: { handle: string | null; admin: b
   const [signingOut, startSignOut] = useTransition();
   return (
     <DropdownMenu>
+      {/* Opens on hover with a mouse (and still on click or tap), closing shortly after the pointer leaves. */}
       <DropdownMenuTrigger
+        openOnHover
+        delay={80}
+        closeDelay={250}
         aria-label="Account menu"
         className="grid size-10 place-items-center rounded-full border bg-card text-primary-soft-foreground transition-colors hover:border-primary/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none data-popup-open:border-primary/60"
       >
