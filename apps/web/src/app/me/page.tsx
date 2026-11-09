@@ -446,7 +446,19 @@ async function Integrations() {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
+    <div className="flex flex-col gap-6">
+      {privateReview && (
+        // On for everyone where it's set up: it powers boreal.work's own screening and review,
+        // whatever a person connects.
+        <p className="flex items-center gap-2 rounded-xl border bg-card px-4 py-3 text-sm">
+          <ShieldCheck className="size-4 shrink-0 text-primary" aria-hidden />
+          <span>
+            <span className="font-medium">Private AI review is always on.</span>{" "}
+            <span className="text-muted-foreground">Every task is screened and reviewed in a TEE on NEAR AI Cloud.</span>
+          </span>
+        </p>
+      )}
+      <div className="grid gap-6 lg:grid-cols-2">
       {concordiumOn && (
         <FeatureCard
           logo={<ConcordiumLogo className="size-6" />}
@@ -477,14 +489,13 @@ async function Integrations() {
       {nearOn && (
         <FeatureCard
           logo={<NearLogo className="size-5" />}
-          title={privateReview ? "USDC payouts and private AI" : "USDC payouts"}
+          title="USDC payouts"
           by="with NEAR"
           connected={Boolean(profile.nearAccount)}
           gives={[
             "Get paid in USDC, straight to your own wallet",
             "No gas to pay: boreal.work covers it",
             "Take tasks from NEAR Agent Market",
-            ...(privateReview ? ["Your work reviewed privately by AI in a TEE on NEAR AI Cloud"] : []),
           ]}
           account={<span className="font-mono text-xs">{profile.nearAccount}</span>}
           hint={
@@ -502,6 +513,7 @@ async function Integrations() {
           />
         </FeatureCard>
       )}
+      </div>
     </div>
   );
 }
