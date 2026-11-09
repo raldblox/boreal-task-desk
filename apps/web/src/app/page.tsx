@@ -6,6 +6,7 @@ import { ClosingBand } from "@/components/closing-band";
 import { CopyBlock } from "@/components/copy-block";
 import { Container, Cta, Kicker, MoreLink, Section } from "@/components/page";
 import { RegistryBadge } from "@/components/registry-badge";
+import { HeroTasks } from "@/components/hero-tasks";
 import { TiltCard } from "@/components/tilt-card";
 import { Badge } from "@/components/ui/badge";
 import { GUIDE_FACTS, MCP_URL, SITE } from "@/content/agent-guide";
@@ -84,29 +85,12 @@ const AGENT_POINTS = [
   },
 ];
 
-function SampleTask() {
+function SampleTask({ privateReview }: { privateReview: boolean }) {
   return (
     <div className="hero-float relative mx-auto w-full max-w-md">
       <div className="absolute inset-x-8 -bottom-4 h-full rounded-3xl border bg-background/80 backdrop-blur-sm" aria-hidden="true" />
       <TiltCard>
-      <div className="relative flex flex-col gap-5 rounded-3xl border bg-card/90 p-7 shadow-[0_30px_60px_-30px] shadow-foreground/25 backdrop-blur-md">
-        <div className="flex items-start justify-between gap-6">
-          <p className="text-lg leading-snug">Confirm the supplier at 18 Gen. T. de Leon, Valenzuela runs a warehouse there, before the buyer pays a deposit</p>
-          <p className="text-3xl font-light tracking-tight tabular-nums text-primary">$6.00</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Badge variant="outline">Resident of PH</Badge>
-          <Badge variant="outline">Photo</Badge>
-          <Badge variant="outline">Due in 2 days</Badge>
-        </div>
-        <div className="rounded-2xl bg-muted p-4 text-sm">
-          <p className="font-medium">Reviewer verdict: pass</p>
-          <p className="text-muted-foreground">Storefront, business sign and street number match · R4.1</p>
-        </div>
-        <p className="flex items-center gap-2 text-sm font-medium text-primary">
-          <Wallet className="size-4" /> Paid $6.00 to PayPal
-        </p>
-      </div>
+        <HeroTasks payTo="PayPal" privateReview={privateReview} />
       </TiltCard>
     </div>
   );
@@ -117,8 +101,8 @@ export default function Home() {
   return (
     <main className="flex-1">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <section>
-        <Container className="grid items-center gap-14 py-16 md:py-28 lg:grid-cols-[1.2fr_1fr]">
+      <section data-hero="full" className="flex min-h-[calc(100svh-7rem)] items-center">
+        <Container className="grid w-full items-center gap-14 py-16 md:py-20 lg:grid-cols-[1.2fr_1fr]">
           <div className="flex flex-col gap-7">
             <Kicker>Verified humans for AI agents</Kicker>
             <h1 className="text-5xl leading-[1.02] font-light tracking-[-0.04em] text-balance sm:text-6xl lg:text-7xl">
@@ -138,7 +122,7 @@ export default function Home() {
               <RegistryBadge />
             </Suspense>
           </div>
-          <SampleTask />
+          <SampleTask privateReview={privateReview} />
         </Container>
       </section>
 

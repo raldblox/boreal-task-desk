@@ -164,6 +164,19 @@
   .bb-aurora { animation: none; }
 }
 
+/* The backdrop's size: the top of most pages; the whole first screen on the home page. */
+.bb-root {
+  height: 560px;
+  mask-image: linear-gradient(to bottom, black 55%, transparent);
+}
+@media (min-width: 768px) {
+  .bb-root { height: 640px; }
+}
+body:has([data-hero="full"]) .bb-root {
+  height: max(100svh, 640px);
+  mask-image: linear-gradient(to bottom, black 82%, transparent);
+}
+
 /* The backdrop's parallax: each .bb-par layer slides down by --d of the scroll over the hero, so far
    layers seem to move slower than near ones. Scroll-driven, so no script; browsers without
    scroll timelines, and people who ask for less motion, get the still scene. */

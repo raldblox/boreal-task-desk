@@ -60,13 +60,13 @@ export function BorealBackdrop() {
   return (
     <div
       aria-hidden
-      className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[560px] overflow-hidden [mask-image:linear-gradient(to_bottom,black_55%,transparent)] md:h-[640px]"
+      className="bb-root pointer-events-none absolute inset-x-0 top-0 -z-10 overflow-hidden"
     >
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" className="absolute inset-0 size-full">
         <defs>
           <linearGradient id="bb-sky" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#cfe4ee" />
-            <stop offset="0.45" stopColor="#e4f0f2" />
+            <stop offset="0" stopColor="#bcd8e8" />
+            <stop offset="0.45" stopColor="#dcecf0" />
             <stop offset="0.8" stopColor="#f4f9f8" />
           </linearGradient>
           <radialGradient id="bb-sun" cx="0.78" cy="0.18" r="0.45">
@@ -74,9 +74,10 @@ export function BorealBackdrop() {
             <stop offset="1" stopColor="#fffaf0" stopOpacity="0" />
           </radialGradient>
           <linearGradient id="bb-aurora" x1="0" y1="1" x2="0" y2="0">
-            <stop offset="0" stopColor="#3fd99a" stopOpacity="0.95" />
-            <stop offset="0.35" stopColor="#2fbfae" stopOpacity="0.6" />
-            <stop offset="1" stopColor="#7aa8f0" stopOpacity="0" />
+            <stop offset="0" stopColor="#22d38c" stopOpacity="1" />
+            <stop offset="0.3" stopColor="#1fb8a6" stopOpacity="0.75" />
+            <stop offset="0.75" stopColor="#6a9cf0" stopOpacity="0.25" />
+            <stop offset="1" stopColor="#6a9cf0" stopOpacity="0" />
           </linearGradient>
           <linearGradient id="bb-mist" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor="#f4f9f8" stopOpacity="0" />
@@ -97,8 +98,8 @@ export function BorealBackdrop() {
             <rect width={W} height={H} fill="url(#bb-wash-fade)" />
           </mask>
           <linearGradient id="bb-aurora-violet" x1="0" y1="1" x2="0" y2="0">
-            <stop offset="0" stopColor="#5fe0c0" stopOpacity="0.7" />
-            <stop offset="0.5" stopColor="#9b8cf0" stopOpacity="0.35" />
+            <stop offset="0" stopColor="#4fdcb8" stopOpacity="0.85" />
+            <stop offset="0.5" stopColor="#8f7cf0" stopOpacity="0.45" />
             <stop offset="1" stopColor="#9b8cf0" stopOpacity="0" />
           </linearGradient>
           <filter id="bb-soft" filterUnits="userSpaceOnUse" x="-300" y="-300" width={W + 600} height={H + 600}>
@@ -119,18 +120,19 @@ export function BorealBackdrop() {
       <div className="bb-par absolute inset-0 [--d:0.55]">
       <div className="bb-aurora bb-aurora-a absolute inset-y-0 -inset-x-[6%]">
         <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" className="size-full">
-          <path d="M-60 250 C 220 150, 420 300, 700 200 S 1150 110, 1380 190 S 1620 150, 1700 120 L 1700 -40 L -60 -40 Z" fill="url(#bb-aurora)" filter="url(#bb-soft)" opacity="0.95" transform="translate(0 -30) scale(1 0.8)" />
-          <path d="M-60 150 C 260 230, 520 120, 820 170 S 1200 240, 1700 150 L 1700 -40 L -60 -40 Z" fill="url(#bb-aurora-violet)" filter="url(#bb-soft)" opacity="0.6" />
+          <path d="M-60 300 C 200 380, 430 250, 700 330 S 1150 240, 1380 320 S 1620 260, 1700 280 L 1700 -40 L -60 -40 Z" fill="url(#bb-aurora)" filter="url(#bb-soft)" />
+          <path d="M-60 170 C 260 250, 520 140, 820 200 S 1200 270, 1700 170 L 1700 -40 L -60 -40 Z" fill="url(#bb-aurora-violet)" filter="url(#bb-soft)" opacity="0.75" />
         </svg>
       </div>
       <div className="bb-aurora bb-aurora-b absolute inset-y-0 -inset-x-[6%]">
         <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" className="size-full">
-          <path d="M520 240 C 760 170, 960 250, 1160 190 S 1460 150, 1660 210 L 1660 20 L 520 20 Z" fill="url(#bb-aurora)" filter="url(#bb-soft)" opacity="0.7" />
-          <g opacity="0.55" filter="url(#bb-haze)" stroke="#6fd8b2" strokeWidth="5" fill="none">
-            {Array.from({ length: 26 }, (_, i) => {
-              const x = 560 + i * 34;
-              const top = 60 + Math.sin(i * 0.7) * 30;
-              return <path key={i} d={`M${x} ${top} L${x + 30} ${top + 120 + Math.cos(i) * 25}`} />;
+          <path d="M380 280 C 640 200, 900 300, 1140 230 S 1460 190, 1700 250 L 1700 20 L 380 20 Z" fill="url(#bb-aurora)" filter="url(#bb-soft)" opacity="0.8" />
+          {/* The curtain's rays, across the whole sky. */}
+          <g opacity="0.6" filter="url(#bb-haze)" stroke="#3fd9a4" strokeWidth="6" fill="none">
+            {Array.from({ length: 44 }, (_, i) => {
+              const x = -20 + i * 38;
+              const hem = 300 + Math.sin(i * 0.45) * 45;
+              return <path key={i} d={`M${x + 24} ${hem - 190 - Math.cos(i * 1.3) * 30} L${x} ${hem}`} />;
             })}
           </g>
         </svg>
