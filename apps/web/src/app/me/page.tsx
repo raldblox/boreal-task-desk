@@ -22,7 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { attributeLabel, posterStatus, usd, when, workerHandle } from "@/lib/format";
 import { NETWORK, SITE } from "@/content/agent-guide";
-import { gatedEnv, getAddons } from "@/server/addons";
+import { gatedEnv, getAddons, verification } from "@/server/addons";
 import { getConcordium, getDesk, paymentRails } from "@/server/desk";
 import { getIdAppVerifier } from "@/server/id-app";
 import { kickMonitorSoon } from "@/server/monitor";
@@ -310,101 +310,63 @@ function WalletLink({ href, children }: { href: string; children: React.ReactNod
   );
 }
 
-type ConnectionState = "connected" | "ready" | "unavailable";
-
-const STATE_LOOK: Record<ConnectionState, { label: string; className: string }> = {
-  connected: { label: "Connected", className: "bg-primary-soft text-primary-soft-foreground" },
-  ready: { label: "Not connected", className: "bg-muted text-muted-foreground" },
-  unavailable: { label: "Not available here yet", className: "bg-amber-500/10 text-amber-700 dark:text-amber-400" },
-};
-
-function StatePill({ state }: { state: ConnectionState }) {
-  const look = STATE_LOOK[state];
-  return <span className={`inline-flex h-6 shrink-0 items-center rounded-full px-2.5 text-xs font-medium ${look.className}`}>{look.label}</span>;
-}
-
-/** One integration: its logo, state, a few short benefits, then a row per thing you connect. */
-function IntegrationCard({
-  logo,
-  name,
-  tagline,
-  state,
-  benefits,
-  children,
-}: {
-  logo: React.ReactNode;
-  name: string;
-  tagline: string;
-  state: ConnectionState;
-  benefits: React.ReactNode[];
-  children: React.ReactNode;
-}) {
-  return (
-    <article className="flex flex-col overflow-hidden rounded-2xl border bg-card">
-      <div className="flex flex-col gap-4 p-5 md:p-6">
-        <header className="flex items-center gap-3">
-          <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-xl border bg-background text-foreground">
-            {logo}
-          </span>
-          <div className="flex min-w-0 flex-1 flex-col">
-            <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-lg font-semibold">{name}</h3>
-              <StatePill state={state} />
-            </div>
-            <p className="text-sm text-muted-foreground">{tagline}</p>
-          </div>
-        </header>
-        <ul className="grid gap-x-6 gap-y-1.5 sm:grid-cols-2">
-          {benefits.map((benefit, i) => (
-            <li key={i} className="flex gap-2 text-sm">
-              <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
-              <span>{benefit}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-      <div className="flex flex-col divide-y border-t">{children}</div>
-    </article>
-  );
-}
-
-/** One thing to connect: what it is and its state on the left, its Connect button on the right. */
-function Connection({
-  icon: Icon,
+/** One step on the ladder: done (a check) or not yet (its number), what it unlocks, and its one action. */
+function Unlock({
+  step,
+  icon,
   title,
-  purpose,
-  state,
-  connectedAs,
+  done,
+  unlocks,
+  detail,
   children,
 }: {
-  icon: React.ComponentType<{ className?: string }>;
+  step: number | null;
+  icon?: React.ReactNode;
   title: string;
-  purpose: React.ReactNode;
-  state: ConnectionState;
-  connectedAs?: React.ReactNode;
+  done: boolean;
+  unlocks: string[];
+  /** Under the title: who it's connected as, or how to get it. */
+  detail?: React.ReactNode;
+  /** The action: a Connect button, or a quiet Change. */
   children?: React.ReactNode;
 }) {
   return (
-    <section className="flex flex-col gap-3 px-5 py-4 md:flex-row md:items-center md:px-6">
-      <div className="flex min-w-0 flex-1 items-start gap-3">
-        <Icon className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <div className="flex flex-wrap items-center gap-2">
-            <h4 className="text-sm font-semibold">{title}</h4>
-            <StatePill state={state} />
+    <li className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:p-6">
+      <div className="flex min-w-0 flex-1 items-start gap-4">
+        <span
+          aria-hidden
+          className={`grid size-10 shrink-0 place-items-center rounded-full text-sm font-semibold ${
+            done ? "bg-primary text-primary-foreground" : "border bg-background text-muted-foreground"
+          }`}
+        >
+          {done ? <CheckCircle2 className="size-5" /> : (icon ?? step)}
+        </span>
+        <div className="flex min-w-0 flex-col gap-2">
+          <div className="flex flex-col">
+            <h3 className="font-semibold">{title}</h3>
+            {detail && <div className="text-sm text-muted-foreground">{detail}</div>}
           </div>
-          <p className="text-sm text-muted-foreground">{purpose}</p>
-          {connectedAs && <div className="mt-1 text-sm">{connectedAs}</div>}
+          <ul className="flex flex-wrap gap-1.5" aria-label={done ? "Unlocked" : "Unlocks"}>
+            {unlocks.map((u) => (
+              <li key={u}>
+                <Badge variant={done ? "secondary" : "outline"} className={done ? "" : "text-muted-foreground"}>
+                  {u}
+                </Badge>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
-      {children && <div className="shrink-0 pl-8 md:pl-0">{children}</div>}
-    </section>
+      {children && <div className="shrink-0 pl-14 md:pl-0">{children}</div>}
+    </li>
   );
 }
 
 /**
- * Integrations beyond PayPal, each with a Connect button per part. Only the integrations this
- * site switched on (BOREAL_ADDONS) are offered; nothing here is needed to work or post with PayPal.
+ * Levels and unlocks, the way a fintech app shows verification: each step says what it unlocks,
+ * shows a check once done, and has one action. Level 1 is PayPal, level 2 is being verified
+ * (Concordium ID where that integration is on, otherwise a PayPal account PayPal has verified),
+ * and optional unlocks follow for the integrations this site switched on (BOREAL_ADDONS).
  */
 async function Integrations() {
   const worker = await workerFromSession();
@@ -413,123 +375,145 @@ async function Integrations() {
   if (!profile || profile.testMode) return null;
   const addons = getAddons();
   const rails = paymentRails();
-  const on = (["concordium", "near"] as const).filter((id) => addons.on(id));
-  const reason = (id: "concordium" | "near", part: string) =>
-    addons[id].parts.find((p) => p.id === part)?.reason?.replace(/\.$/, "") ?? "it isn't set up on this site";
+  const viaConcordium = verification().concordiumId;
   const idReady = getIdAppVerifier() !== null || (getConcordium() !== null && gatedEnv().CONCORDIUM_MODE === "dev");
-  const concordiumRail = rails.includes("concordium");
-  const nearRail = rails.includes("near");
+  const paypalLogin = paypalLoginEnabled();
+
+  const basic = profile.hasPayPal || profile.hasConcordium;
+  const verified = viaConcordium ? profile.hasConcordium : profile.hasPayPal && profile.paypalVerified;
+  const level = verified ? 2 : basic ? 1 : 0;
+  const nearOn = addons.ready("near", "rail");
+  const tokenPayouts = addons.on("concordium") && rails.includes("concordium");
   const proven = Object.entries(profile.provenAttributes);
+
+  const next = !basic
+    ? "Connect PayPal to start taking tasks."
+    : !verified
+      ? `Get verified to post up to ${usd(POLICY.maxTaskBudget)} a task.`
+      : nearOn && !profile.nearAccount
+        ? "Connect a NEAR wallet to take tasks that pay in USDC."
+        : "Everything here is unlocked.";
+
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h2 className="text-2xl font-light tracking-[-0.025em]">Integrations</h2>
-        <p className="text-sm text-muted-foreground">
-          {on.length === 0 ? "None are on for this site. PayPal covers everything." : "Optional extras on top of PayPal."}
-        </p>
-      </div>
+      <section className="flex flex-col gap-4 rounded-2xl border bg-card p-5 md:p-6">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-2xl font-light tracking-[-0.025em]">
+            {level === 2 ? "Verified" : level === 1 ? "Basic" : "Not started"}
+          </h2>
+          <span className="text-sm text-muted-foreground">Level {level} of 2</span>
+        </div>
+        <div className="grid grid-cols-2 gap-1.5" aria-hidden>
+          {[1, 2].map((n) => (
+            <span key={n} className={`h-1.5 rounded-full ${n <= level ? "bg-primary" : "bg-muted"}`} />
+          ))}
+        </div>
+        <p className="text-sm text-muted-foreground">{next}</p>
+      </section>
 
-      {addons.on("concordium") && (
-        <IntegrationCard
-          logo={<ConcordiumLogo className="size-6" />}
-          name="Concordium"
-          tagline="Private ID proofs and token payouts."
-          state={profile.hasConcordium || profile.payoutAddress ? "connected" : idReady ? "ready" : "unavailable"}
-          benefits={[
-            "Tasks that need proven age or country",
-            "Verified by Concordium badge",
-            <>Post up to {usd(POLICY.maxTaskBudget)} a task</>,
-            "Sign in with Concordium ID",
-            ...(concordiumRail ? ["Get paid in tokens"] : []),
-          ]}
+      <ol className="flex flex-col divide-y overflow-hidden rounded-2xl border bg-card">
+        <Unlock
+          step={1}
+          title="Connect PayPal"
+          done={basic}
+          unlocks={["Take tasks", "Paid to PayPal", `Post up to ${usd(POLICY.unverifiedTaskBudget)} a task`]}
+          detail={profile.paypalEmail ?? (basic ? "Signed in with Concordium ID. Connect PayPal to be paid there." : undefined)}
         >
-          <Connection
-            icon={ShieldCheck}
-            title="Concordium ID"
-            purpose={
+          {paypalLogin && !profile.hasPayPal && (
+            // A route handler that redirects to PayPal, so a full navigation, not <Link>.
+            // eslint-disable-next-line @next/next/no-html-link-for-pages
+            <a href="/paypal/login" className={buttonVariants({ variant: basic ? "outline" : "default" })}>
+              Connect PayPal
+            </a>
+          )}
+        </Unlock>
+
+        <Unlock
+          step={2}
+          icon={viaConcordium ? <ConcordiumLogo className="size-5" /> : undefined}
+          title={viaConcordium ? "Verify with Concordium ID" : "Get verified on PayPal"}
+          done={verified}
+          unlocks={[
+            `Post up to ${usd(POLICY.maxTaskBudget)} a task`,
+            `${usd(POLICY.maxAgentDailySpend)} a day`,
+            "Verified badge",
+            ...(viaConcordium ? ["Age and country tasks"] : []),
+          ]}
+          detail={
+            verified && viaConcordium && proven.length > 0 ? (
+              proven.map(([attribute, value]) => attributeLabel({ attribute, value })).join(" · ")
+            ) : !verified && viaConcordium ? (
               <>
-                Shares proofs, never your name or documents. <WalletLink href={CONCORDIUM_WALLET}>Get the wallet</WalletLink>
+                Proofs only, never your name or documents. <WalletLink href={CONCORDIUM_WALLET}>Get the wallet</WalletLink>
               </>
-            }
-            state={profile.hasConcordium ? "connected" : idReady ? "ready" : "unavailable"}
-            connectedAs={
-              profile.hasConcordium ? (
-                <div className="flex flex-wrap gap-1.5">
-                  <Badge>Verified by Concordium</Badge>
-                  {proven.map(([attribute, value]) => (
-                    <Badge key={attribute} variant="secondary">
-                      {attributeLabel({ attribute, value })}
-                    </Badge>
-                  ))}
-                </div>
-              ) : !idReady ? (
-                <span className="text-amber-700 dark:text-amber-400">{sentenceCase(reason("concordium", "id"))}.</span>
-              ) : undefined
-            }
-          >
-            {!profile.hasConcordium && idReady && <AddConcordium />}
-          </Connection>
-          <Connection
-            icon={Wallet}
-            title="Token payouts"
-            purpose="Paid to your own Concordium account."
-            state={profile.payoutAddress ? "connected" : concordiumRail ? "ready" : "unavailable"}
-            connectedAs={profile.payoutAddress ? <code className="break-all text-xs">{profile.payoutAddress}</code> : undefined}
-          >
-            {concordiumRail && <ConnectConcordiumAccount label={profile.payoutAddress ? "Change" : "Connect"} quiet={!!profile.payoutAddress} />}
-          </Connection>
-        </IntegrationCard>
+            ) : !verified ? (
+              "Confirm your identity in your PayPal account; it updates here on your next PayPal sign-in."
+            ) : undefined
+          }
+        >
+          {!verified && viaConcordium && idReady && <AddConcordium />}
+          {!verified && !viaConcordium && profile.hasPayPal && (
+            <a href="https://www.paypal.com/myaccount/summary" target="_blank" rel="noreferrer" className={buttonVariants({ variant: "outline" })}>
+              Open PayPal
+            </a>
+          )}
+        </Unlock>
+      </ol>
+
+      {(nearOn || tokenPayouts) && (
+        <section className="flex flex-col gap-3">
+          <h3 className="text-sm font-medium text-muted-foreground">Optional unlocks</h3>
+          <ul className="flex flex-col divide-y overflow-hidden rounded-2xl border bg-card">
+            {nearOn && (
+              <Unlock
+                step={null}
+                icon={<NearLogo className="size-4" />}
+                title="NEAR wallet"
+                done={Boolean(profile.nearAccount)}
+                unlocks={["USDC tasks", "NEAR Agent Market tasks"]}
+                detail={
+                  profile.nearAccount ? (
+                    <span className="font-mono text-xs">{profile.nearAccount}</span>
+                  ) : (
+                    <>
+                      Free: you sign a message. <WalletLink href={NEAR_WALLET}>Get Meteor</WalletLink>
+                    </>
+                  )
+                }
+              >
+                <ConnectNear
+                  network={gatedEnv().NEAR_NETWORK === "mainnet" ? "mainnet" : "testnet"}
+                  recipient={new URL(SITE).host}
+                  message={CONNECT_MESSAGE}
+                  label={profile.nearAccount ? "Change" : "Connect"}
+                  quiet={Boolean(profile.nearAccount)}
+                />
+              </Unlock>
+            )}
+            {tokenPayouts && (
+              <Unlock
+                step={null}
+                icon={<ConcordiumLogo className="size-4" />}
+                title="Concordium account"
+                done={Boolean(profile.payoutAddress)}
+                unlocks={["Token payouts"]}
+                detail={profile.payoutAddress ? <span className="break-all font-mono text-xs">{profile.payoutAddress}</span> : undefined}
+              >
+                <ConnectConcordiumAccount label={profile.payoutAddress ? "Change" : "Connect"} quiet={Boolean(profile.payoutAddress)} />
+              </Unlock>
+            )}
+          </ul>
+        </section>
       )}
 
-      {addons.on("near") && (
-        <IntegrationCard
-          logo={<NearLogo className="size-5" />}
-          name="NEAR"
-          tagline="Get paid in USDC to your own wallet."
-          state={profile.nearAccount ? "connected" : nearRail ? "ready" : "unavailable"}
-          benefits={[
-            "Tasks that pay in USDC",
-            "Includes NEAR Agent Market tasks",
-            "Paid the moment work passes",
-            "Your keys stay yours",
-            ...(addons.ready("near", "privateReview") ? ["Your photos reviewed privately on NEAR AI Cloud (TEE)"] : []),
-          ]}
-        >
-          <Connection
-            icon={Wallet}
-            title="NEAR wallet"
-            purpose={
-              <>
-                Free to connect: you only sign a message. <WalletLink href={NEAR_WALLET}>Get Meteor</WalletLink>
-              </>
-            }
-            state={profile.nearAccount ? "connected" : nearRail ? "ready" : "unavailable"}
-            connectedAs={
-              profile.nearAccount ? (
-                <code className="break-all text-xs">{profile.nearAccount}</code>
-              ) : !nearRail ? (
-                <span className="text-amber-700 dark:text-amber-400">{sentenceCase(reason("near", "rail"))}.</span>
-              ) : undefined
-            }
-          >
-            {nearRail && (
-              <ConnectNear
-                network={gatedEnv().NEAR_NETWORK === "mainnet" ? "mainnet" : "testnet"}
-                recipient={new URL(SITE).host}
-                message={CONNECT_MESSAGE}
-                label={profile.nearAccount ? "Change" : "Connect"}
-                quiet={!!profile.nearAccount}
-              />
-            )}
-          </Connection>
-        </IntegrationCard>
+      {addons.ready("near", "privateReview") && (
+        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <ShieldCheck className="size-3.5 text-primary" aria-hidden />
+          Your submissions are reviewed privately on NEAR AI Cloud (TEE).
+        </p>
       )}
     </div>
   );
-}
-
-function sentenceCase(text: string): string {
-  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 /** The agents this person owns, if any: linking happens at /link when an agent asks. */
