@@ -41,32 +41,36 @@ Paste this as its own message before recording. Don't record it.
 > Rules for this session:
 > - Speak in short, warm, plain sentences, under 30 words. Never show tool names, APIs, JSON, commands or keys. Do the work quietly.
 > - If you're not connected to boreal.work yet, read https://testnet.boreal.work/agents.md and ask for a link, passing your NEAR account (`<the account agent-pay --new printed>`) as `nearAccount`. Give Ji-woo the approval link in one sentence, and say she can fund your wallet there. Once approved, tell her your limits in one sentence.
+> - Sort what she asks first. Anything you can answer reliably from public sources online (whether a brand or a product is sold somewhere, what's listed, what's published), answer yourself, for free, in a few words, and never post it as a task. Only what needs a person on the spot (a price on a shelf today, what people do in a store) goes to boreal.work. If you can't find an answer online, say so in one line and make it a task.
+> - Don't ask clarifying questions. Decide the details yourself (which stores, how long, what counts) and keep going.
 > - Use boreal.work to hire people in the Philippines. Every task is a public place or a public fact. Never photograph shoppers or staff, and never ask for anyone's personal details.
 > - Each task: a clear checklist, photo proof, a 48-hour deadline, $3 to $5 worker pay by effort, no required attributes, and boreal.work's own reviewer (leave `reviewer` as `boreal`; don't review results yourself).
 > - Write every task for someone who's already there anyway: under 10 minutes, any day this week, no fixed time.
 > - Pay for tasks in USDC on NEAR from your own wallet, never PayPal. For each task, call `fund_task` with `rail: "near"`, then pay its requirement by running, in `C:\Users\raldb\boreal-task-desk`:
 >   `pnpm --filter @boreal/near agent-pay --to <payTo> --amount <amount> --asset <asset> --memo <extra.memo>`
 >   and call `fund_task` again with `payment: { "txHash", "signerId" }` from its output.
-> - Post the tasks, then show one short list with the total and ask "OK to fund?" once. On her yes, fund them all, one after another, without stopping to ask again.
+> - Post the tasks, then show one short message in two parts: "Found online" with each answer in a few words, and "For boreal.work" with the tasks and the total in USDC. Ask "OK to fund?" once. On her yes, fund them all, one after another, without stopping to ask again.
 > - Then keep going on your own: check the tasks every few minutes until each has a verdict. Don't wait to be asked.
 > - When verdicts come in, read them from `get_task`. Tell Ji-woo in one or two sentences which passed and which didn't, and why, in plain words.
+> - When every task is final, end with one calm summary as decisions, including what you found online, with a light touch of humor about Mochi.
 > - If she asks to see results, show the worker's photos from `get_submission`. If she says to pay one, call `accept_result` on it. If she asks whether the review was private, or for proof, call `get_review_proof` and say in one sentence whether the proof checks out.
 >
 > Reply only "Ready" now.
 
 ## 3. Ji-woo's messages (record these)
 
-Type or dictate each exactly. The voice-over already has `hi` and `ask`, so these match it word for word.
+Type or dictate each exactly. Message 2 is longer than the `ask` voice line: the voice reads its first sentence, and the screen shows all five questions, so `triage` ("two answers, online, for free") is true on screen. The two online questions are the same as in the PayPal film, so the two films read as one world.
 
 | # | Ji-woo says | Hermes should answer (roughly) | Line it covers |
 | --- | --- | --- | --- |
 | 1 | "Hi, Hermes. Can you get real people in Manila to check a few things for me?" | Asks for her OK and gives the approval link | `hi`, `linkedWallet` |
 | — | *(on the link page she sets $10 a task and $50 a day, approves, then **Fund Hermes with USDC**: $20 and 0.1 NEAR, one approval in her wallet)* | "Connected, and my wallet's funded. Up to $50 a day, never more than $10 a task, and I'll ask before I spend." | `linkedWallet` |
-| 2 | "I need competitor sunscreen prices at two stores, and someone to count who stops at a K-beauty shelf." | Three tasks and a total in USDC; "OK to fund?" | `ask`, `triage` |
+| 2 | "I need competitor sunscreen prices at two stores, and someone to count who stops at a K-beauty shelf. Also, is K-beauty already in Cebu malls? And is Korean dog jerky even sold in Manila? Mochi refuses anything else." | **Found online:** the Cebu and dog-jerky answers in a few words each (whatever it really finds; never scripted). **For boreal.work:** three tasks and the total in USDC. "OK to fund?" | `ask`, `triage` |
 | 3 | "Yes." | Funds all three from its wallet; "Posted. Paid from my wallet, held in escrow." | `liveEscrow` |
 | 4 | *(wait for verdicts)* | "Two photos didn't hold up and weren't paid. The shelf count passed." | `checkedReviewer` |
 | 5 | "Let me see them." | Shows the three results | `letMeSee` |
 | 6 | "The shelf count looks right. Pay her now." | Accepts it; "Done. She's paid." | `payHer`, `paid` |
+| 7 | *(optional, for the cut-down)* "So what do I do?" | One calm summary as decisions, including the two online answers and a Mochi joke | `doneEyes` |
 
 **On screen in the browser between messages:** the funded task with its **On NEAR** links (`liveEscrow`), the screened task's private review line (`privateNear`), the worker's NEAR wallet connect and claim (`workers`), the failing verdicts with their rules (`checkedReviewer`), **Proof checks out** opened (`signed`), and USDC arriving in the worker's wallet on nearblocks (`paid`).
 
@@ -76,6 +80,8 @@ The brief tells it not to, but if it asks anyway, answer in one line, keep recor
 
 | Hermes asks about | Ji-woo answers |
 | --- | --- |
+| Whether to look something up online | "Yes, if you can find it. Only send what needs someone there." |
+| Whether to post the Cebu or dog-jerky question | "Only if you can't find it online." |
 | Which stores or mall | "Any big beauty store in BGC, and one in Makati." |
 | Which brands | "The three best-selling Korean sunscreens on the shelf." |
 | How long to count, or when | "Five minutes, any afternoon this week." |
@@ -118,6 +124,8 @@ Check the fails are real before the take: the private reviewer has to catch them
 | What happens | What to do |
 | --- | --- |
 | Hermes sends a PayPal checkout link | Say "Use your own wallet, in USDC." |
+| Hermes posts a task for something it could look up (Cebu, dog jerky) | Before funding, say "You can find that one online, can't you?" It answers it and cancels that task (nothing is charged before funding). Redo the take if it's already funded: a cancel before a claim refunds in full, but it doesn't belong in the film. |
+| Hermes answers a real-world question from the web (today's shelf prices) | Say "That needs someone in the store." |
 | The link page shows no **Fund** block | Hermes didn't pass `nearAccount`: say "Set your NEAR account", then fund it from My account → Your agents → **Add funds**. |
 | Hermes stops after posting and waits | Say "Go ahead and fund them." If it stops after funding, "Let me know when they're done." Cut the nudge. |
 | Hermes asks a question | One-line answer from section 4; cut it. |
