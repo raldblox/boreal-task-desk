@@ -272,7 +272,7 @@ export async function handleA2A(method: string, params: unknown, caller: Caller 
     if (isSummary(value)) return { result: { task: a2aTask(value, value) }, writes };
     const nested = (value as { task?: unknown } | null)?.task;
     if (isSummary(nested)) return { result: { task: a2aTask(nested, value) }, writes };
-    if (typeof args.taskId === "string" && !(value instanceof Raw) && action !== "get_ledger" && action !== "get_trail") {
+    if (typeof args.taskId === "string" && !(value instanceof Raw) && action !== "get_ledger" && action !== "get_trail" && action !== "get_review_proof") {
       // fund_task's payment requirement: the task waits on the requester.
       const { value: task } = (await runTool("get_task", { taskId: args.taskId }, caller, req))!;
       if (isSummary(task)) return { result: { task: a2aTask(task, value) }, writes };

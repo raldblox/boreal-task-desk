@@ -1,5 +1,6 @@
 import "server-only";
 
+import { proofChecks } from "@boreal/brain";
 import { isNearRequirement, isPayPalRequirement } from "@boreal/concordium";
 import { postTaskInput, quoteFees, TASK_STATUSES } from "@boreal/core";
 import type { Task } from "@boreal/db";
@@ -75,6 +76,30 @@ function summary(task: Task) {
     ...("fulfilledBy" in task ? { fulfilledBy: (task as { fulfilledBy: "person" | "agent" | null }).fulfilledBy } : {}),
     test: task.test,
   };
+}
+
+/** The verdict that stands, for an agent: outcome, rules, reasoning, and whether a private review's proof checks out. */
+export async function agentVerdict(caller: Caller, taskId: string) {
+  const desk = getDesk();
+  const [verdict, proof] = await Promise.all([desk.getVerdict(caller, taskId), desk.getReviewProof(caller, taskId)]);
+  if (!verdict) return null;
+  const checks = proof ? proofChecks(proof) : null;
+  return {
+    outcome: verdict.outcome,
+    ruleIds: verdict.ruleIds,
+    reasoning: verdict.reasoning,
+    by: verdict.by,
+    at: verdict.at,
+    privateReview: verdict.privateReview && checks ? { ...verdict.privateReview, proofChecksOut: checks.every((c) => c.ok) } : null,
+  };
+}
+
+/** A private review's full proof with each check's result, or null. */
+export async function reviewProofFor(caller: Caller, taskId: string) {
+  const proof = await getDesk().getReviewProof(caller, taskId);
+  if (!proof) return null;
+  const checks = proofChecks(proof);
+  return { checksOut: checks.every((c) => c.ok), checks, proof, verifier: "https://github.com/nearai/nearai-cloud-verifier" };
 }
 
 const ok = (value: unknown): ToolResult => ({ content: [{ type: "text", text: JSON.stringify(value, null, 2) }] });
@@ -450,8 +475,22 @@ export function registerTools(server: McpServer): void {
     },
     tool(async (caller, { taskId: id }: { taskId: string }) => {
       const task = await desk.getTask(caller, id);
-      return { ...summary(task), escrow: moneyUsd(await desk.taskMoneyFor(task)) };
+      const [escrow, verdict] = await Promise.all([desk.taskMoneyFor(task), agentVerdict(caller, id)]);
+      return { ...summary(task), escrow: moneyUsd(escrow), verdict };
     }, { writes: false }),
+  );
+
+  server.registerTool(
+    "get_review_proof",
+    {
+      title: "Get a verdict's private-review proof",
+      description:
+        "For a verdict from boreal.work's private AI on NEAR AI Cloud: the full proof (the TEE's signature over " +
+        "the exact request and response, its signing address and the Intel TDX attestation) and the result of " +
+        "checking it now. Null when the verdict wasn't reviewed privately.",
+      inputSchema: z.object({ taskId }),
+    },
+    tool(async (caller, { taskId: id }: { taskId: string }) => reviewProofFor(caller, id), { writes: false }),
   );
 
   server.registerTool(
