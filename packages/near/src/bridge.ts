@@ -149,6 +149,8 @@ export function splitHire(paid: number | null, fallbackBudget: number): HireSpli
 
 const dollars = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
+const PAST_SCREENING: readonly string[] = ["open", "claimed", "submitted", "passed", "failed", "disputed", "final_pass", "final_fail"];
+
 export function createMarketBridge(options: MarketBridgeOptions) {
   const { desk, market, store, agentId, near, treasury, budget, fileLink, reviewBufferMs = 2 * 60 * 60 * 1000, now = () => new Date() } = options;
   const caller: Caller = { role: "requester", agentId };
@@ -185,17 +187,24 @@ export function createMarketBridge(options: MarketBridgeOptions) {
     }
   }
 
-  async function fund(job: MarketJob, taskId: string, total: number, workerPay: number) {
-    // Started first: from here the buyer can't cancel for a refund inside the window, so the
-    // treasury never funds a job that is cancelled under it.
-    await market.start(job.assignmentId);
+  /**
+   * The treasury funds the task, which sends it to screening. The market job isn't started yet,
+   * so a brief screening refuses costs the buyer nothing: the escrow goes back to the treasury
+   * and the buyer can still cancel for a full refund.
+   */
+  async function fund(job: MarketJob, taskId: string, total: number) {
     const requirement = await near.createPaymentRequest(taskId, total);
     const txHash = await treasury.transfer(requirement.payTo, BigInt(requirement.amount), fundKey(taskId), requirement.extra.memo);
     await desk.fundTask(caller, taskId, { confirm: () => near.confirmPayment(taskId, { txHash, signerId: treasury.accountId }) }, { rail: "near" });
+  }
+
+  /** Screening passed: start the market job, so the buyer knows a person is on it. */
+  async function start(job: MarketJob, taskId: string, workerPay: number, txHash: string | null) {
+    await market.start(job.assignmentId);
     await store.update(job.assignmentId, { state: "started" });
     await market.message(
       job.assignmentId,
-      `Picked up. boreal.work posted your brief for a verified human worker; boreal.work's reviewer checks the result against your brief before it comes back here. The worker is paid ${dollars(workerPay)} when it passes. Funding on NEAR: ${txHash}.`,
+      `Picked up. boreal.work screened your brief and posted it for a verified human worker; boreal.work's reviewer checks the result against your brief before it comes back here. The worker is paid ${dollars(workerPay)} when it passes.${txHash ? ` Funding on NEAR: ${txHash}.` : ""}`,
     );
   }
 
@@ -242,13 +251,20 @@ export function createMarketBridge(options: MarketBridgeOptions) {
   async function advance(job: MarketJob, report: BridgeReport) {
     if (!job.taskId) return;
     const task = await desk.getTask(caller, job.taskId);
+    // Screening passed (the task is open, or already further along if a worker was quick):
+    // start the market job before anything else.
+    if (job.state === "posted" && PAST_SCREENING.includes(task.status)) {
+      await start(job, task.id, task.budget, task.fundingTxHash);
+      job = { ...job, state: "started" };
+    }
     switch (task.status) {
       case "awaiting_funding":
         if (job.state === "posted") {
-          await fund(job, task.id, task.budget + task.platformFee + task.reviewFee, task.budget);
+          await fund(job, task.id, task.budget + task.platformFee + task.reviewFee);
           report.funded++;
         }
         return;
+
       case "refused": {
         const refusal = await desk.getRefusal(caller, task.id);
         report.closed++;

@@ -15,7 +15,7 @@ pnpm workspace. See README.md for the layout. The product spec lives in the "bor
 - PayPal is the core; NEAR and Concordium are add-ons (`BOREAL_ADDONS`, `packages/core/src/addons.ts`). With every add-on off the app must run on PayPal alone. Loaders read add-on settings only through `addonEnv()` (web: `gatedEnv()` in `apps/web/src/server/addons.ts`), and add-on UI, routes and actions check `getAddons()` / `addonRefusal()` / `requireAddonPart()` so an add-on that's off or blocked says why instead of failing.
 - `packages/concordium` holds the interfaces, stand-in (`dev`) adapters and the testnet adapters (`CONCORDIUM_MODE=testnet`). Never set `CONCORDIUM_MODE=dev` against the production database: the stand-ins accept fake payments.
 - A payout or refund is journaled on its outbox row before it is sent, and resent only once the chain can never execute the first one.
-- Funding confirms the payment inside `fundTask`'s checks, so a refused task never takes money.
+- A task is funded before it is screened: posting only quotes (`awaiting_funding`), funding holds the money and sends it to screening (`posted`). Nothing is screened, by a person or an AI, until its money is held. A refused task's money is released in full (a PayPal hold is voided). Funding still confirms the payment inside `fundTask`'s checks, so a task its checks refuse never takes money. AI screening runs by default; `AI_SCREENING=off` leaves it to people in `/admin`.
 - The AI reviewer (`packages/brain`) never changes state itself: `runAiReview` feeds its result to the desk, and anything undecided goes to `flagForHuman`. Keep `rulebook.ts` in sync with the spec's Rulebook tab.
 
 ## Conventions

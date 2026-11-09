@@ -1,5 +1,10 @@
 // The task state machine. Only code moves a task between states, never the AI:
 // every transition names the actor allowed to make it (see "Decision rights" in the spec).
+//
+// A task is funded before it is screened: posting gives a quote (awaiting_funding), funding
+// holds the money and sends it to screening (posted), and screening opens it to workers or
+// refuses it, which releases the money in full. Nothing is screened, by a person or an AI,
+// until its money is held.
 
 export const TASK_STATUSES = [
   "posted",
@@ -48,11 +53,11 @@ interface Transition {
 }
 
 const TRANSITIONS: Record<TaskEventType, Transition> = {
-  screen_ok: { from: ["posted"], to: "awaiting_funding", by: ["reviewer"] },
+  fund: { from: ["awaiting_funding"], to: "posted", by: ["requester"] },
+  screen_ok: { from: ["posted"], to: "open", by: ["reviewer"] },
   screen_refused: { from: ["posted"], to: "refused", by: ["reviewer", "system"] },
-  fund: { from: ["awaiting_funding"], to: "open", by: ["requester"] },
-  cancel: { from: ["posted", "awaiting_funding", "open"], to: "cancelled", by: ["requester"] },
-  deadline_passed: { from: ["open"], to: "expired", by: ["system"] },
+  cancel: { from: ["awaiting_funding", "posted", "open"], to: "cancelled", by: ["requester"] },
+  deadline_passed: { from: ["posted", "open"], to: "expired", by: ["system"] },
   claim: { from: ["open"], to: "claimed", by: ["worker"] },
   release: { from: ["claimed"], to: "open", by: ["worker"] },
   claim_expired: { from: ["claimed"], to: "open", by: ["system"] },

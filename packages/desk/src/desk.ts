@@ -240,7 +240,9 @@ export function createDesk({
       // Money moves only when a task reaches a final state.
       if (next.status === "final_pass") await settle(tx, updated!, "pass", at);
       if (next.status === "final_fail") await settle(tx, updated!, "fail", at);
-      if (next.status === "expired" || (next.status === "cancelled" && task.status === "open")) {
+      // Funded tasks only: since funding comes before screening, a refusal or a cancel during
+      // screening releases the money in full, like an expiry or a cancel once open.
+      if (next.status === "expired" || next.status === "refused" || (next.status === "cancelled" && (task.status === "open" || task.status === "posted"))) {
         await settle(tx, updated!, "refund", at);
       }
 
@@ -566,6 +568,13 @@ export function createDesk({
       }
 
       const quote = quoteFees(data.budget, { reviewer: data.reviewer });
+      const [drafts] = await db
+        .select({ n: sql<number>`count(*)::int` })
+        .from(tasks)
+        .where(and(eq(tasks.agentId, agent.id), eq(tasks.status, "awaiting_funding")));
+      if ((drafts?.n ?? 0) >= POLICY.maxUnfundedTasks) {
+        throw new DeskError("limit", `you have ${POLICY.maxUnfundedTasks} tasks waiting for funding; fund or cancel one before posting another`);
+      }
       const posted = await db.transaction(async (tx) => {
         const [task] = await tx
           .insert(tasks)
@@ -583,6 +592,8 @@ export function createDesk({
             test: agent.testMode,
             reviewMode: data.reviewer,
             fulfillers: data.fulfillers,
+            // A quote until it's funded; screening only starts once the money is held.
+            status: "awaiting_funding",
             createdAt: at,
             updatedAt: at,
           })
@@ -590,16 +601,7 @@ export function createDesk({
         await appendEvent(tx, { taskId: task!.id, type: "posted", actor: "requester", payload: data, at });
         return { task: task!, quote };
       });
-      if (!agent.testMode && !autoScreen) return posted;
-      // Test agents, and every task where auto-screening is on (testnet), skip the reviewer's
-      // screening; the trail records who passed it and why.
-      const screener = agent.testMode ? TEST_SCREENER : AUTO_SCREENER;
-      const screened = await mutate(posted.task.id, screener, { type: "screen_ok" }, {
-        payload: agent.testMode
-          ? { outcome: "ok", reasoning: "Test agent: screening skipped.", reviewerRef: "test-mode" }
-          : { outcome: "ok", reasoning: "Auto-screened: this deployment passes every task without a reviewer.", reviewerRef: "auto-screen" },
-      });
-      return { task: screened, quote };
+      return posted;
     },
 
     async screenTask(
@@ -620,10 +622,27 @@ export function createDesk({
     },
 
     /**
-     * fund_task. With `confirm`, the payment settles only after the task's own checks pass,
-     * so a refused task never takes money. The amount must match the quote exactly.
+     * fund_task. Holds the money, then the task goes to screening: nothing is screened until
+     * it's funded. With `confirm`, the payment settles only after the task's own checks pass, and
+     * a task screening then refuses has its money released in full. The amount must match the
+     * quote exactly.
      */
     async fundTask(caller: Caller, taskId: string, payment: FundingPayment, options: { rail?: PaymentRail } = {}) {
+      requireRole(caller, "requester");
+      const funded = await commands.holdFunding(caller, taskId, payment, options);
+      const [agent] = await db.select().from(agents).where(eq(agents.id, funded.agentId));
+      if (!agent?.testMode && !autoScreen) return funded;
+      // Test agents, and every task where auto-screening is on (testnet), skip the reviewer's
+      // screening; the trail records who passed it and why.
+      return mutate(funded.id, agent!.testMode ? TEST_SCREENER : AUTO_SCREENER, { type: "screen_ok" }, {
+        payload: agent!.testMode
+          ? { outcome: "ok", reasoning: "Test agent: screening skipped.", reviewerRef: "test-mode" }
+          : { outcome: "ok", reasoning: "Auto-screened: this deployment passes every task without a reviewer.", reviewerRef: "auto-screen" },
+      });
+    },
+
+    /** Holds a task's money and sends it to screening. With `confirm`, the payment settles inside the task's own checks. */
+    async holdFunding(caller: Caller, taskId: string, payment: FundingPayment, options: { rail?: PaymentRail } = {}) {
       requireRole(caller, "requester");
       let settled: ConfirmedPayment | undefined;
       return mutate(taskId, caller, { type: "fund" }, {
@@ -937,7 +956,8 @@ export function createDesk({
     },
 
     async expireDeadlines() {
-      return sweep(and(eq(tasks.status, "open"), lte(tasks.deadline, now())), {
+      // A funded task still in screening at its deadline expires too, and its money goes back.
+      return sweep(and(inArray(tasks.status, ["posted", "open"]), lte(tasks.deadline, now())), {
         type: "deadline_passed",
       });
     },

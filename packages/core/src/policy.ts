@@ -8,6 +8,8 @@ export const POLICY = {
   reconcileIntervalMs: 5 * 60 * 1000,
   /** Beta ceilings, in minor units. */
   maxTaskBudget: 5_000,
+  /** Tasks a requester can have posted but not yet funded. Nothing is screened until it's funded. */
+  maxUnfundedTasks: 5,
   maxAgentDailySpend: 50_000,
   /**
    * Agents without a Verified by Concordium badge stay under these, whatever their owner sets.

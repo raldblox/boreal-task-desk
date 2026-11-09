@@ -173,7 +173,7 @@ export const tasks = pgTable(
     agentId: uuid("agent_id")
       .notNull()
       .references(() => agents.id),
-    status: taskStatus("status").notNull().default("posted"),
+    status: taskStatus("status").notNull().default("awaiting_funding"),
     description: text("description").notNull(),
     acceptanceCriteria: jsonb("acceptance_criteria").$type<string[]>().notNull(),
     requiredAttributes: jsonb("required_attributes")

@@ -13,9 +13,9 @@ function run(start: TaskSnapshot, steps: [TaskEvent, Actor][]): TaskSnapshot {
 
 describe("transition", () => {
   it("walks the happy path to a final pass", () => {
-    const end = run(at("posted"), [
-      [{ type: "screen_ok" }, "reviewer"],
+    const end = run(at("awaiting_funding"), [
       [{ type: "fund" }, "requester"],
+      [{ type: "screen_ok" }, "reviewer"],
       [{ type: "claim", workerId: "w1" }, "worker"],
       [{ type: "submit" }, "worker"],
       [{ type: "verdict_pass", ruleIds: ["R4.2"] }, "reviewer"],
@@ -75,5 +75,22 @@ describe("transition", () => {
     expect(() => transition(at("final_pass"), { type: "claim", workerId: "w1" }, "worker")).toThrow(
       /not allowed from final_pass/,
     );
+  });
+});
+
+describe("fund before screening", () => {
+  it("screens nothing until it's funded", () => {
+    expect(() => transition({ status: "awaiting_funding", disputeUsed: false }, { type: "screen_ok" }, "reviewer")).toThrow(/not allowed from awaiting_funding/);
+    expect(transition({ status: "awaiting_funding", disputeUsed: false }, { type: "fund" }, "requester").status).toBe("posted");
+  });
+
+  it("opens a funded task on a clean screening and refuses it otherwise", () => {
+    expect(transition({ status: "posted", disputeUsed: false }, { type: "screen_ok" }, "reviewer").status).toBe("open");
+    expect(transition({ status: "posted", disputeUsed: false }, { type: "screen_refused", ruleIds: ["R2.2"] }, "reviewer").status).toBe("refused");
+  });
+
+  it("lets a funded task in screening be cancelled or expire", () => {
+    expect(transition({ status: "posted", disputeUsed: false }, { type: "cancel" }, "requester").status).toBe("cancelled");
+    expect(transition({ status: "posted", disputeUsed: false }, { type: "deadline_passed" }, "system").status).toBe("expired");
   });
 });

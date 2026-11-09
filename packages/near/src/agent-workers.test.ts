@@ -56,7 +56,7 @@ async function signInAgent(account: ReturnType<typeof agentAccount>, at = clock)
   return desk.signInAgentWorker(accountId, signedAt);
 }
 
-/** Posts, screens and funds a task on the NEAR rail, the way an agent pays: ft_transfer, then fund. */
+/** Posts, funds and screens a task on the NEAR rail, the way an agent pays: ft_transfer, then fund. */
 async function fundedTask(input: Record<string, unknown>) {
   const { task, quote } = await desk.postTask(requester, {
     description: "Summarise the three main points of the attached public council minutes in plain English.",
@@ -66,9 +66,9 @@ async function fundedTask(input: Record<string, unknown>) {
     deadline: new Date(clock.getTime() + 24 * HOUR).toISOString(),
     ...input,
   });
-  await desk.screenTask(reviewer, task.id, { outcome: "ok" });
   const tx = chain.externalTransfer("hermes.testnet", ESCROW, BigInt(quote.total) * near.scale, fundingMemo(task.id));
-  return desk.fundTask(requester, task.id, { confirm: () => near.confirmPayment(task.id, { txHash: tx, signerId: "hermes.testnet" }) }, { rail: "near" });
+  await desk.fundTask(requester, task.id, { confirm: () => near.confirmPayment(task.id, { txHash: tx, signerId: "hermes.testnet" }) }, { rail: "near" });
+  return desk.screenTask(reviewer, task.id, { outcome: "ok" });
 }
 
 beforeEach(async () => {

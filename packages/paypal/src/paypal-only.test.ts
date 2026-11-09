@@ -60,7 +60,9 @@ beforeEach(async () => {
     cancelUrl: "http://localhost:3000/paypal/cancelled",
     escrowBalance: () => ledgerEscrowBalance(db, "paypal"),
   });
+  // Screening isn't what these tests are about: a funded task opens at once, as on testnet.
   desk = createDesk({
+    autoScreen: true,
     db,
     now: () => clock,
     concordium: null,
@@ -94,7 +96,6 @@ const taskInput = (overrides: Record<string, unknown> = {}) => ({
 
 async function screened(requester: Caller, overrides: Record<string, unknown> = {}) {
   const { task, quote } = await desk.postTask(requester, taskInput(overrides));
-  await desk.screenTask(reviewer, task.id, { outcome: "ok" });
   return { task, quote };
 }
 

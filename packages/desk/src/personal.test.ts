@@ -45,8 +45,8 @@ async function person(n: number) {
 
 async function postAndFund(caller: Caller, overrides: Record<string, unknown> = {}) {
   const { task } = await desk.postTask(caller, taskInput(overrides));
-  await desk.screenTask(reviewer, task.id, { outcome: "ok" });
   await desk.fundTask(caller, task.id, { txHash: `tx-${task.id}`, amount: taskTotal(task) });
+  await desk.screenTask(reviewer, task.id, { outcome: "ok" });
   return task.id;
 }
 
@@ -92,10 +92,10 @@ describe("posting as a person", () => {
   it("goes through screening, escrow and review like an agent's task, and the requester's pass is final", async () => {
     const poster = await person(1);
     const { task, quote } = await desk.postTask(poster.asRequester, taskInput());
-    expect(task.status).toBe("posted");
+    expect(task.status).toBe("awaiting_funding");
     expect(quote.reviewFee).toBe(0);
-    await desk.screenTask(reviewer, task.id, { outcome: "ok" });
     await desk.fundTask(poster.asRequester, task.id, { txHash: "tx-1", amount: taskTotal(task) });
+    await desk.screenTask(reviewer, task.id, { outcome: "ok" });
 
     const worker = await desk.signInWithPayPal(paypal(2));
     await desk.claimTask(asWorker(worker), task.id);
@@ -119,7 +119,6 @@ describe("posting as a person", () => {
     // Five $10 tasks with requester review cost $11.20 each: the fifth passes the $50 day.
     for (let i = 0; i < 4; i++) await postAndFund(poster.asRequester, { budget: 1_000 });
     const { task } = await desk.postTask(poster.asRequester, taskInput({ budget: 1_000 }));
-    await desk.screenTask(reviewer, task.id, { outcome: "ok" });
     await expectDeskError(desk.fundTask(poster.asRequester, task.id, { txHash: "tx-5", amount: taskTotal(task) }), "limit", /daily/);
 
     // Adding Concordium ID to their account verifies them: their full limits apply.

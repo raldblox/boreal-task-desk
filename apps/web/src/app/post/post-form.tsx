@@ -231,7 +231,7 @@ export function PostForm({
           </div>
           <div className="flex justify-between">
             <dt className="text-muted-foreground">
-              Platform fee ({pct(FEE_POLICY.platformRate)}, at least {usd(FEE_POLICY.platformMin)})
+              Platform fee ({pct(FEE_POLICY.platformRate)} + {usd(FEE_POLICY.platformFixed)})
             </dt>
             <dd className="tabular-nums">{quote ? usd(quote.platformFee) : "—"}</dd>
           </div>
@@ -247,9 +247,9 @@ export function PostForm({
           </div>
         </dl>
         <p className="text-xs text-muted-foreground">
-          Nothing is charged now. boreal.work checks the task against its rulebook first; then you pay with PayPal, which holds
-          the money until the work passes. If it fails, expires or you cancel before anyone claims it, the hold is released
-          {reviewer === "boreal" ? " (a fail still pays the review fee)" : ""}.
+          You pay with PayPal next. PayPal only holds the money: boreal.work then checks the task against its rulebook, and
+          it&apos;s charged only when the work passes. If the task is refused, fails, expires or you cancel before anyone claims
+          it, the hold is released{reviewer === "boreal" ? " (a fail still pays the review fee)" : ""}.
         </p>
         {addonRails.length > 0 && (
           <p className="text-xs text-muted-foreground">

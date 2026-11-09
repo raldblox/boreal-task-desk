@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { FEE_POLICY } from "@boreal/core";
-import { BadgeCheck, Camera, Fingerprint, Landmark, ScrollText, Wallet } from "lucide-react";
+import { BadgeCheck, Camera, Fingerprint, Landmark, LockKeyhole, ScrollText, Wallet } from "lucide-react";
 import { Suspense } from "react";
 
 import { Container, Cta, Kicker, MoreLink, Section } from "@/components/page";
 import { RegistryBadge } from "@/components/registry-badge";
 import { Badge } from "@/components/ui/badge";
 import { GUIDE_FACTS, MCP_URL, SITE } from "@/content/agent-guide";
+import { getAddons } from "@/server/addons";
 
 export const metadata: Metadata = { alternates: { canonical: "/" } };
 
@@ -42,7 +43,15 @@ const steps = [
   },
 ];
 
-const pillars = [
+// Shown only where private review is on (the NEAR integration with a NEAR AI key).
+const PRIVATE_REVIEW = {
+  icon: LockKeyhole,
+  title: "Private AI review",
+  body: "Screening and review run inside sealed hardware (a TEE) on NEAR AI Cloud. No outside AI company can read a task or a worker's photos, and every verdict carries a signature anyone can check.",
+  badge: "Powered by NEAR AI Cloud · TEE",
+};
+
+const pillars: { icon: typeof BadgeCheck; title: string; body: string; badge?: string }[] = [
   {
     icon: BadgeCheck,
     title: "Verified on both sides",
@@ -91,6 +100,7 @@ function SampleTask() {
 }
 
 export default function Home() {
+  const privateReview = getAddons().ready("near", "privateReview");
   return (
     <main className="flex-1">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
@@ -137,12 +147,17 @@ export default function Home() {
       </Section>
 
       <Section band kicker="Built for trust" title="Fair to the people doing the work" action={<MoreLink href="/terms">Read the rules</MoreLink>}>
-        <div className="grid gap-6 md:grid-cols-3">
-          {pillars.map(({ icon: Icon, title, body }) => (
+        <div className={`grid gap-6 md:grid-cols-2 ${privateReview ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
+          {(privateReview ? [...pillars, PRIVATE_REVIEW] : pillars).map(({ icon: Icon, title, body, badge }) => (
             <div key={title} className="flex flex-col gap-4">
               <Icon className="size-6 text-primary" />
               <h3 className="text-xl font-normal tracking-tight">{title}</h3>
               <p className="leading-relaxed text-muted-foreground">{body}</p>
+              {badge && (
+                <Badge variant="outline" className="w-fit">
+                  {badge}
+                </Badge>
+              )}
             </div>
           ))}
         </div>
@@ -163,7 +178,7 @@ export default function Home() {
               ))}
             </div>
             <p className="text-sm text-muted-foreground">
-              Fees: {Math.round(FEE_POLICY.platformRate * 100)}% platform, {Math.round(FEE_POLICY.reviewRate * 100)}% review (none when you
+              Fees: {Math.round(FEE_POLICY.platformRate * 100)}% + ${(FEE_POLICY.platformFixed / 100).toFixed(2)} platform, {Math.round(FEE_POLICY.reviewRate * 100)}% review (none when you
               review yourself).
             </p>
             <div>
@@ -173,7 +188,7 @@ export default function Home() {
           <div className="flex flex-col gap-3">
             <p className="text-sm font-medium">Connect Claude Code</p>
             <pre className="overflow-x-auto rounded-2xl bg-foreground p-6 font-mono text-xs leading-relaxed text-background">
-              {`claude mcp add --transport http boreal.work \\
+              {`claude mcp add --transport http boreal \\
   ${MCP_URL} \\
   --header "Authorization: Bearer bk_…"`}
             </pre>

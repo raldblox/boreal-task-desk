@@ -118,10 +118,10 @@ async function passedTask() {
     budget: 1_000,
     deadline: new Date(clock.getTime() + 24 * HOUR).toISOString(),
   });
-  await desk.screenTask(reviewer, task.id, { outcome: "ok" });
   const requirement: PaymentRequirement = await concordium.payments.createPaymentRequest(task.id, quote.total);
   const payment = { x402Version: 2, accepted: requirement, payload: { signedTransaction: { version: 1 } } };
   await desk.fundTask(requester, task.id, { confirm: () => concordium.payments.confirmPayment(task.id, payment) });
+  await desk.screenTask(reviewer, task.id, { outcome: "ok" });
 
   const worker = await desk.signInVerifiedWorker({ pseudonym: "ccdid:ph-1", provenAttributes: {} });
   await db.update(workers).set({ payoutAddress: "worker-account" }).where(eq(workers.id, worker.id));

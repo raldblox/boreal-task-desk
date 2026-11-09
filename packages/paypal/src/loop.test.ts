@@ -37,7 +37,9 @@ beforeEach(async () => {
     escrowBalance: () => ledgerEscrowBalance(db),
   });
   const concordium = createDevConcordium({ secret: "s".repeat(32), now: () => clock });
+  // Screening isn't what these tests are about: a funded task opens at once, as on testnet.
   desk = createDesk({
+    autoScreen: true,
     db,
     now: () => clock,
     concordium,
@@ -69,7 +71,6 @@ async function screenedTask() {
     budget: 1_000,
     deadline: new Date(clock.getTime() + 24 * HOUR).toISOString(),
   });
-  await desk.screenTask(reviewer, task.id, { outcome: "ok" });
   return { task, quote };
 }
 
@@ -139,7 +140,7 @@ describe("PayPal rail", () => {
 
   it("keeps the review fee in boreal's PayPal when no reviewer email is set", async () => {
     // boreal reviewing itself: no PayPal payee for its reviewer, so the fee stays put.
-    desk = createDesk({ db, now: () => clock, payments });
+    desk = createDesk({ db, now: () => clock, payments, autoScreen: true });
     const { task, quote } = await fundedTask();
     await submitted(task.id);
     await desk.recordVerdict(reviewer, task.id, { outcome: "pass", ruleIds: ["R5.2"], reasoning: "Shelf and tag visible" });
@@ -161,7 +162,7 @@ describe("PayPal rail", () => {
     await desk.acceptEarly(requester, task.id);
     await desk.drainOutbox(); // capture: queues worker and reviewer payouts (an email was set then)
     // The reviewer email is removed before the payout goes out.
-    desk = createDesk({ db, now: () => clock, payments });
+    desk = createDesk({ db, now: () => clock, payments, autoScreen: true });
     expect(await desk.drainOutbox()).toEqual({ sent: 2, failed: 0 });
     expect(paypal.payouts.map((p) => p.senderBatchId)).toEqual([`${task.id}:pay-worker`]);
     expect((await ledger(task.id)).find((e) => e.toAccount === "reviewer")).toMatchObject({

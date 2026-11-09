@@ -62,11 +62,14 @@ describe("tick", () => {
       budget: 500,
       deadline: new Date(clock.getTime() + 48 * 3600_000).toISOString(),
     });
+    // Nothing to screen until it's funded.
+    expect((await monitor(passAll).tick()).ai).toMatchObject({ screened: 0 });
+    await desk.fundTask(requester, task.id, { txHash: "t", amount: task.budget + task.platformFee + task.reviewFee });
+    clock = new Date(clock.getTime() + 61_000);
     const report = await monitor(passAll).tick();
     expect(report.ai).toMatchObject({ screened: 1 });
-    expect((await desk.getTask(requester, task.id)).status).toBe("awaiting_funding");
+    expect((await desk.getTask(requester, task.id)).status).toBe("open");
 
-    await desk.fundTask(requester, task.id, { txHash: "t", amount: task.budget + task.platformFee + task.reviewFee });
     await desk.claimTask(worker, task.id);
     clock = new Date(clock.getTime() + 5 * 3600_000);
     const later = await monitor(passAll).tick();
@@ -76,13 +79,14 @@ describe("tick", () => {
 
   it("keeps going when a step fails and reports the error", async () => {
     const broken: Reviewer = { ...passAll, screen: async () => { throw new Error("boom"); } };
-    await desk.postTask(requester, {
+    const { task } = await desk.postTask(requester, {
       description: "Photograph item X on the shelf at the Manila shop, with its price tag visible.",
       acceptanceCriteria: ["Photo shows item X on a shelf"],
       resultFormat: "photo",
       budget: 500,
       deadline: new Date(clock.getTime() + 48 * 3600_000).toISOString(),
     });
+    await desk.fundTask(requester, task.id, { txHash: "t", amount: task.budget + task.platformFee + task.reviewFee });
     const report = await monitor(broken).tick();
     expect(report.ran).toBe(true);
     expect(report.errors).toEqual(["ai-review: boom"]);

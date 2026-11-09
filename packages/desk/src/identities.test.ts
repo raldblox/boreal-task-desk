@@ -39,8 +39,8 @@ async function openTask(requiredAttributes: { attribute: string; value?: string 
     budget: 500,
     deadline: new Date(Date.now() + 24 * 3600_000).toISOString(),
   });
-  await desk.screenTask(reviewer, task.id, { outcome: "ok" });
   await desk.fundTask(requester, task.id, { txHash: `tx-${task.id}`, amount: taskTotal(task) });
+  await desk.screenTask(reviewer, task.id, { outcome: "ok" });
   return task.id;
 }
 

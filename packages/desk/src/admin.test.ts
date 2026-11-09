@@ -31,14 +31,16 @@ async function expectDeskError(promise: Promise<unknown>, code: DeskError["code"
   await expect(promise).rejects.toSatisfy((e: unknown) => e instanceof DeskError && e.code === code);
 }
 
+/** Posted and funded: waiting for screening, the first thing in the admin queue. */
 async function posted() {
-  return (await desk.postTask(requester, taskInput())).task.id;
+  const id = (await desk.postTask(requester, taskInput())).task.id;
+  await desk.fundTask(requester, id, { txHash: `tx-${id}`, amount: quoteFees(1_000).total });
+  return id;
 }
 
 async function submitted() {
   const id = await posted();
   await desk.adminScreenTask(admin, id, { outcome: "ok" }, "Clear, lawful task");
-  await desk.fundTask(requester, id, { txHash: `tx-${id}`, amount: quoteFees(1_000).total });
   await desk.claimTask(worker, id);
   await desk.submitResult(worker, id, { text: "Item X is on the shelf at 99 pesos." });
   return id;
@@ -90,7 +92,6 @@ describe("admin review", () => {
     expect((await desk.adminReviewQueue()).map((t) => t.id)).toEqual([id]);
 
     await desk.adminScreenTask(admin, id, { outcome: "ok" }, "Clear, lawful task");
-    await desk.fundTask(requester, id, { txHash: `tx-${id}`, amount: quoteFees(1_000).total });
     await desk.claimTask(worker, id);
     await desk.submitResult(worker, id, { text: "done" });
     expect((await desk.adminReviewQueue()).map((t) => t.status)).toEqual(["submitted"]);
@@ -172,7 +173,8 @@ describe("admin views", () => {
     ]);
     expect(overview.queue).toMatchObject({ screen: 1, review: 0, human: 0, disputed: 0 });
     const quote = quoteFees(1_000);
-    expect(overview.windows[0]).toMatchObject({ days: 1, posted: { live: 2, test: 0 }, funded: { n: 1, amount: quote.total } });
+    // Both are funded: the one still in screening holds its money too.
+    expect(overview.windows[0]).toMatchObject({ days: 1, posted: { live: 2, test: 0 }, funded: { n: 2, amount: 2 * quote.total } });
     // Payouts are queued, not yet sent.
     expect(overview.windows[0]!.paid.amount).toBe(0);
     expect(overview.outbox.find((o) => o.kind === "payout")?.n).toBe(3);
@@ -197,7 +199,7 @@ describe("admin views", () => {
     expect(detail.submission?.text).toContain("99 pesos");
     expect(detail.worker).toEqual({ pseudonym: "ccdid:worker-1", provenAttributes: { residency: "PH" }, testMode: false });
     expect(detail.money.state).toBe("held");
-    expect(detail.trail.map((e) => e.type)).toEqual(["posted", "screen_ok", "fund", "claim", "submit"]);
+    expect(detail.trail.map((e) => e.type)).toEqual(["posted", "fund", "screen_ok", "claim", "submit"]);
     await expectDeskError(desk.adminTask("not-a-task"), "not_found");
   });
 
@@ -216,7 +218,6 @@ describe("admin views", () => {
   it("charts posting, funding and verdicts per day, with pass rate and times", async () => {
     const id = await posted();
     await desk.adminScreenTask(admin, id, { outcome: "ok" }, "Clear, lawful task");
-    await desk.fundTask(requester, id, { txHash: `tx-${id}`, amount: quoteFees(1_000).total });
     clock = new Date(clock.getTime() + 2 * HOUR);
     await desk.claimTask(worker, id);
     await desk.submitResult(worker, id, { text: "done" });

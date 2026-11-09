@@ -20,7 +20,12 @@ export interface ReviewPass {
 export async function runAiReview(
   desk: Desk,
   reviewer: Reviewer,
-  options: { readFile: ReadFile; limit?: number },
+  options: {
+    readFile: ReadFile;
+    limit?: number;
+    /** False leaves screening to people (/admin): AI_SCREENING=off. Reviews still run. */
+    screen?: boolean;
+  },
 ): Promise<ReviewPass> {
   const pass: ReviewPass = { screened: 0, reviewed: 0, toHumans: 0, deferred: 0 };
 
@@ -44,7 +49,7 @@ export async function runAiReview(
     }
   }
 
-  for (const task of await desk.aiQueue("screen", options.limit)) {
+  for (const task of options.screen === false ? [] : await desk.aiQueue("screen", options.limit)) {
     await guarded(async () => {
       const result = await reviewer.screen({
         description: task.description,

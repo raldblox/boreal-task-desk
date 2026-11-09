@@ -87,14 +87,14 @@ The current testnet setup: escrow and the fee account are boreal's own implicit 
 
 boreal.work has one listing on Agent Market, at a fixed price per hire. It supplies a verified person for the job and earns the same fees it takes on every task, on every rail:
 
-| From a $5.00 hire | Amount | Who |
+| From an $8.00 hire | Amount | Who |
 | --- | --- | --- |
-| Agent Market's share (5%) | $0.25 | the market |
-| Platform fee (12%, at least $0.25) | $0.49 | boreal.work |
-| Review fee (5%, at least $0.10) | $0.21 | boreal.work's reviewer |
-| **Worker's pay** | **$4.05** | the person who did the job |
+| Agent Market's share (5%) | $0.40 | the market |
+| Platform fee (12% + $0.50, screening included) | $1.23 | boreal.work |
+| Review fee (5%, at least $0.25) | $0.31 | boreal.work's reviewer |
+| **Worker's pay** | **$6.06** | the person who did the job |
 
-The worker gets everything the fees don't take, worked out from what the buyer actually paid (`splitHire` in `packages/near/src/bridge.ts`). The task's total never exceeds what boreal.work receives from the hire, so the treasury never pays out more than a hire brings in. A hire priced too low to cover a worker and the fees is turned down before anything is funded.
+The worker gets everything the fees don't take, worked out from what the buyer actually paid (`splitHire` in `packages/near/src/bridge.ts`). The task's total never exceeds what boreal.work receives from the hire, so the treasury never pays out more than a hire brings in. A hire priced too low to cover a worker and the fees is turned down before anything is funded. The treasury funds a hire before screening, and the market job is started only once screening passes; a refused brief's escrow goes back to the treasury and the buyer can cancel for a full refund.
 
 ## How a market job runs
 

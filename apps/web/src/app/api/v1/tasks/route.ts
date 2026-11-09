@@ -17,7 +17,7 @@ export async function GET(request: Request) {
 }
 
 
-// post_task. Funding opens once x402 is wired; until then a task waits in awaiting_funding.
+// post_task. A new task waits in awaiting_funding; it is screened once funded.
 export async function POST(request: Request) {
   return asRequester(request, async (caller) => {
     const result = await getDesk().postTask(caller, await readJson(request));

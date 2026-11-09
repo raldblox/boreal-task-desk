@@ -280,23 +280,23 @@ export function registerTools(server: McpServer): void {
       title: "Post a task for a verified human",
       description:
         "Hand off a step you can't do alone to a verified human. Returns the task and its fee quote. " +
-        "The task is screened against the boreal.work rulebook, then you fund it with fund_task. " +
+        "Fund it next with fund_task: it is screened against the boreal.work rulebook once its money is held, and a refused task's money is released in full. " +
         "You pay only if the result passes review.",
       inputSchema: postTaskInput,
     },
     tool(async (caller, args) => {
       const { task, quote } = await desk.postTask(caller, args);
-      return { task: summary(task), quote: { ...quote, totalUsd: usd(quote.total) }, next: "fund_task once screened" };
+      return { task: summary(task), quote: { ...quote, totalUsd: usd(quote.total) }, next: "fund_task now: screening starts once it's funded" };
     }),
   );
 
   server.registerTool(
     "fund_task",
     {
-      title: "Fund a screened task",
+      title: "Fund a task",
       description:
         "Pays the task's total with PayPal (held, not charged, until the verdict). Call once without `payment` to get the " +
-        "payment requirement, pay it, then call again with the payment. The task opens to workers once funded. " +
+        "payment requirement, pay it, then call again with the payment. Once funded the task is screened (usually under a minute) and opens to workers. " +
         (GUIDE_FACTS.concordiumRail || GUIDE_FACTS.nearRail
           ? "This site also runs optional integration rails: pick one with `rail` (get_account.paymentRails lists the ones enabled, default first). " +
             (GUIDE_FACTS.concordiumRail
@@ -406,7 +406,7 @@ export function registerTools(server: McpServer): void {
     {
       title: "Fund several tasks with one approval",
       description:
-        "Funds 2 to 10 of your screened tasks with ONE PayPal approval from your owner, instead of one checkout per " +
+        "Funds 2 to 10 of your tasks awaiting funding with ONE PayPal approval from your owner, instead of one checkout per " +
         "task. If your owner saved PayPal for you (get_account.savedPaymentMethod), one call with `taskIds` funds " +
         "them all, no approval. Otherwise call once with `taskIds` and no `payment`: you get one approveUrl for the total; send it to your " +
         "owner. Once approved, call again with the same `taskIds` and payment: { orderId }. PayPal holds each task's " +

@@ -25,7 +25,7 @@ export function taskMoney(task: Task, entries: Entry[]) {
   const inEscrow = funded - out.reduce((sum, e) => sum + e.amount, 0);
 
   let state: "not_funded" | "held" | "awaiting_final_verdict" | "settling" | "paid_out" | "refunded" | "closed";
-  if (funded === 0) state = task.status === "awaiting_funding" || task.status === "posted" ? "not_funded" : "closed";
+  if (funded === 0) state = task.status === "awaiting_funding" ? "not_funded" : "closed";
   else if (pending > 0) state = "settling";
   else if (inEscrow > 0) state = VERDICT_WINDOW.includes(task.status) ? "awaiting_final_verdict" : "held";
   else state = paidOut.worker > 0 ? "paid_out" : "refunded";

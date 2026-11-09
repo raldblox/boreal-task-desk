@@ -15,7 +15,7 @@ const EMAIL = /[^@\s"'<>]+@[^@\s"'<>]+\.[a-z]{2,}/gi;
 export const STUCK_AFTER_MS = 2 * HOUR;
 
 /** Where a task got to, in funnel order. */
-export const FUNNEL = ["posted", "screened", "funded", "claimed", "submitted", "decided", "paid"] as const;
+export const FUNNEL = ["posted", "funded", "screened", "claimed", "submitted", "decided", "paid"] as const;
 export type FunnelStage = (typeof FUNNEL)[number];
 
 /** A pseudonym short enough for a grid cell; still the pseudonym, never anything behind it. */
@@ -137,10 +137,10 @@ export function consoleViews(db: Database, now: () => Date) {
               ? "submitted"
               : seen.has("claim")
                 ? "claimed"
-                : seen.has("fund")
-                  ? "funded"
-                  : seen.has("screen_ok")
-                    ? "screened"
+                : seen.has("screen_ok")
+                  ? "screened"
+                  : seen.has("fund")
+                    ? "funded"
                     : "posted";
         const mine = entries.filter((e) => e.taskId === task.id);
         const refunded = mine.filter((e) => e.toAccount === "requester" && e.status === "settled").reduce((s, e) => s + e.amount, 0);

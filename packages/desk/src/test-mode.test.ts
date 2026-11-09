@@ -54,6 +54,8 @@ describe("test agents and workers", () => {
   it("skips screening for a test agent, recorded in the trail", async () => {
     const { task } = await desk.postTask(hermes, input());
     expect(task).toMatchObject({ status: "awaiting_funding", test: true, reviewMode: "requester" });
+    // Funding a test agent's task opens it straight away: screening is skipped, on the record.
+    expect((await fund(hermes, task.id)).status).toBe("open");
     const [screen] = await db.select().from(taskEvents).where(eq(taskEvents.type, "screen_ok"));
     expect(screen?.payload).toMatchObject({ reviewerRef: "test-mode" });
   });
@@ -62,8 +64,8 @@ describe("test agents and workers", () => {
     const { task: testTask } = await desk.postTask(hermes, input());
     await fund(hermes, testTask.id);
     const { task: realTask } = await desk.postTask(realAgent, input("boreal"));
-    await desk.screenTask({ role: "reviewer", reviewerRef: "r" }, realTask.id, { outcome: "ok" });
     await fund(realAgent, realTask.id);
+    await desk.screenTask({ role: "reviewer", reviewerRef: "r" }, realTask.id, { outcome: "ok" });
 
     const tester = await desk.signInTestWorker(INVITE, "raldb", { residency: "PH" });
     const testWorker: Caller = { role: "worker", workerId: tester.id };
@@ -104,7 +106,7 @@ describe("requester review", () => {
     expect(entries.find((e) => e.toAccount === "worker")?.amount).toBe(300);
     // No review fee on requester-reviewed tasks, so nothing goes to a reviewer.
     expect(entries.find((e) => e.toAccount === "reviewer")).toBeUndefined();
-    expect(entries.find((e) => e.fromAccount === "requester")?.amount).toBe(300 + 36);
+    expect(entries.find((e) => e.fromAccount === "requester")?.amount).toBe(300 + 36 + 50);
     expect(await db.select().from(outbox).where(eq(outbox.kind, "payout"))).toHaveLength(0);
     expect(await ledgerEscrowBalance(db)).toBe(0);
   });

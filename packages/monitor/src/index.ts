@@ -48,6 +48,8 @@ export interface MonitorDeps {
   readFile: ReadFile;
   /** boreal on NEAR Agent Market: hires in, deliverables out. */
   market?: MarketBridge | null;
+  /** False leaves screening to people in /admin (AI_SCREENING=off); the AI still reviews. */
+  aiScreening?: boolean;
   now?: () => Date;
 }
 
@@ -78,6 +80,7 @@ export function createMonitor({
   reviewer,
   readFile,
   market = null,
+  aiScreening = true,
   now = () => new Date(),
 }: MonitorDeps): Monitor {
   return {
@@ -118,7 +121,7 @@ export function createMonitor({
         });
         if (reviewer) {
           await step("ai-review", async () => {
-            report.ai = await runAiReview(desk, reviewer, { readFile, limit: aiLimit });
+            report.ai = await runAiReview(desk, reviewer, { readFile, limit: aiLimit, screen: aiScreening });
           });
         }
         if (market) {
@@ -169,7 +172,7 @@ export async function loadMonitor(db: Database, raw: Record<string, string | und
   const desk = createDesk({ db, concordium, payments, rails, addresses: addressesFromEnv(env), requireBadge: env.REQUIRE_AGENT_BADGE === "1", verification: deskVerification(readAddons(raw)) });
   const reviewer = await loadReviewer(env);
   const market = loadMarketBridge(db, desk, env, { near });
-  return createMonitor({ db, desk, concordium, payments, reviewer, readFile: readSubmissionBytes, market });
+  return createMonitor({ db, desk, concordium, payments, reviewer, readFile: readSubmissionBytes, market, aiScreening: env.AI_SCREENING !== "off" });
 }
 
 /** A one-line summary for logs, or null when the tick did nothing worth saying. */

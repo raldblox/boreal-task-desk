@@ -69,8 +69,8 @@ async function seedWorker(pseudonym: string, attributes: Record<string, string>)
 /** Posts, screens and funds a task, returning its id. */
 async function openTask(overrides: Record<string, unknown> = {}) {
   const { task, quote } = await desk.postTask(requester, taskInput(overrides));
-  await desk.screenTask(reviewer, task.id, { outcome: "ok" });
   await desk.fundTask(requester, task.id, { txHash: `tx-${task.id}`, amount: quote.total });
+  await desk.screenTask(reviewer, task.id, { outcome: "ok" });
   return task.id;
 }
 
@@ -146,7 +146,7 @@ describe("happy path", () => {
   it("records a hash chain that verifies end to end", async () => {
     const id = await submittedTask();
     const events = await db.select().from(taskEvents).where(eq(taskEvents.taskId, id)).orderBy(asc(taskEvents.id));
-    expect(events.map((e) => e.type)).toEqual(["posted", "screen_ok", "fund", "claim", "submit"]);
+    expect(events.map((e) => e.type)).toEqual(["posted", "fund", "screen_ok", "claim", "submit"]);
 
     let prev: string | null = null;
     for (const e of events) {
@@ -231,18 +231,16 @@ describe("listing", () => {
 describe("funding", () => {
   it("rejects a payment that doesn't match the quote", async () => {
     const { task, quote } = await desk.postTask(requester, taskInput());
-    await desk.screenTask(reviewer, task.id, { outcome: "ok" });
     await expectDeskError(desk.fundTask(requester, task.id, { txHash: "t", amount: quote.total - 1 }), "invalid");
   });
 
   it("enforces the agent's daily spending cap", async () => {
     const capped: Caller = { role: "requester", agentId: (await seedAgent(`capped-${crypto.randomUUID()}`, 1_500)).id };
     const first = await desk.postTask(capped, taskInput());
-    await desk.screenTask(reviewer, first.task.id, { outcome: "ok" });
     await desk.fundTask(capped, first.task.id, { txHash: "a", amount: first.quote.total });
+    await desk.screenTask(reviewer, first.task.id, { outcome: "ok" });
 
     const second = await desk.postTask(capped, taskInput());
-    await desk.screenTask(reviewer, second.task.id, { outcome: "ok" });
     await expectDeskError(desk.fundTask(capped, second.task.id, { txHash: "b", amount: second.quote.total }), "limit");
   });
 
@@ -258,6 +256,45 @@ describe("funding", () => {
     const refund = (await ledgerFor(id)).find((r) => r.toAccount === "requester");
     expect(refund?.amount).toBe(quoteFees(1_000).total);
     expect(await escrowBalance(id)).toBe(0);
+  });
+});
+
+describe("fund before screening", () => {
+  async function fundedTask() {
+    const { task, quote } = await desk.postTask(requester, taskInput());
+    await desk.fundTask(requester, task.id, { txHash: `tx-${task.id}`, amount: quote.total });
+    return task.id;
+  }
+
+  it("never screens a task before its money is held", async () => {
+    const { task } = await desk.postTask(requester, taskInput());
+    expect(task.status).toBe("awaiting_funding");
+    expect((await desk.aiQueue("screen")).map((t) => t.id)).not.toContain(task.id);
+    await expectDeskError(desk.screenTask(reviewer, task.id, { outcome: "ok" }), "conflict");
+  });
+
+  it("releases the money in full when screening refuses a funded task", async () => {
+    const id = await fundedTask();
+    expect((await desk.aiQueue("screen")).map((t) => t.id)).toContain(id);
+    expect((await desk.screenTask(reviewer, id, { outcome: "refused", ruleIds: ["R2.2"] })).status).toBe("refused");
+    expect((await ledgerFor(id)).find((r) => r.toAccount === "requester")?.amount).toBe(quoteFees(1_000).total);
+    expect(await escrowBalance(id)).toBe(0);
+  });
+
+  it("releases the money in full when a task is cancelled during screening", async () => {
+    const id = await fundedTask();
+    expect((await desk.cancelTask(requester, id)).status).toBe("cancelled");
+    expect((await ledgerFor(id)).find((r) => r.toAccount === "requester")?.amount).toBe(quoteFees(1_000).total);
+    expect(await escrowBalance(id)).toBe(0);
+  });
+
+  it("caps the tasks a requester can have waiting for funding", async () => {
+    for (let i = 0; i < POLICY.maxUnfundedTasks; i++) await desk.postTask(requester, taskInput());
+    await expectDeskError(desk.postTask(requester, taskInput()), "limit");
+    // Funding one frees a slot.
+    const [waiting] = await desk.listTasks(requester, { status: "awaiting_funding", limit: 1 });
+    await desk.fundTask(requester, waiting!.id, { txHash: "tx-free", amount: quoteFees(1_000).total });
+    await desk.postTask(requester, taskInput());
   });
 });
 
@@ -342,15 +379,18 @@ describe("agent keys", () => {
 });
 
 describe("auto-screening (testnet)", () => {
-  it("passes a new task straight to funding, recorded in its trail; off by default", async () => {
-    const { task: waiting } = await desk.postTask(requester, taskInput());
-    expect(waiting.status).toBe("posted");
+  it("opens a task as soon as it's funded, recorded in its trail; off by default", async () => {
+    const { task: waiting, quote: q1 } = await desk.postTask(requester, taskInput());
+    expect(waiting.status).toBe("awaiting_funding");
+    expect((await desk.fundTask(requester, waiting.id, { txHash: "t1", amount: q1.total })).status).toBe("posted");
 
     const auto = createDesk({ db, now: () => clock, autoScreen: true });
-    const { task } = await auto.postTask(requester, taskInput());
+    const { task, quote } = await auto.postTask(requester, taskInput());
+    // Nothing is screened before it's funded, even with auto-screening on.
     expect(task.status).toBe("awaiting_funding");
+    expect((await auto.fundTask(requester, task.id, { txHash: "t2", amount: quote.total })).status).toBe("open");
     const trail = await auto.getTrail(requester, task.id);
-    expect(trail.map((e) => e.type)).toContain("screen_ok");
+    expect(trail.map((e) => e.type)).toEqual(["posted", "fund", "screen_ok"]);
   });
 });
 
@@ -601,8 +641,8 @@ describe("payment rails side by side", () => {
     expect(railDesk.defaultRail).toBe("concordium");
 
     const { task, quote } = await railDesk.postTask(requester, taskInput());
-    await railDesk.screenTask(reviewer, task.id, { outcome: "ok" });
     const funded = await railDesk.fundTask(requester, task.id, { confirm: async () => paypalRail.confirmPayment(task.id, { amount: quote.total }) }, { rail: "paypal" });
+    await railDesk.screenTask(reviewer, task.id, { outcome: "ok" });
     expect(funded.paymentRail).toBe("paypal");
 
     // The worker has to be payable on that rail first.

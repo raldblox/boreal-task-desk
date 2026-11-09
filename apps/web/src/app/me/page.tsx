@@ -487,7 +487,13 @@ async function Integrations() {
           name="NEAR"
           tagline="Get paid in USDC to your own wallet."
           state={profile.nearAccount ? "connected" : nearRail ? "ready" : "unavailable"}
-          benefits={["Tasks that pay in USDC", "Includes NEAR Agent Market tasks", "Paid the moment work passes", "Your keys stay yours"]}
+          benefits={[
+            "Tasks that pay in USDC",
+            "Includes NEAR Agent Market tasks",
+            "Paid the moment work passes",
+            "Your keys stay yours",
+            ...(addons.ready("near", "privateReview") ? ["Your photos reviewed privately on NEAR AI Cloud (TEE)"] : []),
+          ]}
         >
           <Connection
             icon={Wallet}

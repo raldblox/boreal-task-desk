@@ -141,6 +141,13 @@
       "when": 1793597967936,
       "tag": "0019_wallet_setups",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1794193973968,
+      "tag": "0020_fund_before_screening",
+      "breakpoints": true
     }
   ]
 }

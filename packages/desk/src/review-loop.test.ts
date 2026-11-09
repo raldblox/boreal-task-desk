@@ -42,10 +42,17 @@ async function postTask() {
   return task;
 }
 
+/** Posted and funded: only funded tasks are screened. */
+async function fundedTask() {
+  const task = await postTask();
+  await desk.fundTask(requester, task.id, { txHash: `t-${task.id}`, amount: task.budget + task.platformFee + task.reviewFee });
+  return task;
+}
+
 async function submittedTask() {
   const task = await postTask();
-  await desk.screenTask(AI_REVIEWER, task.id, { outcome: "ok" });
   await desk.fundTask(requester, task.id, { txHash: "t", amount: task.budget + task.platformFee + task.reviewFee });
+  await desk.screenTask(AI_REVIEWER, task.id, { outcome: "ok" });
   await desk.claimTask(worker, task.id);
   await desk.submitResult(worker, task.id, { fileUrls: [`submissions/${task.id}/a.jpg`] });
   return task;
@@ -69,11 +76,11 @@ afterEach(() => close());
 
 describe("screening", () => {
   it("moves a clean task on to funding, and refuses one that breaks a rule", async () => {
-    const clean = await postTask();
+    const clean = await fundedTask();
     await runAiReview(desk, scripted({ outcome: "ok", reasoning: "fine" }).reviewer, { readFile: photo });
-    expect((await desk.getTask(requester, clean.id)).status).toBe("awaiting_funding");
+    expect((await desk.getTask(requester, clean.id)).status).toBe("open");
 
-    const bad = await postTask();
+    const bad = await fundedTask();
     await runAiReview(desk, scripted({ outcome: "refused", ruleIds: ["R2.3"], reasoning: "collects data" }).reviewer, {
       readFile: photo,
     });
@@ -81,7 +88,7 @@ describe("screening", () => {
   });
 
   it("hands an undecided task to a human, records it, and stops asking the AI", async () => {
-    const task = await postTask();
+    const task = await fundedTask();
     const { reviewer, calls } = scripted({ outcome: "needs_human", reason: "borderline legality" });
     expect(await runAiReview(desk, reviewer, { readFile: photo })).toMatchObject({ toHumans: 1 });
     await runAiReview(desk, reviewer, { readFile: photo });
@@ -90,7 +97,7 @@ describe("screening", () => {
     const [flagged] = await desk.humanQueue();
     expect(flagged).toMatchObject({ id: task.id, status: "posted", humanReason: "borderline legality" });
     const types = (await db.select().from(taskEvents).where(eq(taskEvents.taskId, task.id)).orderBy(asc(taskEvents.id))).map((e) => e.type);
-    expect(types).toEqual(["posted", "flagged_for_human"]);
+    expect(types).toEqual(["posted", "fund", "flagged_for_human"]);
 
     // A human reviewer's decision clears the flag.
     await desk.screenTask({ role: "reviewer", reviewerRef: "human-1" }, task.id, { outcome: "ok" });
@@ -98,7 +105,7 @@ describe("screening", () => {
   });
 
   it("backs off on outages and gives up to a human on the third failure", async () => {
-    const task = await postTask();
+    const task = await fundedTask();
     const { reviewer, calls } = scripted({ outcome: "retry", reason: "overloaded" });
     expect(await runAiReview(desk, reviewer, { readFile: photo })).toMatchObject({ deferred: 1 });
     await runAiReview(desk, reviewer, { readFile: photo });
@@ -158,7 +165,7 @@ describe("private review", () => {
     const [event] = await db.select().from(taskEvents).where(eq(taskEvents.type, "verdict_pass"));
     expect((event!.payload as { proof: typeof proof }).proof).toEqual(proof);
 
-    const screened = await postTask();
+    const screened = await fundedTask();
     await runAiReview(desk, reviewer, { readFile: photo });
     const [screenEvent] = await db.select().from(taskEvents).where(eq(taskEvents.taskId, screened.id)).orderBy(asc(taskEvents.id));
     const ok = (await db.select().from(taskEvents).where(eq(taskEvents.taskId, screened.id))).find((e) => e.type === "screen_ok");

@@ -72,7 +72,7 @@ export async function postTask(_prev: ActionState, form: FormData): Promise<Acti
     console.error("[post task] failed", error);
     return { error: "Something went wrong. Try again." };
   }
-  after(kickMonitor); // screening starts now where an AI reviewer is set up
+  after(kickMonitor);
   redirect(`/me/posted/${taskId}?posted=1`);
 }
 

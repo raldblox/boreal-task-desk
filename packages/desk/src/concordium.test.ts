@@ -49,9 +49,9 @@ async function signIn(pseudonym: string, attributes: Record<string, string>) {
 
 async function fundedTask() {
   const { task, quote } = await desk.postTask(requester, taskInput());
-  await desk.screenTask(reviewer, task.id, { outcome: "ok" });
   const payment = await payWith(task.id, quote.total);
   await desk.fundTask(requester, task.id, { confirm: () => concordium.payments.confirmPayment(task.id, payment) });
+  await desk.screenTask(reviewer, task.id, { outcome: "ok" });
   return task.id;
 }
 
@@ -93,7 +93,6 @@ describe("x402 funding", () => {
   it("never takes money when the task's checks fail", async () => {
     const capped: Caller = { role: "requester", agentId: (await seedAgent("dev-capped", 100)).id };
     const { task, quote } = await desk.postTask(capped, taskInput());
-    await desk.screenTask(reviewer, task.id, { outcome: "ok" });
     let charged = false;
     await expect(
       desk.fundTask(capped, task.id, {

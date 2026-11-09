@@ -105,22 +105,22 @@ describe("NEAR Agent Market bridge", () => {
   it("turns a hire into a task, has a verified human do it, delivers, and pays the worker on NEAR", async () => {
     market.hire("asg-1", BRIEF, new Date(clock.getTime() + 24 * HOUR));
 
-    expect(await bridge.tick()).toMatchObject({ taken: 1, funded: 0, errors: [] });
+    // The hire is posted and funded by the treasury in one tick: nothing is screened before its money is held.
+    expect(await bridge.tick()).toMatchObject({ taken: 1, funded: 1, errors: [] });
     const { taskId } = await job("asg-1");
-    const [posted] = await db.select().from(tasks).where(eq(tasks.id, taskId!));
-    expect(posted).toMatchObject({ status: "posted", budget: 300, resultFormat: "photo", acceptanceCriteria: ["The whole sign is readable in the photo", "The photo was taken today, with the storefront visible"] });
+    const funded = await desk.getTask(marketAgent, taskId!);
+    expect(funded).toMatchObject({ status: "posted", paymentRail: "near", budget: 300, resultFormat: "photo", acceptanceCriteria: ["The whole sign is readable in the photo", "The photo was taken today, with the storefront visible"] });
+    const total = funded.budget + funded.platformFee + funded.reviewFee;
+    expect(chain.balances.get(ESCROW)).toBe(BigInt(total) * BigInt("10000"));
+    expect((await job("asg-1")).fundingSent?.txHash).toBe(funded.fundingTxHash);
     // Not started on the market until boreal's screening has passed the brief.
     expect(market.rows[0]!.assignment.startedAt).toBeNull();
 
     await desk.screenTask(reviewer, taskId!, { outcome: "ok" });
-    expect(await bridge.tick()).toMatchObject({ taken: 0, funded: 1, errors: [] });
-    const funded = await desk.getTask(marketAgent, taskId!);
-    expect(funded).toMatchObject({ status: "open", paymentRail: "near" });
-    const total = funded.budget + funded.platformFee + funded.reviewFee;
-    expect(chain.balances.get(ESCROW)).toBe(BigInt(total) * BigInt("10000"));
+    expect(await bridge.tick()).toMatchObject({ taken: 0, funded: 0, errors: [] });
+    expect((await desk.getTask(marketAgent, taskId!)).status).toBe("open");
     expect(market.rows[0]!.assignment.startedAt).not.toBeNull();
     expect(market.messages.at(-1)?.body).toMatch(/verified human/);
-    expect((await job("asg-1")).fundingSent?.txHash).toBe(funded.fundingTxHash);
     // Workers see who is behind it: a NEAR market buyer, through boreal's market requester.
     expect((await desk.browseOpenTasks(worker)).find((t) => t.id === taskId)?.requesterKind).toBe("market");
 
@@ -158,16 +158,20 @@ describe("NEAR Agent Market bridge", () => {
     expect(market.submitted).toHaveLength(1);
   });
 
-  it("explains a refused brief on the market and never funds it", async () => {
+  it("explains a refused brief on the market, never starts the job, and gets the treasury its money back", async () => {
     market.hire("asg-2", "Follow this person home from the office tonight and photograph their house.", new Date(clock.getTime() + 24 * HOUR));
     await bridge.tick();
     const { taskId } = await job("asg-2");
     await desk.screenTask(reviewer, taskId!, { outcome: "refused", ruleIds: ["R1.1"] });
     expect(await bridge.tick()).toMatchObject({ closed: 1 });
     expect(market.messages.at(-1)).toMatchObject({ assignmentId: "asg-2", body: expect.stringMatching(/refused.*R1\.1/) });
+    // Never started, so the buyer can still cancel on the market for a full refund.
     expect(market.rows[0]!.assignment.startedAt).toBeNull();
-    expect(chain.balances.get(ESCROW) ?? BigInt("0")).toBe(BigInt("0"));
     expect((await job("asg-2")).state).toBe("closed");
+    // The refusal released the escrow back to the treasury, in full.
+    expect(await desk.drainOutbox()).toMatchObject({ failed: 0 });
+    expect(await near.escrowBalance()).toBe(0);
+    expect(await near.escrowBalance()).toBe(await ledgerEscrowBalance(db, "near"));
   });
 
   it("pays the worker what's left of the hire's price after the market's share and boreal.work's fees", async () => {
@@ -175,11 +179,11 @@ describe("NEAR Agent Market bridge", () => {
     await bridge.tick();
     const { taskId } = await job("asg-5");
     const [posted] = await db.select().from(tasks).where(eq(tasks.id, taskId!));
-    // $5.00: $0.25 to the market, $0.70 to boreal.work, $4.05 to the worker; the task's total fits in $4.75.
-    expect(posted).toMatchObject({ budget: 405, platformFee: 49, reviewFee: 21 });
+    // $5.00: $0.25 to the market, $1.18 to boreal.work (12% + $0.50, review $0.25), $3.57 to the worker.
+    expect(posted).toMatchObject({ budget: 357, platformFee: 93, reviewFee: 25 });
     await desk.screenTask(reviewer, taskId!, { outcome: "ok" });
     await bridge.tick();
-    expect(market.messages.at(-1)?.body).toMatch(/worker is paid \$4\.05/);
+    expect(market.messages.at(-1)?.body).toMatch(/worker is paid \$3\.57/);
   });
 
   it("turns down a hire whose price can't cover a worker and the fees", async () => {
@@ -203,14 +207,12 @@ describe("NEAR Agent Market bridge", () => {
 
   it("never funds a task twice when the treasury's reply is lost", async () => {
     market.hire("asg-5", BRIEF, new Date(clock.getTime() + 24 * HOUR));
-    await bridge.tick();
-    const { taskId } = await job("asg-5");
-    await desk.screenTask(reviewer, taskId!, { outcome: "ok" });
     chain.dropNextReply();
     expect((await bridge.tick()).errors[0]).toMatch(/hang up/);
     expect(await bridge.tick()).toMatchObject({ funded: 1, errors: [] });
     expect(chain.sent.filter((t) => t.signerId === TREASURY)).toHaveLength(1);
-    expect((await desk.getTask(marketAgent, taskId!)).status).toBe("open");
+    const { taskId } = await job("asg-5");
+    expect((await desk.getTask(marketAgent, taskId!)).status).toBe("posted");
   });
 });
 

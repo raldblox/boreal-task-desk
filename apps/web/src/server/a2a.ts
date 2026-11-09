@@ -68,9 +68,9 @@ type TaskState =
 
 /** boreal's states as A2A sees them, and what the requester does next. */
 const STATES: Record<TaskStatus, { state: TaskState; next: string }> = {
-  posted: { state: "TASK_STATE_SUBMITTED", next: "Being screened against the rulebook. Poll GetTask." },
-  refused: { state: "TASK_STATE_REJECTED", next: "Refused by screening; fix the task and post a new one." },
-  awaiting_funding: { state: "TASK_STATE_INPUT_REQUIRED", next: 'Screened. Fund it: SendMessage { "action": "fund_task", "taskId": "…" }.' },
+  awaiting_funding: { state: "TASK_STATE_INPUT_REQUIRED", next: 'Quoted. Fund it to have it screened: SendMessage { "action": "fund_task", "taskId": "…" }.' },
+  posted: { state: "TASK_STATE_SUBMITTED", next: "Funded and being screened against the rulebook. Poll GetTask." },
+  refused: { state: "TASK_STATE_REJECTED", next: "Refused by screening, and the money released in full; fix the task and post a new one." },
   cancelled: { state: "TASK_STATE_CANCELED", next: "Cancelled; any money held was returned." },
   open: { state: "TASK_STATE_WORKING", next: "Funded and open to workers. Poll GetTask." },
   expired: { state: "TASK_STATE_FAILED", next: "Nobody claimed it before the deadline; refunded in full." },

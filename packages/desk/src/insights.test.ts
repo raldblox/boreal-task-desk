@@ -37,8 +37,8 @@ async function paidTask(budget = 1_000) {
     budget,
     deadline: new Date(clock.getTime() + 24 * HOUR).toISOString(),
   });
-  await desk.screenTask(reviewer, task.id, { outcome: "ok" });
   await desk.fundTask(agent, task.id, { txHash: `tx-${task.id}`, amount: quoteFees(budget).total });
+  await desk.screenTask(reviewer, task.id, { outcome: "ok" });
   clock = new Date(clock.getTime() + 2 * HOUR);
   await desk.claimTask(worker, task.id);
   await desk.submitResult(worker, task.id, { text: "Item X is on the shelf at 99 pesos." });

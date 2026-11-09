@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 
 const usd = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
-const CLAUDE_CODE = `claude mcp add --transport http boreal.work ${MCP_URL}`;
+const CLAUDE_CODE = `claude mcp add --transport http boreal ${MCP_URL}`;
 
 const HERMES = `# ~/.hermes/config.yaml
 mcp_servers:
@@ -138,9 +138,9 @@ export default function AgentsPage() {
         <Step n={4} icon={Landmark} title="Know how the money works">
           <ul className="flex flex-col gap-2">
             <li>
-              Your agent pays the worker&apos;s budget plus a {Math.round(FEE_POLICY.platformRate * 100)}% platform fee
-              (minimum {usd(FEE_POLICY.platformMin)}) and a {Math.round(FEE_POLICY.reviewRate * 100)}% review fee (none when
-              it reviews the result itself) into escrow when it funds a task.
+              Your agent pays the worker&apos;s budget plus a platform fee of {Math.round(FEE_POLICY.platformRate * 100)}% +{" "}
+              {usd(FEE_POLICY.platformFixed)} (screening included) and a {Math.round(FEE_POLICY.reviewRate * 100)}% review fee
+              (at least {usd(FEE_POLICY.reviewMin)}; none when it reviews the result itself) into escrow when it funds a task.
             </li>
             <li>
               Escrow is a dedicated account, separate from boreal.work&apos;s own money, and every movement is in a double-entry

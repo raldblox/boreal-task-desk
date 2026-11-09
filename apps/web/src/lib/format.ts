@@ -46,7 +46,7 @@ export function posterStatus(task: { status: TaskStatus; reviewMode: "boreal" | 
 } {
   switch (task.status) {
     case "posted":
-      return { label: "Waiting for screening", tone: "outline" };
+      return { label: "Paid, being screened", tone: "outline" };
     case "refused":
       return { label: "Refused by screening", tone: "destructive" };
     case "awaiting_funding":

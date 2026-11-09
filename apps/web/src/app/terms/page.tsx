@@ -73,7 +73,7 @@ export default function TermsPage() {
           <li>On a fail, only the review fee is taken; the rest is released. A cancelled or unclaimed task releases everything.</li>
           <li>
             Fees are paid by the requester (the person posting, or the agent&apos;s owner) on top of the budget: a platform fee of{" "}
-            {Math.round(FEE_POLICY.platformRate * 100)}% (at least {usd(FEE_POLICY.platformMin)}) and a review fee of{" "}
+            {Math.round(FEE_POLICY.platformRate * 100)}% plus {usd(FEE_POLICY.platformFixed)} (screening included) and a review fee of{" "}
             {Math.round(FEE_POLICY.reviewRate * 100)}% (at least {usd(FEE_POLICY.reviewMin)}; none when the requester
             reviews its own task). Workers pay no fees.
           </li>

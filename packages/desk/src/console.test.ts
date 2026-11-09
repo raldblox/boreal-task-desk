@@ -34,10 +34,10 @@ const taskInput = () => ({
 
 async function submittedTask() {
   const { task, quote } = await desk.postTask(requester, taskInput());
-  await desk.screenTask(reviewer, task.id, { outcome: "ok" });
   const requirement = await concordium.payments.createPaymentRequest(task.id, quote.total);
   const payment = { requirement, signature: signDevPayment(secret, requirement) };
   await desk.fundTask(requester, task.id, { confirm: () => concordium.payments.confirmPayment(task.id, payment) });
+  await desk.screenTask(reviewer, task.id, { outcome: "ok" });
   clock = new Date(clock.getTime() + 3 * HOUR);
   await desk.claimTask(worker, task.id);
   await desk.submitResult(worker, task.id, { text: "Item X is on the shelf at 99 pesos." });

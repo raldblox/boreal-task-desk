@@ -3,16 +3,16 @@ import { describe, expect, it } from "vitest";
 import { budgetWithin, disputeDeposit, quoteFees } from "./fees";
 
 describe("quoteFees", () => {
-  it("applies percentage fees on larger budgets", () => {
-    expect(quoteFees(1_000)).toEqual({ budget: 1_000, platformFee: 120, reviewFee: 50, total: 1_170 });
+  it("charges 12% plus a fixed $0.50 platform fee and a 5% review fee", () => {
+    expect(quoteFees(1_000)).toEqual({ budget: 1_000, platformFee: 170, reviewFee: 50, total: 1_220 });
   });
 
-  it("applies minimum fees on small budgets", () => {
-    expect(quoteFees(100)).toEqual({ budget: 100, platformFee: 25, reviewFee: 10, total: 135 });
+  it("applies the review fee's $0.25 floor on small budgets", () => {
+    expect(quoteFees(100)).toEqual({ budget: 100, platformFee: 62, reviewFee: 25, total: 187 });
   });
 
   it("charges no review fee when the requester reviews", () => {
-    expect(quoteFees(1_000, { reviewer: "requester" })).toEqual({ budget: 1_000, platformFee: 120, reviewFee: 0, total: 1_120 });
+    expect(quoteFees(1_000, { reviewer: "requester" })).toEqual({ budget: 1_000, platformFee: 170, reviewFee: 0, total: 1_170 });
   });
 
   it("rejects fractional or non-positive budgets", () => {
@@ -33,14 +33,14 @@ describe("disputeDeposit", () => {
 
 describe("budgetWithin", () => {
   it("gives the worker the most that fits with the fees", () => {
-    // $4.75 left after the market's 5% of a $5 hire: the worker gets $4.05, the fees $0.70.
-    expect(budgetWithin(475)).toBe(405);
-    expect(quoteFees(405).total).toBeLessThanOrEqual(475);
-    expect(quoteFees(406).total).toBeGreaterThan(475);
+    // $7.60 left after the market's 5% of an $8 hire: the worker gets $6.06, the fees $1.54.
+    expect(budgetWithin(760)).toBe(606);
+    expect(quoteFees(606).total).toBe(760);
+    expect(quoteFees(607).total).toBeGreaterThan(760);
   });
 
   it("never lets the total pass what's available, at any amount", () => {
-    for (let available = 36; available <= 20_000; available += 7) {
+    for (let available = 77; available <= 20_000; available += 7) {
       const budget = budgetWithin(available)!;
       expect(quoteFees(budget).total).toBeLessThanOrEqual(available);
       expect(quoteFees(budget + 1).total).toBeGreaterThan(available);
@@ -48,7 +48,15 @@ describe("budgetWithin", () => {
   });
 
   it("is null when even the minimum fees don't fit", () => {
-    expect(budgetWithin(35)).toBeNull();
+    expect(budgetWithin(76)).toBeNull();
+    expect(budgetWithin(77)).toBe(1);
     expect(budgetWithin(0)).toBeNull();
+  });
+});
+
+describe("budgetWithin below the fixed fee", () => {
+  it("says nothing fits instead of throwing", () => {
+    expect(budgetWithin(28)).toBeNull();
+    expect(budgetWithin(1)).toBeNull();
   });
 });

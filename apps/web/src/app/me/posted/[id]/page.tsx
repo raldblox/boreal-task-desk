@@ -17,6 +17,7 @@ import { ActionButton, DisputeForm } from "@/components/worker-forms";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { attributeLabel, posterStatus, usd, when } from "@/lib/format";
+import { gatedEnv } from "@/server/addons";
 import { getDesk, getRails } from "@/server/desk";
 import { kickMonitorSoon } from "@/server/monitor";
 import { posterFromSession } from "@/server/poster";
@@ -27,9 +28,13 @@ type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ posted?:
 const REVIEW_RULES = RULES.filter((r) => r.stage === "review" && r.id !== "R4.4").map(({ id, text }) => ({ id, text }));
 
 /** Where screening happens: the AI reviewer within minutes, or boreal's team when there's no AI key. */
-const SCREENING = process.env.ANTHROPIC_API_KEY
-  ? "boreal.work checks it against its rulebook, usually within a few minutes."
-  : "A person on boreal.work's team checks it against the rulebook; this can take a few hours.";
+/** How long screening takes here: the AI screens when one is set up and not switched off. */
+function screeningNote(): string {
+  const ai = (process.env.ANTHROPIC_API_KEY || gatedEnv().NEAR_AI_API_KEY) && process.env.AI_SCREENING !== "off";
+  return ai
+    ? "boreal.work checks it against its rulebook, usually within a minute."
+    : "A person on boreal.work's team checks it against the rulebook; this can take a few hours.";
+}
 
 function Cancel({ task, note }: { task: Task; note: string }) {
   return (
@@ -51,15 +56,20 @@ async function NextStep({ task, requester }: { task: Task; requester: { role: "r
     case "posted":
       return (
         <div className="flex flex-col gap-5">
-          <p className="text-sm text-muted-foreground">Waiting for screening. {SCREENING} Once it passes, you pay here.</p>
-          <Cancel task={task} note="Changed your mind? Nothing has been paid yet." />
+          <p className="text-sm text-muted-foreground">
+            Paid and being screened. {screeningNote()} If it&apos;s refused, your payment is released in full.
+          </p>
+          <Cancel task={task} note="Changed your mind? Cancel and your payment is released in full." />
         </div>
       );
     case "refused": {
       const refusal = await desk.getRefusal(requester, task.id);
       return (
         <div className="flex flex-col gap-3">
-          <p className="text-sm">This task broke boreal.work&apos;s rulebook, so it won&apos;t open. Nothing was paid.</p>
+          <p className="text-sm">
+            This task broke boreal.work&apos;s rulebook, so it won&apos;t open.{" "}
+            {task.fundedAt ? "Your payment was released in full." : "Nothing was paid."}
+          </p>
           {refusal && (
             <p className="rounded-lg bg-muted p-3 text-sm">
               {refusal.reasoning ?? "No reason given."}{" "}
@@ -79,8 +89,8 @@ async function NextStep({ task, requester }: { task: Task; requester: { role: "r
       return (
         <div className="flex flex-col gap-5">
           <p className="text-sm text-muted-foreground">
-            Screened and ready. Pay {usd(taskTotal(task))} with PayPal: it&apos;s held, not charged, until the work passes, and
-            the task opens to workers at once.
+            Pay {usd(taskTotal(task))} with PayPal: it&apos;s held, not charged, until the work passes. boreal.work then checks
+            the task against its rulebook and opens it to workers.
           </p>
           {paypal ? (
             <ActionButton action={payTask.bind(null, task.id)}>
@@ -221,14 +231,17 @@ async function PostedTask({ params, searchParams }: Props) {
       </aside>
 
       <div className="flex flex-col gap-6 lg:order-1">
-        {query.posted && task.status === "posted" && (
+        {query.posted && task.status === "awaiting_funding" && (
           <Alert>
-            <AlertDescription>Posted. {SCREENING} Come back here to pay once it&apos;s screened.</AlertDescription>
+            <AlertDescription>Posted. Pay below to send it to screening.</AlertDescription>
           </Alert>
         )}
-        {query.funded && task.status === "open" && (
+        {query.funded && (task.status === "posted" || task.status === "open") && (
           <Alert>
-            <AlertDescription>Paid. PayPal holds {usd(taskTotal(task))} until the work passes, and your task is open to workers.</AlertDescription>
+            <AlertDescription>
+              Paid. PayPal holds {usd(taskTotal(task))} until the work passes.{" "}
+              {task.status === "open" ? "Your task is open to workers." : screeningNote()}
+            </AlertDescription>
           </Alert>
         )}
         <div className="flex flex-col gap-3">
