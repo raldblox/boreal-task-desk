@@ -121,7 +121,15 @@ function questions(): { title: string; items: QA[] }[] {
           ? [
               {
                 q: "Is the AI review private?",
-                a: "Yes, for every task, whatever you've connected. Screening and review run on NEAR AI Cloud, inside sealed hardware (a TEE), so no outside AI company can read a task or a worker's photos, and every verdict carries a signature anyone can check.",
+                a: (
+                  <>
+                    Yes, for every task. Screening and review run on NEAR AI Cloud, inside sealed hardware (a TEE), so no outside AI
+                    company can read a task or a worker&apos;s photos, and every verdict carries a signature anyone can check.{" "}
+                    <a href="https://docs.near.ai/cloud/private-inference" target="_blank" rel="noreferrer" className="text-primary underline-offset-4 hover:underline">
+                      How private inference works
+                    </a>
+                  </>
+                ),
               },
             ]
           : []),

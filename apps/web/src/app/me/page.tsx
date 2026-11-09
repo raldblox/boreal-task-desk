@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { POLICY } from "@boreal/core";
 import { taskTotal } from "@boreal/desk";
 import { CONNECT_MESSAGE } from "@boreal/near";
-import { BadgeCheck, BarChart3, Bot, CheckCircle2, ChevronRight, CircleAlert, ExternalLink, ShieldCheck, Wallet } from "lucide-react";
+import { BadgeCheck, BarChart3, Bot, CheckCircle2, ChevronRight, CircleAlert, ExternalLink, LockKeyhole, ShieldCheck, Wallet } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
@@ -38,6 +38,8 @@ const ACTIVE = new Set(["claimed", "submitted", "passed", "failed", "disputed"])
 /** Where a person sets up the wallets an integration needs: accounts they hold themselves, never boreal. */
 // Meteor makes free accounts on mainnet and testnet and signs messages, so the Connect button offers it.
 const NEAR_WALLET = process.env.NEAR_WALLET_URL || "https://wallet.meteorwallet.app";
+/** NEAR AI Cloud's own explanation of private inference in TEEs. */
+const NEAR_AI_PRIVATE_INFERENCE = "https://docs.near.ai/cloud/private-inference";
 const CONCORDIUM_WALLET =
   process.env.CONCORDIUM_WALLET_URL || "https://chromewebstore.google.com/detail/concordium-wallet/mnnkpffndmickbiakofclnpoiajlegmg";
 
@@ -451,18 +453,7 @@ async function Integrations() {
 
   return (
     <div className="flex flex-col gap-6">
-      {privateReview && (
-        // On for everyone where it's set up: it powers boreal.work's own screening and review,
-        // whatever a person connects.
-        <p className="flex items-center gap-2 rounded-xl border bg-card px-4 py-3 text-sm">
-          <ShieldCheck className="size-4 shrink-0 text-primary" aria-hidden />
-          <span>
-            <span className="font-medium">Private AI review is always on.</span>{" "}
-            <span className="text-muted-foreground">Every task is screened and reviewed in a TEE on NEAR AI Cloud.</span>
-          </span>
-        </p>
-      )}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className={`grid gap-6 md:grid-cols-2 ${privateReview ? "xl:grid-cols-3" : ""}`}>
       {concordiumOn && (
         <FeatureCard
           logo={<ConcordiumLogo className="size-6" />}
@@ -518,6 +509,23 @@ async function Integrations() {
             quiet={Boolean(profile.nearAccount)}
           />
         </FeatureCard>
+      )}
+
+      {privateReview && (
+        // Nothing to connect: it powers boreal.work's own screening and review for every task.
+        <FeatureCard
+          logo={<LockKeyhole className="size-5" />}
+          title="Private AI review"
+          by="with NEAR AI Cloud"
+          connected
+          status="Included"
+          gives={[
+            "Your tasks and photos are checked inside sealed hardware (a TEE)",
+            "No outside AI company can read them",
+            "Every verdict is signed, so anyone can check where it came from",
+          ]}
+          account={<WalletLink href={NEAR_AI_PRIVATE_INFERENCE}>How private inference works</WalletLink>}
+        />
       )}
       </div>
     </div>
