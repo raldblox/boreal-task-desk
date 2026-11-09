@@ -10,10 +10,10 @@
 //   disputes on the market costs boreal, not the worker.
 
 import type { SentTransfer, TransferJournal } from "@boreal/concordium";
-import { POLICY, type PostTaskInput } from "@boreal/core";
+import { budgetWithin, POLICY, type PostTaskInput, quoteFees } from "@boreal/core";
 import { type Caller, type Desk, DeskError } from "@boreal/desk";
 
-import type { AgentMarket, MarketAssignment } from "./market";
+import { type AgentMarket, hirePaidCents, MARKET_FEE_RATE, type MarketAssignment } from "./market";
 import type { NearPayments, TokenSender } from "./payments";
 
 export type MarketJobState = "posted" | "started" | "delivered" | "closed";
@@ -47,7 +47,10 @@ export interface MarketBridgeOptions {
   near: NearPayments;
   /** boreal's treasury on NEAR, which funds market tasks. */
   treasury: TokenSender;
-  /** Worker pay per market job, in cents. Must leave room for fees under the listing's price. */
+  /**
+   * Worker pay in cents for a hire that doesn't say what the buyer paid. Normally the worker gets
+   * what the buyer paid, less the market's 5% and boreal.work's fees (see `splitHire`).
+   */
   budget: number;
   /** A link the buyer can open for a submission file, or null to keep files private. */
   fileLink?: (path: string) => string | null;
@@ -116,6 +119,36 @@ export function treasuryJournal(store: MarketJobStore): TransferJournal {
   };
 }
 
+export interface HireSplit {
+  /** What the buyer paid, in cents. */
+  paid: number;
+  /** Agent Market's share. */
+  market: number;
+  /** boreal.work's platform and review fees. */
+  fees: number;
+  /** The worker's pay: everything else. */
+  worker: number;
+}
+
+/**
+ * How a hire's price splits: the market's 5%, then boreal.work's fees, and the rest to the worker.
+ * The task's total (worker plus fees) never exceeds what boreal.work receives, so the treasury
+ * never pays out more than a hire brings in. Null when the price can't cover the smallest task.
+ */
+export function splitHire(paid: number | null, fallbackBudget: number): HireSplit | null {
+  if (paid === null) {
+    const quote = quoteFees(fallbackBudget);
+    return { paid: quote.total, market: 0, fees: quote.platformFee + quote.reviewFee, worker: fallbackBudget };
+  }
+  const market = Math.ceil(paid * MARKET_FEE_RATE);
+  const worker = budgetWithin(paid - market);
+  if (worker === null) return null;
+  const quote = quoteFees(worker);
+  return { paid, market, fees: quote.platformFee + quote.reviewFee, worker };
+}
+
+const dollars = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+
 export function createMarketBridge(options: MarketBridgeOptions) {
   const { desk, market, store, agentId, near, treasury, budget, fileLink, reviewBufferMs = 2 * 60 * 60 * 1000, now = () => new Date() } = options;
   const caller: Caller = { role: "requester", agentId };
@@ -139,8 +172,12 @@ export function createMarketBridge(options: MarketBridgeOptions) {
     if (deadline.getTime() - now().getTime() < 30 * 60 * 1000) {
       return close(job, "The delivery window is too short for a person to do this and for boreal.work to review it. Hire again with a longer window.", "window too short");
     }
+    const split = splitHire(hirePaidCents(row.assignment), budget);
+    if (!split) {
+      return close(job, "This hire's price doesn't cover a worker's pay and the fees. Hire again at the listed price.", "price too low");
+    }
     try {
-      const { task } = await desk.postTask(caller, taskFromBrief(brief, { budget, deadline }));
+      const { task } = await desk.postTask(caller, taskFromBrief(brief, { budget: split.worker, deadline }));
       await store.update(id, { taskId: task.id });
     } catch (error) {
       if (!(error instanceof DeskError)) throw error;
@@ -148,7 +185,7 @@ export function createMarketBridge(options: MarketBridgeOptions) {
     }
   }
 
-  async function fund(job: MarketJob, taskId: string, total: number) {
+  async function fund(job: MarketJob, taskId: string, total: number, workerPay: number) {
     // Started first: from here the buyer can't cancel for a refund inside the window, so the
     // treasury never funds a job that is cancelled under it.
     await market.start(job.assignmentId);
@@ -158,7 +195,7 @@ export function createMarketBridge(options: MarketBridgeOptions) {
     await store.update(job.assignmentId, { state: "started" });
     await market.message(
       job.assignmentId,
-      `Picked up. boreal.work posted your brief for a verified human worker; boreal.work's reviewer checks the result against your brief before it comes back here. Funding on NEAR: ${txHash}.`,
+      `Picked up. boreal.work posted your brief for a verified human worker; boreal.work's reviewer checks the result against your brief before it comes back here. The worker is paid ${dollars(workerPay)} when it passes. Funding on NEAR: ${txHash}.`,
     );
   }
 
@@ -202,7 +239,7 @@ export function createMarketBridge(options: MarketBridgeOptions) {
     switch (task.status) {
       case "awaiting_funding":
         if (job.state === "posted") {
-          await fund(job, task.id, task.budget + task.platformFee + task.reviewFee);
+          await fund(job, task.id, task.budget + task.platformFee + task.reviewFee, task.budget);
           report.funded++;
         }
         return;

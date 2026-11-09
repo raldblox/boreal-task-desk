@@ -170,6 +170,26 @@ describe("NEAR Agent Market bridge", () => {
     expect((await job("asg-2")).state).toBe("closed");
   });
 
+  it("pays the worker what's left of the hire's price after the market's share and boreal.work's fees", async () => {
+    market.hire("asg-5", BRIEF, new Date(clock.getTime() + 24 * HOUR), "5.00");
+    await bridge.tick();
+    const { taskId } = await job("asg-5");
+    const [posted] = await db.select().from(tasks).where(eq(tasks.id, taskId!));
+    // $5.00: $0.25 to the market, $0.70 to boreal.work, $4.05 to the worker; the task's total fits in $4.75.
+    expect(posted).toMatchObject({ budget: 405, platformFee: 49, reviewFee: 21 });
+    await desk.screenTask(reviewer, taskId!, { outcome: "ok" });
+    await bridge.tick();
+    expect(market.messages.at(-1)?.body).toMatch(/worker is paid \$4\.05/);
+  });
+
+  it("turns down a hire whose price can't cover a worker and the fees", async () => {
+    market.hire("asg-6", BRIEF, new Date(clock.getTime() + 24 * HOUR), "0.30");
+    expect(await bridge.tick()).toMatchObject({ taken: 1, errors: [] });
+    expect((await job("asg-6")).state).toBe("closed");
+    expect(market.messages.at(-1)).toMatchObject({ assignmentId: "asg-6", body: expect.stringMatching(/doesn't cover/) });
+    expect(chain.balances.get(ESCROW) ?? BigInt("0")).toBe(BigInt("0"));
+  });
+
   it("turns down briefs too short to act on and windows too short to review", async () => {
     market.hire("asg-3", "photo pls", new Date(clock.getTime() + 24 * HOUR));
     market.hire("asg-4", BRIEF, new Date(clock.getTime() + 2 * HOUR));

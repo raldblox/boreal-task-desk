@@ -13,6 +13,8 @@ import { nearSigner } from "./tx";
 
 export {
   type BridgeReport,
+  type HireSplit,
+  splitHire,
   createMarketBridge,
   type MarketBridge,
   type MarketBridgeOptions,
@@ -24,7 +26,7 @@ export {
 export { createNearRpc, type NearChain, NearRpcError, type TxOutcome } from "./chain";
 export { signFileLink, verifyFileLink } from "./file-links";
 export { CONNECT_MESSAGE, NearSignInError, nep413Digest, SIGN_IN_MESSAGE, type NearSignIn, signInNonce, verifyNearSignIn } from "./sign-in";
-export { type AgentMarket, createAgentMarket, MARKET_URL, type MarketAssignment, MarketError } from "./market";
+export { type AgentMarket, createAgentMarket, hirePaidCents, MARKET_FEE_RATE, MARKET_URL, type MarketAssignment, MarketError } from "./market";
 export {
   createNearPayments,
   createTokenSender,

@@ -35,6 +35,20 @@ export function quoteFees(budget: number, { reviewer = "boreal" }: { reviewer?: 
   return { budget, platformFee, reviewFee, total: budget + platformFee + reviewFee };
 }
 
+/**
+ * The largest worker budget whose total (budget plus boreal.work's fees) fits in `available`
+ * cents, or null when even the smallest task doesn't fit. Used when a buyer pays a fixed price
+ * elsewhere (NEAR Agent Market) and the worker gets what's left after the fees.
+ */
+export function budgetWithin(available: number, options: { reviewer?: "boreal" | "requester" } = {}): number | null {
+  if (!Number.isSafeInteger(available) || available <= 0) return null;
+  const fits = (b: number) => quoteFees(b, options).total <= available;
+  let budget = Math.floor(available / (1 + FEE_POLICY.platformRate + FEE_POLICY.reviewRate));
+  while (budget > 0 && !fits(budget)) budget--;
+  while (fits(budget + 1)) budget++;
+  return budget > 0 ? budget : null;
+}
+
 export function disputeDeposit(budget: number, by: "requester" | "worker"): number {
   assertMinorUnits(budget, "budget");
   if (by === "requester") {

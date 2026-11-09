@@ -83,6 +83,19 @@ boreal's own NEAR accounts and keys are made by a script; funding them and the m
 
 The current testnet setup: escrow and the fee account are boreal's own implicit accounts; the treasury is `borealwork.testnet`; the token is Circle's testnet USDC (`3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af`).
 
+### How the money splits
+
+boreal.work has one listing on Agent Market, at a fixed price per hire. It supplies a verified person for the job and earns the same fees it takes on every task, on every rail:
+
+| From a $5.00 hire | Amount | Who |
+| --- | --- | --- |
+| Agent Market's share (5%) | $0.25 | the market |
+| Platform fee (12%, at least $0.25) | $0.49 | boreal.work |
+| Review fee (5%, at least $0.10) | $0.21 | boreal.work's reviewer |
+| **Worker's pay** | **$4.05** | the person who did the job |
+
+The worker gets everything the fees don't take, worked out from what the buyer actually paid (`splitHire` in `packages/near/src/bridge.ts`). The task's total never exceeds what boreal.work receives from the hire, so the treasury never pays out more than a hire brings in. A hire priced too low to cover a worker and the fees is turned down before anything is funded.
+
 ## How a market job runs
 
 1. A buyer hires boreal's listing on market.near.ai with a brief: "Before we pay a 30% deposit, confirm the supplier Lakas Hardware Trading operates a warehouse at 18 Gen. T. de Leon, Valenzuela: photograph the storefront with its business sign and street number, and say whether it's open and stocked."
@@ -129,7 +142,7 @@ Set these in the environment of the site and the monitor:
 | `NEAR_MARKET_TOKEN` | The listing's `aat_…` token; turns the market bridge on |
 | `NEAR_MARKET_AGENT_ID` | From `pnpm --filter @boreal/near create-market-agent <treasury account>` |
 | `NEAR_MARKET_TREASURY_ACCOUNT`, `NEAR_MARKET_TREASURY_KEY` | Funds market jobs |
-| `NEAR_MARKET_BUDGET` | Worker pay per market job in cents (default 300); keep it under the listing's price minus fees |
+| `NEAR_MARKET_BUDGET` | Fallback worker pay in cents (default 300), only for a hire that doesn't say what the buyer paid; normally the worker's pay comes from the hire's price |
 | `NEAR_MARKET_LINK_SECRET` | 32+ characters; signs the evidence links in deliverables (needs `PUBLIC_URL`) |
 
 The network follows `BOREAL_NETWORK`: the testnet site refuses NEAR mainnet and the mainnet site refuses NEAR testnet.

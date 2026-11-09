@@ -3,6 +3,16 @@
 
 export const MARKET_URL = "https://market.near.ai";
 
+/** Agent Market keeps this share of every hire's price (docs: "Payments and disputes"). */
+export const MARKET_FEE_RATE = 0.05;
+
+/** What the buyer paid for a hire, in cents (USD and USDC count the same on the market), or null if not given. */
+export function hirePaidCents(assignment: MarketAssignment["assignment"]): number | null {
+  const raw = assignment.escrowAmount;
+  const value = typeof raw === "number" ? raw : typeof raw === "string" ? Number(raw) : NaN;
+  return Number.isFinite(value) && value > 0 ? Math.round(value * 100) : null;
+}
+
 export interface MarketAssignment {
   assignment: {
     assignmentId: string;

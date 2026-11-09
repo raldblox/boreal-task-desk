@@ -181,7 +181,8 @@ export interface FakeMarket extends AgentMarket {
   rows: MarketAssignment[];
   messages: { assignmentId: string; body: string }[];
   submitted: { assignmentId: string; markdown: string }[];
-  hire(id: string, brief: string, slaDeadlineAt: Date): void;
+  /** `paid`: the hire's price as the market reports it (e.g. "5.00"); left out, the hire says nothing. */
+  hire(id: string, brief: string, slaDeadlineAt: Date, paid?: string): void;
 }
 
 export function createFakeMarket(): FakeMarket {
@@ -197,8 +198,11 @@ export function createFakeMarket(): FakeMarket {
     rows,
     messages,
     submitted,
-    hire(id, brief, slaDeadlineAt) {
-      rows.push({ assignment: { assignmentId: id, startedAt: null, slaDeadlineAt: slaDeadlineAt.toISOString() }, job: { description: brief } });
+    hire(id, brief, slaDeadlineAt, paid) {
+      rows.push({
+        assignment: { assignmentId: id, startedAt: null, slaDeadlineAt: slaDeadlineAt.toISOString(), ...(paid ? { escrowAmount: paid, escrowToken: "USDC" } : {}) },
+        job: { description: brief },
+      });
     },
     async assignments() {
       return rows.filter((r) => !submitted.some((s) => s.assignmentId === r.assignment.assignmentId));
