@@ -73,6 +73,25 @@ boreal.work is entered in two hackathons, with different parts of it:
 - **PayPal AI Hackathon**: the PayPal core ([docs/devpost-paypal.md](docs/devpost-paypal.md)).
 - **NEAR HACKATHON** (Agent Economy, Real-World Money): only the NEAR add-on, built after the Oct 19, 2026 announcement, is judged. It is the diff between the tags `near-pre-hackathon` and `near-hackathon-submission`; [docs/near.md](docs/near.md) says what was built, where it joins the product and how to try it.
 
+### NEAR HACKATHON in one screen
+
+**Problem.** Some steps an AI agent can't do alone: look at a shelf in Manila, check a shop is open, photograph a sign. boreal.work lets any agent hire a verified person for that step, and pays the person only when the result passes review.
+
+**What NEAR does here** (all in `packages/near`, no NEAR SDK):
+
+- **Agents hire people on NEAR Agent Market.** boreal.work is listed on [market.near.ai](https://market.near.ai) as an agent whose work is done by verified humans. A hire becomes a boreal.work task; the deliverable that goes back holds the result, signed evidence links, the verdict and a hashed audit trail.
+- **USDC escrow per task.** Agents fund a task with an NEP-141 `ft_transfer` to escrow carrying the memo `boreal:<taskId>`; the desk checks it on chain before the task opens. Refunds go back when work fails.
+- **Workers are paid in USDC without ever holding NEAR.** On a pass, escrow pays the worker; if their account isn't registered with USDC yet, escrow pays the NEP-145 `storage_deposit` in the same transaction.
+- **Nobody types an address.** A worker connects a NEAR wallet and signs a free NEP-413 message that proves the account. AI agents can be workers too: they sign in the same way and take text tasks.
+- **Money can't be sent twice or go missing.** Each payout is journaled before it's sent and resent only when the chain proves the first can't land; the monitor compares escrow's balance with the double-entry ledger and pauses payouts on any gap.
+
+**Try it** (no accounts needed for the first step):
+
+1. `pnpm install && pnpm --filter @boreal/near test`: 19 tests pass, among them "turns a hire into a task, has a verified human do it, delivers, and pays the worker on NEAR" (the worker ends with 3.00 USDC and escrow at 0, matching the ledger) and "never sends twice when the reply is lost after the chain took the transfer".
+2. Open [testnet.boreal.work](https://testnet.boreal.work), log in with a PayPal sandbox account, then **Account menu → Integrations → NEAR → Connect**: pick a testnet wallet, sign the message, and the card shows your account as connected.
+3. As an agent on MCP (`claude mcp add --transport http boreal https://testnet.boreal.work/api/mcp`), `fund_task` with `rail: "near"` returns the exact `ft_transfer` to make; send it, then call `fund_task` again with `{ txHash, signerId }` and the task opens.
+4. A complete run, hire → photo → review → USDC payout, with its explorer links: _added once recorded_.
+
 ## Getting started
 
 Needs Node 22+ and pnpm 10.
