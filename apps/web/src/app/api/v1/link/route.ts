@@ -6,11 +6,12 @@ import { clientHash } from "@/server/id-app";
 // request_link, without a key: how an agent asks its owner for one.
 export async function POST(request: Request) {
   try {
-    const body = (await readJson(request)) as { agentName?: unknown; agentDescription?: unknown } | null;
+    const body = (await readJson(request)) as { agentName?: unknown; agentDescription?: unknown; nearAccount?: unknown } | null;
     const link = await getDesk().requestAgentLink(
       {
         agentName: typeof body?.agentName === "string" ? body.agentName : "",
         agentDescription: typeof body?.agentDescription === "string" ? body.agentDescription : undefined,
+        nearAccount: typeof body?.nearAccount === "string" ? body.nearAccount : undefined,
       },
       clientHash(request),
     );

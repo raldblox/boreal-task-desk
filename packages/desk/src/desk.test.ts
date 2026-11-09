@@ -475,6 +475,26 @@ describe("agent linking", () => {
     await expectDeskError(desk.savePaymentMethod(stranger.id, agentId, "vault-evil"), "forbidden");
   });
 
+  it("carries the NEAR account an agent pays from to its owner, who alone can see it to fund", async () => {
+    await expectDeskError(desk.requestAgentLink({ agentName: "Hermes", nearAccount: "Not An Account!" }, "client-a"), "invalid");
+    const link = await desk.requestAgentLink({ agentName: "Hermes", nearAccount: "Hermes-Wallet.testnet" }, "client-a");
+    expect(await desk.getAgentLink(link.code)).toMatchObject({ nearAccount: "hermes-wallet.testnet" });
+    const { agentId, nearAccount } = await desk.approveAgentLink(workerIdOf(manilaWorker), link.code, { name: "Hermes", ...limits });
+    expect(nearAccount).toBe("hermes-wallet.testnet");
+    const requester: Caller = { role: "requester", agentId };
+    expect(await desk.getAgentAccount(requester)).toMatchObject({ nearAccount: "hermes-wallet.testnet" });
+    expect(await desk.ownerAgentWallet(workerIdOf(manilaWorker), agentId)).toMatchObject({ name: "Hermes", nearAccount: "hermes-wallet.testnet" });
+
+    const implicit = "a".repeat(64);
+    await desk.setAgentNearAccount(agentId, implicit);
+    expect(await desk.getAgentAccount(requester)).toMatchObject({ nearAccount: implicit });
+    await desk.setAgentNearAccount(agentId, null);
+    expect(await desk.getAgentAccount(requester)).toMatchObject({ nearAccount: null });
+
+    const stranger = await desk.signInVerifiedWorker({ pseudonym: "sg-stranger", provenAttributes: {} });
+    await expectDeskError(desk.ownerAgentWallet(stranger.id, agentId), "forbidden");
+  });
+
   it("replaces the key of one of the owner's agents instead of making a duplicate", async () => {
     const first = await desk.requestAgentLink({ agentName: "Hermes" }, "client-a");
     await desk.approveAgentLink(workerIdOf(manilaWorker), first.code, { name: "Hermes", ...limits });

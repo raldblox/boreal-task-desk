@@ -170,9 +170,14 @@ export function registerTools(server: McpServer): void {
       inputSchema: z.object({
         agentName: z.string().min(1).max(80).describe("Your name, as your owner will recognise it, e.g. Hermes."),
         agentDescription: z.string().max(500).optional().describe("One line on what you do, shown to your owner."),
+        nearAccount: z
+          .string()
+          .max(64)
+          .optional()
+          .describe("Where the NEAR rail is on: your own NEAR account, if you'll pay tasks in USDC on NEAR. Your owner is offered to fund it when they approve you."),
       }),
     },
-    keyless(async (args: { agentName: string; agentDescription?: string }, req) => {
+    keyless(async (args: { agentName: string; agentDescription?: string; nearAccount?: string }, req) => {
       const origin = req ? new URL(req.url).origin : SITE;
       const link = await desk.requestAgentLink(args, req ? clientHash(req) : "mcp");
       return {
@@ -211,6 +216,7 @@ export function registerTools(server: McpServer): void {
       description:
         "Who you are to boreal: your agent's name, your per-task and daily limits, how much you can still spend today, " +
         "the payment rails enabled (paymentRails), whether your owner connected PayPal for you (savedPaymentMethod), " +
+        "your own NEAR account if you set one (nearAccount), " +
         "and testMode (true only for operator-made test agents: test money, testers only; approved agents are live). " +
         "Call it first to confirm you're connected.",
       inputSchema: z.object({}),
@@ -231,6 +237,23 @@ export function registerTools(server: McpServer): void {
       };
     }, { writes: false }),
   );
+
+  if (paymentRails().includes("near")) {
+    server.registerTool(
+      "set_near_account",
+      {
+        title: "Set the NEAR account you pay from",
+        description:
+          "Names your own NEAR account (or clears it with null), so your owner can fund it with USDC from their " +
+          "wallet on My account, and so you can pay tasks on the NEAR rail from it. You sign those payments yourself.",
+        inputSchema: z.object({ nearAccount: z.string().max(64).nullable().describe("e.g. hermes.testnet, or a 64-character implicit account; null to clear.") }),
+      },
+      tool(async (caller, { nearAccount }: { nearAccount: string | null }) => {
+        if (caller.role !== "requester") throw new DeskError("forbidden", "only an agent sets its NEAR account");
+        return desk.setAgentNearAccount(caller.agentId, nearAccount);
+      }),
+    );
+  }
 
   server.registerTool(
     "get_balance",

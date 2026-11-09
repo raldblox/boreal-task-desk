@@ -80,6 +80,8 @@ export const agents = pgTable("agents", {
   apiKeyHash: text("api_key_hash"),
   /** Concordium account that refunds go to. */
   refundAddress: text("refund_address"),
+  /** The agent's own NEAR account, which it pays tasks from and its owner funds. */
+  nearAccount: text("near_account"),
   /** Allowlisted for test runs: its tasks use test money and only test workers see them. */
   testMode: boolean("test_mode").notNull().default(false),
   /** Set once the owner proved they control the agent's Agent Registry entry (registryId is then its badge). */
@@ -115,6 +117,8 @@ export const agentLinks = pgTable(
     pollTokenHash: text("poll_token_hash").notNull().unique(),
     agentName: text("agent_name").notNull(),
     agentDescription: text("agent_description"),
+    /** The NEAR account the agent says it pays from, shown to its owner to fund. */
+    nearAccount: text("near_account"),
     status: agentLinkStatus("status").notNull().default("pending"),
     ownerId: uuid("owner_id").references(() => owners.id),
     agentId: uuid("agent_id").references(() => agents.id),

@@ -1526,6 +1526,8 @@ export function createDesk({
         limits,
         /** The owner saved a payment method: fund_task pays without an approval page. */
         savedPaymentMethod: agent.paymentVaultId !== null,
+        /** The agent's own NEAR account (set_near_account), which its owner funds and it pays tasks from. */
+        nearAccount: agent.nearAccount,
         spentLast24h,
         leftToday: Math.max(0, limits.maxDailySpend - spentLast24h),
       };

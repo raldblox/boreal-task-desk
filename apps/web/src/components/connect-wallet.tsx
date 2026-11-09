@@ -251,3 +251,127 @@ export function PayWithNear({ taskId, total }: { taskId: string; total: string }
     </div>
   );
 }
+
+/**
+ * The owner funds their agent's own NEAR wallet in one approval: USDC for tasks (registering the
+ * account with the token first, refunded if it already is), and optionally a little NEAR for the
+ * agent's transaction fees. The agent can never spend more than this, on top of its limits here.
+ */
+export function FundAgentWallet({
+  agentName,
+  wallet,
+}: {
+  agentName: string;
+  wallet: { account: string; network: "testnet" | "mainnet"; token: string; decimals: number };
+}) {
+  const [dollars, setDollars] = useState("20");
+  const [gas, setGas] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [sent, setSent] = useState<string[] | null>(null);
+  const explorer = `https://${wallet.network === "mainnet" ? "" : "testnet."}nearblocks.io/txns/`;
+
+  async function fund() {
+    setError(null);
+    const cents = Math.round(Number(dollars) * 100);
+    if (!Number.isFinite(cents) || cents < 100 || cents > 100_000) {
+      setError("Send between $1 and $1,000.");
+      return;
+    }
+    const units = (BigInt(cents) * BigInt(10) ** BigInt(wallet.decimals - 2)).toString();
+    try {
+      const { NearConnector } = await import("@hot-labs/near-connect");
+      const connector = new NearConnector({
+        network: wallet.network,
+        features: { signAndSendTransactions: true, [wallet.network]: true },
+        footerBranding: null,
+      });
+      setBusy("Choose your wallet…");
+      const near = await connector.connect();
+      setBusy(`Approve $${(cents / 100).toFixed(2)} in USDC for ${agentName} in your wallet…`);
+      const transactions = [
+        // 0.1 NEAR also creates an implicit account that has never received anything.
+        ...(gas ? [{ receiverId: wallet.account, actions: [{ type: "Transfer" as const, params: { deposit: "100000000000000000000000" } }] }] : []),
+        {
+          receiverId: wallet.token,
+          actions: [
+            {
+              type: "FunctionCall" as const,
+              params: {
+                methodName: "storage_deposit",
+                args: { account_id: wallet.account, registration_only: true },
+                gas: "30000000000000",
+                deposit: "1250000000000000000000",
+              },
+            },
+            {
+              type: "FunctionCall" as const,
+              params: {
+                methodName: "ft_transfer",
+                args: { receiver_id: wallet.account, amount: units, memo: `boreal: ${agentName}'s task budget` },
+                gas: "30000000000000",
+                deposit: "1",
+              },
+            },
+          ],
+        },
+      ];
+      const outcomes = await near.signAndSendTransactions({ transactions });
+      await connector.disconnect(near).catch(() => {});
+      setSent(outcomes.map((o) => o.transaction.hash));
+      setBusy(null);
+    } catch (e) {
+      const text = e instanceof Error ? e.message : "";
+      setError(/reject|cancel|closed/i.test(text) || !text ? "Nothing was sent. Try again when you're ready." : text);
+      setBusy(null);
+    }
+  }
+
+  if (sent) {
+    return (
+      <div className="flex flex-col gap-1 text-sm">
+        <p className="font-medium text-primary">Sent. {agentName} can pay for tasks from its wallet now.</p>
+        <p className="flex flex-wrap gap-x-3">
+          {sent.map((hash, n) => (
+            <a key={hash} href={`${explorer}${hash}`} target="_blank" rel="noreferrer" className="text-primary underline-offset-4 hover:underline">
+              Transaction {n + 1} on nearblocks
+            </a>
+          ))}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <label className="flex items-center gap-2 text-sm">
+          <span className="text-muted-foreground">USDC</span>
+          <span className="flex items-center rounded-md border bg-background px-2">
+            $
+            <input
+              inputMode="decimal"
+              value={dollars}
+              onChange={(e) => setDollars(e.target.value)}
+              aria-label="USDC to send"
+              className="h-9 w-20 bg-transparent px-1 tabular-nums outline-none"
+            />
+          </span>
+        </label>
+        <label className="flex items-center gap-2 text-sm text-muted-foreground">
+          <input type="checkbox" checked={gas} onChange={(e) => setGas(e.target.checked)} className="accent-primary" />
+          Add 0.1 NEAR for its fees
+        </label>
+      </div>
+      <Button onClick={fund} disabled={busy !== null} className="h-auto min-h-10 w-fit gap-2 whitespace-normal">
+        <Wallet className="size-4" aria-hidden />
+        {busy ?? `Fund ${agentName} with USDC`}
+      </Button>
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+    </div>
+  );
+}

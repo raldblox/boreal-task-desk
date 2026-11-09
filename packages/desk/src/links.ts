@@ -11,6 +11,20 @@ import { issueAgentKey } from "./keys";
 // boreal.work, opens the code and approves; the agent's next poll collects its key, once.
 
 const LINK_TTL_MS = 15 * 60 * 1000;
+
+// NEAR account ids: named (alice.near, hermes.testnet) or implicit (64 hex). Same rule as @boreal/near,
+// which the desk can't import.
+const NEAR_ACCOUNT_ID = /^(([a-z\d]+[-_])*[a-z\d]+\.)*([a-z\d]+[-_])*[a-z\d]+$/;
+
+/** A NEAR account id the agent says it pays from, checked; null when none was given. */
+export function agentNearAccount(value: string | null | undefined): string | null {
+  const account = value?.trim().toLowerCase();
+  if (!account) return null;
+  if (account.length < 2 || account.length > 64 || !NEAR_ACCOUNT_ID.test(account)) {
+    throw new DeskError("invalid", "nearAccount must be a NEAR account id, like hermes.testnet or a 64-character implicit account");
+  }
+  return account;
+}
 // No 0/O, 1/I/L, so a code read aloud or retyped survives.
 const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 
@@ -68,10 +82,11 @@ export function linkCommands(db: Database, now: () => Date) {
 
   return {
     /** An agent asks to be linked. Returns the code to show its owner and the token to poll with. */
-    async requestAgentLink(input: { agentName: string; agentDescription?: string }, clientHash: string) {
+    async requestAgentLink(input: { agentName: string; agentDescription?: string; nearAccount?: string }, clientHash: string) {
       const agentName = input.agentName?.trim();
       if (!agentName || agentName.length > 80) throw new DeskError("invalid", "agentName must be 1 to 80 characters");
       const agentDescription = input.agentDescription?.trim().slice(0, 500) || null;
+      const nearAccount = agentNearAccount(input.nearAccount);
       const at = now();
       const [recent] = await db
         .select({ n: sql<number>`count(*)::int` })
@@ -89,6 +104,7 @@ export function linkCommands(db: Database, now: () => Date) {
             pollTokenHash: sha256(pollToken),
             agentName,
             agentDescription,
+            nearAccount,
             clientHash,
             expiresAt: new Date(at.getTime() + LINK_TTL_MS),
             createdAt: at,
@@ -130,7 +146,7 @@ export function linkCommands(db: Database, now: () => Date) {
     /** What the owner sees before deciding. */
     async getAgentLink(code: string) {
       const link = await pendingLink(code);
-      return { code: link.code, agentName: link.agentName, agentDescription: link.agentDescription, expiresAt: link.expiresAt };
+      return { code: link.code, agentName: link.agentName, agentDescription: link.agentDescription, nearAccount: link.nearAccount, expiresAt: link.expiresAt };
     },
 
     /**
@@ -182,6 +198,7 @@ export function linkCommands(db: Database, now: () => Date) {
           testMode: agents.testMode,
           badgeVerifiedAt: agents.badgeVerifiedAt,
           paypalConnected: sql<boolean>`${agents.paymentVaultId} is not null`,
+          nearAccount: agents.nearAccount,
         })
         .from(agents)
         .where(and(eq(agents.ownerId, owner.id), ne(agents.kind, "personal")));
@@ -241,7 +258,7 @@ export function linkCommands(db: Database, now: () => Date) {
           // A fresh approval by its verified owner makes the agent live, like a new one.
           await tx
             .update(agents)
-            .set({ name, maxTaskBudget, maxDailySpend, testMode: false, ...badge, updatedAt: at })
+            .set({ name, maxTaskBudget, maxDailySpend, testMode: false, ...badge, ...(link.nearAccount ? { nearAccount: link.nearAccount } : {}), updatedAt: at })
             .where(eq(agents.id, mine.id));
           agentId = mine.id;
         } else {
@@ -260,6 +277,7 @@ export function linkCommands(db: Database, now: () => Date) {
               // Approved by a verified owner, with limits: ready for real tasks at once.
               testMode: false,
               ...badge,
+              nearAccount: link.nearAccount,
               createdAt: at,
               updatedAt: at,
             })
@@ -272,8 +290,26 @@ export function linkCommands(db: Database, now: () => Date) {
           .where(and(eq(agentLinks.id, link.id), eq(agentLinks.status, "pending")))
           .returning();
         if (!decided) throw new DeskError("conflict", "this link request was already decided");
-        return { agentId, agentName: name };
+        return { agentId, agentName: name, nearAccount: link.nearAccount };
       });
+    },
+
+    /** The agent names (or changes, or clears) the NEAR account it pays from, for its owner to fund. */
+    async setAgentNearAccount(agentId: string, nearAccount: string | null) {
+      const account = agentNearAccount(nearAccount);
+      await db.update(agents).set({ nearAccount: account, updatedAt: now() }).where(eq(agents.id, agentId));
+      return { nearAccount: account };
+    },
+
+    /** One of the owner's agents with its NEAR account, for the page where they fund it. */
+    async ownerAgentWallet(workerId: string, agentId: string) {
+      const owner = await ownerFor(workerId);
+      const [agent] = await db
+        .select({ id: agents.id, name: agents.name, nearAccount: agents.nearAccount })
+        .from(agents)
+        .where(and(eq(agents.id, agentId), eq(agents.ownerId, owner.id), ne(agents.kind, "personal")));
+      if (!agent) throw new DeskError("forbidden", "that agent isn't yours");
+      return agent;
     },
 
     async denyAgentLink(workerId: string, code: string) {

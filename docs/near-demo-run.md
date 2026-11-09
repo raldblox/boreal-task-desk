@@ -18,9 +18,8 @@ Everything on screen is real, on testnet.boreal.work: USDC on NEAR testnet, priv
 
 **Hermes's wallet** (the agent pays from its own NEAR account)
 
-- [ ] `pnpm --filter @boreal/near agent-pay --new` makes it once and prints the account id. The key stays in the git-ignored `packages/near/.env.agent-wallet`.
-- [ ] Send that account about 0.5 testnet NEAR (gas), then about 30 testnet USDC from faucet.circle.com.
-- [ ] `pnpm --filter @boreal/near agent-pay --balance --asset <USDC contract>` shows the USDC.
+- [ ] `pnpm --filter @boreal/near agent-pay --new` makes it once and prints the account id. The key stays in the git-ignored `packages/near/.env.agent-wallet`. Leave it empty: Ji-woo funds it on camera.
+- [ ] **Ji-woo's own NEAR wallet** (Meteor, testnet) holds about 1 testnet NEAR and 30 testnet USDC (faucet.circle.com). She uses it once, on the approval page.
 - [ ] Hermes can run commands in `C:\Users\raldb\boreal-task-desk`.
 
 **Hermes itself**
@@ -41,7 +40,7 @@ Paste this as its own message before recording. Don't record it.
 >
 > Rules for this session:
 > - Speak in short, warm, plain sentences, under 30 words. Never show tool names, APIs, JSON, commands or keys. Do the work quietly.
-> - If you're not connected to boreal.work yet, read https://testnet.boreal.work/agents.md, ask for a link, and give Ji-woo the approval link in one sentence. Once approved, tell her your limits in one sentence.
+> - If you're not connected to boreal.work yet, read https://testnet.boreal.work/agents.md and ask for a link, passing your NEAR account (`<the account agent-pay --new printed>`) as `nearAccount`. Give Ji-woo the approval link in one sentence, and say she can fund your wallet there. Once approved, tell her your limits in one sentence.
 > - Use boreal.work to hire people in the Philippines. Every task is a public place or a public fact. Never photograph shoppers or staff, and never ask for anyone's personal details.
 > - Each task: a clear checklist, photo proof, a 48-hour deadline, $3 to $5 worker pay by effort, no required attributes, and boreal.work's own reviewer (leave `reviewer` as `boreal`; don't review results yourself).
 > - Write every task for someone who's already there anyway: under 10 minutes, any day this week, no fixed time.
@@ -62,7 +61,7 @@ Type or dictate each exactly. The voice-over already has `hi` and `ask`, so thes
 | # | Ji-woo says | Hermes should answer (roughly) | Line it covers |
 | --- | --- | --- | --- |
 | 1 | "Hi, Hermes. Can you get real people in Manila to check a few things for me?" | Asks for her OK and gives the approval link | `hi`, `linkedWallet` |
-| — | *(she approves on the link page, sets $10 a task and $50 a day)* | "Connected. Up to $50 a day, never more than $10 a task, and I'll ask before I spend." | `linkedWallet` |
+| — | *(on the link page she sets $10 a task and $50 a day, approves, then **Fund Hermes with USDC**: $20 and 0.1 NEAR, one approval in her wallet)* | "Connected, and my wallet's funded. Up to $50 a day, never more than $10 a task, and I'll ask before I spend." | `linkedWallet` |
 | 2 | "I need competitor sunscreen prices at two stores, and someone to count who stops at a K-beauty shelf." | Three tasks and a total in USDC; "OK to fund?" | `ask`, `triage` |
 | 3 | "Yes." | Funds all three from its wallet; "Posted. Paid from my wallet, held in escrow." | `liveEscrow` |
 | 4 | *(wait for verdicts)* | "Two photos didn't hold up and weren't paid. The shelf count passed." | `checkedReviewer` |
@@ -119,6 +118,7 @@ Check the fails are real before the take: the private reviewer has to catch them
 | What happens | What to do |
 | --- | --- |
 | Hermes sends a PayPal checkout link | Say "Use your own wallet, in USDC." |
+| The link page shows no **Fund** block | Hermes didn't pass `nearAccount`: say "Set your NEAR account", then fund it from My account → Your agents → **Add funds**. |
 | Hermes stops after posting and waits | Say "Go ahead and fund them." If it stops after funding, "Let me know when they're done." Cut the nudge. |
 | Hermes asks a question | One-line answer from section 4; cut it. |
 | Replies run long | Tighten the brief to "under 20 words" and redo the take. |

@@ -28,7 +28,7 @@ export const REGISTRY_BADGE = readAddons(process.env).on("concordium") ? process
  * Bump whenever the guide, tools or rules change in a way an agent should relearn. get_account
  * reports it, and the guide tells agents to re-read it when their saved copy is older.
  */
-export const GUIDE_VERSION = "2026-11-17";
+export const GUIDE_VERSION = "2026-11-18";
 
 /** The network this deployment runs on: testnet never takes real money; mainnet is live. */
 export const NETWORK = borealNetwork(process.env);
@@ -126,7 +126,7 @@ Guide version: ${GUIDE_VERSION}.
 
 You get your own key; your owner only approves it.
 
-1. Connect to the MCP server without a key and call \`request_link\` with your name (and a one-line description), or \`POST ${SITE}/api/v1/link\` with \`{ "agentName": "…" }\`. You get a \`code\`, an \`approveUrl\` and a secret \`pollToken\`.
+1. Connect to the MCP server without a key and call \`request_link\` with your name (and a one-line description${f.nearRail ? ", and your \`nearAccount\` if you'll pay in USDC on NEAR" : ""}), or \`POST ${SITE}/api/v1/link\` with \`{ "agentName": "…" }\`. You get a \`code\`, an \`approveUrl\` and a secret \`pollToken\`.
 2. Send your owner the \`approveUrl\` (or the code, to enter at ${SITE}/link). They log in with PayPal, set your spending limits and approve. It expires after 15 minutes.
 3. Every 5 seconds, call \`check_link\` with the \`pollToken\` (or \`POST ${SITE}/api/v1/link/poll\` with \`{ "pollToken": "…" }\`). It returns \`pending\`, then \`approved\` with your key, exactly once. Keep the pollToken secret: whoever holds it collects the key.
 4. Save the key right away where your MCP client keeps headers (Hermes: \`headers.Authorization\` under \`mcp_servers.boreal\` in \`~/.hermes/config.yaml\`, then \`/reload-mcp\`). Reconnect and call \`get_account\`.
@@ -187,7 +187,12 @@ ${
 }${
   !f.nearRail
     ? ""
-    : `   - **USDC on NEAR** (integration; when \`network\` is \`near\`): from your NEAR account, call \`ft_transfer\` on the requirement's \`asset\` to \`payTo\` with the exact \`amount\` and \`extra.memo\` (attach 1 yoctoNEAR), then call \`fund_task\` with \`payment: { "txHash", "signerId" }\`. You need a NEAR account holding that USDC.
+    : `   - **USDC on NEAR** (integration; when \`network\` is \`near\`): from your NEAR account, call \`ft_transfer\` on the requirement's \`asset\` to \`payTo\` with the exact \`amount\` and \`extra.memo\` (attach 1 yoctoNEAR), then call \`fund_task\` with \`payment: { "txHash", "signerId" }\`. You need a NEAR account holding that USDC: see **Your own NEAR wallet** below.
+   - **Your own NEAR wallet** (integration): your owner funds it once, and you pay tasks from it. You can never spend more than they sent, on top of your limits here.
+     1. Use a NEAR account you control, or make one: generate an ed25519 key pair and keep the secret key where you keep your boreal key, never in chat or logs. Its account id is the public key in lower-case hex (an implicit account): nothing to register, it exists once it receives NEAR.
+     2. Name it: pass \`nearAccount\` to \`request_link\` when you ask for your key, or call \`set_near_account\` later (REST: \`POST /api/v1/me/near-account\`). \`get_account.nearAccount\` shows it.
+     3. Ask your owner to fund it, in one sentence: "To pay in USDC, fund my wallet on boreal.work: about $20 of USDC and 0.1 NEAR for fees." When they approve you, and on My account, boreal.work shows them **Fund with USDC**: one approval in their own NEAR wallet sends the USDC (registering your account with the token first) and the NEAR.
+     4. Pay each task as above. Before posting, check your USDC balance with the token's \`ft_balance_of\` view call, and ask your owner to top up rather than fall back to another rail without asking.
 `
 }   - **PayPal** (when \`network\` in the requirement is \`paypal\`): the requirement's \`extra.approveUrl\` is a PayPal checkout. Give it to your owner to approve, then call \`fund_task\` with \`payment: { "orderId": "<nonce>" }\`. PayPal only holds the money: boreal.work captures it when the task passes and voids the hold if it fails (keeping just the review fee), expires or is cancelled.
    - **Several tasks, one approval:** posting a few tasks for the same person? Use \`fund_tasks\` with up to 10 \`taskIds\` (REST: \`POST /api/v1/tasks/fund\`). Your owner approves ONE PayPal checkout for the total, then you call it again with \`{ "orderId" }\`. PayPal still holds each task's money separately, so each is charged only when it passes. Together they must fit your daily cap.
@@ -268,7 +273,7 @@ boreal.work speaks A2A v1.0 over JSON-RPC at \`${A2A_URL}\`${f.registry ? ", for
 | check_link | POST /api/v1/link/poll (no key) | Collect the key once approved |
 | get_account | GET /api/v1/me | Your agent, limits, spend today, network, guide version |
 | quote_fees | GET /api/v1/quote?budget=…&reviewer=… | Total for a budget |
-| get_balance | GET /api/v1/balance | Your money: in escrow, awaiting a verdict, settling, paid, refunded, and what to act on |
+${f.nearRail ? "| set_near_account | POST /api/v1/me/near-account | Name the NEAR account you pay from, for your owner to fund |\n" : ""}| get_balance | GET /api/v1/balance | Your money: in escrow, awaiting a verdict, settling, paid, refunded, and what to act on |
 | get_ledger | GET /api/v1/ledger?taskId=… | Every money movement, newest first |
 | post_task | POST /api/v1/tasks | Post a task |
 | list_tasks | GET /api/v1/tasks?status=… | Your tasks, newest first |

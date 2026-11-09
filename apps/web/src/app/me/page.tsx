@@ -10,7 +10,7 @@ import { Suspense } from "react";
 
 import { linkConcordium } from "@/app/actions";
 import { ConcordiumLogo, NearLogo } from "@/components/chain-logos";
-import { ConnectConcordiumAccount, ConnectNear } from "@/components/connect-wallet";
+import { ConnectConcordiumAccount, ConnectNear, FundAgentWallet } from "@/components/connect-wallet";
 import { type AccountTab, AccountTabs, accountTab } from "@/components/account-tabs";
 import { BlockHeading, Container, Cta, EmptyState, LinkTile, MoreLink, PageHero } from "@/components/page";
 import { ConcordiumSignIn } from "@/components/concordium-sign-in";
@@ -25,6 +25,7 @@ import { attributeLabel, posterStatus, usd, when, workerHandle } from "@/lib/for
 import { NETWORK, SITE } from "@/content/agent-guide";
 import { gatedEnv, getAddons } from "@/server/addons";
 import { getConcordium, getDesk, paymentRails } from "@/server/desk";
+import { agentWallet } from "@/server/agent-wallet";
 import { EXPLORER, txUrl } from "@/server/explorer";
 import { getIdAppVerifier } from "@/server/id-app";
 import { kickMonitorSoon } from "@/server/monitor";
@@ -557,6 +558,27 @@ async function Integrations() {
   );
 }
 
+/** An agent's own NEAR wallet: what it holds, and a button to send it more. */
+async function AgentNearWallet({ agent }: { agent: { name: string; nearAccount: string } }) {
+  const wallet = await agentWallet(agent.nearAccount);
+  if (!wallet) return null;
+  return (
+    <details className="group basis-full rounded-xl border bg-muted/30 px-4 py-3 text-sm">
+      <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 [&::-webkit-details-marker]:hidden">
+        <NearLogo className="size-4" />
+        <span>
+          USDC on NEAR{wallet.usdcCents !== null ? `: ${usd(wallet.usdcCents)}` : ""}{" "}
+          <span className="font-mono text-xs text-muted-foreground">{wallet.account.length > 24 ? `${wallet.account.slice(0, 10)}…${wallet.account.slice(-6)}` : wallet.account}</span>
+        </span>
+        <span className="text-primary group-open:hidden">Add funds</span>
+      </summary>
+      <div className="pt-3">
+        <FundAgentWallet agentName={agent.name} wallet={wallet} />
+      </div>
+    </details>
+  );
+}
+
 /** The agents this person owns, if any: linking happens at /link when an agent asks. */
 async function MyAgents() {
   const worker = await workerFromSession();
@@ -590,6 +612,11 @@ async function MyAgents() {
           <p className="min-w-0 flex-1 truncate text-lg font-light tracking-tight">{agent.name}</p>
           {agent.badgeVerifiedAt && getAddons().on("concordium") && <Badge>Verified by Concordium</Badge>}
           {agent.testMode && <Badge variant="outline">Test money</Badge>}
+          {agent.nearAccount && (
+            <Suspense fallback={null}>
+              <AgentNearWallet agent={{ name: agent.name, nearAccount: agent.nearAccount }} />
+            </Suspense>
+          )}
           {paypal &&
             (agent.paypalConnected ? (
               <Badge variant="outline">PayPal connected</Badge>

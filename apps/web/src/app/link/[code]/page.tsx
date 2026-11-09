@@ -10,10 +10,12 @@ import { Suspense } from "react";
 
 import { approveLink, denyLink } from "@/app/link/actions";
 import { ApproveLinkForm } from "@/app/link/approve-form";
+import { FundAgentWallet } from "@/components/connect-wallet";
 import { Container, PageHero } from "@/components/page";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { getAddons, verification } from "@/server/addons";
+import { agentWallet } from "@/server/agent-wallet";
 import { getDesk, paymentRails } from "@/server/desk";
 import { paypalAccounts } from "@/server/paypal-accounts";
 import { workerFromSession } from "@/server/session";
@@ -25,6 +27,26 @@ export const metadata: Metadata = { title: "Link an agent", robots: { index: fal
 const sentence = (message: string) => `${message.charAt(0).toUpperCase()}${message.slice(1).replace(/\.?$/, ".")}`;
 
 type Props = { params: Promise<{ code: string }>; searchParams: Promise<{ done?: string; agent?: string }> };
+
+/** After approval: fund the agent's own NEAR wallet, when it named one and the NEAR rail is on. */
+async function FundOnNear({ agentId }: { agentId: string }) {
+  const worker = await workerFromSession();
+  if (!worker || worker.role !== "worker") return null;
+  const agent = await getDesk().ownerAgentWallet(worker.workerId, agentId).catch(() => null);
+  const wallet = agent ? await agentWallet(agent.nearAccount) : null;
+  if (!agent || !wallet) return null;
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border bg-muted/40 p-4">
+      <p className="font-medium">Let it pay with USDC on NEAR</p>
+      <p className="text-sm text-muted-foreground">
+        {agent.name} pays for tasks from its own NEAR wallet,{" "}
+        <span className="font-mono text-xs">{wallet.account.length > 24 ? `${wallet.account.slice(0, 10)}…${wallet.account.slice(-6)}` : wallet.account}</span>
+        . Fund it once from your wallet: it can never spend more than you send, and never more than its limits here.
+      </p>
+      <FundAgentWallet agentName={agent.name} wallet={wallet} />
+    </div>
+  );
+}
 
 async function LinkRequest({ params, searchParams }: Props) {
   const code = normaliseLinkCode(decodeURIComponent((await params).code));
@@ -54,6 +76,11 @@ async function LinkRequest({ params, searchParams }: Props) {
               Connect PayPal
             </a>
           </div>
+        )}
+        {approved && agent && (
+          <Suspense fallback={null}>
+            <FundOnNear agentId={agent} />
+          </Suspense>
         )}
         <Link href="/me" className={buttonVariants({ variant: "outline" })}>
           {approved && agent ? "Skip for now" : "Go to my account"}
@@ -97,6 +124,11 @@ async function LinkRequest({ params, searchParams }: Props) {
           <p className="font-semibold">{link.agentName}</p>
           {link.agentDescription && <p className="text-sm text-muted-foreground">{link.agentDescription}</p>}
           <p className="font-mono text-xs text-muted-foreground">Code {link.code}</p>
+          {link.nearAccount && paymentRails().includes("near") && (
+            <p className="text-xs text-muted-foreground">
+              Pays on NEAR from <span className="font-mono">{link.nearAccount}</span>: you can fund it after approving.
+            </p>
+          )}
         </div>
       </div>
       <p className="text-sm text-muted-foreground">
