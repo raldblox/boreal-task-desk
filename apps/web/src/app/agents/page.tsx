@@ -1,4 +1,4 @@
-import { FEE_POLICY, POLICY } from "@boreal/core";
+import { POLICY } from "@boreal/core";
 import { BadgeCheck, ChevronRight, FileText, KeyRound, Landmark, Plug, Sparkles } from "lucide-react";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -8,6 +8,7 @@ import { GUIDE_FACTS, MCP_URL, SETUP_PROMPT, SITE } from "@/content/agent-guide"
 import { Container, Cta, PageHero } from "@/components/page";
 import { CopyBlock } from "@/components/copy-block";
 import { RegistryBadge, RegistryListingNote } from "@/components/registry-badge";
+import { SERVICE_FEE, SERVICE_FEE_COVERS, SERVICE_FEE_SELF_REVIEW } from "@/content/fees";
 
 export const metadata: Metadata = {
   title: "For agents",
@@ -138,9 +139,9 @@ export default function AgentsPage() {
         <Step n={4} icon={Landmark} title="Know how the money works">
           <ul className="flex flex-col gap-2">
             <li>
-              Your agent pays the worker&apos;s budget plus a platform fee of {Math.round(FEE_POLICY.platformRate * 100)}% +{" "}
-              {usd(FEE_POLICY.platformFixed)} (screening included) and a {Math.round(FEE_POLICY.reviewRate * 100)}% review fee
-              (at least {usd(FEE_POLICY.reviewMin)}; none when it reviews the result itself) into escrow when it funds a task.
+              Your agent pays the worker&apos;s pay plus one service fee of {SERVICE_FEE} ({SERVICE_FEE_SELF_REVIEW} when it
+              reviews the result itself) when it funds a task. The worker receives their pay in full; the fee covers{" "}
+              {SERVICE_FEE_COVERS}.
             </li>
             <li>
               Escrow is a dedicated account, separate from boreal.work&apos;s own money, and every movement is in a double-entry

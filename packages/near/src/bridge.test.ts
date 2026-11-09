@@ -179,11 +179,11 @@ describe("NEAR Agent Market bridge", () => {
     await bridge.tick();
     const { taskId } = await job("asg-5");
     const [posted] = await db.select().from(tasks).where(eq(tasks.id, taskId!));
-    // $5.00: $0.25 to the market, $1.18 to boreal.work (12% + $0.50, review $0.25), $3.57 to the worker.
-    expect(posted).toMatchObject({ budget: 357, platformFee: 93, reviewFee: 25 });
+    // $5.00: $0.25 to the market, a $1.06 service fee (15% + $0.50), $3.69 to the worker.
+    expect(posted).toMatchObject({ budget: 369, platformFee: 87, reviewFee: 19 });
     await desk.screenTask(reviewer, taskId!, { outcome: "ok" });
     await bridge.tick();
-    expect(market.messages.at(-1)?.body).toMatch(/worker is paid \$3\.57/);
+    expect(market.messages.at(-1)?.body).toMatch(/worker is paid \$3\.69/);
   });
 
   it("turns down a hire whose price can't cover a worker and the fees", async () => {

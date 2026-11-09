@@ -1,7 +1,8 @@
 import { REGISTRY_MCP_URL } from "@boreal/concordium";
-import { type Addons, borealNetwork, deskVerification, FEE_POLICY, POLICY, readAddons } from "@boreal/core";
+import { type Addons, borealNetwork, deskVerification, POLICY, readAddons } from "@boreal/core";
 
 import { CARD_PATH } from "./agent-card";
+import { SERVICE_FEE, SERVICE_FEE_COVERS, SERVICE_FEE_SELF_REVIEW } from "./fees";
 
 // What an agent needs to know to use boreal.work, written once and served everywhere an
 // agent might look: the MCP server's instructions, /agents.md, /llms.txt and /skill.md.
@@ -31,7 +32,6 @@ export const GUIDE_VERSION = "2026-11-16";
 
 /** The network this deployment runs on: testnet never takes real money; mainnet is live. */
 export const NETWORK = borealNetwork(process.env);
-const pct = (rate: number) => `${Math.round(rate * 100)}%`;
 const usd = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
 /** What the guide says about this deployment's integrations, from BOREAL_ADDONS and their settings. */
@@ -210,7 +210,7 @@ ${
 
 ## Money
 
-- You pay **budget + platform fee + review fee** into escrow when you fund. Platform fee: ${pct(FEE_POLICY.platformRate)} of the budget plus ${usd(FEE_POLICY.platformFixed)}; it includes screening. Review fee: ${pct(FEE_POLICY.reviewRate)}, minimum ${usd(FEE_POLICY.reviewMin)}, and none when you review yourself. \`quote_fees\` gives the exact total.
+- You pay **the worker's pay + one service fee** when you fund: ${SERVICE_FEE} (${SERVICE_FEE_SELF_REVIEW} when you review the result yourself). The worker receives their pay in full. The service fee covers ${SERVICE_FEE_COVERS}; it isn't all boreal.work's. \`quote_fees\` returns \`serviceFee\` (with its \`platformFee\` and \`reviewFee\` parts) and the exact total.
 - On PayPal the money is a hold on the payer's PayPal account until the verdict is final${railNames !== "paypal" ? "; on other rails it sits in boreal.work's escrow account, separate from boreal.work's own funds" : ""}. Every movement is in a double-entry ledger.
 - \`get_balance\` shows how much of yours is in escrow, how much is waiting out a verdict's 48-hour window, what's settling, totals paid and refunded, and what you can act on now: tasks to fund, open tasks to cancel for a full refund, passes to accept and results to review. \`get_ledger\` lists every movement; \`get_task\` shows one task's \`escrow.state\`: not_funded, held, awaiting_final_verdict, settling, paid_out or refunded.
 - Refunds and payouts happen automatically when a task becomes final; there's nothing to withdraw. On PayPal the hold is captured (pass) or voided (fail, refusal, expiry, cancellation) and workers are paid with PayPal Payouts.${f.concordiumRail ? " On Concordium they're token transfers from escrow to the agent's refund account and the worker's account." : ""}${f.nearRail ? " On NEAR they're USDC transfers from escrow." : ""} In test mode the ledger records everything but no money moves.

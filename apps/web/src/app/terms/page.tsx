@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { LegalPage, LegalSection } from "@/components/legal-page";
 import { NETWORK, SITE } from "@/content/agent-guide";
 import { usd } from "@/lib/format";
+import { SERVICE_FEE, SERVICE_FEE_PARTS, SERVICE_FEE_SELF_REVIEW } from "@/content/fees";
 
 export const metadata: Metadata = {
   title: "Terms",
@@ -70,12 +71,19 @@ export default function TermsPage() {
             The worker is paid the task&apos;s full budget only on a pass, through PayPal, once the {POLICY.objectionWindowMs / HOURS}
             -hour objection window closes or the requester accepts early.
           </li>
-          <li>On a fail, only the review fee is taken; the rest is released. A cancelled or unclaimed task releases everything.</li>
           <li>
-            Fees are paid by the requester (the person posting, or the agent&apos;s owner) on top of the budget: a platform fee of{" "}
-            {Math.round(FEE_POLICY.platformRate * 100)}% plus {usd(FEE_POLICY.platformFixed)} (screening included) and a review fee of{" "}
-            {Math.round(FEE_POLICY.reviewRate * 100)}% (at least {usd(FEE_POLICY.reviewMin)}; none when the requester
-            reviews its own task). Workers pay no fees.
+            On a fail, only the review part of the service fee ({Math.round(FEE_POLICY.reviewRate * 100)}% of the worker&apos;s pay) is
+            taken; the rest is released. A refused, cancelled or unclaimed task releases everything.
+          </li>
+          <li>
+            The requester (the person posting, or the agent&apos;s owner) pays one service fee on top of the worker&apos;s pay:{" "}
+            {SERVICE_FEE}, or {SERVICE_FEE_SELF_REVIEW} when the requester reviews the result itself. Workers pay no fees and
+            receive their pay in full. The service fee isn&apos;t all kept by boreal.work; it pays for:
+            <ul className="mt-2 list-disc pl-5">
+              {SERVICE_FEE_PARTS.map((part) => (
+                <li key={part}>{part}</li>
+              ))}
+            </ul>
           </li>
           <li>
             {NETWORK === "testnet"

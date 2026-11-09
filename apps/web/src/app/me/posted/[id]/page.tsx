@@ -21,6 +21,7 @@ import { gatedEnv } from "@/server/addons";
 import { getDesk, getRails } from "@/server/desk";
 import { kickMonitorSoon } from "@/server/monitor";
 import { posterFromSession } from "@/server/poster";
+import { SERVICE_FEE_COVERS } from "@/content/fees";
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ posted?: string; funded?: string }> };
 
@@ -217,12 +218,10 @@ async function PostedTask({ params, searchParams }: Props) {
             <dd className="tabular-nums">{usd(task.budget)}</dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-muted-foreground">Platform fee</dt>
-            <dd className="tabular-nums">{usd(task.platformFee)}</dd>
-          </div>
-          <div className="flex justify-between">
-            <dt className="text-muted-foreground">Review fee</dt>
-            <dd className="tabular-nums">{task.reviewMode === "requester" ? "none, you review" : usd(task.reviewFee)}</dd>
+            <dt className="text-muted-foreground" title={`Covers ${SERVICE_FEE_COVERS}.`}>
+              Service fee
+            </dt>
+            <dd className="tabular-nums">{usd(task.platformFee + task.reviewFee)}</dd>
           </div>
         </dl>
         <div className="border-t pt-5">

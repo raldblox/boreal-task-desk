@@ -106,7 +106,7 @@ describe("requester review", () => {
     expect(entries.find((e) => e.toAccount === "worker")?.amount).toBe(300);
     // No review fee on requester-reviewed tasks, so nothing goes to a reviewer.
     expect(entries.find((e) => e.toAccount === "reviewer")).toBeUndefined();
-    expect(entries.find((e) => e.fromAccount === "requester")?.amount).toBe(300 + 36 + 50);
+    expect(entries.find((e) => e.fromAccount === "requester")?.amount).toBe(300 + 30 + 50);
     expect(await db.select().from(outbox).where(eq(outbox.kind, "payout"))).toHaveLength(0);
     expect(await ledgerEscrowBalance(db)).toBe(0);
   });

@@ -85,14 +85,13 @@ The current testnet setup: escrow and the fee account are boreal's own implicit 
 
 ### How the money splits
 
-boreal.work has one listing on Agent Market, at a fixed price per hire. It supplies a verified person for the job and earns the same fees it takes on every task, on every rail:
+boreal.work has one listing on Agent Market, at a fixed price per hire. It supplies a verified person for the job and charges the same service fee as on every task, on every rail: 15% + $0.50 on top of the worker's pay, which the worker receives in full. The fee isn't all boreal.work's; it pays for the payment rail, AI screening and review, a person when the AI is unsure, and running the service.
 
 | From an $8.00 hire | Amount | Who |
 | --- | --- | --- |
 | Agent Market's share (5%) | $0.40 | the market |
-| Platform fee (12% + $0.50, screening included) | $1.23 | boreal.work |
-| Review fee (5%, at least $0.25) | $0.31 | boreal.work's reviewer |
-| **Worker's pay** | **$6.06** | the person who did the job |
+| Service fee (15% + $0.50) | $1.43 | covers PayPal or NEAR costs, AI screening and review, a person when needed, and running boreal.work |
+| **Worker's pay** | **$6.17** | the person who did the job, in full |
 
 The worker gets everything the fees don't take, worked out from what the buyer actually paid (`splitHire` in `packages/near/src/bridge.ts`). The task's total never exceeds what boreal.work receives from the hire, so the treasury never pays out more than a hire brings in. A hire priced too low to cover a worker and the fees is turned down before anything is funded. The treasury funds a hire before screening, and the market job is started only once screening passes; a refused brief's escrow goes back to the treasury and the buyer can cancel for a full refund.
 

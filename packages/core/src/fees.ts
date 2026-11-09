@@ -1,13 +1,20 @@
 // Fee rules from "Payments, custody and fees". All amounts are integer minor units
 // (cents on mainnet's USD stablecoin) so no rounding error reaches the ledger.
+//
+// The requester pays one service fee on top of the worker's pay, and the worker keeps 100% of
+// it. The service fee is 15% + $0.50 (10% + $0.50 when the requester reviews the result
+// itself). It covers PayPal's processing (about 3.5% + $0.49 to collect and 2% to pay out),
+// AI screening and review, a person when the AI is unsure, and running the service. Inside the
+// ledger it is two parts: the platform part (10% + $0.50) and the review part (5%), which goes
+// to whoever reviews.
 
 export const FEE_POLICY = {
-  platformRate: 0.12,
-  /** Added to every platform fee: covers a payment's fixed cost, such as PayPal's per-capture fee. */
+  /** The platform part of the service fee: 10% of the worker's pay ... */
+  platformRate: 0.1,
+  /** ... plus a fixed $0.50, which covers a payment's fixed cost (PayPal's is $0.49). */
   platformFixed: 50,
+  /** The review part: 5%, none when the requester reviews the result itself. */
   reviewRate: 0.05,
-  /** The review fee's floor: pays for a person when the AI reviewer can't decide. */
-  reviewMin: 25,
   requesterDepositRate: 0.1,
   requesterDepositMin: 50,
   workerDepositRate: 0.1,
@@ -18,6 +25,8 @@ export interface FeeQuote {
   budget: number;
   platformFee: number;
   reviewFee: number;
+  /** The one fee the requester sees: platformFee + reviewFee. */
+  serviceFee: number;
   /** What the requester pays into escrow to open the task. */
   total: number;
 }
@@ -32,9 +41,8 @@ function assertMinorUnits(amount: number, name: string): void {
 export function quoteFees(budget: number, { reviewer = "boreal" }: { reviewer?: "boreal" | "requester" } = {}): FeeQuote {
   assertMinorUnits(budget, "budget");
   const platformFee = Math.ceil(budget * FEE_POLICY.platformRate) + FEE_POLICY.platformFixed;
-  const reviewFee =
-    reviewer === "requester" ? 0 : Math.max(FEE_POLICY.reviewMin, Math.ceil(budget * FEE_POLICY.reviewRate));
-  return { budget, platformFee, reviewFee, total: budget + platformFee + reviewFee };
+  const reviewFee = reviewer === "requester" ? 0 : Math.ceil(budget * FEE_POLICY.reviewRate);
+  return { budget, platformFee, reviewFee, serviceFee: platformFee + reviewFee, total: budget + platformFee + reviewFee };
 }
 
 /**

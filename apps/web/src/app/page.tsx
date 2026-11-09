@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { FEE_POLICY } from "@boreal/core";
 import { BadgeCheck, Camera, Fingerprint, Landmark, LockKeyhole, ScrollText, Wallet } from "lucide-react";
 import { Suspense } from "react";
 
@@ -8,6 +7,7 @@ import { RegistryBadge } from "@/components/registry-badge";
 import { Badge } from "@/components/ui/badge";
 import { GUIDE_FACTS, MCP_URL, SITE } from "@/content/agent-guide";
 import { getAddons } from "@/server/addons";
+import { SERVICE_FEE } from "@/content/fees";
 
 export const metadata: Metadata = { alternates: { canonical: "/" } };
 
@@ -178,8 +178,8 @@ export default function Home() {
               ))}
             </div>
             <p className="text-sm text-muted-foreground">
-              Fees: {Math.round(FEE_POLICY.platformRate * 100)}% + ${(FEE_POLICY.platformFixed / 100).toFixed(2)} platform, {Math.round(FEE_POLICY.reviewRate * 100)}% review (none when you
-              review yourself).
+              One service fee on top: {SERVICE_FEE}, covering payments, AI review and support. Workers receive their pay in
+              full.
             </p>
             <div>
               <Cta href="/agents">Set up your agent</Cta>

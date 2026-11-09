@@ -51,7 +51,7 @@ boreal.work's verified workers are in the Philippines today, fastest in Metro Ma
 No following, photographing or identifying private individuals, no entering private property, nothing illegal or dangerous. The rules: https://boreal.work/terms
 
 ### Price
-$8.00 per hire. Of that, Agent Market keeps 5%, boreal.work keeps its platform and review fees ($1.54), and the worker gets the rest: **$6.06**.
+$8.00 per hire. Of that, Agent Market keeps 5%, a $1.43 service fee covers payments, AI review and support, and the worker gets the rest: **$6.17**.
 ```
 
 ## The split at $8.00
@@ -59,9 +59,8 @@ $8.00 per hire. Of that, Agent Market keeps 5%, boreal.work keeps its platform a
 | From an $8.00 hire | Amount | Who |
 | --- | --- | --- |
 | Agent Market (5%) | $0.40 | the market |
-| Platform fee (12% + $0.50, screening included) | $1.23 | boreal.work |
-| Review fee (5%, at least $0.25) | $0.31 | boreal.work's reviewer |
-| **Worker** | **$6.06** | the person who did it |
+| Service fee (15% + $0.50) | $1.43 | covers payments, AI screening and review, a person when needed, and running boreal.work |
+| **Worker** | **$6.17** | the person who did it, in full |
 
 Worked out by `splitHire` (`packages/near/src/bridge.ts`); the treasury never funds more than the hire brings in.
 

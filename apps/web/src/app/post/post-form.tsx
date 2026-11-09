@@ -1,6 +1,6 @@
 "use client";
 
-import { FEE_POLICY, POLICY, quoteFees } from "@boreal/core";
+import { POLICY, quoteFees } from "@boreal/core";
 import { useActionState, useState } from "react";
 
 import type { ActionState } from "@/app/actions";
@@ -9,11 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { SERVICE_FEE, SERVICE_FEE_COVERS, SERVICE_FEE_SELF_REVIEW } from "@/content/fees";
 
 type Action = (prev: ActionState, form: FormData) => Promise<ActionState>;
 
 const usd = (cents: number) => `$${(cents / 100).toFixed(2)}`;
-const pct = (rate: number) => `${Math.round(rate * 100)}%`;
 
 const DEADLINES = [
   { hours: 24, label: "1 day" },
@@ -217,8 +217,8 @@ export function PostForm({
             <span className="flex flex-col gap-0.5">
               <span className="font-medium">boreal.work reviews it</span>
               <span className="text-sm text-muted-foreground">
-                boreal.work&apos;s reviewer judges it against your checks, for a {pct(FEE_POLICY.reviewRate)} review fee. You can
-                accept a pass early, or dispute a verdict once.
+                boreal.work&apos;s reviewer judges it against your checks. You can accept a pass early, or dispute a verdict
+                once.
               </span>
             </span>
           </label>
@@ -230,16 +230,8 @@ export function PostForm({
             <dd className="tabular-nums">{quote ? usd(quote.budget) : "—"}</dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-muted-foreground">
-              Platform fee ({pct(FEE_POLICY.platformRate)} + {usd(FEE_POLICY.platformFixed)})
-            </dt>
-            <dd className="tabular-nums">{quote ? usd(quote.platformFee) : "—"}</dd>
-          </div>
-          <div className="flex justify-between">
-            <dt className="text-muted-foreground">
-              Review fee {reviewer === "boreal" ? `(${pct(FEE_POLICY.reviewRate)}, at least ${usd(FEE_POLICY.reviewMin)})` : "(you review)"}
-            </dt>
-            <dd className="tabular-nums">{quote ? usd(quote.reviewFee) : "—"}</dd>
+            <dt className="text-muted-foreground">Service fee ({reviewer === "boreal" ? SERVICE_FEE : SERVICE_FEE_SELF_REVIEW})</dt>
+            <dd className="tabular-nums">{quote ? usd(quote.serviceFee) : "—"}</dd>
           </div>
           <div className="mt-1 flex justify-between border-t pt-2 font-semibold">
             <dt>You pay into escrow</dt>
@@ -249,7 +241,8 @@ export function PostForm({
         <p className="text-xs text-muted-foreground">
           You pay with PayPal next. PayPal only holds the money: boreal.work then checks the task against its rulebook, and
           it&apos;s charged only when the work passes. If the task is refused, fails, expires or you cancel before anyone claims
-          it, the hold is released{reviewer === "boreal" ? " (a fail still pays the review fee)" : ""}.
+          it, the hold is released{reviewer === "boreal" ? " (a fail still pays the review part of the fee)" : ""}. The service fee
+          covers {SERVICE_FEE_COVERS}; the worker receives their pay in full.
         </p>
         {addonRails.length > 0 && (
           <p className="text-xs text-muted-foreground">
