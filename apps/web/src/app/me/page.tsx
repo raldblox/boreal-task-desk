@@ -374,6 +374,7 @@ function FeatureCard({
   title,
   by,
   connected,
+  status,
   gives,
   account,
   hint,
@@ -383,6 +384,8 @@ function FeatureCard({
   title: string;
   by: string;
   connected: boolean;
+  /** The state once connected, in words: "Verified", "Connected". */
+  status: string;
   gives: string[];
   /** Once connected: who it's connected as. */
   account?: React.ReactNode;
@@ -401,9 +404,9 @@ function FeatureCard({
           <p className="text-sm text-muted-foreground">{by}</p>
         </div>
         {connected && (
-          <span className="flex items-center gap-1 text-sm font-medium text-primary">
-            <CheckCircle2 className="size-4" aria-hidden /> On
-          </span>
+          <Badge variant="secondary" className="shrink-0 gap-1">
+            <CheckCircle2 className="size-3.5 text-primary" aria-hidden /> {status}
+          </Badge>
         )}
       </header>
       <ul className="flex flex-col gap-2">
@@ -414,9 +417,10 @@ function FeatureCard({
           </li>
         ))}
       </ul>
-      <div className="mt-auto flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0 text-sm text-muted-foreground">{connected ? account : hint}</div>
-        {children && <div className="shrink-0">{children}</div>}
+      {/* Wraps: wide actions (two Concordium buttons) drop below the text instead of squeezing it. */}
+      <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+        <div className="min-w-[12rem] flex-1 text-sm text-muted-foreground">{connected ? account : hint}</div>
+        {children && <div className="max-w-full">{children}</div>}
       </div>
     </article>
   );
@@ -465,6 +469,7 @@ async function Integrations() {
           title="Private ID verification"
           by="with Concordium"
           connected={profile.hasConcordium}
+          status="Verified"
           gives={[
             "Prove your age or country without sharing a document",
             "The Verified by Concordium badge",
@@ -492,6 +497,7 @@ async function Integrations() {
           title="USDC payouts"
           by="with NEAR"
           connected={Boolean(profile.nearAccount)}
+          status="Connected"
           gives={[
             "Get paid in USDC, straight to your own wallet",
             "No gas to pay: boreal.work covers it",
