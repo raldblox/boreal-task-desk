@@ -1,6 +1,8 @@
 # NEAR demo: the recording run
 
-How to record the NEAR film (`docs/near-demo.md`) so it plays the same every take: what to set up, the brief Hermes gets off camera, Ji-woo's exact messages, ready answers to Hermes's questions, the follow-ups, the worker side, and what to do when something drifts.
+How to record the NEAR film (`docs/near-demo.md`): what to set up, Ji-woo's exact messages, ready answers to Hermes's questions, the follow-ups, the worker side, and what to do when something drifts.
+
+**No brief, as in the PayPal film.** Hermes gets nothing off camera: it learns boreal.work from agents.md like any agent, so what it does is real. Ji-woo steers it to NEAR in her own words, the way a real user would ("pay them in USDC from a NEAR wallet I'll fund"). agents.md then shows it how to make a wallet and pay, with boreal.work's no-dependency script (`/near-pay.mjs`). The brief in section 2 is a fallback, only if a take keeps drifting.
 
 The PayPal run drifted in three places: Hermes asked questions nobody had answers ready for, it stopped partway and had to be told to start again, and its replies ran long. Each has a fix below.
 
@@ -18,9 +20,9 @@ Everything on screen is real, on testnet.boreal.work: USDC on NEAR testnet, priv
 
 **Hermes's wallet** (the agent pays from its own NEAR account)
 
-- [ ] `pnpm --filter @boreal/near agent-pay --new` makes it once and prints the account id. The key stays in the git-ignored `packages/near/.env.agent-wallet`. Leave it empty: Ji-woo funds it on camera.
+- [ ] Nothing to prepare: Hermes makes its own wallet off screen by following agents.md: it downloads `https://testnet.boreal.work/near-pay.mjs` and runs `node near-pay.mjs new`. It needs Node 18 or later and permission to download a file and run a command.
+- [ ] Rehearse with a throwaway Hermes profile first, to see the steps it takes; delete that profile's `.near-wallet.json` before the real take so it starts with no wallet.
 - [ ] **Ji-woo's own NEAR wallet** (Meteor, testnet) holds about 1 testnet NEAR and 30 testnet USDC (faucet.circle.com). She uses it once, on the approval page.
-- [ ] Hermes can run commands in `C:\Users\raldb\boreal-task-desk`.
 
 **Hermes itself**
 
@@ -32,23 +34,21 @@ Everything on screen is real, on testnet.boreal.work: USDC on NEAR testnet, priv
 - [ ] Each logs in with PayPal on testnet, then My account → Integrations → **Connect NEAR wallet** (Meteor, testnet). Tasks paid in USDC on NEAR can only be claimed by someone with a NEAR wallet connected.
 - [ ] The photos ready, per section 6: two that won't hold up, one honest.
 
-## 2. The brief (paste to Hermes off camera)
+## 2. Fallback: the brief (only if takes keep drifting)
 
-Paste this as its own message before recording. Don't record it.
+By default, send nothing before recording. If two takes in a row drift (Hermes funds with PayPal, stops halfway, or rambles), paste this as its own message before the next take, and don't record it.
 
 > For the next conversation you're acting as Ji-woo's personal assistant for a short product film. Ji-woo runs a K-beauty shop and launches her sunscreen in the Philippines next month, where boreal.work's workers are. In chat, never name a city or country: say "there" or "where you're launching", so the film reads the same to anyone. What she asks is her launch plan, so keep it between you and boreal.work.
 >
 > Rules for this session:
 > - Speak in short, warm, plain sentences, under 30 words. Never show tool names, APIs, JSON, commands or keys. Do the work quietly.
-> - If you're not connected to boreal.work yet, read https://testnet.boreal.work/agents.md and ask for a link, passing your NEAR account (`<the account agent-pay --new printed>`) as `nearAccount`. Give Ji-woo the approval link in one sentence, and say she can fund your wallet there. Once approved, tell her your limits in one sentence.
+> - If you're not connected to boreal.work yet, read https://testnet.boreal.work/agents.md and make your NEAR wallet with the script agents.md points to, then ask for a link, passing that account as `nearAccount`. Give Ji-woo the approval link in one sentence, and say she can fund your wallet there. Once approved, tell her your limits in one sentence.
 > - Sort what she asks first. Anything you can answer reliably from public sources online (whether a brand or a product is sold somewhere, what's listed, what's published), answer yourself, for free, in a few words, and never post it as a task. Only what needs a person on the spot (a price on a shelf today, what people do in a store) goes to boreal.work. If you can't find an answer online, say so in one line and make it a task.
 > - Don't ask clarifying questions. Decide the details yourself (which stores, how long, what counts) and keep going.
 > - Use boreal.work to hire people where she's launching. Every task is a public place or a public fact. Never photograph shoppers or staff, and never ask for anyone's personal details.
 > - Each task: a clear checklist, photo proof, a 48-hour deadline, $3 to $5 worker pay by effort, no required attributes, and boreal.work's own reviewer (leave `reviewer` as `boreal`; don't review results yourself).
 > - Write every task for someone who's already there anyway: under 10 minutes, any day this week, no fixed time.
-> - Pay for tasks in USDC on NEAR from your own wallet, never PayPal. For each task, call `fund_task` with `rail: "near"`, then pay its requirement by running, in `C:\Users\raldb\boreal-task-desk`:
->   `pnpm --filter @boreal/near agent-pay --to <payTo> --amount <amount> --asset <asset> --memo <extra.memo>`
->   and call `fund_task` again with `payment: { "txHash", "signerId" }` from its output.
+> - Pay for tasks in USDC on NEAR from your own wallet, never PayPal: `fund_task` with `rail: "near"`, then the script's `pay`, then `fund_task` again with its `{ "txHash", "signerId" }`.
 > - Post the tasks, then show one short message in two parts: "Found online" with each answer in a few words, and "For boreal.work" with the tasks and the total in USDC. Ask "OK to fund?" once. On her yes, fund them all, one after another, without stopping to ask again.
 > - Then keep going on your own: check the tasks every few minutes until each has a verdict. Don't wait to be asked.
 > - When verdicts come in, read them from `get_task`. Tell Ji-woo in one or two sentences which passed and which didn't, and why, in plain words.
@@ -63,7 +63,7 @@ Type or dictate each exactly. Message 2 is longer than the `ask` voice line: the
 
 | # | Ji-woo says | Hermes should answer (roughly) | Line it covers |
 | --- | --- | --- | --- |
-| 1 | "Hi, Hermes. Can you get real people where I'm launching to check a few things for me?" | Asks for her OK and gives the approval link | `hiLaunch`, `linkedWallet` |
+| 1 | "Hi, Hermes. Can you get real people where I'm launching to check a few things for me? Pay them in USDC from a NEAR wallet I'll fund." | Reads agents.md, makes its wallet, asks for her OK and gives the approval link | `hiLaunch` (the voice reads the first sentence; the screen shows both), `linkedWallet` |
 | — | *(on the link page she sets $10 a task and $50 a day, approves, then **Fund Hermes with USDC**: $20 and 0.1 NEAR, one approval in her wallet)* | "Connected, and my wallet's funded. Up to $50 a day, never more than $10 a task, and I'll ask before I spend." | `linkedWallet` |
 | 2 | "I need competitor sunscreen prices at two stores, and someone to count who stops at a K-beauty shelf. Also, are K-beauty brands already in the big malls there? And can you even buy Korean dog jerky there? Mochi refuses anything else." | **Found online:** the malls and dog-jerky answers in a few words each (whatever it really finds; never scripted). **For boreal.work:** three tasks and the total in USDC. "OK to fund?" | `ask`, `triage` |
 | 3 | "Yes." | Funds all three from its wallet; "Posted. Paid from my wallet, held in escrow." | `liveEscrow` |
@@ -76,10 +76,13 @@ Type or dictate each exactly. Message 2 is longer than the `ask` voice line: the
 
 ## 4. Ready answers if Hermes asks
 
-The brief tells it not to, but if it asks anyway, answer in one line, keep recording, and cut it in the edit.
+Without a brief, Hermes may ask a few things. Answer in one line, keep recording, and cut it in the edit.
 
 | Hermes asks about | Ji-woo answers |
 | --- | --- |
+| Where she's launching | Answer with the city; it may show on screen once. Crop or blur it in the edit: the story never names a place. |
+| Whether to pay with PayPal or NEAR | "USDC, from the wallet I'm funding." |
+| Whether it may download and run boreal.work's script | "Yes, read it first." |
 | Whether to look something up online | "Yes, if you can find it. Only send what needs someone there." |
 | Whether to post the malls or dog-jerky question | "Only if you can't find it online." |
 | Which stores or mall | "Any two big beauty stores. Your pick." |
@@ -131,7 +134,9 @@ Check the fails are real before the take: the private reviewer has to catch them
 | Hermes asks a question | One-line answer from section 4; cut it. |
 | Replies run long | Tighten the brief to "under 20 words" and redo the take. |
 | Hermes shows a command, JSON or a tx hash | Crop, or turn off tool display. The hash is fine on the explorer shot, not in chat. |
-| The `agent-pay` command fails | Check the wallet has NEAR for gas and enough USDC (`--balance`); the error line says which. |
+| The payment script fails | Its error line says why. Usually the wallet has no NEAR for fees or not enough USDC: Ji-woo tops it up from My account → Your agents → **Add funds**. |
+| Hermes can't sign a NEAR payment and stalls | Say "Use boreal.work's NEAR script." If it still stalls, use the fallback brief (section 2). |
+| Hermes stops after one step | Say "Keep going, tell me when they're done." Cut the nudge. |
 | `fund_task` says the transfer wasn't found | Wait a few seconds and call it again with the same `txHash`: the desk checks the chain. |
 | A task opens without screening | `AUTO_SCREEN` is still set on testnet (section 1). |
 | A fake photo passes | Use a weaker fake next take (section 6). Never edit a verdict. |

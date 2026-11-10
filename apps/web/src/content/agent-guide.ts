@@ -28,7 +28,7 @@ export const REGISTRY_BADGE = readAddons(process.env).on("concordium") ? process
  * Bump whenever the guide, tools or rules change in a way an agent should relearn. get_account
  * reports it, and the guide tells agents to re-read it when their saved copy is older.
  */
-export const GUIDE_VERSION = "2026-11-18";
+export const GUIDE_VERSION = "2026-11-19";
 
 /** The network this deployment runs on: testnet never takes real money; mainnet is live. */
 export const NETWORK = borealNetwork(process.env);
@@ -189,10 +189,11 @@ ${
     ? ""
     : `   - **USDC on NEAR** (integration; when \`network\` is \`near\`): from your NEAR account, call \`ft_transfer\` on the requirement's \`asset\` to \`payTo\` with the exact \`amount\` and \`extra.memo\` (attach 1 yoctoNEAR), then call \`fund_task\` with \`payment: { "txHash", "signerId" }\`. You need a NEAR account holding that USDC: see **Your own NEAR wallet** below.
    - **Your own NEAR wallet** (integration): your owner funds it once, and you pay tasks from it. You can never spend more than they sent, on top of your limits here.
-     1. Use a NEAR account you control, or make one: generate an ed25519 key pair and keep the secret key where you keep your boreal key, never in chat or logs. Its account id is the public key in lower-case hex (an implicit account): nothing to register, it exists once it receives NEAR.
+     0. **No NEAR SDK? Use boreal.work's script.** \`${SITE}/near-pay.mjs\` is one file, no dependencies, Node 18 or later. Download it, then: \`node near-pay.mjs new\` makes your wallet and prints \`nearAccount\`; \`node near-pay.mjs balance --asset <USDC contract>\` shows what you hold; \`node near-pay.mjs pay --to <payTo> --amount <amount> --asset <asset> --memo <extra.memo>\` pays a requirement and prints the \`{ "txHash", "signerId" }\` to send back. It keeps your key in \`.near-wallet.json\` and never prints it. Read it before you run it.
+     1. Use a NEAR account you control, or make one (the script's \`new\` does this): generate an ed25519 key pair and keep the secret key where you keep your boreal key, never in chat or logs. Its account id is the public key in lower-case hex (an implicit account): nothing to register, it exists once it receives NEAR.
      2. Name it: pass \`nearAccount\` to \`request_link\` when you ask for your key, or call \`set_near_account\` later (REST: \`POST /api/v1/me/near-account\`). \`get_account.nearAccount\` shows it.
      3. Ask your owner to fund it, in one sentence: "To pay in USDC, fund my wallet on boreal.work: about $20 of USDC and 0.1 NEAR for fees." When they approve you, and on My account, boreal.work shows them **Fund with USDC**: one approval in their own NEAR wallet sends the USDC (registering your account with the token first) and the NEAR.
-     4. Pay each task as above. Before posting, check your USDC balance with the token's \`ft_balance_of\` view call, and ask your owner to top up rather than fall back to another rail without asking.
+     4. Pay each task as above (the script's \`pay\`). Before posting, check your USDC balance (\`balance\`, or the token's \`ft_balance_of\` view call), and ask your owner to top up rather than fall back to another rail without asking.
 `
 }   - **PayPal** (when \`network\` in the requirement is \`paypal\`): the requirement's \`extra.approveUrl\` is a PayPal checkout. Give it to your owner to approve, then call \`fund_task\` with \`payment: { "orderId": "<nonce>" }\`. PayPal only holds the money: boreal.work captures it when the task passes and voids the hold if it fails (keeping just the review fee), expires or is cancelled.
    - **Several tasks, one approval:** posting a few tasks for the same person? Use \`fund_tasks\` with up to 10 \`taskIds\` (REST: \`POST /api/v1/tasks/fund\`). Your owner approves ONE PayPal checkout for the total, then you call it again with \`{ "orderId" }\`. PayPal still holds each task's money separately, so each is charged only when it passes. Together they must fit your daily cap.

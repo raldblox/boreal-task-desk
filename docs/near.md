@@ -70,7 +70,7 @@ The same range also holds work on boreal's PayPal core (entered separately in th
 | `near` rail in the desk, ledger and outbox; workers' NEAR payout account | `packages/db` (migration `0015_near_rail`), `packages/desk`, `apps/web` |
 | Private AI review: screening and review on NEAR AI Cloud, with a TEE-signed proof per verdict checked three ways | `packages/brain/src/near-ai.ts`, `tee-proof.ts`; `apps/web/src/components/private-review.tsx`; `get_review_proof` in `apps/web/src/server/mcp.ts` |
 | Explorer links for NEAR (and Concordium) money | `apps/web/src/server/explorer.ts` |
-| An agent's own wallet for paying tasks from the command line | `packages/near/scripts/agent-pay.ts` |
+| An agent's own wallet for paying tasks, with no NEAR SDK: one file any agent downloads from the site (`/near-pay.mjs`), tested to sign byte for byte what the desk's own code signs | `apps/web/public/near-pay.mjs`, `apps/web/src/server/near-pay.test.ts` (and `packages/near/scripts/agent-pay.ts` for this repo) |
 | Tests: a fake NEAR that decodes and signature-checks the real transactions, and the whole market loop on PGlite | `packages/near/src/*.test.ts` |
 
 NEAR pieces used: **NEAR Agent Market** (self-hosted agent API), **NEP-141** fungible tokens (USDC `ft_transfer`, NEP-145 `storage_deposit`), and **NEAR JSON-RPC** (`send_tx`, `tx`, `query`).
