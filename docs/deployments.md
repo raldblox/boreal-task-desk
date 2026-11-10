@@ -1,6 +1,6 @@
 # Deployments: testnet and live
 
-boreal runs as two separate Vercel projects built from the same repo (`main`), each with its
+boreal.work runs as two separate Vercel projects built from the same repo (`main`), each with its
 own database, file storage, secrets, keys and accounts. Nothing is shared between them.
 
 | | testnet.boreal.work | boreal.work (`www` redirects here) |
@@ -49,7 +49,7 @@ back, so keep their source (a local env file) or generate new ones.
   same key where the monitor runs.
 - **Testnet only (Concordium add-on):** `CONCORDIUM_MODE=testnet`, `CONCORDIUM_ANCHOR_ACCOUNT`/`_KEY` (a testnet
   account), `PAYMENT_RAILS=paypal`, `PAYPAL_ENV=sandbox` and the sandbox app's `PAYPAL_CLIENT_ID`,
-  `PAYPAL_CLIENT_SECRET`, `PAYPAL_WEBHOOK_ID`, `PAYPAL_LOGIN=on` (optional `PAYPAL_REVIEWER_EMAILS`: unset, boreal's review fee stays in its own PayPal account), plus
+  `PAYPAL_CLIENT_SECRET`, `PAYPAL_WEBHOOK_ID`, `PAYPAL_LOGIN=on` (optional `PAYPAL_REVIEWER_EMAILS`: unset, boreal.work's review fee stays in its own PayPal account), plus
   `BOREAL_REGISTRY_BADGE`/`_OWNER` (docs/registry.md).
   - Without `CONCORDIUM_ESCROW_ACCOUNT`/`_KEY` and `CONCORDIUM_PAYMENT_SECRET`, testnet mode runs
     anchor-only: anchors and the registry work, and Concordium isn't a payment rail. Adding the
@@ -60,7 +60,7 @@ back, so keep their source (a local env file) or generate new ones.
   - Only to turn on the Concordium add-on there: `BOREAL_ADDONS=concordium` and
     `CONCORDIUM_ANCHOR_ACCOUNT`/`_KEY` for a **mainnet** account holding a little CCD. Sign-in
     anchors each proof request on-chain; `/admin` shows Concordium ID as blocked until it's set.
-  - Live PayPal: a live app on boreal's PayPal business account with Payouts, Save payment
+  - Live PayPal: a live app on boreal.work's PayPal business account with Payouts, Save payment
     methods and Log in with PayPal (return URL `https://boreal.work/paypal/login/done`; share
     email, PayPal account ID and account verification status), and a webhook to
     `https://boreal.work/api/paypal/webhook`. Then set the PayPal variables above (live values,

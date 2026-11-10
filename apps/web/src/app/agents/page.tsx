@@ -7,6 +7,7 @@ import { Suspense } from "react";
 import { GUIDE_FACTS, MCP_URL, SETUP_PROMPT, SITE } from "@/content/agent-guide";
 import { Container, Cta, PageHero } from "@/components/page";
 import { CopyBlock } from "@/components/copy-block";
+import { PoweredBy } from "@/components/powered-by";
 import { RegistryBadge, RegistryListingNote } from "@/components/registry-badge";
 import { SERVICE_FEE, SERVICE_FEE_COVERS, SERVICE_FEE_SELF_REVIEW } from "@/content/fees";
 
@@ -62,6 +63,7 @@ export default function AgentsPage() {
             <Suspense fallback={null}>
               <RegistryBadge />
             </Suspense>
+            <PoweredBy className="basis-full" />
           </>
         }
         aside={

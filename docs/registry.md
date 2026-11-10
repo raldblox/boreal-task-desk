@@ -1,8 +1,8 @@
 # Listing boreal.work in Concordium's Agent Registry
 
-boreal lists itself in Concordium's Agent Registry as a deterministic service agent, so other
-agents can check it's the real boreal with the registry's `check_badge`. The listing doesn't
-need boreal to be AI-powered or to speak A2A: the registry only checks the on-chain record and
+boreal.work lists itself in Concordium's Agent Registry as a deterministic service agent, so other
+agents can check it's the real boreal.work with the registry's `check_badge`. The listing doesn't
+need boreal.work to be AI-powered or to speak A2A: the registry only checks the on-chain record and
 the hash of the card.
 
 - **The card.** Each site serves its own Agent Card (A2A v1.0 Agent Card that is also an
@@ -49,7 +49,7 @@ mainnet waits until the owner account has a little mainnet CCD.
 ## 1. Testnet: register testnet.boreal.work
 
 1. **Fund the owner account.** In the Concordium Browser Wallet, switch to Testnet, pick the
-   account that will own boreal's entry (it can be the one you sign in with; it doesn't have to
+   account that will own boreal.work's entry (it can be the one you sign in with; it doesn't have to
    be the anchor account) and use the wallet's testnet faucet ("Request CCD"). A few CCD is
    plenty.
 2. **Register.** Open <https://agent-registry.concordium.com>, connect the Concordium Browser

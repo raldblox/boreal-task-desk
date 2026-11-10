@@ -2,11 +2,11 @@
 
 Researched 2026-10-31. Started from [Shelley's list of 18 hackathons](https://x.com/shelleymaeph/status/2115343542298317231) (Oct 28, 2026), followed each link, then searched Devpost, DoraHacks, ETHGlobal, Colosseum, lablab, Concordium/Encode, Anthropic/Cerebral Valley, World, Coinbase and Philippine/SEA listings.
 
-boreal is already entered in the **Concordium Trusted Agents Hackathon** (final submission Dec 10, 2026 per our notes; one listing says Dec 9, so check the Encode page). Everything below is judged against that commitment.
+boreal.work is already entered in the **Concordium Trusted Agents Hackathon** (final submission Dec 10, 2026 per our notes; one listing says Dec 9, so check the Encode page). Everything below is judged against that commitment.
 
 Rules that decide fit for us:
 
-- **Prior work.** boreal already exists, so "new projects only" rules rule an event out. Most of the good ones allow an existing product if the new work is separated and disclosed.
+- **Prior work.** boreal.work already exists, so "new projects only" rules rule an event out. Most of the good ones allow an existing product if the new work is separated and disclosed.
 - **Public repo.** PayPal and NEAR both need a public repository (PayPal also needs an open-source licence). Before going public, check the git history for secrets: `.env.local` points at production.
 - **Location.** We're in the Philippines, so in-person events abroad (SF, Mumbai, Salt Lake City) cost travel and are scored lower.
 
@@ -30,7 +30,7 @@ Rules that decide fit for us:
 - **Organiser:** Concordium with Encode Club. Online.
 - **Dates:** Nov 2 – Dec 9/10, 2026. Weeks 1–3 (Nov 2–18) are workshops on Concordium ID, ZK proofs, the Agent Registry and agent payments. The build period opens Nov 19, the first checkpoint is Nov 22, and the final submission is due Dec 9 or 10.
 - **Eligibility:** No Concordium experience needed. Existing agents on other chains may be extended with Concordium identity, so existing products are welcome.
-- **Fit 5:** this is boreal's thesis (a verified human behind the work, verified agent behind the money).
+- **Fit 5:** this is boreal.work's thesis (a verified human behind the work, verified agent behind the money).
 - **Takeaway for the others:** the workshop weeks (Nov 2–18) are the window to do PayPal and NEAR without hurting the Concordium build.
 - Source: [web3voyager November list](https://web3voyager.com/blog/web3-hackathons-november-2026). I found no official Encode page, so confirm prizes and the exact deadline there.
 
@@ -44,7 +44,7 @@ Rules that decide fit for us:
 - **Required tech:** The PayPal developer platform in sandbox (PayPal, Venmo, Braintree, Hyperwallet, Xoom…) must be *central*, plus any AI tool.
 - **Submission:** Working demo (hosted URL or runnable repo), a **public open-source repo with a licence file**, a YouTube video under 3 minutes, and an English description.
 - **Judging:** Equal weight on technological implementation, design, potential impact, innovation and presentation, after a pass/fail check on theme and API use.
-- **Fit 5:** boreal is agentic commerce with a real payout problem. Workers in the Philippines are paid out, and PayPal and Hyperwallet are real payout rails there. A PayPal integration is also useful to the business beyond the prize.
+- **Fit 5:** boreal.work is agentic commerce with a real payout problem. Workers in the Philippines are paid out, and PayPal and Hyperwallet are real payout rails there. A PayPal integration is also useful to the business beyond the prize.
 - **Conflict:** none on dates (it closes before Concordium's build period starts), but it uses the workshop weeks.
 
 ### 2. NEAR HACKATHON: "Build Beyond Boundaries"
@@ -82,12 +82,12 @@ Rules that decide fit for us:
 ### 6. ETHGlobal Mumbai (Devcon 8)
 
 - **Link:** https://ethglobal.com/events/mumbai. Nov 5–7, in person, application-based. $175k+ from 12 partners, including a **World** (proof-of-human / AgentKit) bounty. A **Continuity Track** lets an existing project compete if the new work is documented.
-- **Fit 2:** World's AgentKit prize ("human-backed agents") is close to boreal, but the event is 5 days away, needs travel to Mumbai, and puts us in a competitor's identity stack during the Concordium event.
+- **Fit 2:** World's AgentKit prize ("human-backed agents") is close to boreal.work, but the event is 5 days away, needs travel to Mumbai, and puts us in a competitor's identity stack during the Concordium event.
 
 ### 7. Flip the Switch Hackathon
 
 - **Link:** https://wemakedevs.org/hackathons/switch. WeMakeDevs × DevTools Academy, powered by Switch. Nov 4–7, online, worldwide, teams up to 4. $10k ($2k best business workflow, $2k personal workflow, $100 × 20 OSS contributions, $500 Wispr Flow).
-- **Fit 2:** a "post a boreal task from team chat" workflow is a small, legitimate demo, but the prizes are small and the theme is chat workflows, not trust or payments.
+- **Fit 2:** a "post a boreal.work task from team chat" workflow is a small, legitimate demo, but the prizes are small and the theme is chat workflows, not trust or payments.
 
 ### 8. Vultr Agent Rush (lablab.ai)
 
@@ -126,13 +126,13 @@ Rules that decide fit for us:
    - Before submitting: make the repo public with a licence (scan history for secrets first) and record the YouTube video.
 2. **Enter NEAR (Nov 1–14): Agent Economy + Real-World Money tracks.**
    - Add a NEAR settlement adapter beside `packages/concordium`: an agent funds escrow, and workers get stablecoin payouts via NEAR Intents (testnet is allowed; Intents is mainnet-only, so use tiny amounts or `dry: true` quotes).
-   - Optionally list boreal on NEAR's Agent Market so NEAR agents can hire humans.
+   - Optionally list boreal.work on NEAR's Agent Market so NEAR agents can hire humans.
    - Use a `near-hackathon` branch with `pre-hackathon` / `hackathon-submission` tags and a README section linking the diff, since only the NEAR work is judged.
    - Write the README as "do X, see Y" for the Claude Code and Codex screeners.
    - If time only allows one of the two, choose PayPal. It is the rail Filipino workers already use, and the business keeps it after the prize.
 3. **Protect Concordium, then line up 2027.**
    - Freeze side-hackathon work by Nov 18 so the Nov 19 – Dec 10 build period goes fully to Concordium (Agent Registry badge, ID proofs for 18+ and residency, payments).
-   - Be open in every submission that boreal is also in the other events (NEAR Q-015 asks for it, and it avoids any "same project" question).
+   - Be open in every submission that boreal.work is also in the other events (NEAR Q-015 asks for it, and it avoids any "same project" question).
    - After Dec 10: apply to the Concordium Grant Program with the hackathon result, and put Google's Agents for Impact digital hackathon (Jan–Mar 2027) and the next Colosseum round on the calendar.
 
 ## Calendar

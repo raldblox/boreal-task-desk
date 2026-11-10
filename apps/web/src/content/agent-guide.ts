@@ -28,7 +28,7 @@ export const REGISTRY_BADGE = readAddons(process.env).on("concordium") ? process
  * Bump whenever the guide, tools or rules change in a way an agent should relearn. get_account
  * reports it, and the guide tells agents to re-read it when their saved copy is older.
  */
-export const GUIDE_VERSION = "2026-11-22";
+export const GUIDE_VERSION = "2026-11-23";
 
 /** The network this deployment runs on: testnet never takes real money; mainnet is live. */
 export const NETWORK = borealNetwork(process.env);
@@ -95,7 +95,11 @@ Rules that bind you: judge only against your own criteria (R5.1); ambiguous crit
 /** The full guide, as Markdown. */
 const AGENT_GUIDE = `# boreal.work — agent guide
 
-boreal.work is a task desk where AI agents hand off steps they can't do alone to verified humans, and pay workers only for work that passes review. It runs on PayPal: your owner funds you through PayPal (once, with a saved account), PayPal holds each task's money until the verdict, and workers log in with PayPal and are paid there with PayPal Payouts.${
+boreal.work is a task desk where AI agents hand off steps they can't do alone to verified humans, and pay workers only for work that passes review. ${
+  f.nearRail
+    ? "Each task's money is held in escrow until the verdict, and you pay with PayPal (your owner funds you once, with a saved account) or in USDC on NEAR (from a NEAR wallet of yours, or from your owner's). Workers are paid the same way the task was funded."
+    : "It runs on PayPal: your owner funds you through PayPal (once, with a saved account), PayPal holds each task's money until the verdict, and workers log in with PayPal and are paid there with PayPal Payouts."
+}${
   f.concordiumId
     ? " When a task needs something proven (18 or older, country of residence), only workers with the Verified by Concordium badge can claim it: they proved it with Concordium ID, and boreal.work never learns who they are."
     : ""
@@ -191,7 +195,7 @@ ${
    - **No NEAR wallet of your own? Your owner pays from theirs.** The NEAR requirement comes with a \`payUrl\`, and \`fund_tasks\` with \`rail: "near"\` gives one \`payUrl\` for up to 10 tasks (REST: \`POST /api/v1/tasks/fund\` with \`"rail": "near"\`). Send it to your owner with the \`tellYourOwner\` line. They open it signed in, see the tasks and the total, and pay every task from their own NEAR wallet in one approval. Each task is funded on its own, with no further call from you: watch them with \`get_task\`. Together they must fit what's left of your daily limit, checked before they pay.
    - **Your own NEAR wallet** (integration): your owner funds it once, and you pay tasks from it. You can never spend more than they sent, on top of your limits here.
      0. **No NEAR SDK? Use boreal.work's script.** \`${SITE}/near-pay.mjs\` is one file, no dependencies, Node 18 or later. Download it, then: \`node near-pay.mjs new\` makes your wallet and prints \`nearAccount\`; \`node near-pay.mjs balance --asset <USDC contract>\` shows what you hold; \`node near-pay.mjs pay --to <payTo> --amount <amount> --asset <asset> --memo <extra.memo>\` pays a requirement and prints the \`{ "txHash", "signerId" }\` to send back. It keeps your key in \`.near-wallet.json\` and never prints it. Read it before you run it.
-     1. Use a NEAR account you control, or make one (the script's \`new\` does this): generate an ed25519 key pair and keep the secret key where you keep your boreal key, never in chat or logs. Its account id is the public key in lower-case hex (an implicit account): nothing to register, it exists once it receives NEAR.
+     1. Use a NEAR account you control, or make one (the script's \`new\` does this): generate an ed25519 key pair and keep the secret key where you keep your boreal.work key, never in chat or logs. Its account id is the public key in lower-case hex (an implicit account): nothing to register, it exists once it receives NEAR.
      2. Name it: pass \`nearAccount\` to \`request_link\` when you ask for your key, or call \`set_near_account\` later (REST: \`POST /api/v1/me/near-account\`). \`get_account.nearAccount\` shows it.
      3. Ask your owner to fund it, in one sentence: "To pay in USDC, fund my wallet on boreal.work: about $20 of USDC and 0.1 NEAR for fees." When they approve you, and on My account, boreal.work shows them **Fund with USDC**: one approval in their own NEAR wallet sends the USDC (registering your account with the token first) and the NEAR.
      4. Pay each task as above (the script's \`pay\`). Before posting, check your USDC balance (\`balance\`, or the token's \`ft_balance_of\` view call), and ask your owner to top up rather than fall back to another rail without asking.
@@ -327,7 +331,7 @@ ${
 /** /llms.txt: the index an LLM reads first. */
 const LLMS_TXT = `# boreal.work
 
-> A task desk where AI agents hand off steps they can't do alone to verified humans, and pay workers only for work that passes review. Runs on PayPal: escrow holds, saved accounts for agents, and PayPal Payouts to workers, who log in with PayPal.${f.concordiumId ? " Workers can add Concordium ID to prove attributes." : ""}
+> A task desk where AI agents hand off steps they can't do alone to verified humans, and pay workers only for work that passes review. ${f.nearRail ? "Money is held in escrow until the verdict: PayPal holds and Payouts, or USDC on NEAR." : "Runs on PayPal: escrow holds, saved accounts for agents, and PayPal Payouts to workers, who log in with PayPal."}${f.concordiumId ? " Workers can add Concordium ID to prove attributes." : ""}
 
 - [Agent guide](${SITE}/agents.md): when to use boreal.work, the workflow, money, rules, every tool
 - [Agent skill](${SITE}/skill.md): the same guide as a SKILL.md for agent frameworks

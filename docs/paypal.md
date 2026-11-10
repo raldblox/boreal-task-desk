@@ -1,12 +1,12 @@
 # PayPal on boreal.work
 
-Added in November 2026 for the [PayPal AI Hackathon](https://paypalaihackathon.devpost.com), whose submission window runs Oct 1 to Nov 12, 2026. This page says what was added and how to run it. The hackathon accepts existing projects that are "significantly updated" in the window; boreal's whole git history falls inside it (first commit 2026-10-30), and the PayPal work is listed below.
+Added in November 2026 for the [PayPal AI Hackathon](https://paypalaihackathon.devpost.com), whose submission window runs Oct 1 to Nov 12, 2026. This page says what was added and how to run it. The hackathon accepts existing projects that are "significantly updated" in the window; boreal.work's whole git history falls inside it (first commit 2026-10-30), and the PayPal work is listed below.
 
 ## What it does
 
-An AI agent posts a real-world task (say, "photograph this shelf and its price tags"), funds it through PayPal, and pays only if the result passes review. A verified human worker in the Philippines does the task. When the result passes, boreal captures the money and pays the worker with PayPal Payouts. PayPal's hackathon brief lists "a payout tool for gig workers that pays out the moment a task is approved". This is that tool, with an AI reviewer deciding "approved" and an agent as the buyer.
+An AI agent posts a real-world task (say, "photograph this shelf and its price tags"), funds it through PayPal, and pays only if the result passes review. A verified human worker in the Philippines does the task. When the result passes, boreal.work captures the money and pays the worker with PayPal Payouts. PayPal's hackathon brief lists "a payout tool for gig workers that pays out the moment a task is approved". This is that tool, with an AI reviewer deciding "approved" and an agent as the buyer.
 
-| boreal step | PayPal API |
+| boreal.work step | PayPal API |
 | --- | --- |
 | Agent calls `fund_task` | Orders v2: create an order with intent `AUTHORIZE`. The agent gets an `approveUrl` for its owner |
 | Owner approves, agent calls `fund_task` again with `{ orderId }` | `POST /v2/checkout/orders/{id}/authorize`, run inside the desk's funding checks, so a refused task never holds money. The order asked PayPal to save the owner's account, so the response carries a vault id |
@@ -14,21 +14,21 @@ An AI agent posts a real-world task (say, "photograph this shelf and its price t
 | Task passes (accepted early, or the objection window closes) | `POST /v2/payments/authorizations/{id}/capture` for the full amount |
 | Task fails | Capture only the review fee with `final_capture: true`. PayPal releases the rest to the payer |
 | Task cancelled after funding, or expires unclaimed | `POST /v2/payments/authorizations/{id}/void` |
-| Worker and reviewer get paid | Payouts v1, one batch per ledger entry. The ledger idempotency key is the `sender_batch_id` and `sender_item_id`. A reviewer with no `PAYPAL_REVIEWER_EMAILS` entry (boreal reviewing itself) isn't paid out: the review fee stays in boreal's account, settled with the capture |
+| Worker and reviewer get paid | Payouts v1, one batch per ledger entry. The ledger idempotency key is the `sender_batch_id` and `sender_item_id`. A reviewer with no `PAYPAL_REVIEWER_EMAILS` entry (boreal.work reviewing itself) isn't paid out: the review fee stays in boreal.work's account, settled with the capture |
 | PayPal reports a payout's outcome | `PAYMENT.PAYOUTS-ITEM.*` webhooks, verified with PayPal, then applied to the ledger through the outbox |
 
-The owner approves PayPal once. After that the agent funds tasks on its own, inside the limits the owner set on boreal (per task and per day). Until the owner is verified, boreal caps those at $10 a task and $50 a day whatever the owner sets; on a PayPal-only deployment, a PayPal account PayPal has verified (`verified_account`) lifts the cap, up to $50 a task and $500 a day. That is the agentic-commerce part: the agent buys human work without a person clicking through a checkout each time, and boreal, not the agent, enforces the spending limits.
+The owner approves PayPal once. After that the agent funds tasks on its own, inside the limits the owner set on boreal.work (per task and per day). Until the owner is verified, boreal.work caps those at $10 a task and $50 a day whatever the owner sets; on a PayPal-only deployment, a PayPal account PayPal has verified (`verified_account`) lifts the cap, up to $50 a task and $500 a day. That is the agentic-commerce part: the agent buys human work without a person clicking through a checkout each time, and boreal.work, not the agent, enforces the spending limits.
 
-The money is held on the payer's PayPal account until the task is final, so an agent's owner never pays for work that failed, and boreal never handles money it might have to give back.
+The money is held on the payer's PayPal account until the task is final, so an agent's owner never pays for work that failed, and boreal.work never handles money it might have to give back.
 
 ## What was added
 
-- **`packages/paypal`** (new): a PayPal implementation of boreal's `Payments` port. It has a small REST client (OAuth client credentials, a `PayPal-Request-Id` on captures, voids and payouts so retries replay the first answer), the order, authorization, capture and void flow, Payouts, webhook verification and parsing, and `loadPayPal` / `loadPayments`, which pick the rail from `PAYMENTS_RAIL`.
+- **`packages/paypal`** (new): a PayPal implementation of boreal.work's `Payments` port. It has a small REST client (OAuth client credentials, a `PayPal-Request-Id` on captures, voids and payouts so retries replay the first answer), the order, authorization, capture and void flow, Payouts, webhook verification and parsing, and `loadPayPal` / `loadPayments`, which pick the rail from `PAYMENTS_RAIL`.
 - **Holds in the payment port** (`packages/concordium/src/index.ts`): an optional `holds` capability (`capture`, `release`). `confirmPayment` can return a `hold`. Concordium's rail is unchanged, and the desk only uses holds when a payment returns one.
 - **Desk** (`packages/desk`):
   - A held funding is written as a pending ledger entry, and the task records the authorization (`tasks.funding_hold`, migration `0008`).
   - When the task is final, the same transaction that changes its state queues one `capture` or `release` in the outbox.
-  - Once PayPal confirms, one transaction settles the funding entry, settles the refund and boreal's fee in place, and queues the payouts. A repeated capture never queues a payout twice.
+  - Once PayPal confirms, one transaction settles the funding entry, settles the refund and boreal.work's fee in place, and queues the payouts. A repeated capture never queues a payout twice.
   - `queuePaymentUpdate` queues a `reconcile` item that the outbox applies to the ledger. A failed or returned payout puts the money back in escrow and is logged for an operator.
 - **Web app** (`apps/web`):
   - `fund_task` (MCP and `POST /api/v1/tasks/:id/fund`) works on either rail. On PayPal the MCP answer includes a ready-to-send message for the owner with the approval link.
@@ -41,7 +41,7 @@ The money is held on the payer's PayPal account until the task is final, so an a
   - `confirmPayment` returns that id, and the funding transaction stores it on the agent (`agents.payment_vault_id`, migration `0009`).
   - The payment port gains an optional `vault.pay(taskId, amount, vaultId)`. The desk calls it for `fundTask(caller, taskId, { vault: true })`, reading the vault id from the locked agent row after the daily spending cap check, so an over-limit task never creates a PayPal order.
   - `vault.pay` creates an AUTHORIZE order with `payment_source.paypal.vault_id`. PayPal's docs only show the CAPTURE case, where the order completes on create. So if the order comes back without an authorization, the adapter authorizes it, which needs no approval for a vaulted payer. The `PayPal-Request-Id` is the task and vault id, so a retry never holds twice.
-  - MCP `fund_task` and `POST /api/v1/tasks/:id/fund` fund in one call when the agent has a saved account. If PayPal refuses it (the payer removed boreal in their PayPal settings), they fall back to a fresh approval link, whose approval saves a new vault id. `get_account` reports `savedPaymentMethod`.
+  - MCP `fund_task` and `POST /api/v1/tasks/:id/fund` fund in one call when the agent has a saved account. If PayPal refuses it (the payer removed boreal.work in their PayPal settings), they fall back to a fresh approval link, whose approval saves a new vault id. `get_account` reports `savedPaymentMethod`.
   - Owners can also connect PayPal without a purchase: **Connect PayPal** on the link approval page and on My account (`/paypal/save/:agentId` → PayPal → `/paypal/saved`) creates a vault setup token (`POST /v3/vault/setup-tokens`), and after approval exchanges it for a payment token (`POST /v3/vault/payment-tokens`) whose id is saved as the agent's vault id. A cookie ties the return to the request, and ownership is checked both ways.
   - `PAYPAL_VAULT=off` turns vaulting off, for PayPal apps without the Vault option.
 - **Log in with PayPal is a primary sign-in** (`/paypal/login` → PayPal → `/paypal/login/done`, scopes `openid email https://uri.paypal.com/services/paypalattributes`, state checked against a cookie). Signed out, it signs the worker in or creates them, keyed by `pp:` + an HMAC of PayPal's `payer_id` (the id itself is never stored); signed in, it adds PayPal to their account. Either way the primary email from userinfo becomes their PayPal payout in the same step, and PayPal's `verified_account` claim is recorded. With real money (mainnet), a worker needs a PayPal account PayPal has verified to claim. Where the Concordium add-on is on, Concordium ID also lets a worker claim, and tasks may require proven attributes; with it off, tasks can't. See the README's "Sign-in" section.
@@ -82,7 +82,7 @@ PayPal follows `BOREAL_NETWORK`: the sandbox on testnet (testnet.boreal.work), l
 
 ## Agents and PayPal's agent tools
 
-boreal's MCP server (`/api/mcp`) is the agent's side of the desk: `post_task`, `fund_task`, `get_task`, `accept_result` and the rest. It runs alongside PayPal's own MCP server or Agent Toolkit, which an agent uses for its other PayPal work. Funding needs the owner to approve a PayPal checkout once. The approval link, the "held, not charged" wording and what the owner is agreeing to (later tasks funded without asking, up to the agent's per-task and daily limits) come back in `fund_task`'s answer, ready to send. After that, `fund_task` pays in one call.
+boreal.work's MCP server (`/api/mcp`) is the agent's side of the desk: `post_task`, `fund_task`, `get_task`, `accept_result` and the rest. It runs alongside PayPal's own MCP server or Agent Toolkit, which an agent uses for its other PayPal work. Funding needs the owner to approve a PayPal checkout once. The approval link, the "held, not charged" wording and what the owner is agreeing to (later tasks funded without asking, up to the agent's per-task and daily limits) come back in `fund_task`'s answer, ready to send. After that, `fund_task` pays in one call.
 
 ## Log in with PayPal settings, per site
 
@@ -97,11 +97,11 @@ In the PayPal developer dashboard, under the app's **Log in with PayPal** option
 - **Workers who connected PayPal for payouts before Log in with PayPal became a sign-in** have only a payout email, not a PayPal identity (the old flow kept no `payer_id`). Logging in with PayPal while signed out makes them a new account; where the Concordium add-on is on, they should sign in with Concordium ID and use **Add PayPal** on My account instead.
 
 - **Vaulting, not yet checked on the sandbox.** The request and response fields follow PayPal's save-with-purchase guide. The AUTHORIZE-with-`vault_id` answer isn't documented, so both possible shapes are handled. PayPal's guide also mentions risk data (FraudNet) for payer-initiated vaulted payments. These are merchant-initiated within limits the owner set, so none is sent. Check all of this on the sandbox.
-- **No "forget my PayPal" button yet.** An owner can remove boreal from their PayPal account's automatic payments today, and the next funding then asks for approval again. A boreal-side control on the owner page (and deleting the vault token through PayPal's Payment Method Tokens API) is next.
+- **No "forget my PayPal" button yet.** An owner can remove boreal.work from their PayPal account's automatic payments today, and the next funding then asks for approval again. A boreal-side control on the owner page (and deleting the vault token through PayPal's Payment Method Tokens API) is next.
 - **Authorization lifetime.** PayPal honours an authorization for 3 days and lets it be captured for up to 29. A task whose deadline, objection window and dispute run past that needs reauthorizing. That isn't built yet, so keep PayPal tasks short.
-- **Fees.** PayPal's processing fee on a capture comes out of boreal's side. The platform fee has to cover it.
-- **Escrow check.** boreal's PayPal balance also holds its fees, net of PayPal's own. So on PayPal the escrow balance is read from the ledger, and each capture and payout is reconciled one by one through webhooks.
-- **Worker email.** A PayPal email is personal data. It is stored only in boreal's database, never on-chain.
+- **Fees.** PayPal's processing fee on a capture comes out of boreal.work's side. The platform fee has to cover it.
+- **Escrow check.** boreal.work's PayPal balance also holds its fees, net of PayPal's own. So on PayPal the escrow balance is read from the ledger, and each capture and payout is reconciled one by one through webhooks.
+- **Worker email.** A PayPal email is personal data. It is stored only in boreal.work's database, never on-chain.
 - **Verified end to end against the live sandbox** on 2026-11-02 with `sandbox-loop --card`:
   - The order was authorized and the $5.85 hold captured.
   - The worker ($5.00) and reviewer ($0.25) payouts both came back SUCCESS from PayPal.

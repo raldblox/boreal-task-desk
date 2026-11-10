@@ -25,7 +25,7 @@ describe("agent guide", () => {
   });
 
   it("describes each integration, as optional, where it's on", () => {
-    expect(ALL_ON.AGENT_GUIDE).toMatch(/runs on PayPal/);
+    expect(ALL_ON.AGENT_GUIDE).toContain("you pay with PayPal (your owner funds you once, with a saved account) or in USDC on NEAR");
     expect(ALL_ON.AGENT_GUIDE).toMatch(/\*\*Concordium\*\* \(integration/);
     expect(ALL_ON.AGENT_GUIDE).toMatch(/\*\*USDC on NEAR\*\* \(integration/);
     expect(ALL_ON.AGENT_GUIDE).toMatch(/Concordium and NEAR. PayPal works without them/);
