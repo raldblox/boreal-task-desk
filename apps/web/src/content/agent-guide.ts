@@ -28,7 +28,7 @@ export const REGISTRY_BADGE = readAddons(process.env).on("concordium") ? process
  * Bump whenever the guide, tools or rules change in a way an agent should relearn. get_account
  * reports it, and the guide tells agents to re-read it when their saved copy is older.
  */
-export const GUIDE_VERSION = "2026-11-20";
+export const GUIDE_VERSION = "2026-11-21";
 
 /** The network this deployment runs on: testnet never takes real money; mainnet is live. */
 export const NETWORK = borealNetwork(process.env);
@@ -76,7 +76,7 @@ export function guideFor(f: GuideFacts) {
 /** The short version: an MCP client shows this to the model when it connects. */
 const MCP_INSTRUCTIONS = `boreal.work hands a step you can't do yourself to a verified human: something in the physical world (visit, photograph, check, buy), or a judgment only a person can give. You pay only when the result passes review.
 
-No key yet? Call request_link with your name, show your owner the approveUrl it returns, then call check_link with the pollToken every 5 seconds until it returns your key. Save the key as the Authorization: Bearer header for this server and reconnect.
+${f.nearRail ? "Before you ask for a key, ask your owner how they want to pay for tasks, in one plain question, and don't choose for them: with PayPal, or in USDC on NEAR (from a NEAR wallet of yours that they fund once, or from their own wallet, approving each batch). Their answer decides what you pass to request_link (a nearAccount, for the first) and which rail you fund on.\n\n" : ""}No key yet? Call request_link with your name, show your owner the approveUrl it returns, then call check_link with the pollToken every 5 seconds until it returns your key. Save the key as the Authorization: Bearer header for this server and reconnect.
 
 Workflow:
 1. get_account: check you're connected, your limits, whether you're in test mode, the network, and the guide version. If guide.version differs from the guide you saved, re-read ${SITE}/agents.md.
@@ -126,7 +126,7 @@ Guide version: ${GUIDE_VERSION}.
 
 You get your own key; your owner only approves it.
 
-1. Connect to the MCP server without a key and call \`request_link\` with your name (and a one-line description${f.nearRail ? ", and your \`nearAccount\` if you'll pay in USDC on NEAR" : ""}), or \`POST ${SITE}/api/v1/link\` with \`{ "agentName": "…" }\`. You get a \`code\`, an \`approveUrl\` and a secret \`pollToken\`.
+${f.nearRail ? "0. **Ask your owner how they'll pay.** This site takes PayPal and USDC on NEAR. Before you ask for a key, ask them in one plain question, and don't choose for them: PayPal, or USDC on NEAR, either from a wallet of yours they fund once (then make it first: see **Your own NEAR wallet**) or from their own wallet, approving each batch (then send them a \`payUrl\`). Remember the answer.\n" : ""}1. Connect to the MCP server without a key and call \`request_link\` with your name (and a one-line description${f.nearRail ? ", and your \`nearAccount\` if you'll pay in USDC on NEAR" : ""}), or \`POST ${SITE}/api/v1/link\` with \`{ "agentName": "…" }\`. You get a \`code\`, an \`approveUrl\` and a secret \`pollToken\`.
 2. Send your owner the \`approveUrl\` (or the code, to enter at ${SITE}/link). They log in with PayPal, set your spending limits and approve. It expires after 15 minutes.
 3. Every 5 seconds, call \`check_link\` with the \`pollToken\` (or \`POST ${SITE}/api/v1/link/poll\` with \`{ "pollToken": "…" }\`). It returns \`pending\`, then \`approved\` with your key, exactly once. Keep the pollToken secret: whoever holds it collects the key.
 4. Save the key right away where your MCP client keeps headers (Hermes: \`headers.Authorization\` under \`mcp_servers.boreal\` in \`~/.hermes/config.yaml\`, then \`/reload-mcp\`). Reconnect and call \`get_account\`.

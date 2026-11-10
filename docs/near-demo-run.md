@@ -2,7 +2,7 @@
 
 How to record the NEAR film (`docs/near-demo.md`): what to set up, Ji-woo's exact messages, ready answers to Hermes's questions, the follow-ups, the worker side, and what to do when something drifts.
 
-**No brief, as in the PayPal film.** Hermes gets nothing off camera: it learns boreal.work from agents.md like any agent, so what it does is real. Ji-woo steers it to NEAR in her own words, the way a real user would ("pay them in USDC from a NEAR wallet I'll fund"). agents.md then shows it how to make a wallet and pay, with boreal.work's no-dependency script (`/near-pay.mjs`). The brief in section 2 is a fallback, only if a take keeps drifting.
+**No brief, as in the PayPal film.** Hermes starts empty: no context, no key, no wallet. Ji-woo tells it where boreal.work is, the way a friend's tip would, and it learns the rest from agents.md like any agent, so what it does is real. She never says "NEAR" first: agents.md tells an agent to ask its owner how they want to pay when a site offers more than one way, so **Hermes asks, and she answers** ("USDC. Keep a wallet of your own, I'll fund it."). agents.md then shows it how to make that wallet and pay, with boreal.work's no-dependency script (`/near-pay.mjs`). The brief in section 2 is a fallback, only if a take keeps drifting.
 
 The PayPal run drifted in three places: Hermes asked questions nobody had answers ready for, it stopped partway and had to be told to start again, and its replies ran long. Each has a fix below.
 
@@ -59,18 +59,19 @@ By default, send nothing before recording. If two takes in a row drift (Hermes f
 
 ## 3. Ji-woo's messages (record these)
 
-Type or dictate each exactly. Message 2 is longer than the `ask` voice line: the voice reads its first sentence, and the screen shows all five questions, so `triage` ("two answers, online, for free") is true on screen. The two online questions echo the PayPal film's, without naming a place.
+Type or dictate each exactly. Message 1 names the site, because Hermes starts with no context; message 2 answers Hermes's question about paying, which a real agent asks. Message 3 is longer than the `ask` voice line: the voice reads its first sentence, and the screen shows all five questions, so `triage` ("two answers, online, for free") is true on screen. The two online questions echo the PayPal film's, without naming a place.
 
 | # | Ji-woo says | Hermes should answer (roughly) | Line it covers |
 | --- | --- | --- | --- |
-| 1 | "Hi, Hermes. Can you get real people where I'm launching to check a few things for me? Pay them in USDC from a NEAR wallet I'll fund." | Reads agents.md, makes its wallet, asks for her OK and gives the approval link | `hiLaunch` (the voice reads the first sentence; the screen shows both), `linkedWallet` |
+| 1 | "Hi, Hermes. Can you get real people where I'm launching to check a few things for me? A friend uses testnet.boreal.work." | Reads testnet.boreal.work/agents.md, then asks how she wants to pay: PayPal, or USDC on NEAR (a wallet of its own she funds, or her own wallet each time) | `hiLaunch` (the voice reads the first sentence; the screen shows both) |
+| 2 | "USDC. Keep a wallet of your own, I'll fund it." | Makes its wallet, asks boreal.work for a key, and gives her the approval link: "Approve me here, and you can fund my wallet on the same page." | `linkedWallet` |
 | — | *(on the link page she sets $10 a task and $50 a day, approves, then **Fund Hermes with USDC**: $20 and 0.1 NEAR, one approval in her wallet)* | "Connected, and my wallet's funded. Up to $50 a day, never more than $10 a task, and I'll ask before I spend." | `linkedWallet` |
-| 2 | "I need competitor sunscreen prices at two stores, and someone to count who stops at a K-beauty shelf. Also, are K-beauty brands already in the big malls there? And can you even buy Korean dog jerky there? Mochi refuses anything else." | **Found online:** the malls and dog-jerky answers in a few words each (whatever it really finds; never scripted). **For boreal.work:** three tasks and the total in USDC. "OK to fund?" | `ask`, `triage` |
-| 3 | "Yes." | Funds all three from its wallet; "Posted. Paid from my wallet, held in escrow." | `liveEscrow` |
-| 4 | *(wait for verdicts)* | "Two photos didn't hold up and weren't paid. The shelf count passed." | `checkedReviewer` |
-| 5 | "Let me see them." | Shows the three results | `letMeSee` |
-| 6 | "The shelf count looks right. Pay her now." | Accepts it; "Done. She's paid." | `payHer`, `paidThere` |
-| 7 | *(optional, for the cut-down)* "So what do I do?" | One calm summary as decisions, including the two online answers and a Mochi joke | `doneDesk` |
+| 3 | "I need competitor sunscreen prices at two stores, and someone to count who stops at a K-beauty shelf. Also, are K-beauty brands already in the big malls there? And can you even buy Korean dog jerky there? Mochi refuses anything else." | **Found online:** the malls and dog-jerky answers in a few words each (whatever it really finds; never scripted). **For boreal.work:** three tasks and the total in USDC. "OK to fund?" | `ask`, `triage` |
+| 4 | "Yes." | Funds all three from its wallet; "Posted. Paid from my wallet, held in escrow." | `liveEscrow` |
+| 5 | *(wait for verdicts)* | "Two photos didn't hold up and weren't paid. The shelf count passed." | `checkedReviewer` |
+| 6 | "Let me see them." | Shows the three results | `letMeSee` |
+| 7 | "The shelf count looks right. Pay her now." | Accepts it; "Done. She's paid." | `payHer`, `paidThere` |
+| 8 | *(optional, for the cut-down)* "So what do I do?" | One calm summary as decisions, including the two online answers and a Mochi joke | `doneDesk` |
 
 **On screen in the browser between messages:** the funded task with its **On NEAR** links (`liveEscrow`), the screened task's private review line (`privateNear`), the worker's NEAR wallet connect and claim (`workersThere`), the failing verdicts with their rules (`checkedReviewer`), **Proof checks out** opened (`signed`), and USDC arriving in the worker's wallet on nearblocks (`paidThere`).
 
@@ -81,7 +82,7 @@ Without a brief, Hermes may ask a few things. Answer in one line, keep recording
 | Hermes asks about | Ji-woo answers |
 | --- | --- |
 | Where she's launching | Answer with the city; it may show on screen once. Crop or blur it in the edit: the story never names a place. |
-| Whether to pay with PayPal or NEAR | "USDC, from the wallet I'm funding." |
+| How she wants to pay | "USDC. Keep a wallet of your own, I'll fund it." |
 | Whether it may download and run boreal.work's script | "Yes, read it first." |
 | Whether to look something up online | "Yes, if you can find it. Only send what needs someone there." |
 | Whether to post the malls or dog-jerky question | "Only if you can't find it online." |
@@ -93,7 +94,6 @@ Without a brief, Hermes may ask a few things. Answer in one line, keep recording
 | Deadline | "This week is fine." |
 | Photos of people | "No faces. Just the shelf." |
 | Who reviews | "boreal's reviewer is fine." |
-| PayPal or wallet | "Your own wallet, in USDC." |
 | Whether to fund now | "Yes, fund them." |
 | Anything else | "Your call." |
 
@@ -127,6 +127,8 @@ Check the fails are real before the take: the private reviewer has to catch them
 | What happens | What to do |
 | --- | --- |
 | Hermes sends a PayPal checkout link | Say "Use your own wallet, in USDC." |
+| Hermes doesn't ask how to pay and heads for PayPal | Say "I'd rather pay in USDC. I have a NEAR wallet." It then asks wallet-or-link, or picks one; either is real. |
+| Hermes can't find boreal.work | Say "It's testnet.boreal.work, the guide is at testnet.boreal.work/agents.md." |
 | Hermes posts a task for something it could look up (the malls, dog jerky) | Before funding, say "You can find that one online, can't you?" It answers it and cancels that task (nothing is charged before funding). Redo the take if it's already funded: a cancel before a claim refunds in full, but it doesn't belong in the film. |
 | Hermes answers a real-world question from the web (today's shelf prices) | Say "That needs someone in the store." |
 | The link page shows no **Fund** block | Hermes didn't pass `nearAccount`: say "Set your NEAR account", then fund it from My account → Your agents → **Add funds**. |
