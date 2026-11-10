@@ -21,7 +21,7 @@ Your agent prints the JSON and sends it only after you confirm it. **Deadline: N
 | `nearAddress` | your **mainnet** account, lower-case; the prize is paid here | your mainnet account (fill in) |
 | `projectUrl` | the public repo, up to 300 characters, unique | `https://github.com/raldblox/boreal-task-desk` |
 | `demoUrl` | your public X post, up to 300 characters | the post's link, once it's up (`docs/near-demo.md`) |
-| `idea` | 20–2,000 characters | below (1790 characters) |
+| `idea` | 20–2,000 characters | below (1,716 characters) |
 | `consent` | `true` | `true`, once you've read and agreed |
 | `requestId` | a UUID, reused on retries | made when sending |
 
@@ -29,20 +29,21 @@ No other fields are allowed. `website` is a spam trap: leave it out.
 
 ## `idea`
 
-AI agents can now plan, book and pay, but a lot of what a business needs is a fact only a person on the spot can check: that a supplier's warehouse is real before a deposit, what a product sells for on a shelf today, whether a building a buyer is paying for is going up. boreal.work lets any agent hire a verified person for that step, and pays the person only when the result passes review.
+AI agents can now plan, book and pay, but much of what a business needs is a fact only a person on the spot can check: that a supplier's warehouse is real before a deposit, what a product sells for on a shelf today, whether a building is going up. boreal.work lets any agent hire a verified person for that step. The hard part is trust on both sides: the agent can't see the work, and the worker can't see who judges it.
 
-What we built on NEAR in the hackathon window:
+What we built on NEAR:
 
-- Agent-controlled spending: an agent pays for tasks in USDC from its own NEAR wallet, which its owner funds in one wallet approval. It can never spend more than it was sent, on top of per-task and daily limits.
-- USDC escrow and payouts: each task is funded by an ft_transfer to escrow with a per-task memo, checked on chain before the task opens. Workers are paid in USDC to the wallet they connected with a free NEP-413 signature, and requesters are refunded when work fails. Every payout is journaled before it is sent and never sent twice, and escrow is reconciled against a double-entry ledger.
-- Private AI review: tasks are screened and photo proof is reviewed by a model on NEAR AI Cloud running in a TEE, so no AI company can read a requester's plans or a worker's photos. Every AI verdict carries a proof anyone can check: the signature covers the exact request and response, recovers to the model's key, and the Intel TDX quote binds that key to our nonce. Agents can fetch it, and every verdict page shows it.
-- Agents as workers, and a bridge to NEAR Agent Market.
+Agent-controlled spending. The agent creates its own NEAR wallet and pays for tasks in USDC from it. Its owner approves it once, sets per-task and daily limits, and tops it up in a single wallet approval. It can never spend more than it holds.
 
-It works over MCP, REST and A2A, so any agent can use it, and it runs on PayPal alone for people without crypto; NEAR is an add-on. Live on testnet: testnet.boreal.work. Also entered in the PayPal AI Hackathon with its PayPal core; only the NEAR add-on is entered here.
+USDC escrow. Each task is funded by its own ft_transfer to escrow with a per-task memo, checked on chain before the task opens, so one transaction can fund several tasks. Workers connect a NEAR wallet with a free NEP-413 signature and are paid in USDC when work passes; the requester is refunded when it fails. Every payout is journaled before it is sent and never sent twice, and escrow is reconciled against a double-entry ledger.
+
+Private AI agents. boreal.work's own agents screen every task before it goes live and review every result, running in a TEE on NEAR AI Cloud, so no AI company sees a requester's plans or a worker's evidence. Every fail cites a rule by ID, unclear criteria count for the worker, and either side can dispute once for a human decision. Each verdict carries a proof anyone can check: the signature covers the exact request and response, recovers to the model's key, and the Intel TDX quote binds that key to our nonce.
+
+Agents connect over MCP, REST or A2A. Live on testnet: testnet.boreal.work.
 
 ## Before sending
 
-- [ ] **The film is done** and the X post is live, with the film attached, "built at NEAR HACKATHON", `@NEARProtocol` and `#NEARHackathon`. Its link is `demoUrl`.
+- [x] **The film is done** and the X post is live (https://x.com/reaper_promax/status/2120156686656962946), with the film attached, "built at NEAR HACKATHON", `@NEARProtocol` and `#NEARHackathon`. Its link is `demoUrl`.
 - [ ] **The repo is public** with its licence (MIT).
 - [ ] **The README's "Hackathons" section is current:**
   - it lists all the tracks you enter (now Agent Economy, Real-World Money and Privacy & Private AI; add AI Security & Defense if the vault lands);
@@ -66,7 +67,7 @@ It works over MCP, REST and A2A, so any agent can use it, and it runs on PayPal 
   "tracks": ["agents", "realworld", "privacy"],
   "nearAddress": "<your mainnet account>",
   "projectUrl": "https://github.com/raldblox/boreal-task-desk",
-  "demoUrl": "<your X post link>",
+  "demoUrl": "https://x.com/reaper_promax/status/2120156686656962946",
   "idea": "<the idea above, as one JSON string>",
   "consent": true
 }

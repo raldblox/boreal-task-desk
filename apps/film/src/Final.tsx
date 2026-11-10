@@ -19,16 +19,16 @@ const VO_AT: [number, number][] = [
 
 /* ---------- Liquid glass ---------- */
 
-const MINT = "#7fe0d6";
+export const MINT = "#7fe0d6";
 
 /**
  * How visible the surrounding beat is. Glass applies it to itself: opacity or filter on a parent
  * would cut the glass off from the video behind it, and the blur would have nothing to blur.
  */
-const Fade = createContext(1);
+export const Fade = createContext(1);
 
 /** A liquid-glass panel: blurred, saturated backdrop, a bright rim and a soft specular sheen. */
-const Glass = ({ tone = "dark", children, style }: { tone?: "dark" | "light"; children: ReactNode; style?: CSSProperties }) => {
+export const Glass = ({ tone = "dark", children, style }: { tone?: "dark" | "light"; children: ReactNode; style?: CSSProperties }) => {
   const dark = tone === "dark";
   const fade = useContext(Fade);
   return (
@@ -59,11 +59,11 @@ const Glass = ({ tone = "dark", children, style }: { tone?: "dark" | "light"; ch
   );
 };
 
-const Kicker = ({ children, color }: { children: ReactNode; color: string }) => (
+export const Kicker = ({ children, color }: { children: ReactNode; color: string }) => (
   <div style={{ fontFamily: MONO, fontSize: 16, letterSpacing: 3, textTransform: "uppercase", color }}>{children}</div>
 );
 
-const Pill = ({ children, tone }: { children: ReactNode; tone: "mint" | "paypal" | "red" | "ghost" | "teal" }) => {
+export const Pill = ({ children, tone }: { children: ReactNode; tone: "mint" | "paypal" | "red" | "ghost" | "teal" }) => {
   const look = {
     mint: { color: "#0d3b3a", background: MINT },
     teal: { color: "#fff", background: C.teal },
@@ -75,7 +75,7 @@ const Pill = ({ children, tone }: { children: ReactNode; tone: "mint" | "paypal"
 };
 
 /** Shows children from `from` for `dur` seconds: springs in, drifts slightly, fades out. */
-const Beat = ({ from, dur, children, style, whoosh = false }: { from: number; dur: number; children: ReactNode; style?: CSSProperties; whoosh?: boolean }) => (
+export const Beat = ({ from, dur, children, style, whoosh = false }: { from: number; dur: number; children: ReactNode; style?: CSSProperties; whoosh?: boolean }) => (
   <Sequence from={s(from)} durationInFrames={s(dur)} layout="none">
     <Pop dur={dur} style={style}>
       {children}
@@ -84,7 +84,7 @@ const Beat = ({ from, dur, children, style, whoosh = false }: { from: number; du
   </Sequence>
 );
 
-const Pop = ({ dur, children, style }: { dur: number; children: ReactNode; style?: CSSProperties }) => {
+export const Pop = ({ dur, children, style }: { dur: number; children: ReactNode; style?: CSSProperties }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const t = spring({ frame, fps, config: { damping: 20, mass: 0.8 } });
@@ -99,7 +99,7 @@ const Pop = ({ dur, children, style }: { dur: number; children: ReactNode; style
   );
 };
 
-const place = (where: "bl" | "br" | "tr" | "rc" | "lc" | "bc"): CSSProperties =>
+export const place = (where: "bl" | "br" | "tr" | "rc" | "lc" | "bc"): CSSProperties =>
   ({
     bl: { justifyContent: "flex-end", alignItems: "flex-start", padding: "0 0 150px 170px" },
     br: { justifyContent: "flex-end", alignItems: "flex-end", padding: "0 170px 150px 0" },
@@ -259,7 +259,7 @@ const Manila = ({ dur }: { dur: number }) => {
 };
 
 /** A light scan across the frame while Hermes checks the proof. */
-const Scan = () => {
+export const Scan = () => {
   const frame = useCurrentFrame();
   const y = interpolate(frame, [0, s(2.2)], [-10, 110], { ...clamp, easing: Easing.inOut(Easing.cubic) });
   const o = interpolate(frame, [0, 6, s(2.2) - 6, s(2.2)], [0, 1, 1, 0], clamp);

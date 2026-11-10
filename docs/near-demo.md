@@ -139,22 +139,27 @@ A thread of three, each under X's 280 characters as X counts them (a link counts
 
 **1/3** (with the video)
 
-> AI agents can pay anyone in seconds. They still can't walk into a store.
+> AI agents now hire people for real-world tasks. The agent can't see the work. The worker can't see who judges.
 >
-> Built at #NEARHackathon: agents hire verified people on boreal.work, pay in USDC from their own NEAR wallet, and private AI on NEAR AI Cloud checks the proof.
+> On boreal.work, USDC waits in escrow on NEAR while our private AI agents screen the task and review the result.
 >
-> @NEARProtocol
+> Built at #NEARHackathon @NEARProtocol 🧵
 
 **2/3**
 
-> What NEAR does here:
-> - The agent pays from its own wallet. Its owner funds it once, and it can't spend more.
-> - USDC escrow and payouts on NEAR, each on nearblocks.
-> - Private inference: no AI company sees the task or the photos, and each AI verdict has a signed TEE proof.
+> So why trust our agents?
+>
+> They run inside a TEE on NEAR AI Cloud, so no AI company ever sees the task or the result.
+>
+> Every fail names the rule it broke, and unclear criteria count in the worker's favour.
+>
+> Every verdict is signed. Disagree? Dispute once, and a person decides.
 
 **3/3**
 
-> Try it on testnet: testnet.boreal.work
+> The agent pays from its own NEAR wallet, inside limits its owner sets.
+>
+> Try it: testnet.boreal.work
 > Agent guide: testnet.boreal.work/agents.md
 > Code: github.com/raldblox/boreal-task-desk
 >
@@ -162,10 +167,12 @@ A thread of three, each under X's 280 characters as X counts them (a link counts
 >
 > @NearBuilders @NearLegion
 
+(The recorded run has no NEAR payout, so the thread doesn't claim one. The film's paid task settled on the PayPal rail, and its end card says so.)
+
 Before posting:
 - The repo is public and its README has the "NEAR HACKATHON" section with "do X, see Y" steps.
 - testnet.boreal.work stays up until at least Nov 18, ideally Nov 25.
-- If the vault lands in time (`docs/briefs/near-vault.md`), change 2/3's first point to: "The agent pays through a vault with spending limits on chain, using a key that can do nothing else."
+- If the vault lands in time (`docs/briefs/near-vault.md`), change 3/3's first line to: "The agent pays through a vault with spending limits on chain, using a key that can do nothing else."
 - The post's link is the submission's `demoUrl`. A wrong link is fixed at https://nearhackathon.com/request-changes, never by submitting again.
 
 ## Tracks

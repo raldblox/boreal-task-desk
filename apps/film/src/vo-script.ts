@@ -42,3 +42,19 @@ export const NEAR_VO_SCRIPT = {
   privateNear: { voice: "narrator", text: "But these questions are Ji-woo's plans for a launch. [pause] So they're read by private AI on NEAR AI Cloud, [pause] where no AI company can see them." },
   signed: { voice: "narrator", text: "Every verdict from that private AI comes back signed, [pause] so anyone can check where it came from." },
 } as const;
+
+// The NEAR film's own cut (src/NearFilm.tsx), recut from the NEAR testnet run. New lines only;
+// it also reuses hiLaunch, triage, signed and tagline.
+export const NEAR_FILM_VO_SCRIPT = {
+  hookAgents: { voice: "narrator", text: "AI agents can search, plan and pay. [pause] But they can't walk into a store and look." },
+  skillAsks: { voice: "narrator", text: "Hermes learns boreal work from its guide. [pause] Then, before it spends a cent, it asks what a good assistant would." },
+  payNear: { voice: "jiwoo", text: "I'd rather pay in USDC. I have a NEAR wallet." },
+  ownWallet: { voice: "narrator", text: "So Hermes makes a NEAR wallet of its own. [pause] Ji-woo approves it once, sets its limits, and tops it up with USDC." },
+  paysItself: { voice: "narrator", text: "Hermes posts three small jobs and pays for each one itself. [pause] Every dollar waits in escrow until the work passes." },
+  privateScreen: { voice: "narrator", text: "Before a job goes live, an AI screens it. [pause] These are Ji-woo's launch plans, so that AI runs privately on NEAR AI Cloud, [pause] where no AI company can read them." },
+  hashedTrail: { voice: "narrator", text: "Every step is hashed into a trail that can't be quietly rewritten." },
+  workersNear: { voice: "narrator", text: "Where her answers are, people are already out. [pause] One opens a job, makes a NEAR wallet in a minute, and claims it." },
+  checkedPrivate: { voice: "narrator", text: "But not every answer is honest. [pause] The same private AI checks each one against the task. [pause] These don't pass, so Ji-woo's money goes back." },
+  paidPasses: { voice: "narrator", text: "When the work does pass, a worker gets paid for being in the right place." },
+  closeNear: { voice: "narrator", text: "Agents are learning to buy, book and decide. [pause] Now they can ask the world for help, and pay the people who answer." },
+} as const;
