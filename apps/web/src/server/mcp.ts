@@ -79,6 +79,22 @@ function summary(task: Task) {
 }
 
 /**
+ * Where this site takes more than one way to pay and the owner hasn't set one up yet (no saved
+ * PayPal, no NEAR wallet named), get_account says so: agents always call it, so it's where an
+ * agent that already has a key learns to ask its owner rather than choose for them.
+ */
+export function paymentQuestion(account: { testMode: boolean; savedPaymentMethod: boolean; nearAccount: string | null }) {
+  const rails = paymentRails();
+  if (account.testMode || !rails.includes("near") || rails.length < 2 || account.savedPaymentMethod || account.nearAccount) return {};
+  return {
+    askYourOwner:
+      "Before you fund a task, ask your owner how they want to pay, and don't choose for them: with PayPal, or in USDC on NEAR, " +
+      "either from a NEAR wallet of yours that they fund once (make it and call set_near_account) or from their own wallet, " +
+      "approving each batch (send them the payUrl). Ask once and remember the answer.",
+  };
+}
+
+/**
  * fund_tasks on NEAR for an agent with no NEAR wallet of its own: one link for its owner, who pays
  * every task from their own wallet in one approval (the /pay page). Checked up front, so nothing is
  * signed for tasks that can't be funded.
@@ -251,6 +267,7 @@ export function registerTools(server: McpServer): void {
     tool(async (caller) => {
       const account = await desk.getAgentAccount(caller);
       return {
+        ...paymentQuestion(account),
         ...account,
         limits: { maxTaskBudget: usd(account.limits.maxTaskBudget), maxDailySpend: usd(account.limits.maxDailySpend) },
         spentLast24h: usd(account.spentLast24h),

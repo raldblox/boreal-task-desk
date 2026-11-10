@@ -34,6 +34,7 @@ describe("agent guide", () => {
     expect(ALL_ON.MCP_INSTRUCTIONS).toMatch(/optional rails \(paypal, concordium, near\)/);
     // An agent's own NEAR wallet: how to make it, name it and have its owner fund it.
     expect(ALL_ON.AGENT_GUIDE).toMatch(/Ask your owner how they'll pay/);
+    expect(ALL_ON.AGENT_GUIDE).toMatch(/before your first funding if you already have one/);
     expect(ALL_ON.MCP_INSTRUCTIONS).toMatch(/ask your owner how they want to pay for tasks/);
     expect(ALL_ON.AGENT_GUIDE).toMatch(/\*\*No NEAR wallet of your own\? Your owner pays from theirs\.\*\*/);
     expect(ALL_ON.AGENT_GUIDE).toMatch(/near-pay\.mjs` is one file, no dependencies/);
