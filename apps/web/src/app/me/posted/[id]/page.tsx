@@ -18,6 +18,7 @@ import { ReviewForm } from "@/components/poster-forms";
 import { ActionButton, DisputeForm } from "@/components/worker-forms";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { RuleRefs } from "@/components/rule-refs";
 import { attributeLabel, posterStatus, usd, when } from "@/lib/format";
 import { gatedEnv } from "@/server/addons";
 import { getDesk, getRails } from "@/server/desk";
@@ -108,7 +109,7 @@ async function NextStep({ task, requester }: { task: Task; requester: { role: "r
           {refusal && (
             <p className="rounded-lg bg-muted p-3 text-sm">
               {refusal.reasoning ?? "No reason given."}{" "}
-              <span className="font-mono text-xs text-muted-foreground">{refusal.ruleIds.join(" · ")}</span>
+              <span className="font-mono text-xs text-muted-foreground"><RuleRefs ids={refusal.ruleIds} empty="" /></span>
             </p>
           )}
           <Link href="/post" className="text-sm text-primary underline-offset-4 hover:underline">
@@ -324,7 +325,7 @@ async function PostedTask({ params, searchParams }: Props) {
             </h2>
             <p>{verdict.reasoning}</p>
             <p className="font-mono text-xs text-muted-foreground">
-              {verdict.ruleIds.length ? verdict.ruleIds.join(" · ") : "No rules cited"} · {when(verdict.at)}
+              <RuleRefs ids={verdict.ruleIds} /> · {when(verdict.at)}
             </p>
             <PrivateReviewNote review={verdict.privateReview} proof={proof} />
           </section>

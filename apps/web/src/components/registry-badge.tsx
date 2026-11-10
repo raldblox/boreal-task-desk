@@ -15,10 +15,9 @@ export async function RegistryBadge() {
     <a
       href={`https://agent-registry-mcp.concordium.com/v1/check-badge/${badge}`}
       className="inline-flex w-fit items-center gap-1.5 rounded-full border bg-card px-3 py-1 text-xs font-medium hover:bg-muted"
-      title={`Concordium Agent Registry badge ${badge} on ${NETWORK}`}
+      title={`boreal.work's own entry in Concordium's Agent Registry (badge ${badge}, ${NETWORK}), checked live. Click to see the registry's check.`}
     >
-      <BadgeCheck className="size-3.5 text-primary" aria-hidden /> Verified by Concordium
-      <span className="font-mono text-muted-foreground">{badge}</span>
+      <BadgeCheck className="size-3.5 text-primary" aria-hidden /> Verified agent
     </a>
   );
 }

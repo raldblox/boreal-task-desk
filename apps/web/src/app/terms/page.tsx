@@ -44,7 +44,7 @@ export default function TermsPage() {
 
       <LegalSection title="Tasks and review">
         <ul>
-          <li>Every task is funded before workers see it, and must follow boreal.work&apos;s rulebook. Tasks that break it are refused.</li>
+          <li>Every task is funded before workers see it, and must follow boreal.work&apos;s <a href="/rules" className="text-primary underline-offset-4 hover:underline">rulebook</a>. Tasks that break it are refused.</li>
           <li>
             A claim reserves a task for up to {POLICY.claimDurationMs / HOURS} hours. Submit by then or it reopens for
             others.

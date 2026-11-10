@@ -68,14 +68,13 @@ export function ClosingBand() {
         {STARS.map(([cx, cy, r]) => (
           <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r={r} fill="#ffffff" opacity="0.7" />
         ))}
+        {/* Static on purpose: animating paths under an SVG blur re-blurs them every frame and makes scrolling stutter. */}
         <g filter="url(#cb-blur)">
           <path
-            className="bb-aurora bb-aurora-a"
             d="M-100 250 C 250 120, 520 330, 820 200 S 1350 90, 1700 230 L 1700 330 C 1350 200, 1100 360, 820 300 S 250 240, -100 360 Z"
             fill="url(#cb-aurora-a)"
           />
           <path
-            className="bb-aurora bb-aurora-b"
             d="M-100 170 C 300 260, 600 90, 950 170 S 1450 260, 1700 140 L 1700 210 C 1400 310, 1100 220, 900 250 S 300 330, -100 250 Z"
             fill="url(#cb-aurora-b)"
           />
@@ -98,7 +97,7 @@ export function ClosingBand() {
             <Link
               key={href}
               href={href}
-              className="group flex flex-col gap-3 rounded-2xl border border-white/15 bg-white/[0.07] p-5 backdrop-blur-sm transition-colors hover:border-white/30 hover:bg-white/[0.12] focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none"
+              className="group flex flex-col gap-3 rounded-2xl border border-white/15 bg-[#0e3640]/70 p-5 transition-colors hover:border-white/30 hover:bg-white/[0.12] focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none"
             >
               <div className="flex items-center justify-between">
                 <span className="grid size-9 place-items-center rounded-lg bg-white/10 text-teal-200">

@@ -15,6 +15,7 @@ import { ActionButton, DisputeForm, SubmitForm } from "@/components/worker-forms
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { RuleRefs } from "@/components/rule-refs";
 import { attributeLabel, usd, when, WORKER_STATUS } from "@/lib/format";
 import { canBePaidOn, RAIL_LABEL } from "@/lib/rails";
 import { getDesk } from "@/server/desk";
@@ -339,7 +340,7 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
             </h2>
             <p>{verdict.reasoning}</p>
             <p className="font-mono text-xs text-muted-foreground">
-              {verdict.ruleIds.length ? verdict.ruleIds.join(" · ") : "No rules cited"} · {when(verdict.at)}
+              <RuleRefs ids={verdict.ruleIds} /> · {when(verdict.at)}
             </p>
             <PrivateReviewNote review={verdict.privateReview} proof={proof} />
           </section>

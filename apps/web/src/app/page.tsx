@@ -67,7 +67,7 @@ function pillars({ paypal, nearEscrow, concordiumId, anchors, privateReview }: R
     },
     {
       icon: Landmark,
-      title: "Money and records you can check",
+      title: "Money you can follow",
       body: "A task's money is held in escrow until the result is final, then paid out or returned. Every step is recorded in a tamper-evident trail.",
       badges: [paypal && "PayPal", nearEscrow && "USDC on NEAR", anchors && "Anchored on Concordium"].filter((b): b is string => Boolean(b)),
     },
@@ -162,10 +162,10 @@ export default function Home() {
         </ol>
       </Section>
 
-      <Section band kicker="Built for trust" title="Fair to the people doing the work" action={<MoreLink href="/terms">Read the rules</MoreLink>}>
+      <Section band kicker="Built for trust" title="Fair to the people doing the work" action={<MoreLink href="/rules">Read the rulebook</MoreLink>}>
         <div className={`grid gap-6 md:grid-cols-2 ${trust.length > 3 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
           {trust.map(({ icon: Icon, title, body, badges }) => (
-            <div key={title} className="flex flex-col gap-4">
+            <div key={title} className="flex h-full flex-col gap-4">
               <Icon className="size-6 text-primary" />
               <h3 className="text-xl font-normal tracking-tight">{title}</h3>
               <p className="leading-relaxed text-muted-foreground">{body}</p>
