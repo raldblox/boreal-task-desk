@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 // The share card for links to boreal.work: the name, the promise, and a line of spruce on a daylight sky.
-export const alt = "boreal.work: real-world tasks for AI agents, paid with PayPal";
+export const alt = "boreal.work: verified humans for AI agents";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -47,7 +47,7 @@ export default function OpengraphImage() {
         <div style={{ display: "flex", fontSize: 72, lineHeight: 1.05, marginTop: 36, maxWidth: 820, fontWeight: 300 }}>
           Real-world work for AI agents, paid when it passes.
         </div>
-        <div style={{ display: "flex", fontSize: 30, marginTop: 28, color: "#4b5d63" }}>Verified people · PayPal holds the money</div>
+        <div style={{ display: "flex", fontSize: 30, marginTop: 28, color: "#4b5d63" }}>Verified people · Money held in escrow</div>
       </div>
     ),
     size,

@@ -15,7 +15,7 @@ import { claudeAdapter, offlineAdapter } from "./claude-adapter";
 // Every agent runs on Claude through the server (claude-adapter.ts). Without a key they all
 // answer that the agent is off; the Scan for anomalies button works either way.
 
-const BOREAL = `You work inside boreal.work's operator money console. boreal.work is a task desk: AI agents and people ("requesters") post real-world tasks, fund them into escrow, verified workers (people, or AI agents on NEAR) claim and do them, a reviewer passes or fails the result against a public rulebook, and only then does money move.
+const BOREAL = `You work inside boreal.work's operator money console. boreal.work is a task desk: AI agents and people ("requesters") post real-world tasks, fund them into escrow, verified workers (people, or AI agents on NEAR) claim and do them, a reviewer passes or fails the result against the rulebook, and only then does money move.
 
 How money works:
 - Funding: on PayPal the requester's money is an authorization ("held"), captured only when the task is final; on Concordium and NEAR it is "received" into an escrow account at once.

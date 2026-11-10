@@ -66,7 +66,7 @@ const usd = (cents: number) => `$${(cents / 100).toFixed(2)}`;
  * The hero's sample task: cycles through real-world tasks and their verdicts, pausing while the
  * pointer is on it. People who ask for less motion pick one with the dots instead.
  */
-export function HeroTasks({ payTo, privateReview }: { payTo: string; privateReview: boolean }) {
+export function HeroTasks({ privateReview }: { privateReview: boolean }) {
   const [i, setI] = useState(0);
   const [paused, setPaused] = useState(false);
   // Only a swap animates: the first sample is there from the start, fully drawn.
@@ -120,7 +120,7 @@ export function HeroTasks({ payTo, privateReview }: { payTo: string; privateRevi
         </div>
         {s.outcome === "pass" ? (
           <p className="flex items-center gap-2 text-sm font-medium text-primary">
-            <Wallet className="size-4" aria-hidden /> Paid {usd(s.pay)} to {payTo}
+            <Wallet className="size-4" aria-hidden /> Paid {usd(s.pay)} to the worker
           </p>
         ) : (
           <p className="flex items-center gap-2 text-sm font-medium text-muted-foreground">

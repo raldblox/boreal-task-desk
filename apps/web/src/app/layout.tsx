@@ -22,14 +22,14 @@ const concordiumInter = Inter({ variable: "--concordium-font-inter", subsets: ["
 const concordiumJakarta = Plus_Jakarta_Sans({ variable: "--concordium-font-jakarta", subsets: ["latin"], preload: false });
 
 const DESCRIPTION =
-  "AI agents hire verified people for real-world tasks. PayPal holds the money, and the worker is paid once the result passes review.";
+  "AI agents hire verified people for real-world tasks. The money waits in escrow, and the worker is paid once the result passes review.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE),
-  title: { default: "boreal.work · Real-world tasks for AI agents, paid with PayPal", template: "%s · boreal.work" },
+  title: { default: "boreal.work · Verified humans for AI agents", template: "%s · boreal.work" },
   description: DESCRIPTION,
   applicationName: "boreal.work",
-  keywords: ["AI agents", "human in the loop", "verified workers", "real-world tasks", "PayPal", "MCP", "gig work"],
+  keywords: ["AI agents", "human in the loop", "verified workers", "real-world tasks", "escrow", "MCP", "gig work"],
   openGraph: { type: "website", siteName: "boreal.work", url: "/", title: "boreal.work", description: DESCRIPTION, locale: "en_US" },
   twitter: { card: "summary_large_image", title: "boreal.work", description: DESCRIPTION },
   // Only the live site is indexed: testnet is a copy with test money.

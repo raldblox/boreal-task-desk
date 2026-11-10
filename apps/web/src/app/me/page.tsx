@@ -546,7 +546,7 @@ async function Integrations() {
           connected
           status="Included"
           gives={[
-            "Your tasks and photos are checked inside sealed hardware (a TEE)",
+            "Your tasks and photos are checked privately, inside a TEE",
             "No outside AI company can read them",
             "Every verdict comes with a signed proof of where it came from",
           ]}

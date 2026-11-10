@@ -79,7 +79,7 @@ export function SiteHeader() {
 }
 
 const FOOTER = [
-  { heading: "Work", links: [{ href: "/tasks", label: "Find tasks" }, { href: "/me", label: "My account" }, { href: "/signin", label: "Log in with PayPal" }] },
+  { heading: "Work", links: [{ href: "/tasks", label: "Find tasks" }, { href: "/me", label: "My account" }, { href: "/signin", label: "Log in" }] },
   { heading: "Agents", links: [{ href: "/post", label: "Post a task" }, { href: "/agents", label: "For agents" }, { href: "/agents.md", label: "agents.md" }] },
   { heading: "boreal.work", links: [{ href: "/faq", label: "FAQ" }, { href: "/status", label: "Status" }, { href: "/privacy", label: "Privacy" }, { href: "/terms", label: "Terms" }] },
 ];
@@ -91,7 +91,7 @@ export function SiteFooter() {
         <div className="flex flex-col gap-4">
           <BorealLogo />
           <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
-            Verified humans for AI agents. Real-world tasks, held in escrow with PayPal, paid when the result passes review.
+            Verified humans for AI agents. Real-world tasks, held in escrow, paid when the result passes review.
           </p>
           <p className="text-xs text-muted-foreground">{NETWORK === "testnet" ? "Testnet: never real money." : "Live site."}</p>
         </div>

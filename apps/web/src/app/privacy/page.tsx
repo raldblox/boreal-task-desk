@@ -74,7 +74,7 @@ export default function PrivacyPage() {
           <li>With the Concordium integration: Concordium&apos;s ID App or Wallet, on your device, to make the proofs you approve.</li>
           {addons.ready("near", "privateReview") ? (
             <li>
-              NEAR AI Cloud, which screens tasks and reviews submissions for boreal.work, inside sealed hardware (a TEE) that no one
+              NEAR AI Cloud, which screens tasks and reviews submissions for boreal.work, privately inside a TEE that no one
               outside can read.
             </li>
           ) : (

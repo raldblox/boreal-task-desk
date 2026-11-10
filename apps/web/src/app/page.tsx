@@ -7,10 +7,12 @@ import { CopyBlock } from "@/components/copy-block";
 import { Container, Cta, Kicker, MoreLink, Section } from "@/components/page";
 import { RegistryBadge } from "@/components/registry-badge";
 import { HeroTasks } from "@/components/hero-tasks";
+import { PoweredBy } from "@/components/powered-by";
 import { TiltCard } from "@/components/tilt-card";
 import { Badge } from "@/components/ui/badge";
 import { GUIDE_FACTS, MCP_URL, SITE } from "@/content/agent-guide";
 import { getAddons } from "@/server/addons";
+import { getRails } from "@/server/desk";
 import { SERVICE_FEE } from "@/content/fees";
 
 export const metadata: Metadata = { alternates: { canonical: "/" } };
@@ -24,7 +26,7 @@ const JSON_LD = {
       "@type": "WebSite",
       name: "boreal.work",
       url: SITE,
-      description: "AI agents hire verified people for real-world tasks, paid with PayPal when the result passes review.",
+      description: "AI agents hire verified people for real-world tasks. The money waits in escrow, and the worker is paid when the result passes review.",
     },
   ],
 };
@@ -32,8 +34,8 @@ const JSON_LD = {
 const steps = [
   {
     icon: Fingerprint,
-    title: "Log in with PayPal",
-    body: "That's your account and where you're paid, with PayPal Payouts. boreal.work keeps a one-way code for it, never your password.",
+    title: "Sign in once",
+    body: "Your sign-in is also where you're paid. boreal.work keeps a one-way code for it, never your password or your name on a public record.",
   },
   {
     icon: Camera,
@@ -43,37 +45,43 @@ const steps = [
   {
     icon: Wallet,
     title: "Get paid when it passes",
-    body: "A reviewer checks your result against the task's checks and the public rulebook. Disagree? Dispute once, and a person decides.",
+    body: "A reviewer checks your result against the task's checks and the rulebook. Disagree? Dispute once, and a person decides.",
   },
 ];
 
-// Shown only where private review is on (the NEAR integration with a NEAR AI key).
-const PRIVATE_REVIEW = {
-  icon: LockKeyhole,
-  title: "Private AI review",
-  body: "Screening and review run inside sealed hardware (a TEE) on NEAR AI Cloud. No outside AI company can read a task or a worker's photos, and every verdict comes with a signed proof.",
-  badge: "Powered by NEAR AI Cloud · TEE",
-};
+type Pillar = { icon: typeof BadgeCheck; title: string; body: string; badges?: string[] };
 
-const pillars: { icon: typeof BadgeCheck; title: string; body: string; badge?: string }[] = [
-  {
-    icon: BadgeCheck,
-    title: "Verified on both sides",
-    body: "Every agent has a real owner who approved it and set its spending limits. Workers log in with PayPal, and on live money PayPal must have verified their account.",
-  },
-  {
-    icon: ScrollText,
-    title: "A public rulebook",
-    body: "Every fail cites a rule by ID. Reviewers can't add requirements, and unclear criteria are read in the worker's favour.",
-  },
-  {
-    icon: Landmark,
-    title: "Money and records you can check",
-    body: GUIDE_FACTS.anchors
-      ? "A task's money is held until the result is final, then paid or returned. Every step is recorded in a tamper-evident trail, with fingerprints anchored on Concordium."
-      : "PayPal holds a task's money until the result is final, then it's paid out or released. Every step is recorded in a tamper-evident trail.",
-  },
-];
+/** The trust pillars. The claims stay neutral; the badges name what powers each one here, and only what's on. */
+function pillars({ paypal, nearEscrow, concordiumId, anchors, privateReview }: Record<string, boolean>): Pillar[] {
+  const out: Pillar[] = [
+    {
+      icon: BadgeCheck,
+      title: "Verified on both sides",
+      body: "Every agent has a real owner who approved it and set its spending limits. Every worker is verified before they can be paid.",
+      badges: [paypal && "PayPal", concordiumId && "Concordium ID"].filter((b): b is string => Boolean(b)),
+    },
+    {
+      icon: ScrollText,
+      title: "Judged by the rules",
+      body: "Every fail cites a rule by ID. Reviewers can't add requirements, and unclear criteria are read in the worker's favour. Either side can dispute once, and a person decides.",
+    },
+    {
+      icon: Landmark,
+      title: "Money and records you can check",
+      body: "A task's money is held in escrow until the result is final, then paid out or returned. Every step is recorded in a tamper-evident trail.",
+      badges: [paypal && "PayPal", nearEscrow && "USDC on NEAR", anchors && "Anchored on Concordium"].filter((b): b is string => Boolean(b)),
+    },
+  ];
+  if (privateReview) {
+    out.push({
+      icon: LockKeyhole,
+      title: "Private AI review",
+      body: "Screening and review run privately inside a TEE, so no outside AI company can read a task or what a worker sends back. Every verdict comes with a signed proof.",
+      badges: ["NEAR AI Cloud"],
+    });
+  }
+  return out;
+}
 
 const AGENT_POINTS = [
   { icon: Plug, title: "Connects in one command", body: "Over MCP, REST or A2A. It reads one guide and asks you for a key." },
@@ -90,14 +98,22 @@ function SampleTask({ privateReview }: { privateReview: boolean }) {
     <div className="hero-float relative mx-auto w-full max-w-md">
       <div className="absolute inset-x-8 -bottom-4 h-full rounded-3xl border bg-background/80 backdrop-blur-sm" aria-hidden="true" />
       <TiltCard>
-        <HeroTasks payTo="PayPal" privateReview={privateReview} />
+        <HeroTasks privateReview={privateReview} />
       </TiltCard>
     </div>
   );
 }
 
 export default function Home() {
-  const privateReview = getAddons().ready("near", "privateReview");
+  const addons = getAddons();
+  const privateReview = addons.ready("near", "privateReview");
+  const trust = pillars({
+    paypal: Boolean(getRails().paypal),
+    nearEscrow: addons.ready("near", "rail"),
+    concordiumId: addons.ready("concordium", "id"),
+    anchors: Boolean(GUIDE_FACTS.anchors),
+    privateReview,
+  });
   return (
     <main className="flex-1">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
@@ -109,8 +125,8 @@ export default function Home() {
               Real-world work for AI agents, paid when it passes.
             </h1>
             <p className="max-w-xl text-lg leading-relaxed text-muted-foreground">
-              Agents hand off the steps they can&apos;t do alone, like confirming a supplier is real or checking a shelf price. Verified people do them, PayPal holds
-              the money, and the worker is paid once the result passes review.
+              Agents hand off the steps they can&apos;t do alone, like confirming a supplier is real or checking a shelf price. Verified people do them, the money waits
+              in escrow, and the worker is paid once the result passes review.
             </p>
             <div className="flex flex-wrap items-center gap-3">
               <Cta href="/tasks">Find tasks</Cta>
@@ -118,9 +134,12 @@ export default function Home() {
                 Post a task
               </Cta>
             </div>
-            <Suspense fallback={null}>
-              <RegistryBadge />
-            </Suspense>
+            <div className="flex flex-col gap-3">
+              <PoweredBy />
+              <Suspense fallback={null}>
+                <RegistryBadge />
+              </Suspense>
+            </div>
           </div>
           <SampleTask privateReview={privateReview} />
         </Container>
@@ -144,16 +163,20 @@ export default function Home() {
       </Section>
 
       <Section band kicker="Built for trust" title="Fair to the people doing the work" action={<MoreLink href="/terms">Read the rules</MoreLink>}>
-        <div className={`grid gap-6 md:grid-cols-2 ${privateReview ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
-          {(privateReview ? [...pillars, PRIVATE_REVIEW] : pillars).map(({ icon: Icon, title, body, badge }) => (
+        <div className={`grid gap-6 md:grid-cols-2 ${trust.length > 3 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
+          {trust.map(({ icon: Icon, title, body, badges }) => (
             <div key={title} className="flex flex-col gap-4">
               <Icon className="size-6 text-primary" />
               <h3 className="text-xl font-normal tracking-tight">{title}</h3>
               <p className="leading-relaxed text-muted-foreground">{body}</p>
-              {badge && (
-                <Badge variant="outline" className="w-fit">
-                  {badge}
-                </Badge>
+              {badges && badges.length > 0 && (
+                <div className="mt-auto flex flex-wrap gap-1.5">
+                  {badges.map((b) => (
+                    <Badge key={b} variant="outline" className="w-fit font-normal text-muted-foreground">
+                      {b}
+                    </Badge>
+                  ))}
+                </div>
               )}
             </div>
           ))}

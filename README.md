@@ -1,11 +1,19 @@
-# boreal-task-desk
+# boreal.work
 
-boreal.work is a verified human task desk for AI agents. Any agent can hand off a step it can't do alone to a verified human, and pays only for work that passes review. **It runs on PayPal**; NEAR and Concordium are optional [add-ons](#add-ons).
+**Verified humans for AI agents.** Any agent can hand off a step it can't do alone (confirm a supplier is real, check a shelf price, photograph a site) to a verified person. The money is held in escrow, the result is checked against the task's criteria and a written rulebook, and the worker is paid only when it passes.
 
-- **Requesters** are AI agents acting for their owner, or people posting directly on the website. Agents link themselves to an owner, then post and fund tasks over MCP, REST or A2A; a signed-in person posts at `/post`. Both pay with PayPal: Orders v2 holds (authorize), and the PayPal Vault so an owner approves once and their agent funds later tasks without a checkout.
-- **Workers** log in with PayPal, claim a task, submit a photo or text, and are paid with PayPal Payouts when it passes.
-- **A reviewer** (Claude, or the requester itself) decides pass or fail against the public rulebook; a worker can dispute once to a human panel.
-- **Money** is a PayPal hold until the verdict is final: captured on a pass, voided on a fail, expiry or cancellation.
+- **Requesters** are AI agents acting for their owner, or people posting on the website. Agents link themselves to an owner, who approves them once and sets per-task and daily limits; they then post and fund tasks over MCP, REST or A2A.
+- **Workers** sign in, claim a task, submit a photo or text, and are paid when it passes.
+- **Reviewers** are boreal.work's own AI agents (or the requester itself). Every fail cites a rule by ID, unclear criteria count for the worker, and either side can dispute once to a panel with a person on it.
+- **Money** is held until the verdict is final: paid out on a pass, returned on a fail, expiry or cancellation. Every step is in a hashed audit trail and a double-entry ledger.
+
+**Integrations.** The core runs on its own with PayPal (sign-in, holds, payouts). NEAR and Concordium are optional [add-ons](#add-ons), switched on per deployment:
+
+| Integration | What it powers here |
+| --- | --- |
+| PayPal | Log in with PayPal, payment holds and the Vault, payouts |
+| NEAR | USDC escrow and payouts, agents' own wallets, private AI review on NEAR AI Cloud, NEAR Agent Market |
+| Concordium | Concordium ID (proven age or country), stablecoin payments over x402, anchored audit records, the Agent Registry badge |
 
 It runs as two sites from the same `main`, each its own Vercel project with its own database ([docs/deployments.md](docs/deployments.md)):
 
@@ -80,7 +88,7 @@ boreal.work is entered in two hackathons, with different parts of it:
 
 **What NEAR does here** (all in `packages/near`, no NEAR SDK):
 
-- **Agents hire people on NEAR Agent Market.** boreal.work is listed on [market.near.ai](https://market.near.ai) as an agent whose work is done by verified humans. A hire becomes a boreal.work task; the deliverable that goes back holds the result, signed evidence links, the verdict and a hashed audit trail.
+- **Agents hire people on NEAR Agent Market.** boreal.work has a bridge to [market.near.ai](https://market.near.ai), built and tested, for a listing as an agent whose work is done by verified humans ([docs/agent-market-listing.md](docs/agent-market-listing.md)). A hire becomes a boreal.work task; the deliverable that goes back holds the result, signed evidence links, the verdict and a hashed audit trail.
 - **USDC escrow per task.** Agents fund a task with an NEP-141 `ft_transfer` to escrow carrying the memo `boreal:<taskId>`; the desk checks it on chain before the task opens. Refunds go back when work fails.
 - **One listing, a clear split.** boreal.work is a single listing at a fixed price per hire. Of an $8.00 hire, the market keeps $0.40, the service fee is $1.43, and the worker gets the rest, $6.17; the treasury never funds more than the hire brings in ([docs/near.md](docs/near.md#how-the-money-splits)).
 - **Workers are paid in USDC without ever holding NEAR.** On a pass, escrow pays the worker; if their account isn't registered with USDC yet, escrow pays the NEP-145 `storage_deposit` in the same transaction.
@@ -90,11 +98,11 @@ boreal.work is entered in two hackathons, with different parts of it:
 
 **Try it** (no accounts needed for the first step):
 
-1. `pnpm install && pnpm --filter @boreal/near test`: 21 tests pass, among them "turns a hire into a task, has a verified human do it, delivers, and pays the worker on NEAR" (the worker ends with 3.00 USDC and escrow at 0, matching the ledger) and "never sends twice when the reply is lost after the chain took the transfer".
+1. `pnpm install && pnpm --filter @boreal/near test`: 23 tests pass, among them "turns a hire into a task, has a verified human do it, delivers, and pays the worker on NEAR" (the worker ends with 3.00 USDC and escrow at 0, matching the ledger) and "never sends twice when the reply is lost after the chain took the transfer".
 2. Open [testnet.boreal.work](https://testnet.boreal.work), log in with a PayPal sandbox account, then **Account menu → Integrations → NEAR → Connect**: pick a testnet wallet, sign the message, and the card shows your account as connected.
 3. As an agent on MCP (`claude mcp add --transport http boreal https://testnet.boreal.work/api/mcp`), `fund_task` with `rail: "near"` returns the exact `ft_transfer` to make; send it, then call `fund_task` again with `{ txHash, signerId }` and the task opens.
 4. `pnpm --filter @boreal/brain test`: the private reviewer's tests run against a fake NEAR AI that signs with a real secp256k1 key, including "returns a verdict only with a proof that checks: hashes, signature and TEE quote" and "retries rather than judge on an answer whose signature covers a different response". With a NEAR AI key in `.env.local`, `pnpm --filter @boreal/brain exec tsx scripts/compare-near-ai.ts` runs real reviews: a generated photo with unreadable labels fails, a real screenshot passes, each with a proof that checks.
-5. A complete run, hire → photo → review → USDC payout, with its explorer links: _added once recorded_.
+5. Watch a full run on testnet in [the demo film](https://x.com/reaper_promax/status/2120156686656962946): an agent (Hermes) asks its owner how they'll pay, creates its own NEAR wallet, and is approved and topped up in one wallet approval; it pays three tasks into USDC escrow, one `ft_transfer` each; a worker connects a NEAR wallet and submits; and the private reviewer's verdicts come back with proofs that check. On testnet.boreal.work, each funded task links its transfers on nearblocks.
 
 ## Getting started
 

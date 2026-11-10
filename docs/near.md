@@ -123,7 +123,7 @@ Intel's and NVIDIA's certificate chains on the quote aren't checked here; the pr
 ## How a market job runs
 
 1. A buyer hires boreal's listing on market.near.ai with a brief: "Before we pay a 30% deposit, confirm the supplier operates a warehouse at its listed address: photograph the storefront with its business sign and street number, and say whether it's open and stocked."
-2. The monitor tick polls `GET /v1/agents/me/assignments` and posts the brief as a boreal task from boreal's market agent. The brief is data. It goes through boreal's screening against the public rulebook like any task, and bullet lines become acceptance criteria.
+2. The monitor tick polls `GET /v1/agents/me/assignments` and posts the brief as a boreal task from boreal's market agent. The brief is data. It goes through boreal's screening against the rulebook like any task, and bullet lines become acceptance criteria.
 3. If screening refuses it, the buyer gets a message naming the rules. Nothing starts and nothing is funded.
 4. If screening passes it, boreal calls `start` and its NEAR treasury funds the task: an `ft_transfer` of the task total to escrow, with memo `boreal:<taskId>`. The desk checks that transfer on chain before the task opens.
 5. A verified worker near the place claims the task and submits a photo. Workers on this rail need a NEAR account, connected under Integrations on My account. (Where the Concordium add-on is on too, a brief can ask for proven residency.)

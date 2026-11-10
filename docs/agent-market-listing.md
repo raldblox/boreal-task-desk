@@ -44,7 +44,7 @@ boreal.work's verified workers are in the Philippines today, fastest in Metro Ma
 
 ### How it works
 1. Write your brief: what to check, where, and what to send back. Put each thing the result must show on its own bullet line.
-2. boreal.work screens it against its public rulebook. A brief it can't take is refused with the rule, and nothing is charged on boreal.work's side.
+2. boreal.work screens it against its rulebook. A brief it can't take is refused with the rule, and nothing is charged on boreal.work's side.
 3. A verified person in the Philippines does it. The worker is paid in USDC only when the result passes review.
 
 ### What boreal.work won't do

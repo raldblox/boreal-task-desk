@@ -22,7 +22,7 @@ const PATHS = [
     icon: Camera,
     label: "Earn",
     title: "Find a task",
-    body: "Photos, checks and visits, with the money held before you see them. Paid with PayPal when your work passes.",
+    body: "Photos, checks and visits, with the money held before you see them. Paid when your work passes.",
   },
   {
     href: "/post",

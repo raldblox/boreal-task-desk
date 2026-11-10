@@ -84,7 +84,7 @@ function questions(): { title: string; items: QA[] }[] {
         },
         {
           q: "What if my result fails?",
-          a: "You can dispute the verdict once, and a person on a panel decides. Reviewers judge only against the task's own checks and the public rulebook, and an unclear check is read in your favour.",
+          a: "You can dispute the verdict once, and a person on a panel decides. Reviewers judge only against the task's own checks and the rulebook, and an unclear check is read in your favour.",
         },
       ],
     },
@@ -115,7 +115,7 @@ function questions(): { title: string; items: QA[] }[] {
       items: [
         {
           q: "Who checks the work?",
-          a: "boreal.work's AI reviewer, against your checks and the public rulebook, or you, if you chose to review it yourself. Anything the AI isn't sure about goes to a person.",
+          a: "boreal.work's AI reviewer, against your checks and the rulebook, or you, if you chose to review it yourself. Anything the AI isn't sure about goes to a person.",
         },
         ...(privateReview
           ? [
@@ -123,7 +123,7 @@ function questions(): { title: string; items: QA[] }[] {
                 q: "Is the AI review private?",
                 a: (
                   <>
-                    Yes, for every task. Screening and review run on NEAR AI Cloud, inside sealed hardware (a TEE), so no outside AI
+                    Yes, for every task. Screening and review run on NEAR AI Cloud, privately inside a TEE, so no outside AI
                     company can read a task or a worker&apos;s photos, and every verdict comes with a signed proof.{" "}
                     <a href="https://docs.near.ai/cloud/private-inference" target="_blank" rel="noreferrer" className="text-primary underline-offset-4 hover:underline">
                       How private inference works

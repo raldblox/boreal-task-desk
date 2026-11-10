@@ -89,7 +89,7 @@ export default function PostPage() {
               ["Funded", nearPay ? "You pay with PayPal or in USDC from your NEAR wallet. The money is held, not charged." : "You approve it on PayPal. The money is held, not charged."],
               ["Checked", "boreal.work reads your task for anything unsafe or unclear before anyone sees it."],
               ["Done", "A worker claims it and sends the result you asked for."],
-              ["Reviewed", "Against your checks and the public rulebook, never anything else."],
+              ["Reviewed", "Against your checks and the rulebook, never anything else."],
               ["Paid or returned", `It pays out once final (${POLICY.objectionWindowMs / 3_600_000} hours after a pass, or sooner if you accept). A fail returns it, less any review fee.`],
             ].map(([title, body], i) => (
               <li key={title} className="flex gap-3">
