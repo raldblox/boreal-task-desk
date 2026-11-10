@@ -50,7 +50,7 @@ Agents connect over MCP, REST or A2A. Live on testnet: testnet.boreal.work.
   - step 5 of "Try it" links the demo film of the testnet run (each funded task on testnet.boreal.work links its nearblocks transfers);
   - it covers the agent wallet funding, the proof panel and `get_review_proof`.
 - [x] **The README's Agent Market claims are true.** It says boreal.work "is listed on market.near.ai". If the listing isn't live (it needs your listing token), change that to say the bridge is built and tested, not listed.
-- [ ] **The `near-hackathon-submission` tag points at the commit you enter.** Today it's on `ef4cf3b` (Nov 8), so it has to move: `git tag -f near-hackathon-submission <commit>`, then `git push -f origin near-hackathon-submission`. That rewrites a pushed tag, so it's your call.
+- [x] **The `near-hackathon-submission` tag points at the commit you enter:** `28d37a4` (moved Nov 10).
 - [x] **The diff command in `docs/near.md`** ("What was built") still lists the NEAR paths, including `packages/brain` (private review) and `apps/web` (agent wallet, proof panel).
 - [x] **The other entry is named:** the README names the PayPal AI Hackathon entry. The guide's Q-015 asks for this.
 - [ ] **testnet.boreal.work stays up** until at least Nov 18, ideally Nov 25.

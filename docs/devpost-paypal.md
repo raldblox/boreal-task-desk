@@ -4,11 +4,11 @@ Paste-ready fields for https://devpost.com/submit-to/31302-paypal-ai-hackathon/m
 
 ## Project name
 
-boreal work
+boreal.work
 
 ## Elevator pitch (200 characters max)
 
-AI agents can think, but some answers need a person in the right place. boreal work lets any agent hire verified people, holds the money with PayPal, and pays them the moment the work passes.
+AI agents can think, but some answers need a person in the right place. boreal.work lets any agent hire verified people, holds the money with PayPal, and pays them once the work passes.
 
 ## Video demo link
 
@@ -18,6 +18,7 @@ https://youtu.be/V2vEPrQ3G_M
 
 - https://testnet.boreal.work (PayPal sandbox; money is never real)
 - https://testnet.boreal.work/agents.md (the skill any agent reads to connect)
+- https://testnet.boreal.work/rules (the rulebook every verdict cites)
 - https://github.com/raldblox/boreal-task-desk
 
 ## Built with
@@ -32,14 +33,14 @@ AI agents are learning to shop, book and pay. But a lot of what businesses need 
 
 ### What it does
 
-boreal work is a task desk for AI agents.
+boreal.work is a task desk for AI agents.
 
 - **Agents connect in one read.** Any agent reads `agents.md` (a skill), connects over MCP, REST or A2A, and asks its owner for one approval.
-- **PayPal is the money layer.** The owner logs in with PayPal and saves it once (PayPal Vault), inside limits they set per task and per day. The agent then funds tasks itself, and boreal work, not the agent, enforces the limits: until PayPal has verified the owner's account, the agent stays at $10 a task and $50 a day whatever the owner sets; after that, up to $50 a task and $500 a day. Every task is an **authorization, not a charge**: PayPal holds the money and boreal work captures it only when the work passes, or voids it if it fails, expires or is cancelled. Several tasks fund in one step.
-- **Agents spend only where a person is needed.** In the demo, Hermes answers two of Ji-woo's five questions online for free and sends only the three real-world tasks to boreal work.
-- **People do the work.** Workers log in with PayPal, which is also where they get paid. With real money, only a PayPal account PayPal has verified can claim tasks. They claim a task and submit photo proof and notes. boreal work keeps a one-way code for their PayPal account, never the account ID itself.
-- **Every answer is checked before money moves.** A reviewer (the requester's own agent, or Claude) decides pass or fail against a public rulebook. In the demo, Hermes catches two generated photos and timing that didn't add up; Ji-woo passes the honest one.
-- **Workers are paid through PayPal Payouts** the moment a task passes, and see it on their earnings page.
+- **PayPal is the money layer.** The owner logs in with PayPal and saves it once (PayPal Vault), inside limits they set per task and per day. The agent then funds tasks itself, and boreal.work, not the agent, enforces the limits: until PayPal has verified the owner's account, the agent stays at $10 a task and $50 a day whatever the owner sets; after that, up to $50 a task and $500 a day. Every task is an **authorization, not a charge**: PayPal holds the money and boreal.work captures it only when the work passes, or voids it if it fails, expires or is cancelled. Several tasks fund in one step.
+- **Agents spend only where a person is needed.** In the demo, Hermes answers two of Ji-woo's five questions online for free and sends only the three real-world tasks to boreal.work.
+- **People do the work.** Workers log in with PayPal, which is also where they get paid. With real money, only a PayPal account PayPal has verified can claim tasks. They claim a task and submit photo proof and notes. boreal.work keeps a one-way code for their PayPal account, never the account ID itself.
+- **Every answer is checked before money moves.** A reviewer (the requester's own agent, or Claude) decides pass or fail against a public rulebook ([testnet.boreal.work/rules](https://testnet.boreal.work/rules)): every fail cites a rule by ID, reviewers can't add requirements, unclear criteria count for the worker, and either side can dispute once to a panel with a person on it. In the demo, Hermes catches two generated photos and timing that didn't add up; Ji-woo passes the honest one.
+- **Workers are paid through PayPal Payouts** as soon as a pass is final: at once when the requester passes it or accepts it early, otherwise after a 48-hour window to dispute. They see it on their earnings page.
 
 ### How we built it
 
@@ -47,7 +48,7 @@ boreal work is a task desk for AI agents.
 - **PayPal:** Orders v2 with `intent=AUTHORIZE` for escrow, capture on pass and void on fail, PayPal Vault for owner-approved agent funding, Payouts for workers, Log in with PayPal for both sides, and webhooks to settle payouts. Payouts are journaled on their outbox row before sending and are never resent while the first could still execute.
 - **Agents:** an MCP server and a REST API, an A2A agent card, and an `agents.md` skill. Funding tools return a plain-language message for the agent to relay to its owner.
 - **AI:** Claude screens tasks and can review submissions; the AI never changes state itself, and anything undecided goes to a person.
-- **Runs on PayPal alone.** Everything above is the PayPal core. boreal work also has optional add-ons (Concordium identity and NEAR stablecoin payments), switched on per deployment; with them off, none of their code loads and nobody is asked for a wallet. They aren't part of this entry.
+- **Runs on PayPal alone.** Everything above is the PayPal core. boreal.work also has optional add-ons (Concordium identity and NEAR stablecoin payments), switched on per deployment; with them off, none of their code loads and nobody is asked for a wallet. They aren't part of this entry.
 - The demo film is a Remotion project in the same repo, voiced with ElevenLabs through Runway.
 
 ### Challenges we ran into
@@ -67,7 +68,7 @@ boreal work is a task desk for AI agents.
 
 Holds, not charges, are what make agents safe to give money to. An owner will let an agent spend when nothing is captured until the work is checked.
 
-### What's next for boreal work
+### What's next for boreal.work
 
 Live PayPal on boreal.work, Hyperwallet and local payout options for workers in more countries, more agent platforms listing the skill, and verified-human tasks for agent marketplaces.
 
@@ -75,5 +76,5 @@ Live PayPal on boreal.work, Hyperwallet and local payout options for workers in 
 
 - The video is 2:59.5, under the 3-minute limit.
 - Some task photos and counts in the demo are illustrative; the end card says so.
-- Required before submitting: a licence file in the repo, and the repo made public.
+- The repo is public with an MIT licence.
 - The limits in "What it does" are the PayPal-only setup (`BOREAL_ADDONS=none`). testnet.boreal.work also runs the Concordium and NEAR add-ons for another hackathon, and there Concordium ID, not PayPal verification, lifts the $10 / $50 caps. The video shows the PayPal flow either way.
