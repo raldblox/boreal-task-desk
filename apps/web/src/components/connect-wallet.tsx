@@ -4,6 +4,7 @@ import { Wallet } from "lucide-react";
 import { useState, useTransition } from "react";
 
 import { connectPayoutAccount } from "@/app/actions";
+import { fundAgentTasksWithNear } from "@/app/pay/actions";
 import { fundWithNear, nearTransferFor } from "@/app/post/actions";
 import { detectWallet, oncePromptCloses, STORE_URL } from "@/components/concordium-wallet-sign-in";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -240,6 +241,106 @@ export function PayWithNear({ taskId, total }: { taskId: string; total: string }
   return (
     <div className="flex flex-col gap-2">
       <Button onClick={pay} disabled={busy !== null} variant="outline" className="h-auto min-h-10 w-fit gap-2 whitespace-normal">
+        <Wallet className="size-4" aria-hidden />
+        {busy ?? `Pay ${total} in USDC on NEAR`}
+      </Button>
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The owner pays several of their agent's tasks from their own NEAR wallet, in one approval: one
+ * transaction to the USDC contract with an ft_transfer to escrow per task, each carrying that
+ * task's memo. The server then funds each task against that transaction.
+ */
+export function PayTasksWithNear({
+  agentName,
+  total,
+  network,
+  token,
+  payTo,
+  transfers,
+}: {
+  agentName: string;
+  total: string;
+  network: "testnet" | "mainnet";
+  token: string;
+  payTo: string;
+  transfers: { taskId: string; amount: string; memo: string }[];
+}) {
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<{ funded: number; failed: { taskId: string; reason: string }[]; txHash: string } | null>(null);
+  const explorer = `https://${network === "mainnet" ? "" : "testnet."}nearblocks.io/txns/`;
+
+  async function pay() {
+    setError(null);
+    try {
+      const { NearConnector } = await import("@hot-labs/near-connect");
+      const connector = new NearConnector({ network, features: { signAndSendTransaction: true, [network]: true }, footerBranding: null });
+      setBusy("Choose your wallet…");
+      const wallet = await connector.connect();
+      setBusy(`Approve ${total} in USDC for ${transfers.length === 1 ? "1 task" : `${transfers.length} tasks`} in your wallet…`);
+      const outcome = await wallet.signAndSendTransaction({
+        receiverId: token,
+        actions: transfers.map((t) => ({
+          type: "FunctionCall" as const,
+          params: {
+            methodName: "ft_transfer",
+            args: { receiver_id: payTo, amount: t.amount, memo: t.memo },
+            // Ten transfers fit under NEAR's 300 Tgas per transaction.
+            gas: "25000000000000",
+            // NEP-141 asks for exactly 1 yoctoNEAR on ft_transfer.
+            deposit: "1",
+          },
+        })),
+      });
+      await connector.disconnect(wallet).catch(() => {});
+      const txHash = outcome.transaction.hash;
+      setBusy("Confirming on NEAR…");
+      const done = await fundAgentTasksWithNear(
+        transfers.map((t) => t.taskId),
+        { txHash, signerId: outcome.transaction.signer_id },
+      );
+      if ("error" in done) setError(done.error);
+      else setResult({ ...done, txHash });
+      setBusy(null);
+    } catch (e) {
+      const text = e instanceof Error ? e.message : "";
+      setError(/reject|cancel|closed/i.test(text) || !text ? "Nothing was sent. Try again when you're ready." : text);
+      setBusy(null);
+    }
+  }
+
+  if (result) {
+    return (
+      <div className="flex flex-col gap-2 text-sm">
+        <p className="font-medium text-primary">
+          Paid. {result.funded === 1 ? "1 task is" : `${result.funded} tasks are`} funded and being checked; {agentName} sees it on its next check.
+        </p>
+        <a href={`${explorer}${result.txHash}`} target="_blank" rel="noreferrer" className="w-fit text-primary underline-offset-4 hover:underline">
+          The payment on nearblocks
+        </a>
+        {result.failed.length > 0 && (
+          <Alert variant="destructive">
+            <AlertDescription>
+              {result.failed.length === 1 ? "1 task wasn't" : `${result.failed.length} tasks weren't`} funded: {result.failed[0]!.reason}. Its money is
+              in escrow; ask boreal.work to return it.
+            </AlertDescription>
+          </Alert>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <Button onClick={pay} disabled={busy !== null} className="h-auto min-h-10 w-fit gap-2 whitespace-normal">
         <Wallet className="size-4" aria-hidden />
         {busy ?? `Pay ${total} in USDC on NEAR`}
       </Button>

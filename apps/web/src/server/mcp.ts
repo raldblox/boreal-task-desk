@@ -78,6 +78,33 @@ function summary(task: Task) {
   };
 }
 
+/**
+ * fund_tasks on NEAR for an agent with no NEAR wallet of its own: one link for its owner, who pays
+ * every task from their own wallet in one approval (the /pay page). Checked up front, so nothing is
+ * signed for tasks that can't be funded.
+ */
+export async function ownerNearPayLink(caller: Caller, taskIds: string[]) {
+  const desk = getDesk();
+  if (!getRails().near) throw new DeskError("unavailable", "the NEAR rail isn't on here");
+  const ids = [...new Set(taskIds)];
+  if (ids.length === 0 || ids.length > 10) throw new DeskError("invalid", "fund 1 to 10 tasks at a time");
+  const tasks = await Promise.all(ids.map((id) => desk.getTask(caller, id)));
+  const waiting = tasks.filter((t) => t.status !== "awaiting_funding");
+  if (waiting.length) throw new DeskError("conflict", `not awaiting funding: ${waiting.map((t) => t.id).join(", ")}`);
+  if (tasks.some((t) => t.test)) throw new DeskError("invalid", "test tasks are funded with test money: call fund_task on each");
+  const total = tasks.reduce((sum, t) => sum + taskTotal(t), 0);
+  const { leftToday } = await desk.getAgentAccount(caller);
+  if (total > leftToday) throw new DeskError("limit", `together they cost ${usd(total)}, more than the ${usd(leftToday)} left of your daily limit`);
+  const payUrl = `${SITE}/pay?tasks=${ids.join(",")}`;
+  return {
+    rail: "near" as const,
+    payUrl,
+    total: usd(total),
+    tellYourOwner: `Please pay ${usd(total)} in USDC for ${ids.length === 1 ? "a boreal.work task" : `${ids.length} boreal.work tasks`} from your NEAR wallet, in one approval: ${payUrl}`,
+    next: "once your owner pays, the tasks are funded and go to screening: check them with get_task. There's nothing else to call.",
+  };
+}
+
 /** The verdict that stands, for an agent: outcome, rules, reasoning, and whether a private review's proof checks out. */
 export async function agentVerdict(caller: Caller, taskId: string) {
   const desk = getDesk();
@@ -418,13 +445,17 @@ export function registerTools(server: McpServer): void {
           };
         }
         if (isNearRequirement(requirement)) {
+          const payUrl = `${SITE}/pay?tasks=${task.id}`;
           return {
             rail,
             paymentRequired: requirement,
             next:
               `from your NEAR account, call ft_transfer on ${requirement.asset} with receiver_id "${requirement.payTo}", ` +
               `amount "${requirement.amount}" and memo "${requirement.extra.memo}" (attach 1 yoctoNEAR), then call fund_task ` +
-              `with payment: { "txHash": "<the transaction hash>", "signerId": "<your NEAR account>" }`,
+              `with payment: { "txHash": "<the transaction hash>", "signerId": "<your NEAR account>" }. ` +
+              `No NEAR wallet of your own? Send your owner payUrl instead: they pay from their own wallet, and the task is funded with no further call from you.`,
+            payUrl,
+            tellYourOwner: `Please pay ${usd(taskTotal(task))} in USDC for this boreal.work task from your NEAR wallet: ${payUrl}`,
             ...(others.length ? { otherRails: others } : {}),
           };
         }
@@ -460,13 +491,21 @@ export function registerTools(server: McpServer): void {
         "owner. Once approved, call again with the same `taskIds` and payment: { orderId }. PayPal holds each task's " +
         "money separately, so each is still captured only when it passes and released if it fails, expires or is " +
         "cancelled. Together they must fit your daily cap. Tasks that fail to fund are listed in `failed`, with their " +
-        "hold released; the rest open to workers.",
+        "hold released; the rest open to workers. " +
+        (GUIDE_FACTS.nearRail
+          ? "With rail: near, you get one payUrl for your owner instead: they pay every task from their own NEAR wallet in one approval, and the tasks are funded with no further call from you."
+          : ""),
       inputSchema: z.object({
         taskIds: z.array(taskId).min(1).max(10).describe("The tasks to fund together, all awaiting funding."),
         payment: z.unknown().optional().describe("{ orderId } of the approved PayPal order, on the second call."),
+        rail: z
+          .enum(["paypal", "near"])
+          .optional()
+          .describe("paypal (default), or near where get_account.paymentRails lists it: you get one payUrl for your owner, who pays them all from their NEAR wallet in one approval."),
       }),
     },
-    tool(async (caller, { taskIds, payment }: { taskIds: string[]; payment?: unknown }) => {
+    tool(async (caller, { taskIds, payment, rail }: { taskIds: string[]; payment?: unknown; rail?: "paypal" | "near" }) => {
+      if (rail === "near") return ownerNearPayLink(caller, taskIds);
       if (payment === undefined) {
         // The owner saved a PayPal account: fund them all in this one call, no approval page.
         if (getRails().paypal?.vault && (await desk.getAgentAccount(caller)).savedPaymentMethod) {

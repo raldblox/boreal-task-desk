@@ -1,7 +1,7 @@
 import { createHash, randomBytes, randomInt } from "node:crypto";
 
 import { POLICY } from "@boreal/core";
-import { agentLinks, agents, and, type Database, eq, gt, ne, owners, sql, workers } from "@boreal/db";
+import { agentLinks, agents, and, type Database, eq, gt, inArray, ne, owners, sql, type Task, tasks, workers } from "@boreal/db";
 
 import { DeskError } from "./errors";
 import { issueAgentKey } from "./keys";
@@ -310,6 +310,32 @@ export function linkCommands(db: Database, now: () => Date) {
         .where(and(eq(agents.id, agentId), eq(agents.ownerId, owner.id), ne(agents.kind, "personal")));
       if (!agent) throw new DeskError("forbidden", "that agent isn't yours");
       return agent;
+    },
+
+    /**
+     * Tasks an owner was asked to pay for one of their agents: all the agent's, all awaiting
+     * funding, none on test money. Read-only; funding itself still goes through fundTask, as the agent.
+     */
+    async ownerTasksToPay(workerId: string, taskIds: string[]): Promise<{ agentId: string; agentName: string; tasks: Task[] }> {
+      const ids = [...new Set(taskIds)];
+      if (ids.length === 0 || ids.length > 10) throw new DeskError("invalid", "pay for 1 to 10 tasks at a time");
+      const owner = await ownerFor(workerId);
+      const rows = await db
+        .select({ task: tasks, agent: { id: agents.id, name: agents.name, ownerId: agents.ownerId, kind: agents.kind } })
+        .from(tasks)
+        .innerJoin(agents, eq(agents.id, tasks.agentId))
+        .where(inArray(tasks.id, ids));
+      if (rows.length !== ids.length || rows.some((r) => r.agent.ownerId !== owner.id || r.agent.kind === "personal")) {
+        throw new DeskError("forbidden", "these aren't tasks from one of your agents");
+      }
+      const agentIds = new Set(rows.map((r) => r.agent.id));
+      if (agentIds.size !== 1) throw new DeskError("invalid", "pay for one agent's tasks at a time");
+      const notWaiting = rows.filter((r) => r.task.status !== "awaiting_funding");
+      if (notWaiting.length) throw new DeskError("conflict", `${notWaiting.length === 1 ? "a task isn't" : "some tasks aren't"} waiting for payment any more`);
+      if (rows.some((r) => r.task.test)) throw new DeskError("invalid", "test tasks are funded with test money, not paid");
+      const order = new Map(ids.map((id, i) => [id, i]));
+      const list = rows.map((r) => r.task).sort((a, b) => order.get(a.id)! - order.get(b.id)!);
+      return { agentId: rows[0]!.agent.id, agentName: rows[0]!.agent.name, tasks: list };
     },
 
     async denyAgentLink(workerId: string, code: string) {

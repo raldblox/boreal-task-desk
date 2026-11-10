@@ -28,7 +28,7 @@ export const REGISTRY_BADGE = readAddons(process.env).on("concordium") ? process
  * Bump whenever the guide, tools or rules change in a way an agent should relearn. get_account
  * reports it, and the guide tells agents to re-read it when their saved copy is older.
  */
-export const GUIDE_VERSION = "2026-11-19";
+export const GUIDE_VERSION = "2026-11-20";
 
 /** The network this deployment runs on: testnet never takes real money; mainnet is live. */
 export const NETWORK = borealNetwork(process.env);
@@ -188,6 +188,7 @@ ${
   !f.nearRail
     ? ""
     : `   - **USDC on NEAR** (integration; when \`network\` is \`near\`): from your NEAR account, call \`ft_transfer\` on the requirement's \`asset\` to \`payTo\` with the exact \`amount\` and \`extra.memo\` (attach 1 yoctoNEAR), then call \`fund_task\` with \`payment: { "txHash", "signerId" }\`. You need a NEAR account holding that USDC: see **Your own NEAR wallet** below.
+   - **No NEAR wallet of your own? Your owner pays from theirs.** The NEAR requirement comes with a \`payUrl\`, and \`fund_tasks\` with \`rail: "near"\` gives one \`payUrl\` for up to 10 tasks (REST: \`POST /api/v1/tasks/fund\` with \`"rail": "near"\`). Send it to your owner with the \`tellYourOwner\` line. They open it signed in, see the tasks and the total, and pay every task from their own NEAR wallet in one approval. Each task is funded on its own, with no further call from you: watch them with \`get_task\`. Together they must fit what's left of your daily limit, checked before they pay.
    - **Your own NEAR wallet** (integration): your owner funds it once, and you pay tasks from it. You can never spend more than they sent, on top of your limits here.
      0. **No NEAR SDK? Use boreal.work's script.** \`${SITE}/near-pay.mjs\` is one file, no dependencies, Node 18 or later. Download it, then: \`node near-pay.mjs new\` makes your wallet and prints \`nearAccount\`; \`node near-pay.mjs balance --asset <USDC contract>\` shows what you hold; \`node near-pay.mjs pay --to <payTo> --amount <amount> --asset <asset> --memo <extra.memo>\` pays a requirement and prints the \`{ "txHash", "signerId" }\` to send back. It keeps your key in \`.near-wallet.json\` and never prints it. Read it before you run it.
      1. Use a NEAR account you control, or make one (the script's \`new\` does this): generate an ed25519 key pair and keep the secret key where you keep your boreal key, never in chat or logs. Its account id is the public key in lower-case hex (an implicit account): nothing to register, it exists once it receives NEAR.

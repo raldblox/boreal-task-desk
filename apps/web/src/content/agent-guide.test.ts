@@ -12,7 +12,7 @@ describe("agent guide", () => {
   it("is all PayPal on a PayPal-only site", () => {
     for (const text of [PAYPAL_ONLY.AGENT_GUIDE, PAYPAL_ONLY.MCP_INSTRUCTIONS, PAYPAL_ONLY.LLMS_TXT]) {
       expect(text).toMatch(/PayPal/);
-      expect(text).not.toMatch(/x402|PAYMENT-SIGNATURE|ft_transfer|Concordium ID App|Agent Registry|get_review_proof|NEAR AI Cloud|set_near_account|nearAccount|near-pay/);
+      expect(text).not.toMatch(/x402|PAYMENT-SIGNATURE|ft_transfer|Concordium ID App|Agent Registry|get_review_proof|NEAR AI Cloud|set_near_account|nearAccount|near-pay|payUrl/);
     }
     expect(PAYPAL_ONLY.AGENT_GUIDE).toMatch(/runs on PayPal/);
     expect(PAYPAL_ONLY.AGENT_GUIDE).toMatch(/This site runs on PayPal alone/);
@@ -33,6 +33,7 @@ describe("agent guide", () => {
     expect(ALL_ON.AGENT_GUIDE).toContain('"requiredAttributes": [{ "attribute": "residency", "value": "PH" }]');
     expect(ALL_ON.MCP_INSTRUCTIONS).toMatch(/optional rails \(paypal, concordium, near\)/);
     // An agent's own NEAR wallet: how to make it, name it and have its owner fund it.
+    expect(ALL_ON.AGENT_GUIDE).toMatch(/\*\*No NEAR wallet of your own\? Your owner pays from theirs\.\*\*/);
     expect(ALL_ON.AGENT_GUIDE).toMatch(/near-pay\.mjs` is one file, no dependencies/);
     expect(ALL_ON.AGENT_GUIDE).toMatch(/\*\*Your own NEAR wallet\*\*/);
     expect(ALL_ON.AGENT_GUIDE).toMatch(/\| set_near_account \| POST \/api\/v1\/me\/near-account \|/);

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { createFakeNear, decodeSignedTransaction, type FakeNear } from "./fake-near";
-import { createNearPayments, fundingMemo, type NearPayments } from "./payments";
+import { createNearPayments, fundingMemo, fundingUnits, type NearPayments } from "./payments";
 import { memoryJournal, newNearKey } from "./testing";
 import { base58Decode, base58Encode, nearSigner, signTransaction } from "./tx";
 
@@ -118,5 +118,31 @@ describe("NEAR rail", () => {
 
   it("refuses accounts that aren't NEAR account ids", async () => {
     await expect(payments.sponsoredTransfer({ to: "Maria@Example.com", amount: 1, idempotencyKey: "k" })).rejects.toThrow(/not a NEAR account/);
+  });
+});
+
+describe("one owner approval for several tasks", () => {
+  // The /pay page sends one transaction with an ft_transfer to escrow per task. Each task is
+  // funded against that same transaction, and must find only its own transfer.
+  const outcome = {
+    hash: "tx",
+    status: "success" as const,
+    signerId: "owner.testnet",
+    receiverId: "usdc.testnet",
+    calls: [
+      { methodName: "ft_transfer", args: { receiver_id: "escrow.testnet", amount: "5100000", memo: fundingMemo("task-a") } },
+      { methodName: "ft_transfer", args: { receiver_id: "escrow.testnet", amount: "7300000", memo: fundingMemo("task-b") } },
+    ],
+  };
+
+  it("gives each task its own transfer's amount", () => {
+    expect(fundingUnits(outcome, "usdc.testnet", "escrow.testnet", fundingMemo("task-a"))).toBe(BigInt("5100000"));
+    expect(fundingUnits(outcome, "usdc.testnet", "escrow.testnet", fundingMemo("task-b"))).toBe(BigInt("7300000"));
+  });
+
+  it("never counts the batch for a task it doesn't name, nor a transfer that went elsewhere", () => {
+    expect(() => fundingUnits(outcome, "usdc.testnet", "escrow.testnet", fundingMemo("task-c"))).toThrow(/no ft_transfer/);
+    expect(() => fundingUnits(outcome, "usdc.testnet", "other-escrow.testnet", fundingMemo("task-a"))).toThrow(/no ft_transfer/);
+    expect(() => fundingUnits(outcome, "fake-usdc.testnet", "escrow.testnet", fundingMemo("task-a"))).toThrow(/isn't a transfer of the requested token/);
   });
 });

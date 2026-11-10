@@ -475,6 +475,24 @@ describe("agent linking", () => {
     await expectDeskError(desk.savePaymentMethod(stranger.id, agentId, "vault-evil"), "forbidden");
   });
 
+  it("lets an owner see only their own agent's unfunded tasks to pay, one agent at a time", async () => {
+    const link = await desk.requestAgentLink({ agentName: "Hermes" }, "client-a");
+    const { agentId } = await desk.approveAgentLink(workerIdOf(manilaWorker), link.code, { name: "Hermes", ...limits });
+    const hermes: Caller = { role: "requester", agentId };
+    const { task: a } = await desk.postTask(hermes, taskInput());
+    const { task: b } = await desk.postTask(hermes, taskInput());
+
+    const toPay = await desk.ownerTasksToPay(workerIdOf(manilaWorker), [b.id, a.id, a.id]);
+    expect(toPay).toMatchObject({ agentId, agentName: "Hermes" });
+    expect(toPay.tasks.map((t) => t.id)).toEqual([b.id, a.id]);
+
+    const stranger = await desk.signInVerifiedWorker({ pseudonym: "sg-stranger", provenAttributes: {} });
+    await expectDeskError(desk.ownerTasksToPay(stranger.id, [a.id]), "forbidden");
+    const { task: someoneElses } = await desk.postTask(requester, taskInput());
+    await expectDeskError(desk.ownerTasksToPay(workerIdOf(manilaWorker), [a.id, someoneElses.id]), "forbidden");
+    await expectDeskError(desk.ownerTasksToPay(workerIdOf(manilaWorker), []), "invalid");
+  });
+
   it("carries the NEAR account an agent pays from to its owner, who alone can see it to fund", async () => {
     await expectDeskError(desk.requestAgentLink({ agentName: "Hermes", nearAccount: "Not An Account!" }, "client-a"), "invalid");
     const link = await desk.requestAgentLink({ agentName: "Hermes", nearAccount: "Hermes-Wallet.testnet" }, "client-a");

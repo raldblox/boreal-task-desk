@@ -135,6 +135,7 @@ Check the fails are real before the take: the private reviewer has to catch them
 | Replies run long | Tighten the brief to "under 20 words" and redo the take. |
 | Hermes shows a command, JSON or a tx hash | Crop, or turn off tool display. The hash is fine on the explorer shot, not in chat. |
 | The payment script fails | Its error line says why. Usually the wallet has no NEAR for fees or not enough USDC: Ji-woo tops it up from My account → Your agents → **Add funds**. |
+| Hermes sends Ji-woo a pay link instead of paying from its own wallet | That's a real path too: she opens it, sees the three tasks and the total, and pays them all from her wallet in one approval. Keep it, or say "Use your own wallet" if you want the funding beat on the approval page. |
 | Hermes can't sign a NEAR payment and stalls | Say "Use boreal.work's NEAR script." If it still stalls, use the fallback brief (section 2). |
 | Hermes stops after one step | Say "Keep going, tell me when they're done." Cut the nudge. |
 | `fund_task` says the transfer wasn't found | Wait a few seconds and call it again with the same `txHash`: the desk checks the chain. |
