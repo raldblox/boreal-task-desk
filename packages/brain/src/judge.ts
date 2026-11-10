@@ -51,19 +51,20 @@ How you work:
 - Cite rules by ID only from the rulebook above.
 - Answer "unsure" whenever you can't decide with confidence from what you have: an unreadable photo, evidence you can't verify, a borderline legal question. A human reviewer takes it from there. Being unsure is always better than guessing.`;
 
-export const SCREEN_GUIDE = `Screen this task before it is funded.
-- "refuse" if it breaks any R1 or R2 rule; cite every rule it breaks. R1 problems go back to the requester to fix; R2 problems are refused outright.
+export const SCREEN_GUIDE = `Screen this task before it opens to workers, following the screening steps in the rulebook.
+- "refuse" if it breaks any R2 rule (cite every R2 rule it breaks) or any R1 rule (cite each, and say in the reasoning the exact change that would fix it).
 - "allow" if it breaks none.
+- "unsure" if it is borderline on an R2 rule or you can't tell whether it's legal where it takes place. A person decides.
 - R1.3: there is no published minimum rate yet, so only cite R1.3 when the pay is clearly unreasonable for the work described.
+- R1.6: the claim window is 4 hours; a task needing longer, or with no place or time a worker could act on, breaks it.
 - R4.3 challenge words are not issued yet; don't require them.`;
 
-export const REVIEW_GUIDE = `Review this submission against the task.
-- Go through every acceptance criterion and say whether the evidence meets it, quoting or describing the evidence.
-- When a criterion needs something to be readable (a name, a price, a sign, a street number), copy that text exactly as you read it into the evidence. If you can't copy it out with confidence, the criterion is not met. Garbled, warped or nonsensical lettering is not readable, and is a sign of a generated image (R3.1).
-- "pass" if every criterion is met, or if the submission shows with evidence that the task is impossible as written (R4.4).
-- "fail" if any criterion is not met or an R3 rule is broken; cite at least one rule (usually R4.1, plus R4.2 for a photo that doesn't show the item or place) and name the criterion missed (R5.3).
-- R4.3 challenge words are not issued yet, and photo timing can't be checked here; don't fail on R4.3.
-- If you suspect AI-generated, reused or staged evidence (R3.1, R3.2) but can't be sure, answer "unsure" rather than "fail".`;
+export const REVIEW_GUIDE = `Review this submission against the task, following the review steps in the rulebook, in order.
+1. Integrity (R3). If the evidence is clearly generated, reused, edited or staged, or clearly doesn't fit the task's place or time, fail it and cite the R3 rule. If you only suspect it, answer "unsure" (R5.5).
+2. Criteria. Go through every acceptance criterion, in order, and mark it met or not met, quoting or describing the evidence. When a criterion needs something readable (a name, a price, a sign, a street number), copy that text exactly as you read it. If you can't copy it out with confidence, the criterion is not met (R4.5). Garbled, warped or nonsensical lettering is not readable, and is a sign of a generated image (R3.1).
+3. Decide. "pass" if every criterion is met, or if the submission shows with evidence that the task is impossible as written (R4.4). "fail" if any criterion is not met: cite at least one failing rule (usually R4.1; R4.2 for a photo that doesn't show the item or place; R4.5 for unreadable text; R4.6 for a missing field) and name the criterion missed (R5.3). Where a criterion is ambiguous, the worker's reasonable reading wins (R5.2). Where the evidence can't settle it, answer "unsure".
+4. Explain. In the reasoning, say what you saw and what was missing, plainly enough that the worker could do it right next time (R5.7). Judge the result, never the worker's language or style (R5.6).
+- R4.3 challenge words are not issued yet, and photo timing can't be checked from the image itself; don't fail on R4.3.`;
 
 export const screenSchema = z.object({
   decision: z.enum(["allow", "refuse", "unsure"]),

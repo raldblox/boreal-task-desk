@@ -21,5 +21,5 @@ export const POLICY = {
   maxActiveClaimsPerNewWorker: 1,
   lostDisputesBeforePause: 3,
   lostDisputesWindowMs: 30 * 24 * HOUR,
-  rulebookVersion: "1.0",
+  rulebookVersion: "2.0",
 } as const;
