@@ -10,6 +10,8 @@ export interface PayPalClientOptions {
   baseUrl?: string;
   fetch?: typeof fetch;
   now?: () => Date;
+  /** How long one call may take before it is given up (default 20 s). */
+  timeoutMs?: number;
 }
 
 export class PayPalError extends Error {
@@ -39,12 +41,30 @@ export function createPayPalClient(options: PayPalClientOptions): PayPalClient {
   const baseUrl = options.baseUrl ?? PAYPAL_SANDBOX_URL;
   const http = options.fetch ?? fetch;
   const now = options.now ?? (() => new Date());
+  const timeoutMs = options.timeoutMs ?? 20_000;
   let token: { value: string; until: number } | null = null;
+
+  /**
+   * One HTTP call with a deadline. Callers hold a task's row lock or the monitor's lease while
+   * PayPal answers, so a call that never answers must fail, not hang. Every write carries a
+   * PayPal-Request-Id, so the retry that follows a timeout can't act twice.
+   */
+  async function call(url: string, init: RequestInit): Promise<Response> {
+    try {
+      return await http(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
+    } catch (error) {
+      const name = error instanceof Error ? error.name : "";
+      if (name === "TimeoutError" || name === "AbortError") {
+        throw new PayPalError(504, "TIMEOUT", [], `PayPal didn't answer within ${Math.round(timeoutMs / 1000)} seconds`);
+      }
+      throw error;
+    }
+  }
 
   async function accessToken(): Promise<string> {
     if (token && token.until > now().getTime()) return token.value;
     const basic = Buffer.from(`${options.clientId}:${options.clientSecret}`).toString("base64");
-    const res = await http(`${baseUrl}/v1/oauth2/token`, {
+    const res = await call(`${baseUrl}/v1/oauth2/token`, {
       method: "POST",
       headers: { Authorization: `Basic ${basic}`, "Content-Type": "application/x-www-form-urlencoded" },
       body: "grant_type=client_credentials",
@@ -64,7 +84,7 @@ export function createPayPalClient(options: PayPalClientOptions): PayPalClient {
         Prefer: "return=representation",
       };
       if (requestId) headers["PayPal-Request-Id"] = requestId;
-      const res = await http(`${baseUrl}${path}`, {
+      const res = await call(`${baseUrl}${path}`, {
         method,
         headers,
         body: body === undefined ? (method === "POST" ? "{}" : undefined) : JSON.stringify(body),

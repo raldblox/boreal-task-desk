@@ -57,6 +57,7 @@ export function createAgentMarket(options: { token: string; baseUrl?: string; fe
       method,
       headers: { authorization: `Bearer ${token}`, ...(body ? { "content-type": "application/json" } : {}) },
       body: body ? JSON.stringify(body) : undefined,
+      signal: AbortSignal.timeout(30_000),
     });
     const text = await res.text();
     // The response can echo the buyer's brief; keep errors short and free of it.

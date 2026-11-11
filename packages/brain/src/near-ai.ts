@@ -87,7 +87,8 @@ export function createNearAiReviewer(options: NearAiReviewerOptions): Reviewer {
   async function call(path: string, init?: RequestInit): Promise<{ status: number; body: string }> {
     let res: Response;
     try {
-      res = await http(`${base}${path}`, { ...init, headers: { ...auth, ...(init?.headers ?? {}) } });
+      // Inference on a TEE-hosted model can take a while; past this it counts as an outage and is retried.
+      res = await http(`${base}${path}`, { ...init, headers: { ...auth, ...(init?.headers ?? {}) }, signal: AbortSignal.timeout(120_000) });
     } catch {
       throw new NearAiError("could not reach NEAR AI Cloud", true);
     }

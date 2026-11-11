@@ -100,6 +100,7 @@ export function createPayPalAccounts(options: PayPalAccountsOptions): PayPalAcco
           method: "POST",
           headers: { Authorization: `Basic ${basic}`, "Content-Type": "application/x-www-form-urlencoded" },
           body: "grant_type=client_credentials",
+          signal: AbortSignal.timeout(20_000),
         });
         if (res.ok) value = ((await res.json()) as { scope?: string }).scope?.split(" ").includes(VAULT_SCOPE) ?? false;
       } catch {
@@ -163,11 +164,13 @@ export function createPayPalAccounts(options: PayPalAccountsOptions): PayPalAcco
         method: "POST",
         headers: { Authorization: `Basic ${basic}`, "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({ grant_type: "authorization_code", code }).toString(),
+        signal: AbortSignal.timeout(20_000),
       });
       if (!tokenRes.ok) throw new PayPalError(tokenRes.status, "LOGIN_FAILED", [], "PayPal didn't accept the login");
       const { access_token } = (await tokenRes.json()) as { access_token: string };
       const infoRes = await http(`${options.baseUrl}/v1/identity/oauth2/userinfo?schema=paypalv1.1`, {
         headers: { Authorization: `Bearer ${access_token}` },
+        signal: AbortSignal.timeout(20_000),
       });
       if (!infoRes.ok) throw new PayPalError(infoRes.status, "USERINFO_FAILED", [], "PayPal didn't share the account's email");
       const info = (await infoRes.json()) as UserInfo;

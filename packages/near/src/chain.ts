@@ -73,6 +73,8 @@ export function createNearRpc(url: string, fetchImpl: typeof fetch = fetch): Nea
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ jsonrpc: "2.0", id: "boreal", method, params }),
+      // Funding checks and payouts wait on this; an RPC node that never answers must fail, not hang.
+      signal: AbortSignal.timeout(30_000),
     });
     if (!res.ok) throw new NearRpcError(`NEAR RPC ${method} answered ${res.status}`);
     const body = (await res.json()) as { result?: T; error?: { message?: string; name?: string; cause?: { name?: string; info?: unknown } } };
