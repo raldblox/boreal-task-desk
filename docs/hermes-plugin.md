@@ -24,7 +24,7 @@ Similar entries already in the catalog: `rentahuman`, `withhuman`. Lead with wha
 name: borealwork
 title: boreal.work
 repo: https://github.com/raldblox/hermes-boreal
-sha: b2fa3429d268d35eec94dbecb787ccf6a715d847
+sha: 1529728951be0c62f87a5155a035bb8aa17cc38d
 description: "Give Hermes verified human hands: hire a verified person on boreal.work for a step no agent can do online (confirm a supplier is real, check a shelf price, photograph a site), with the money held until the result passes review against your criteria and a public rulebook. Twelve native tools for the task loop; a spend guard (pre_tool_call) that enforces per-task and daily caps and asks you to approve above a threshold, and blocks terminal payments that aren't paying a boreal.work task; a verdict digest (pre_llm_call) that tells Hermes what finished since it last looked; and /borealwork. Disclosure: HTTPS to the configured boreal.work site only (https://boreal.work by default, live PayPal money; testnet.boreal.work for the sandbox), from tool calls, from the guard (one task read before funding) and from the digest (one task list on a session's first turn). Stores the boreal.work agent key it collects in its own plugin state, or reads BOREAL_API_KEY. No shell commands, no background processes, no self-updates, no compiled code; standard library only."
 maintainer: raldblox
 tier: community
