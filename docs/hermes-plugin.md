@@ -15,7 +15,7 @@ Similar entries already in the catalog: `rentahuman`, `withhuman`. Lead with wha
    git push -u origin main
    ```
 2. Copy the full commit SHA: `git rev-parse HEAD`. Put it in `sha:` below.
-3. Fork `NousResearch/hermes-agent`, add `plugin-catalog/boreal.yaml` (below), open the PR with the text below.
+3. Fork `NousResearch/hermes-agent`, add `plugin-catalog/borealwork.yaml` (below), open the PR with the text below.
 4. Post the demo on X (text below), with the video attached.
 
 ## `plugin-catalog/borealwork.yaml`
