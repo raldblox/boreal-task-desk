@@ -2,6 +2,8 @@ import { FEE_POLICY, POLICY } from "@boreal/core";
 import type { Metadata } from "next";
 
 import { LegalPage, LegalSection } from "@/components/legal-page";
+import { CONTACT } from "@/content/contact";
+import { RuleRef } from "@/components/rule-refs";
 import { GUIDE_FACTS, NETWORK, SITE } from "@/content/agent-guide";
 import { usd } from "@/lib/format";
 import { SERVICE_FEE, SERVICE_FEE_PARTS, SERVICE_FEE_SELF_REVIEW } from "@/content/fees";
@@ -46,13 +48,17 @@ export default function TermsPage() {
         <ul>
           <li>Every task is funded before workers see it, and must follow boreal.work&apos;s <a href="/rules" className="text-primary underline-offset-4 hover:underline">rulebook</a>. Tasks that break it are refused.</li>
           <li>
+            A task&apos;s deadline is at most {POLICY.maxDeadlineMs / (24 * HOURS)} days after it is posted (<RuleRef id="R1.8" />).
+          </li>
+          <li>
             A claim reserves a task for up to {POLICY.claimDurationMs / HOURS} hours. Submit by then or it reopens for
             others.
           </li>
           <li>
             The reviewer decides pass or fail against the task&apos;s written criteria and cites the rule behind a fail. The
             requester can accept a pass early, but can never overrule one. A requester who chose to review their own task
-            judges it by the same rulebook, and their pass is final at once.
+            judges it by the same rulebook, and their pass is final at once. They have {POLICY.requesterReviewMs / HOURS} hours from
+            the submission; after that boreal.work&apos;s reviewers decide (<RuleRef id="R5.8" />).
           </li>
           <li>
             Either side can dispute a verdict once per task, within {POLICY.objectionWindowMs / HOURS} hours of it. A
@@ -109,6 +115,10 @@ export default function TermsPage() {
           can&apos;t promise it is never down or wrong. We may change these terms; the date above shows when they last
           changed. Our <a href="/privacy" className="font-medium text-primary underline">privacy policy</a> explains what we keep about you.
         </p>
+      </LegalSection>
+
+      <LegalSection title="Contact">
+        <p>Questions about a task, a payment or these terms: send a direct message to <a href={CONTACT.url} target="_blank" rel="noreferrer" className="font-medium text-primary underline">{CONTACT.handle} on X</a>.</p>
       </LegalSection>
     </LegalPage>
   );

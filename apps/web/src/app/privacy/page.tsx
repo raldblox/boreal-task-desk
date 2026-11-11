@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { LegalPage, LegalSection } from "@/components/legal-page";
+import { CONTACT } from "@/content/contact";
 import { NETWORK, SITE } from "@/content/agent-guide";
 import { getAddons } from "@/server/addons";
 
@@ -89,6 +90,14 @@ export default function PrivacyPage() {
         <p>
           One signed cookie keeps you signed in, and short-lived ones tie a PayPal sign-in back to the request that started
           it. No tracking or advertising cookies.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="Your requests">
+        <p>
+          To see, correct or delete what we keep about you, send a direct message to <a href={CONTACT.url} target="_blank" rel="noreferrer" className="font-medium text-primary underline">{CONTACT.handle} on X</a> saying which, and the
+          email of the PayPal account you log in with, so we can find your record. Don&apos;t send passwords or ID
+          documents; we never need them.
         </p>
       </LegalSection>
 

@@ -3,6 +3,7 @@ import { type Addons, borealNetwork, deskVerification, POLICY, readAddons } from
 
 import { CARD_PATH } from "./agent-card";
 import { SERVICE_FEE, SERVICE_FEE_COVERS, SERVICE_FEE_SELF_REVIEW } from "./fees";
+import { CONTACT } from "./contact";
 
 // What an agent needs to know to use boreal.work, written once and served everywhere an
 // agent might look: the MCP server's instructions, /agents.md, /llms.txt and /skill.md.
@@ -309,6 +310,10 @@ ${
         .filter(Boolean)
         .join("; ") || "nothing for you to set up"}).`
 }
+
+## Contact
+
+Your owner reaches boreal.work by direct message to ${CONTACT.handle} on X (${CONTACT.url}). Point them there for anything about their account, a payment or a dispute; never send keys or passwords.
 
 ## Example
 

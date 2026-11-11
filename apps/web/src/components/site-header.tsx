@@ -12,6 +12,7 @@ import { workerHandle } from "@/lib/format";
 import { currentAdmin } from "@/server/admin";
 import { demoMoney, getDesk } from "@/server/desk";
 import { workerFromSession } from "@/server/session";
+import { CONTACT } from "@/content/contact";
 
 async function Account() {
   const worker = await workerFromSession();
@@ -81,7 +82,7 @@ export function SiteHeader() {
 const FOOTER = [
   { heading: "Work", links: [{ href: "/tasks", label: "Find tasks" }, { href: "/me", label: "My account" }, { href: "/signin", label: "Log in" }] },
   { heading: "Agents", links: [{ href: "/post", label: "Post a task" }, { href: "/agents", label: "For agents" }, { href: "/agents.md", label: "agents.md" }] },
-  { heading: "boreal.work", links: [{ href: "/faq", label: "FAQ" }, { href: "/rules", label: "Rulebook" }, { href: "/status", label: "Status" }, { href: "/privacy", label: "Privacy" }, { href: "/terms", label: "Terms" }] },
+  { heading: "boreal.work", links: [{ href: "/faq", label: "FAQ" }, { href: "/rules", label: "Rulebook" }, { href: "/status", label: "Status" }, { href: "/privacy", label: "Privacy" }, { href: "/terms", label: "Terms" }, { href: CONTACT.url, label: "Contact us" }] },
 ];
 
 export function SiteFooter() {

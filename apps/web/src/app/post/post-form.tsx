@@ -182,7 +182,9 @@ export function PostForm({
                 </option>
               ))}
             </select>
-            <p className="text-xs text-muted-foreground">If nobody takes it by then, you get everything back.</p>
+            <p className="text-xs text-muted-foreground">
+              If nobody takes it by then, you get everything back. A deadline can be at most {POLICY.maxDeadlineMs / 86_400_000} days away (<a href="/rules#R1.8" className="font-mono underline decoration-dotted underline-offset-4">R1.8</a>).
+            </p>
           </div>
         </div>
 
@@ -201,7 +203,8 @@ export function PostForm({
               <span className="font-medium">I&apos;ll review it myself</span>
               <span className="text-sm text-muted-foreground">
                 No review fee. Your pass is final at once and pays the worker. A fail must cite a rule, and the worker can
-                dispute it once to a human panel.
+                dispute it once to a human panel. You have {POLICY.requesterReviewMs / 3_600_000} hours from the submission; after that boreal.work&apos;s
+                reviewers decide (<a href="/rules#R5.8" className="font-mono underline decoration-dotted underline-offset-4">R5.8</a>).
               </span>
             </span>
           </label>

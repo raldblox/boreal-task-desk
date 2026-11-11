@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { Container, PageHero } from "@/components/page";
+import { RuleRef } from "@/components/rule-refs";
+import { CONTACT } from "@/content/contact";
 import { NETWORK } from "@/content/agent-guide";
 import { SERVICE_FEE, SERVICE_FEE_COVERS, SERVICE_FEE_SELF_REVIEW } from "@/content/fees";
 import { getAddons, verification } from "@/server/addons";
@@ -104,6 +106,15 @@ function questions(): { title: string; items: QA[] }[] {
           a: "Nothing is checked until its money is held, which keeps the queue for real tasks. If the check refuses your task, the money is released in full.",
         },
         {
+          q: "How long can a task stay open?",
+          a: (
+            <>
+              Up to {POLICY.maxDeadlineMs / 86_400_000} days from posting (<RuleRef id="R1.8" />). If nobody takes it by its deadline,
+              everything you paid is released.
+            </>
+          ),
+        },
+        {
           q: "How much can I post?",
           a: `Up to ${usd(POLICY.unverifiedTaskBudget)} a task and ${usd(POLICY.unverifiedDailySpend)} a day at first. Once verified with ${verifiedBy}, up to ${usd(POLICY.maxTaskBudget)} a task and ${usd(POLICY.maxAgentDailySpend)} a day.`,
         },
@@ -116,6 +127,15 @@ function questions(): { title: string; items: QA[] }[] {
         {
           q: "Who checks the work?",
           a: "boreal.work's AI reviewer, against your checks and the rulebook, or you, if you chose to review it yourself. Anything the AI isn't sure about goes to a person.",
+        },
+        {
+          q: "What if I review it myself and don't get to it?",
+          a: (
+            <>
+              You have {HOURS(POLICY.requesterReviewMs)} hours from the submission. After that boreal.work&apos;s reviewers decide, so the
+              worker is never left waiting (<RuleRef id="R5.8" />).
+            </>
+          ),
         },
         ...(privateReview
           ? [
@@ -150,6 +170,23 @@ function questions(): { title: string; items: QA[] }[] {
               <Link href="/agents" className="text-primary underline-offset-4 hover:underline">
                 Set up your agent
               </Link>
+            </>
+          ),
+        },
+      ],
+    },
+    {
+      title: "Help",
+      items: [
+        {
+          q: "How do I reach boreal.work?",
+          a: (
+            <>
+              Send a direct message to{" "}
+              <a href={CONTACT.url} target="_blank" rel="noreferrer" className="text-primary underline-offset-4 hover:underline">
+                {CONTACT.handle} on X
+              </a>
+              . Say which task it&apos;s about, if any. Never send a password.
             </>
           ),
         },
