@@ -56,16 +56,22 @@ const Segment = ({ g }: { g: Seg }) => {
     oy = y;
   }
   return (
-    <AbsoluteFill style={{ transform: `scale(${scale})`, transformOrigin: `${ox}px ${oy}px`, background: "#000" }}>
-      <OffthreadVideo src={staticFile("raw/hermes-raw.mp4")} muted startFrom={Math.round(g.from * FPS)} playbackRate={g.rate} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-    </AbsoluteFill>
+    <div style={{ position: "absolute", left: FRAME.left, top: FRAME.top, width: 1920, height: 1080, transform: `scale(${FRAME.scale})`, transformOrigin: "0 0", overflow: "hidden", borderRadius: 18 / FRAME.scale, boxShadow: "0 30px 80px -30px rgba(0,0,0,.8)", background: "#000" }}>
+      <AbsoluteFill style={{ transform: `scale(${scale})`, transformOrigin: `${ox}px ${oy}px` }}>
+        <OffthreadVideo src={staticFile("raw/hermes-raw.mp4")} muted startFrom={Math.round(g.from * FPS)} playbackRate={g.rate} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+      </AbsoluteFill>
+    </div>
   );
 };
 
+/** The recording sits in a frame at the top; captions get their own band below it, so they never cover the UI. */
+const FRAME = { scale: 0.84, left: (1920 - 1920 * 0.84) / 2, top: 30 };
+const BAND_TOP = FRAME.top + 1080 * FRAME.scale + 8;
+
 const Speed = ({ rate }: { rate: number }) => (
-  <AbsoluteFill style={{ justifyContent: "flex-start", alignItems: "flex-end", padding: "32px 40px 0 0" }}>
+  <div style={{ position: "absolute", left: 0, right: 0, top: BAND_TOP, bottom: 0, display: "flex", justifyContent: "flex-end", alignItems: "center", paddingRight: FRAME.left }}>
     <div style={{ fontFamily: MONO, fontSize: 20, color: "#fff", background: "rgba(8,26,28,.72)", border: "1px solid rgba(255,255,255,.25)", padding: "6px 12px", borderRadius: 10 }}>▶▶ {Math.round(rate)}×</div>
-  </AbsoluteFill>
+  </div>
 );
 
 const Caption = ({ dur, kicker, line }: { dur: number; kicker: string; line: string }) => {
@@ -73,16 +79,12 @@ const Caption = ({ dur, kicker, line }: { dur: number; kicker: string; line: str
   const t = spring({ frame, fps: FPS, config: { damping: 20 } });
   const out = interpolate(frame, [s(dur) - 8, s(dur)], [1, 0], clamp);
   return (
-    <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "flex-start", padding: "0 0 64px 64px", fontFamily: FONT, pointerEvents: "none" }}>
-      <Fade.Provider value={Math.min(t, 1) * out}>
-        <div style={{ transform: `translateY(${(1 - t) * 20}px)` }}>
-          <Glass style={{ padding: "18px 26px", maxWidth: 820 }}>
-            <Kicker color={MINT}>{kicker}</Kicker>
-            <div style={{ fontSize: 34, fontWeight: 750, letterSpacing: -0.6, marginTop: 6, lineHeight: 1.2 }}>{line}</div>
-          </Glass>
-        </div>
-      </Fade.Provider>
-    </AbsoluteFill>
+    <div style={{ position: "absolute", left: 0, right: 0, top: BAND_TOP, bottom: 0, display: "flex", justifyContent: "center", alignItems: "center", fontFamily: FONT, color: "#fff", opacity: Math.min(t, 1) * out }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 18, transform: `translateY(${(1 - t) * 10}px)` }}>
+        <Kicker color={MINT}>{kicker}</Kicker>
+        <div style={{ fontSize: 38, fontWeight: 750, letterSpacing: -0.6 }}>{line}</div>
+      </div>
+    </div>
   );
 };
 
@@ -91,13 +93,11 @@ const Title = ({ dur }: { dur: number }) => {
   const a = spring({ frame: frame - 2, fps: FPS, config: { damping: 22 } });
   const out = interpolate(frame, [s(dur) - 8, s(dur)], [1, 0], clamp);
   return (
-    <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "center", paddingBottom: 120, fontFamily: FONT, color: "#fff", opacity: out }}>
-      <div style={{ fontSize: 58, fontWeight: 800, letterSpacing: -1.5, opacity: a, transform: `translateY(${(1 - a) * 16}px)`, textAlign: "center" }}>
-        Hermes can search the web.
-        <br />
-        <span style={{ color: MINT }}>Now it can hire a verified human.</span>
+    <div style={{ position: "absolute", left: 0, right: 0, top: BAND_TOP, bottom: 0, display: "flex", justifyContent: "center", alignItems: "center", fontFamily: FONT, color: "#fff", opacity: Math.min(a, 1) * out }}>
+      <div style={{ fontSize: 40, fontWeight: 800, letterSpacing: -0.8 }}>
+        Hermes can search the web. <span style={{ color: MINT }}>Now it can hire a verified human.</span>
       </div>
-    </AbsoluteFill>
+    </div>
   );
 };
 
@@ -123,7 +123,7 @@ const EndCard = () => {
 const vol = (f: number) => 0.18 * Math.min(1, f / s(1.5)) * Math.max(0, Math.min(1, (HERMES_DEMO_FRAMES - f) / s(2.5)));
 
 export const HermesDemo = () => (
-  <AbsoluteFill style={{ background: "#000" }}>
+  <AbsoluteFill style={{ background: "radial-gradient(120% 90% at 30% 10%, #134a4b 0%, #0a2a2c 45%, #051314 100%)" }}>
     {SEGS.map((g) => (
       <Sequence key={g.id} from={s(START[g.id]!)} durationInFrames={s(segDur(g)) + 1}>
         <Segment g={g} />
