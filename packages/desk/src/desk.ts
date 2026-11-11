@@ -40,6 +40,7 @@ import {
 } from "@boreal/db";
 
 import { adminCommands } from "./admin";
+import { passkeyCommands } from "./passkeys";
 import { controlCommands, railClosed } from "./controls";
 import { adminViews } from "./admin-views";
 import { consoleViews, findAnomalies, type ReconcileResult } from "./console-views";
@@ -1653,7 +1654,7 @@ export function createDesk({
 
   // Object.assign is typed for up to three sources, so the read-only views go in as one.
   const owner = ownerCommands(db, now, (caller, taskId, approvalId) => commands.fundTask(caller, taskId, { vault: true }, { rail: "paypal", approvalId }));
-  return Object.assign(commands, { ...adminViews(db, now), ...consoleViews(db, now), ...insightsViews(db), ...owner }, { ...adminCommands(db, now, commands), ...controlCommands(db, now) });
+  return Object.assign(commands, { ...adminViews(db, now), ...consoleViews(db, now), ...insightsViews(db), ...owner }, { ...adminCommands(db, now, commands), ...controlCommands(db, now), ...passkeyCommands(db, now) });
 
   async function sweep(
     where: ReturnType<typeof and>,

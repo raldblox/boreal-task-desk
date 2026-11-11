@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { isAdminRequest } from "./admin-gate";
+import { adminGate, isAdminRequest } from "./admin-gate";
+import { signPasskeySession } from "./admin-passkey";
 import { readWorkerCookie, signWorkerCookie } from "./worker-cookie";
 
 const SECRET = "s".repeat(40);
@@ -49,5 +50,35 @@ describe("admin gate", () => {
     const quiet = vi.spyOn(console, "error").mockImplementation(() => {});
     expect(await isAdminRequest(cookie, env, async () => Promise.reject(new Error("db down")), NOW)).toBe(false);
     quiet.mockRestore();
+  });
+});
+
+describe("admin gate with the passkey step", () => {
+  const cookies = (passkey?: string) => ({ session: cookie, passkey });
+  const none = async () => 0;
+  const one = async () => 1;
+
+  it("lets an admin in without a passkey only where none is required and none is registered", async () => {
+    expect(await adminGate(cookies(), { ...env, BOREAL_NETWORK: "testnet" }, admin, none, NOW)).toBe("ok");
+    expect(await adminGate(cookies(), { ...env, BOREAL_NETWORK: "mainnet" }, admin, none, NOW)).toBe("passkey");
+    expect(await adminGate(cookies(), { ...env, BOREAL_NETWORK: "testnet" }, admin, one, NOW)).toBe("passkey");
+  });
+
+  it("opens for a valid passkey session of that admin, and for nothing else", async () => {
+    const mainnet = { ...env, BOREAL_NETWORK: "mainnet" };
+    expect(await adminGate(cookies(signPasskeySession("ccdid:admin", NOW + 1000, SECRET)), mainnet, admin, one, NOW)).toBe("ok");
+    expect(await adminGate(cookies(signPasskeySession("ccdid:other", NOW + 1000, SECRET)), mainnet, admin, one, NOW)).toBe("passkey");
+    expect(await adminGate(cookies(signPasskeySession("ccdid:admin", NOW - 1, SECRET)), mainnet, admin, one, NOW)).toBe("passkey");
+    // A worker session cookie is not a passkey session.
+    expect(await adminGate(cookies(cookie), mainnet, admin, one, NOW)).toBe("passkey");
+  });
+
+  it("never reaches the passkey step for someone who isn't an admin, and fails closed", async () => {
+    expect(await adminGate(cookies(), env, async () => null, one, NOW)).toBe("no");
+    expect(await adminGate({ session: undefined, passkey: signPasskeySession("ccdid:admin", NOW + 1000, SECRET) }, env, admin, one, NOW)).toBe("no");
+    const broken = async () => {
+      throw new Error("db down");
+    };
+    expect(await adminGate(cookies(), { ...env, BOREAL_NETWORK: "testnet" }, admin, broken, NOW)).toBe("passkey");
   });
 });

@@ -367,6 +367,15 @@ Set `ANTHROPIC_API_KEY` for the worker to turn it on. Without it, tasks wait for
 
 Admin is a role, not a page. An admin signs in like any worker, with PayPal (or Concordium ID with that add-on), and their worker pseudonym must be in `ADMIN_PSEUDONYMS` (comma-separated). Testers never qualify. Everyone else gets the site's ordinary 404 on every `/admin` route, with nothing of the admin pages in it: `apps/web/src/proxy.ts` checks the signed session and the allowlist before anything renders, and the layout, every page and every action check again (`apps/web/src/server/admin.ts`).
 
+**Passkey.** On top of signing in, `/admin` opens only with a passkey: a WebAuthn security key such as a YubiKey. It is always required on mainnet, wherever `ADMIN_PASSKEY=required`, and for any admin who has registered one; a stolen session cookie alone then opens nothing. An admin without the check is sent to `/admin-passkey`, and the check lasts 12 hours per browser.
+
+- **First key:** set `ADMIN_PASSKEY_ENROLL_CODE` (16+ characters) in the project, sign in, open `/admin-passkey`, type the code and touch the key. Then remove the variable. Register a second key at once and keep it somewhere safe.
+- **More keys, or removing one:** from `/admin-passkey`, after presenting a key. The last key can't be removed.
+- **Lost every key:** delete the admin's rows in `admin_passkeys` and enrol again with a new code. There is deliberately no other way round.
+- Only public keys are stored (`admin_passkeys`); adding and removing keys is in the audit log. The key is bound to the site's host (`PUBLIC_URL`), so one registered on testnet.boreal.work doesn't open boreal.work.
+
+**Rail switches.** Controls has a switch per payment rail: closed, the rail takes no new money on any server at once (funding on it answers 503 and `get_account` stops listing it), with no deploy. Tasks already funded on it still pay out or refund. Turning a whole integration off is still `BOREAL_ADDONS`.
+
 Every change made there (screen, verdict, dispute decision, freeze or unfreeze an agent, retry an outbox row, run a monitor tick) needs a confirm and a reason, and is written to `admin_actions` with who, what, when and why. Reviews go through the desk's own reviewer and panel commands, as boreal.work's reviewer, so the state machine still decides. Without an AI reviewer key, the review queue is how live tasks get screened.
 
 Locally, start the app with an admin and sign in with that pseudonym on the development wallet (a Concordium add-on stand-in), or set `ADMIN_PSEUDONYMS` to your own PayPal sandbox worker ID instead:
