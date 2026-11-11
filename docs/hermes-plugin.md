@@ -24,14 +24,14 @@ Similar entries already in the catalog: `rentahuman`, `withhuman`. Lead with wha
 name: borealwork
 title: boreal.work
 repo: https://github.com/raldblox/hermes-boreal
-sha: f048515f986fee55ab9efcf8e13a197d03dd7213
-description: "Give Hermes verified human hands: hire a verified person on boreal.work for a step no agent can do online (confirm a supplier is real, check a shelf price, photograph a site), with the money held until the result passes review against your criteria and a public rulebook. Twelve native tools for the task loop; a spend guard (pre_tool_call) that enforces per-task and daily caps and asks you to approve above a threshold, and blocks terminal payments that aren't paying a boreal.work task; a verdict digest (pre_llm_call) that tells Hermes what finished since it last looked; and /borealwork. Disclosure: HTTPS to the configured boreal.work site only (https://boreal.work by default, live PayPal money; testnet.boreal.work for the sandbox), from tool calls, from the guard (one task read before funding) and from the digest (one task list on a session's first turn). Stores the boreal.work agent key it collects in its own plugin state, or reads BOREAL_API_KEY. No shell commands, no background processes, no self-updates, no compiled code; standard library only."
+sha: 8bd42e837ef3b7759c54acb2660fbdfdecfe9522
+description: "Give Hermes verified human hands: hire a verified person on boreal.work for a step no agent can do online (confirm a supplier is real, check a shelf price, photograph a site), with the money held until the result passes review against your criteria and a public rulebook. Twelve native tools for the task loop; a spend guard (pre_tool_call) that sends every money-moving call (funding at any amount, accepting a pass, judging a result yourself) to Hermes's approval prompt, enforces per-task and daily caps on funding, and blocks terminal payments that aren't paying a boreal.work task; a verdict digest (pre_llm_call) that tells Hermes what finished since it last looked; and /borealwork. Disclosure: HTTPS to the configured boreal.work site only (https://boreal.work by default, live PayPal money; testnet.boreal.work for the sandbox), from tool calls, from the guard (one task read before funding, accepting or judging) and from the digest (one task list on a session's first turn). Stores the boreal.work agent key it collects in its own plugin state, or reads BOREAL_API_KEY. No shell commands, no background processes, no self-updates, no compiled code; standard library only."
 maintainer: raldblox
 tier: community
 category: tools
 requires_hermes: ">=0.19"
 docs_url: https://github.com/raldblox/hermes-boreal#readme
-version: "0.1.0"
+version: "0.2.0"
 readme: true
 platforms: []
 capabilities:
@@ -54,7 +54,7 @@ capabilities:
 > **What it does.** Some steps no agent can do online: confirm a supplier's warehouse is real, check a shelf price today, photograph a site. Hermes posts the step to boreal.work, funds it (a PayPal hold, not a charge), a verified person does it, and boreal.work's reviewer judges the result against the task's criteria and a public rulebook (https://boreal.work/rules). The worker is paid only on a pass; a fail returns the money less the review part of the fee.
 >
 > **Why a plugin, not a skill.**
-> - **Spend guard** (`pre_tool_call`): before `boreal_fund_task` runs, it reads the task's real total and blocks it over the per-task or daily cap, or escalates to the human-approval gate above a threshold. It also blocks terminal commands that move USDC without a `boreal:<taskId>` memo. A skill can only ask Hermes to behave; this enforces it.
+> - **Spend guard** (`pre_tool_call`): every money-moving call goes to Hermes's approval prompt at any amount: `boreal_fund_task` (with or without an `order_id`), `boreal_accept`, and `boreal_review`. Before funding it also reads the task's real total and blocks it over the per-task or daily cap. It also blocks terminal commands that move USDC without a `boreal:<taskId>` memo. A skill can only ask Hermes to behave; this enforces it.
 > - **Verdict digest** (`pre_llm_call`): on a session's first turn, Hermes is told which tasks finished or need its review since it last looked.
 > - 12 native tools and `/borealwork`.
 >
@@ -62,7 +62,7 @@ capabilities:
 >
 > **Risky behaviour (rule 13):** network calls over HTTPS to the configured boreal.work site only (default https://boreal.work, which moves real money through PayPal; the spend guard and boreal.work's own owner-set limits bound it). It stores the agent key it collects in its own plugin state. No shell commands, no background processes, no self-updating, no compiled files, no dependencies outside the standard library.
 >
-> **Validation:** `hermes plugins validate . --install-deps` passes every check (15), `hermes plugins doctor . --ci` is clean (12 tools, 2 hooks), and `python -m unittest discover -s tests` passes 13 tests covering the guard, the digest and key handling.
+> **Validation:** `hermes plugins validate . --install-deps` passes every check (15), `hermes plugins doctor . --ci` is clean (12 tools, 2 hooks), and `python -m unittest discover -s tests` passes 21 tests covering the guard, the digest, linking and key handling.
 >
 > Demo: <link to the X post>
 

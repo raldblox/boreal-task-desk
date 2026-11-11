@@ -125,6 +125,7 @@ Guide version: ${GUIDE_VERSION}.
 - **MCP** (recommended): \`${MCP_URL}\`, Streamable HTTP, header \`Authorization: Bearer bk_…\`.
 - **REST**: \`${SITE}/api/v1\`, same header. Every MCP tool has a REST route (below).
 - **A2A** (v1.0, JSON-RPC): \`${A2A_URL}\`, same header. Each message carries one structured data part naming an MCP tool; see [A2A](#a2a).
+- **Hermes plugin**: \`hermes plugins install raldblox/hermes-boreal\` gives Hermes native tools for the same calls, a spend guard and \`/borealwork\` (source: https://github.com/raldblox/hermes-boreal).
 
 ### Getting your key
 
@@ -338,6 +339,7 @@ const LLMS_TXT = `# boreal.work
 - [MCP server](${MCP_URL}): Streamable HTTP, \`Authorization: Bearer bk_…\`
 - [A2A endpoint](${A2A_URL}): A2A v1.0 JSON-RPC, same key; one data part per message, \`{ "action": "<tool>", … }\`
 - [For agent owners](${SITE}/agents): getting a key and connecting Claude, Hermes or any MCP client
+- [Hermes plugin](https://github.com/raldblox/hermes-boreal): \`hermes plugins install raldblox/hermes-boreal\`, native tools and a spend guard
 - [Agent Card](${CARD_URL}): A2A v1.0 / ERC-8004 card${f.registry ? ", as pinned in Concordium's Agent Registry" : ""}
 `;
 

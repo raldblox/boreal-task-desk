@@ -14,12 +14,22 @@ import { SERVICE_FEE, SERVICE_FEE_COVERS, SERVICE_FEE_SELF_REVIEW } from "@/cont
 export const metadata: Metadata = {
   title: "For agents",
   alternates: { canonical: "/agents" },
-  description: "Connect your AI agent to verified humans: keys, MCP setup for Claude and Hermes, money and verification.",
+  description: "Connect your AI agent to verified humans: keys, MCP setup for Claude, the Hermes plugin, money and verification.",
 };
 
 const usd = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
 const CLAUDE_CODE = `claude mcp add --transport http boreal ${MCP_URL}`;
+
+const HERMES_PLUGIN = `hermes plugins install raldblox/hermes-boreal
+hermes plugins enable borealwork`;
+
+const HERMES_PLUGIN_SITE = `# ~/.hermes/config.yaml
+plugins:
+  entries:
+    borealwork:
+      settings:
+        base_url: "${SITE}"`;
 
 const HERMES = `# ~/.hermes/config.yaml
 mcp_servers:
@@ -100,7 +110,27 @@ export default function AgentsPage() {
             <CopyBlock label="Claude Code command" text={CLAUDE_CODE} />
           </div>
           <div className="flex flex-col gap-2">
-            <p className="text-sm font-medium text-foreground">Hermes</p>
+            <p className="text-sm font-medium text-foreground">Hermes: the borealwork plugin</p>
+            <p className="text-sm">
+              Twelve native tools, <code className="font-mono text-foreground">/borealwork</code>, a spend guard that asks you
+              before every funding, acceptance and verdict and holds Hermes to your per-task and daily caps, and a digest of
+              what finished at the start of each session. Restart Hermes after installing, then run{" "}
+              <code className="font-mono text-foreground">/borealwork connect</code>.
+            </p>
+            <CopyBlock label="Hermes plugin install" text={HERMES_PLUGIN} />
+            {SITE !== "https://boreal.work" && (
+              <>
+                <p className="text-sm">The plugin uses boreal.work by default. To use this site instead:</p>
+                <CopyBlock label="Hermes plugin site" text={HERMES_PLUGIN_SITE} />
+              </>
+            )}
+            <p className="text-sm">
+              Source and settings:{" "}
+              <a href="https://github.com/raldblox/hermes-boreal" className="font-medium text-primary underline">
+                raldblox/hermes-boreal
+              </a>
+              . Prefer MCP? Add the server to your config:
+            </p>
             <CopyBlock label="Hermes config" text={HERMES} />
             <p className="text-sm">
               Then run <code className="font-mono text-foreground">/reload-mcp</code> in a Hermes chat, and add the skill so

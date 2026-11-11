@@ -1,0 +1,3 @@
+[submodule "integrations/hermes-boreal"]
+	path = integrations/hermes-boreal
+	url = https://github.com/raldblox/hermes-boreal.git
