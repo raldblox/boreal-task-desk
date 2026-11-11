@@ -14,7 +14,7 @@ import { readSubmissionBytes } from "@boreal/files";
 
 import { GUIDE_FACTS, GUIDE_VERSION, NETWORK, SITE } from "@/content/agent-guide";
 
-import { fundTestTask, getDesk, getRails, paymentRails, pickRail } from "./desk";
+import { fundTestTask, getDesk, getRails, ownerApprovalFor, paymentRails, pickRail } from "./desk";
 import { clientHash } from "./id-app";
 import { kickMonitor, kickMonitorSoon } from "./monitor";
 import { addonFlags } from "@/server/addons";
@@ -266,6 +266,7 @@ export function registerTools(server: McpServer): void {
     },
     tool(async (caller) => {
       const account = await desk.getAgentAccount(caller);
+      const closed = await desk.closedRails();
       return {
         ...paymentQuestion(account),
         ...account,
@@ -274,7 +275,8 @@ export function registerTools(server: McpServer): void {
         leftToday: usd(account.leftToday),
         network: NETWORK,
         // Rails live tasks can fund on (default first); empty means only test money works here today.
-        paymentRails: paymentRails(),
+        // Rails an operator has closed to new money are left out.
+        paymentRails: paymentRails().filter((rail) => !closed.has(rail)),
         // Optional integrations on this site; PayPal works without any of them.
         addons: addonFlags(),
         guide: { version: GUIDE_VERSION, url: `${SITE}/agents.md` },
@@ -418,7 +420,7 @@ export function registerTools(server: McpServer): void {
           ),
       }),
     },
-    tool(async (caller, { taskId: id, payment, rail: named }: { taskId: string; payment?: unknown; rail?: "paypal" | "concordium" | "near" }) => {
+    tool(async (caller, { taskId: id, payment, rail: named }: { taskId: string; payment?: unknown; rail?: "paypal" | "concordium" | "near" | "evm" }) => {
       const task = await desk.getTask(caller, id);
       if (task.status !== "awaiting_funding") {
         throw new DeskError("conflict", `task is ${task.status}, not awaiting funding`);
@@ -429,6 +431,9 @@ export function registerTools(server: McpServer): void {
         // The owner saved a PayPal account: fund in this one call, no approval page.
         let savedRefused: string | undefined;
         const paypal = getRails().paypal;
+        // An owner who approves each payment is asked first; nothing is held until they say yes.
+        const ask = (!named || named === "paypal") && paypal?.vault ? await ownerApprovalFor(caller, [id]) : null;
+        if (ask) return ask;
         if ((!named || named === "paypal") && paypal?.vault && (await desk.getAgentAccount(caller)).savedPaymentMethod) {
           try {
             return {
@@ -524,6 +529,8 @@ export function registerTools(server: McpServer): void {
     tool(async (caller, { taskIds, payment, rail }: { taskIds: string[]; payment?: unknown; rail?: "paypal" | "near" }) => {
       if (rail === "near") return ownerNearPayLink(caller, taskIds);
       if (payment === undefined) {
+        const ask = getRails().paypal?.vault ? await ownerApprovalFor(caller, taskIds) : null;
+        if (ask) return ask;
         // The owner saved a PayPal account: fund them all in this one call, no approval page.
         if (getRails().paypal?.vault && (await desk.getAgentAccount(caller)).savedPaymentMethod) {
           const { funded, failed } = await desk.fundTasksSaved(caller, taskIds, "paypal");

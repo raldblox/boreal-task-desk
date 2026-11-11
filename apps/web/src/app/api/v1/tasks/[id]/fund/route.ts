@@ -1,6 +1,6 @@
 import { DeskError, taskTotal } from "@boreal/desk";
 
-import { asRequester, fundTestTask, getDesk, getRails, paymentRails, pickRail } from "@/server/desk";
+import { asRequester, fundTestTask, getDesk, getRails, ownerApprovalFor, paymentRails, pickRail } from "@/server/desk";
 
 /**
  * fund_task over x402 v2. Without a payment header the reply is 402 with what to pay (in the
@@ -31,6 +31,11 @@ export async function POST(request: Request, ctx: RouteContext<"/api/v1/tasks/[i
     const header = request.headers.get("payment-signature") ?? request.headers.get("x-payment");
     const fromBody = header ? undefined : await paymentFromBody(request);
     const paypal = getRails().paypal;
+    // "Ask me each time": the owner is asked first (202); nothing is held until they approve.
+    if (!header && !fromBody && (!named || named === "paypal") && paypal?.vault) {
+      const ask = await ownerApprovalFor(caller, [id]);
+      if (ask) return Response.json(ask, { status: 202 });
+    }
     if (!header && !fromBody && (!named || named === "paypal") && paypal?.vault && (await desk.getAgentAccount(caller)).savedPaymentMethod) {
       try {
         return Response.json(await desk.fundTask(caller, id, { vault: true }, { rail: "paypal" }));

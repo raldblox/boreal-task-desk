@@ -1,8 +1,8 @@
-// boreal.work rulebook v2.0, as published in the spec's "Rulebook" tab and at /rules. Verdicts may
+// boreal.work rulebook v2.1, as published in the spec's "Rulebook" tab and at /rules. Verdicts may
 // cite only these IDs; the code rejects any other. IDs are permanent: a rule's meaning never
 // changes under the same ID (old verdicts cite them), new rules get new IDs.
 
-export const RULEBOOK_VERSION = "2.0";
+export const RULEBOOK_VERSION = "2.1";
 
 export type RuleStage = "screening" | "review" | "reviewer" | "dispute";
 
@@ -33,6 +33,7 @@ export const RULES: readonly Rule[] = [
   { id: "R1.5", stage: "screening", severity: "minor", outcome: "Returned for edits", text: "Each acceptance criterion checks one observable fact, with no subjective standard left undefined.", example: "\"Count shoppers who stop for 5 seconds or more\" is one fact; \"note how busy it looks\" is a judgment with no standard." },
   { id: "R1.6", stage: "screening", severity: "minor", outcome: "Returned for edits", text: "A task must be doable by one person within the claim window: a place they can lawfully reach, a time or window to do it in, and a scope that fits." },
   { id: "R1.7", stage: "screening", severity: "minor", outcome: "Returned for edits", text: "A task must be self-contained: everything the worker needs is in it, with no installs, sign-ups, off-platform contact or payments outside boreal.work." },
+  { id: "R1.8", stage: "screening", severity: "minor", outcome: "Not accepted at posting", text: "A task's deadline is at most 14 days after it is posted, so its money is never held longer than a hold can last." },
 
   // R2: safety and legality. Checked at screening; a task that breaks one is refused and its money returned.
   { id: "R2.1", stage: "screening", severity: "critical", outcome: "Refused", text: "No task that is illegal where the task takes place or where the worker is." },
@@ -66,6 +67,7 @@ export const RULES: readonly Rule[] = [
   { id: "R5.5", stage: "reviewer", severity: "protective", outcome: "Verdict void; a person reviews", text: "When the evidence can't settle it, don't guess: a person decides. Suspected fraud without clear evidence goes to a person, never to an automatic fail." },
   { id: "R5.6", stage: "reviewer", severity: "protective", outcome: "Verdict overturned", text: "Same evidence, same verdict: judge the result and the task, never who the worker is, where they're from, their language or their writing style." },
   { id: "R5.7", stage: "reviewer", severity: "protective", outcome: "Verdict void; task re-reviewed", text: "A fail says what was seen and what was missing, plainly enough that the worker could do it right next time." },
+  { id: "R5.8", stage: "reviewer", severity: "protective", outcome: "The review passes to boreal.work's reviewers", text: "A requester who reviews its own task gives its verdict within 72 hours of the submission. After that boreal.work's reviewers decide, so a worker is never left waiting on a silent requester." },
 
   // R6: disputes.
   { id: "R6.1", stage: "dispute", severity: "protective", outcome: "Dispute not accepted", text: "Either side may dispute a verdict once, within 48 hours, with a reason." },

@@ -1,6 +1,6 @@
 import { DeskError } from "@boreal/desk";
 
-import { asRequester, getDesk, getRails, readJson } from "@/server/desk";
+import { asRequester, getDesk, getRails, ownerApprovalFor, readJson } from "@/server/desk";
 import { ownerNearPayLink } from "@/server/mcp";
 
 /**
@@ -21,6 +21,8 @@ export async function POST(request: Request) {
     if (body?.rail === "near" || new URL(request.url).searchParams.get("rail") === "near") return Response.json(await ownerNearPayLink(caller, taskIds));
     const desk = getDesk();
     if (payment === undefined) {
+      const ask = getRails().paypal?.vault ? await ownerApprovalFor(caller, taskIds) : null;
+      if (ask) return Response.json(ask, { status: 202 });
       // The owner saved a PayPal account: fund them all now, no approval page.
       if (getRails().paypal?.vault && (await desk.getAgentAccount(caller)).savedPaymentMethod) {
         return Response.json({ ...(await desk.fundTasksSaved(caller, taskIds, "paypal")), paidWith: "saved PayPal account" });

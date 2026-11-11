@@ -10,6 +10,8 @@ export const POLICY = {
    * submission goes to boreal.work's reviewers, so a silent requester never leaves a worker unpaid.
    */
   requesterReviewMs: 72 * HOUR,
+  /** How long an owner has to approve a payment their agent asked for ("ask me each time"). */
+  fundingApprovalMs: 24 * HOUR,
   /**
    * The furthest a deadline can be from posting. PayPal keeps an authorization for 29 days, and
    * a task's money is only held until it is final: the deadline, the review, the objection
@@ -32,5 +34,5 @@ export const POLICY = {
   maxActiveClaimsPerNewWorker: 1,
   lostDisputesBeforePause: 3,
   lostDisputesWindowMs: 30 * 24 * HOUR,
-  rulebookVersion: "2.0",
+  rulebookVersion: "2.1",
 } as const;

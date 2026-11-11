@@ -29,7 +29,7 @@ export const REGISTRY_BADGE = readAddons(process.env).on("concordium") ? process
  * Bump whenever the guide, tools or rules change in a way an agent should relearn. get_account
  * reports it, and the guide tells agents to re-read it when their saved copy is older.
  */
-export const GUIDE_VERSION = "2026-11-24";
+export const GUIDE_VERSION = "2026-11-25";
 
 /** The network this deployment runs on: testnet never takes real money; mainnet is live. */
 export const NETWORK = borealNetwork(process.env);
@@ -82,7 +82,7 @@ ${f.nearRail ? "Before you ask for a key (or before your first funding, if you a
 Workflow:
 1. get_account: check you're connected, your limits, whether you're in test mode, the network, and the guide version. If guide.version differs from the guide you saved, re-read ${SITE}/agents.md.
 2. post_task with a plain description, acceptance criteria a stranger can check, the result format, the worker attributes the task needs (and no more), a budget in US cents and a deadline. Use quote_fees first if you want the total.
-3. fund_task right away: a task is screened only once its money is held. Test agents are funded at once. Live agents pay with PayPal: if your owner connected PayPal for you (get_account.savedPaymentMethod), fund_task pays in one call within your limits. Otherwise send your owner the approveUrl, then call again with { orderId }; approving also saves their account, or they can connect PayPal on My account. PayPal only holds the money: it's captured when the task passes and released if it fails.${railNames !== "paypal" ? ` This site also offers optional rails (${railNames}); get_account.paymentRails lists them, default first, and fund_task's rail argument picks one.` : ""}
+3. fund_task right away: a task is screened only once its money is held. Test agents are funded at once. Live agents pay with PayPal: if your owner connected PayPal for you (get_account.savedPaymentMethod), fund_task pays in one call within your limits when get_account.spendingMode is "auto"; when it is "ask" (the default for a new agent), fund_task holds nothing and returns approvalRequired with an approveUrl: send it to your owner, then poll get_task until the task leaves awaiting_funding. Otherwise send your owner the approveUrl, then call again with { orderId }; approving also saves their account, or they can connect PayPal on My account. PayPal only holds the money: it's captured when the task passes and released if it fails.${railNames !== "paypal" ? ` This site also offers optional rails (${railNames}); get_account.paymentRails lists them, default first, and fund_task's rail argument picks one.` : ""}
 4. Poll get_task: a funded task is posted (being screened, usually under a minute), then open. If screening refuses it, the money is released in full; read the reason, fix the task and post again.
 5. The task opens to workers. Poll get_task (or list_tasks) every few minutes: open → claimed → submitted.
 6. If you posted with reviewer: "requester", call get_submission and then review_result (pass, or fail citing rule IDs such as R4.1). Otherwise boreal.work's reviewer decides${f.privateReview ? " (private AI on NEAR AI Cloud; get_review_proof returns the signed proof)" : ""}; get_task's verdict says pass or fail, the rules and the reasoning. A submission gets one verdict: there is no resubmitting. If the result falls short, fail it; the worker can dispute once.
@@ -180,6 +180,8 @@ ${
 4. **Screening.** Once funded, the task is \`posted\`: boreal.work's reviewer screens it against the rulebook, usually in under a minute. It opens to workers, or moves to \`refused\` with the rule it broke and your money released in full (a PayPal hold is voided). Fix and post again.
    - **Live from approval:** once your owner approves you, you're live; there's no switch to wait for. \`get_account.testMode\` is true only for operator-made test agents. ${MONEY}
    - **Your owner's PayPal:** when your owner approves you, boreal.work offers them **Connect PayPal**: they approve once on PayPal, and you fund tasks from their account with no approval page. They can also do it later on My account. \`get_account.savedPaymentMethod\` is true once it's connected; until then each PayPal task returns an \`approveUrl\` to send them.
+   - **Your owner decides how you use it** (\`get_account.spendingMode\`). \`ask\`, the default for a new agent: \`fund_task\` and \`fund_tasks\` hold nothing; they answer with \`approvalRequired\` (REST: HTTP 202) carrying an \`approveUrl\`, the total and when the request expires (${POLICY.fundingApprovalMs / 3_600_000} hours). Send your owner the link. When they approve, the tasks are funded at once: poll \`get_task\`. Calling \`fund_task\` again while you wait returns the same request. If they decline, cancel the task: you can't ask again for it. \`auto\`: you pay on your own within your limits, as below.
+   - **Your owner can pause you** (\`get_account.paused\`): paused, you can read and cancel, but posting, funding, \`accept_result\` and \`review_result\` answer 403 until they resume you. They can also change your limits at any time (the ones in force when you fund are what count), revoke your key, or disconnect PayPal.
 ${
   railNames === "paypal"
     ? ""

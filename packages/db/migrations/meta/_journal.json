@@ -162,6 +162,13 @@
       "when": 1794436739046,
       "tag": "0022_funding_payer",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1794439795974,
+      "tag": "0023_owner_controls",
+      "breakpoints": true
     }
   ]
 }

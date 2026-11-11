@@ -34,7 +34,7 @@ export class PayPalError extends Error {
 }
 
 export interface PayPalClient {
-  request<T>(method: "GET" | "POST", path: string, options?: { body?: unknown; requestId?: string }): Promise<T>;
+  request<T>(method: "GET" | "POST" | "DELETE", path: string, options?: { body?: unknown; requestId?: string }): Promise<T>;
 }
 
 export function createPayPalClient(options: PayPalClientOptions): PayPalClient {

@@ -55,6 +55,11 @@ export interface ApproveLinkInput {
   /** Give a new key to one of this owner's agents instead of creating one. */
   replaceAgentId?: string;
   badge?: VerifiedBadge;
+  /**
+   * Whether the agent may use a saved payment method on its own (`auto`) or the owner approves
+   * each payment (`ask`). A new agent asks unless its owner says otherwise.
+   */
+  spendingMode?: "ask" | "auto";
 }
 
 export function linkCommands(db: Database, now: () => Date) {
@@ -198,6 +203,7 @@ export function linkCommands(db: Database, now: () => Date) {
           testMode: agents.testMode,
           badgeVerifiedAt: agents.badgeVerifiedAt,
           paypalConnected: sql<boolean>`${agents.paymentVaultId} is not null`,
+          spendingMode: agents.spendingMode,
           nearAccount: agents.nearAccount,
         })
         .from(agents)
@@ -258,7 +264,7 @@ export function linkCommands(db: Database, now: () => Date) {
           // A fresh approval by its verified owner makes the agent live, like a new one.
           await tx
             .update(agents)
-            .set({ name, maxTaskBudget, maxDailySpend, testMode: false, ...badge, ...(link.nearAccount ? { nearAccount: link.nearAccount } : {}), updatedAt: at })
+            .set({ name, maxTaskBudget, maxDailySpend, testMode: false, ...(input.spendingMode ? { spendingMode: input.spendingMode } : {}), ...badge, ...(link.nearAccount ? { nearAccount: link.nearAccount } : {}), updatedAt: at })
             .where(eq(agents.id, mine.id));
           agentId = mine.id;
         } else {
@@ -276,6 +282,7 @@ export function linkCommands(db: Database, now: () => Date) {
               maxDailySpend,
               // Approved by a verified owner, with limits: ready for real tasks at once.
               testMode: false,
+              spendingMode: input.spendingMode ?? "ask",
               ...badge,
               nearAccount: link.nearAccount,
               createdAt: at,

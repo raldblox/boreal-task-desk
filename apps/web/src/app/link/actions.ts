@@ -47,6 +47,7 @@ export async function approveLink(code: string, _prev: LinkActionState, form: Fo
       maxTaskBudget: cents(form.get("maxTaskBudget")),
       maxDailySpend: cents(form.get("maxDailySpend")),
       replaceAgentId: replaceAgentId && replaceAgentId !== "new" ? replaceAgentId : undefined,
+      spendingMode: form.get("spendingMode") === "auto" ? "auto" : "ask",
       badge: await verifyBadge(code, form),
     }));
   } catch (error) {

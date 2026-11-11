@@ -24,7 +24,7 @@ import { after } from "next/server";
 import { addonRefusal, gatedEnv, verification } from "./addons";
 import { getDb } from "./db";
 import { kickMonitor, kickMonitorSoon } from "./monitor";
-import { NETWORK } from "@/content/agent-guide";
+import { NETWORK, SITE } from "@/content/agent-guide";
 
 let desk: Desk | undefined;
 let concordium: Concordium | null | undefined;
@@ -120,6 +120,30 @@ export function getDesk(): Desk {
 /** Funds a test agent's task with test money: recorded in the ledger, never moved on-chain. */
 export async function fundTestTask(caller: Caller, task: Task) {
   return getDesk().fundTask(caller, task.id, { txHash: `test-${randomUUID()}`, amount: taskTotal(task) });
+}
+
+/**
+ * "Ask me each time": when the agent's owner approves each payment from the saved payment
+ * method, this asks them (or returns the request already waiting) and says what to tell them.
+ * Null when the agent pays on its own, or has no saved method: fund as usual.
+ * Used by every funding surface (MCP, REST, A2A), so none can charge the saved method unasked;
+ * the desk refuses it too.
+ */
+export async function ownerApprovalFor(caller: Caller, taskIds: string[]) {
+  const desk = getDesk();
+  if (caller.role !== "requester") return null;
+  const account = await desk.getAgentAccount(caller);
+  if (account.kind !== "agent" || !account.savedPaymentMethod || account.spendingMode !== "ask") return null;
+  const approval = await desk.requestFundingApproval(caller, taskIds);
+  const approveUrl = `${SITE}/approve/${approval.id}`;
+  const dollars = `$${(approval.total / 100).toFixed(2)}`;
+  return {
+    approvalRequired: { id: approval.id, status: "pending" as const, approveUrl, total: approval.total, taskIds: approval.taskIds, expiresAt: approval.expiresAt },
+    tellYourOwner:
+      `Please approve ${dollars} for ${approval.taskIds.length} boreal.work ${approval.taskIds.length === 1 ? "task" : "tasks"}: ${approveUrl} ` +
+      "(held on your saved PayPal account, not charged; each task is charged only when its work passes review).",
+    next: "nothing is held yet. Once your owner approves, the tasks are funded at once: poll get_task until status is no longer awaiting_funding. If they decline, cancel the task.",
+  };
 }
 
 export const STATUS: Record<DeskError["code"], number> = {

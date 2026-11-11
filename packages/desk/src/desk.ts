@@ -40,11 +40,13 @@ import {
 } from "@boreal/db";
 
 import { adminCommands } from "./admin";
+import { controlCommands, railClosed } from "./controls";
 import { adminViews } from "./admin-views";
 import { consoleViews, findAnomalies, type ReconcileResult } from "./console-views";
 import { insightsViews } from "./insights-views";
 import { DeskError, fromTransitionError } from "./errors";
 import { linkCommands } from "./links";
+import { assertSavedPaymentAllowed, ownerCommands } from "./owner";
 import { moneyViews } from "./money-views";
 import { recordFunding, settle, taskTotal } from "./money";
 import { drainOutbox, type PaymentStatusUpdate, type PayoutAddresses, queuePaymentUpdate, reconcileEscrow } from "./outbox";
@@ -507,6 +509,12 @@ export function createDesk({
     return ids.map((id) => list.find((t) => t.id === id)!);
   }
 
+  /** An agent its owner paused can read and cancel, but not post, fund, accept or review. */
+  async function requireNotPaused(agentId: string) {
+    const [agent] = await db.select({ pausedAt: agents.pausedAt }).from(agents).where(eq(agents.id, agentId));
+    if (agent?.pausedAt) throw new DeskError("forbidden", "your owner has paused you; they can resume you on My account");
+  }
+
   function requireRole<R extends Caller["role"]>(
     caller: Caller,
     ...roles: R[]
@@ -528,6 +536,7 @@ export function createDesk({
       const [agent] = await db.select().from(agents).where(eq(agents.id, caller.agentId));
       if (!agent) throw new DeskError("not_found", "agent not found");
       if (agent.status !== "active") throw new DeskError("forbidden", agent.kind === "personal" ? "posting is paused on your account" : "agent is frozen");
+      if (agent.pausedAt) throw new DeskError("forbidden", "your owner has paused you; they can resume you on My account");
       const verified = await requesterVerified(agent);
       if (concordium && requireBadge) {
         // A person proves themselves with Concordium ID; an agent with its registry badge.
@@ -632,7 +641,7 @@ export function createDesk({
      * a task screening then refuses has its money released in full. The amount must match the
      * quote exactly.
      */
-    async fundTask(caller: Caller, taskId: string, payment: FundingPayment, options: { rail?: PaymentRail } = {}) {
+    async fundTask(caller: Caller, taskId: string, payment: FundingPayment, options: { rail?: PaymentRail; approvalId?: string } = {}) {
       requireRole(caller, "requester");
       const funded = await commands.holdFunding(caller, taskId, payment, options);
       const [agent] = await db.select().from(agents).where(eq(agents.id, funded.agentId));
@@ -647,7 +656,7 @@ export function createDesk({
     },
 
     /** Holds a task's money and sends it to screening. With `confirm`, the payment settles inside the task's own checks. */
-    async holdFunding(caller: Caller, taskId: string, payment: FundingPayment, options: { rail?: PaymentRail } = {}) {
+    async holdFunding(caller: Caller, taskId: string, payment: FundingPayment, options: { rail?: PaymentRail; approvalId?: string } = {}) {
       requireRole(caller, "requester");
       let settled: ConfirmedPayment | undefined;
       return mutate(taskId, caller, { type: "fund" }, {
@@ -664,6 +673,12 @@ export function createDesk({
           // since, or a per-task cap lowered since, stops the payment.
           if (agent!.status !== "active") {
             throw new DeskError("forbidden", agent!.kind === "personal" ? "posting is paused on your account" : "agent is frozen");
+          }
+          if (agent!.pausedAt) throw new DeskError("forbidden", "your owner has paused you; they can resume you on My account");
+          // A rail an operator closed takes no new money; tasks already on it still settle there.
+          const rail = "vault" in payment ? "paypal" : (options.rail ?? defaultRail);
+          if (rail && !task.test && (await railClosed(tx, rail))) {
+            throw new DeskError("unavailable", `the ${rail} rail isn't taking new payments right now; fund on another rail`);
           }
           const limits = effectiveLimits(agent!, await requesterVerified(agent!, tx));
           if (task.budget > limits.maxTaskBudget) {
@@ -689,6 +704,8 @@ export function createDesk({
             );
           }
           if ("vault" in payment) {
+            // "Ask me each time": the saved payment method moves only under the owner's approval.
+            await assertSavedPaymentAllowed(tx, agent!, task, options.approvalId);
             const vault = requirePayments(options.rail ?? "paypal").vault;
             if (!vault) throw new DeskError("unavailable", "this payment rail can't save payment methods");
             if (!agent!.paymentVaultId) throw new DeskError("conflict", "your owner hasn't saved a payment method for you yet");
@@ -930,6 +947,7 @@ export function createDesk({
 
     async acceptEarly(caller: Caller, taskId: string) {
       requireRole(caller, "requester");
+      await requireNotPaused(caller.agentId);
       return mutate(taskId, caller, { type: "accept_early" });
     },
 
@@ -1424,6 +1442,7 @@ export function createDesk({
       verdict: { outcome: "pass" | "fail"; ruleIds: string[]; reasoning: string },
     ) {
       requireRole(caller, "requester");
+      await requireNotPaused(caller.agentId);
       const task = await this.getTask(caller, taskId);
       if (task.reviewMode !== "requester") {
         throw new DeskError("forbidden", "boreal.work's reviewer judges this task; you can accept a pass early or dispute");
@@ -1586,6 +1605,13 @@ export function createDesk({
         limits,
         /** The owner saved a payment method: fund_task pays without an approval page. */
         savedPaymentMethod: agent.paymentVaultId !== null,
+        /**
+         * `ask`: your owner approves each payment from the saved payment method (fund_task
+         * returns an approval for them to open). `auto`: you pay on your own, within your limits.
+         */
+        spendingMode: agent.spendingMode,
+        /** Your owner paused you: you can read and cancel, but not post, fund, accept or review. */
+        paused: agent.pausedAt !== null,
         /** The agent's own NEAR account (set_near_account), which its owner funds and it pays tasks from. */
         nearAccount: agent.nearAccount,
         spentLast24h,
@@ -1626,7 +1652,8 @@ export function createDesk({
   };
 
   // Object.assign is typed for up to three sources, so the read-only views go in as one.
-  return Object.assign(commands, { ...adminViews(db, now), ...consoleViews(db, now), ...insightsViews(db) }, adminCommands(db, now, commands));
+  const owner = ownerCommands(db, now, (caller, taskId, approvalId) => commands.fundTask(caller, taskId, { vault: true }, { rail: "paypal", approvalId }));
+  return Object.assign(commands, { ...adminViews(db, now), ...consoleViews(db, now), ...insightsViews(db), ...owner }, { ...adminCommands(db, now, commands), ...controlCommands(db, now) });
 
   async function sweep(
     where: ReturnType<typeof and>,

@@ -9,6 +9,8 @@ import { after } from "next/server";
 import { Suspense } from "react";
 
 import { linkConcordium } from "@/app/actions";
+import { disconnectAgentPayPal, revokeAgentKey, setAgentLimits, setAgentPaused } from "@/app/owner/actions";
+import { LimitFields, OwnerActionForm } from "@/components/owner-agent-controls";
 import { ConcordiumLogo, NearLogo } from "@/components/chain-logos";
 import { ConnectConcordiumAccount, ConnectNear, FundAgentWallet } from "@/components/connect-wallet";
 import { type AccountTab, AccountTabs, accountTab } from "@/components/account-tabs";
@@ -596,6 +598,8 @@ async function MyAgents() {
   }
   // Offer Connect PayPal only when PayPal lets boreal save accounts; otherwise each task sends a checkout link.
   const paypal = paymentRails().includes("paypal") && ((await paypalAccounts()?.canSaveAccounts()) ?? false);
+  // Limits, spend and the owner's controls per agent (RS-1, RS-2).
+  const overview = await getDesk().ownerAgentsOverview(worker.workerId);
   return (
     <section className="flex flex-col gap-6">
       <BlockHeading
@@ -625,6 +629,47 @@ async function MyAgents() {
                 Connect PayPal
                 <ChevronRight className="size-4 transition-transform group-hover:translate-x-0.5" />
               </a>
+            ))}
+          {overview
+            .filter((o) => o.id === agent.id)
+            .map((o) => (
+              <div key={o.id} className="flex w-full flex-col gap-3 text-sm">
+                <p className="text-muted-foreground">
+                  {o.paused ? "Paused. " : ""}
+                  {o.hasKey ? "" : "No key. "}
+                  Spent {usd(o.spent.last24h)} today, {usd(o.spent.last7d)} this week, {usd(o.spent.total)} in all; {usd(o.held)} held now. Limits: {usd(o.maxTaskBudget)} a task,{" "}
+                  {usd(o.maxDailySpend)} a day. {o.spendingMode === "ask" ? "Asks you before each payment from your saved PayPal." : "Pays on its own within its limits."}
+                </p>
+                {o.approvalsWaiting.map((a) => (
+                  <Link key={a.id} href={`/approve/${a.id}`} className={buttonVariants({ size: "sm", className: "w-fit" })}>
+                    Approve or decline {usd(a.total)}
+                  </Link>
+                ))}
+                <details className="rounded-xl border p-4">
+                  <summary className="cursor-pointer font-medium">Limits and controls</summary>
+                  <div className="mt-4 flex flex-col gap-6">
+                    <OwnerActionForm action={setAgentLimits.bind(null, o.id)} label="Save limits" variant="default">
+                      <LimitFields maxTaskBudget={o.maxTaskBudget} maxDailySpend={o.maxDailySpend} spendingMode={o.spendingMode} />
+                    </OwnerActionForm>
+                    <OwnerActionForm action={setAgentPaused.bind(null, o.id, !o.paused)} label={o.paused ? "Resume this agent" : "Pause this agent"} />
+                    {o.paymentSaved && (
+                      <OwnerActionForm
+                        action={disconnectAgentPayPal.bind(null, o.id)}
+                        label="Disconnect PayPal"
+                        confirm="Forget the PayPal account saved for this agent. It will send me a checkout link to pay instead."
+                      />
+                    )}
+                    {o.hasKey && (
+                      <OwnerActionForm
+                        action={revokeAgentKey.bind(null, o.id)}
+                        label="Revoke its key"
+                        variant="destructive"
+                        confirm="Take this agent's key back now. It stops working until I approve a new link for it."
+                      />
+                    )}
+                  </div>
+                </details>
+              </div>
             ))}
         </div>
       ))}

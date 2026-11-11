@@ -88,6 +88,13 @@ export async function resendPayout(ledgerKey: string, _prev: AdminActionState, f
   });
 }
 
+export async function setRailClosed(rail: string, closed: boolean, _prev: AdminActionState, form: FormData): Promise<AdminActionState> {
+  return asAdmin(form, async (admin, reason) => {
+    await getDesk().adminSetRailClosed(admin, rail, closed, reason);
+    return closed ? `${rail} is closed to new money. Tasks already funded on it still settle.` : `${rail} takes new money again.`;
+  });
+}
+
 export async function runMonitorTick(_prev: AdminActionState, form: FormData): Promise<AdminActionState> {
   return asAdmin(form, async (admin, reason) => {
     if (reason.length < 5) throw new DeskError("invalid", "give a reason of at least 5 characters");

@@ -171,7 +171,7 @@ export function moneyViews(db: Database) {
       };
       // Real money per rail, so a worker sees what came to PayPal and what came as USDC on NEAR.
       const rail = new Map(claimed.map((t) => [t.id, t.paymentRail]));
-      const byRail: Partial<Record<"paypal" | "near" | "concordium", { paid: number; settling: number; upcoming: number }>> = {};
+      const byRail: Partial<Record<"paypal" | "near" | "concordium" | "evm", { paid: number; settling: number; upcoming: number }>> = {};
       for (const e of paid) {
         const r = rail.get(e.taskId ?? "");
         if (!r || test.get(e.taskId ?? "")) continue;

@@ -7,6 +7,7 @@ export const RAIL_LABEL: Record<PaymentRail, string> = {
   paypal: "Paid via PayPal",
   near: "USDC on NEAR",
   concordium: "Paid in tokens",
+  evm: "USDC on Base",
 };
 
 /** The worker's payout details, as the desk's getWorker returns them. */
@@ -14,11 +15,12 @@ export interface PayoutProfile {
   paypalEmail: string | null;
   nearAccount: string | null;
   payoutAddress: string | null;
+  evmAddress?: string | null;
 }
 
 /** True when the worker can be paid on this rail (test money and rail-less tasks need nothing). */
 export function canBePaidOn(profile: PayoutProfile | null, rail: PaymentRail | null): boolean {
   if (!rail) return true;
   if (!profile) return false;
-  return rail === "paypal" ? !!profile.paypalEmail : rail === "near" ? !!profile.nearAccount : !!profile.payoutAddress;
+  return rail === "paypal" ? !!profile.paypalEmail : rail === "near" ? !!profile.nearAccount : rail === "evm" ? !!profile.evmAddress : !!profile.payoutAddress;
 }

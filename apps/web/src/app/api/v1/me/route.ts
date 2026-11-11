@@ -8,11 +8,12 @@ import { paymentQuestion } from "@/server/mcp";
 export async function GET(request: Request) {
   return asRequester(request, async (caller) => {
     const account = await getDesk().getAgentAccount(caller);
+    const closed = await getDesk().closedRails();
     return Response.json({
       ...paymentQuestion(account),
       ...account,
       network: NETWORK,
-      paymentRails: paymentRails(),
+      paymentRails: paymentRails().filter((rail) => !closed.has(rail)),
         // Optional add-ons on this site; PayPal works without any of them.
         addons: addonFlags(),
       guide: { version: GUIDE_VERSION, url: `${SITE}/agents.md` },

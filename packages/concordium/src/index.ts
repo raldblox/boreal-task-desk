@@ -158,8 +158,8 @@ export interface PaymentVault {
 }
 
 /** The money rails boreal can run, side by side; each task settles on the one it was funded on. */
-export type PaymentRail = "concordium" | "paypal" | "near";
-export const PAYMENT_RAILS: readonly PaymentRail[] = ["concordium", "paypal", "near"];
+export type PaymentRail = "concordium" | "paypal" | "near" | "evm";
+export const PAYMENT_RAILS: readonly PaymentRail[] = ["concordium", "paypal", "near", "evm"];
 
 /** The rails configured on this deployment. */
 export type PaymentRails = Partial<Record<PaymentRail, Payments>>;

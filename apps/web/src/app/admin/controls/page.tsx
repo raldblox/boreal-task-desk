@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { Suspense } from "react";
 
-import { retryOutbox, runMonitorTick } from "@/app/admin/actions";
+import { retryOutbox, runMonitorTick, setRailClosed } from "@/app/admin/actions";
 import { AdminForm } from "@/components/admin/admin-form";
 import { Mono, Section, shortId, Table } from "@/components/admin/parts";
 import { when } from "@/lib/format";
 import { requireAdmin } from "@/server/admin";
-import { getDesk } from "@/server/desk";
+import { getDesk, paymentRails } from "@/server/desk";
 
 async function Outbox() {
   await requireAdmin();
@@ -44,6 +44,37 @@ async function Outbox() {
           </tr>
         );
       })}
+    </Table>
+  );
+}
+
+/** Each rail's switch: closed, it takes no new money; what is already held on it still settles. */
+async function Rails() {
+  await requireAdmin();
+  const switches = await getDesk().railControls();
+  const on = paymentRails();
+  return (
+    <Table head={["Rail", "Configured here", "New money", "Last changed", ""]}>
+      {switches.map((s) => (
+        <tr key={s.rail}>
+          <td>{s.rail}</td>
+          <td>{on.includes(s.rail) ? "yes" : "no"}</td>
+          <td className={s.closed ? "font-semibold text-destructive" : ""}>{s.closed ? "closed" : "open"}</td>
+          <td className="text-xs">{s.updatedAt ? `${when(s.updatedAt)} by ${s.updatedBy}` : "never"}</td>
+          <td>
+            <AdminForm
+              action={setRailClosed.bind(null, s.rail, !s.closed)}
+              label={s.closed ? "Open" : "Close to new money"}
+              variant={s.closed ? "default" : "destructive"}
+              confirm={
+                s.closed
+                  ? `Let ${s.rail} take new funding again.`
+                  : `Refuse all new funding on ${s.rail}, on every server, from now. Payouts and refunds for tasks already funded on it continue.`
+              }
+            />
+          </td>
+        </tr>
+      ))}
     </Table>
   );
 }
@@ -89,6 +120,14 @@ export default function AdminControlsPage() {
         description="One tick: expire claims and deadlines, close objection windows, run the AI reviewer if it has a key, check escrow, then send the outbox. It also runs after activity and from the daily cron."
       >
         <AdminForm action={runMonitorTick} label="Run a tick now" confirm="Run one monitor tick now. It moves money that is due." />
+      </Section>
+      <Section
+        title="Payment rails"
+        description="Close a rail to stop it taking new money at once, with no deploy: funding on it is refused everywhere. Money already held on it still pays out or goes back. Turning a whole integration off is still BOREAL_ADDONS."
+      >
+        <Suspense fallback={<p className="text-sm text-muted-foreground">Loading…</p>}>
+          <Rails />
+        </Suspense>
       </Section>
       <Section
         title="Outbox"

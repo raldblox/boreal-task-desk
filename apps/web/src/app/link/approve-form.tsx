@@ -146,6 +146,18 @@ export function ApproveLinkForm({
         </div>
       </div>
 
+      <fieldset className="flex flex-col gap-2 text-sm">
+        <legend className="mb-1 font-medium">When it pays from a PayPal account you save</legend>
+        <label className="flex items-start gap-2">
+          <input type="radio" name="spendingMode" value="ask" defaultChecked className="mt-0.5" />
+          <span>Ask me each time: I approve every payment before anything is held.</span>
+        </label>
+        <label className="flex items-start gap-2">
+          <input type="radio" name="spendingMode" value="auto" className="mt-0.5" />
+          <span>Let it pay on its own, within the limits above.</span>
+        </label>
+      </fieldset>
+
       {badges && (
         <div className="flex flex-col gap-3 rounded-xl border bg-muted/40 p-4">
           <div className="flex items-center gap-2">

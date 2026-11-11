@@ -162,7 +162,12 @@ describe("the PayPal-only configuration", () => {
     await desk.fundTask(requester, first.task.id, { confirm: () => payments.confirmPayment(first.task.id, { orderId: order.nonce }) });
 
     const { task } = await screened(requester);
-    const funded = await desk.fundTask(requester, task.id, { vault: true });
+    // A newly linked agent asks its owner before each payment from the saved account.
+    await expect(desk.fundTask(requester, task.id, { vault: true })).rejects.toThrow(/approves each payment/);
+    const asked = await desk.requestFundingApproval(requester as Caller & { role: "requester" }, [task.id]);
+    const owner = await desk.signInWithPayPal(identity(1));
+    expect(await desk.decideFundingApproval(owner.id, asked.id, "approve")).toMatchObject({ funded: [task.id], failed: [] });
+    const funded = await desk.getTask(requester, task.id);
     expect(funded.status).toBe("open");
 
     const worker = await desk.signInWithPayPal(identity(2));

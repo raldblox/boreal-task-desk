@@ -1,3 +1,5 @@
+export * from "./owner";
+export * from "./controls";
 export { type Caller, type ConcordiumIdentity, createDesk, type Desk, type DeskOptions, type FundingPayment, type PayPalIdentity, type RequesterKind } from "./desk";
 export { DeskError, type DeskErrorCode } from "./errors";
 export { settlementMovements, taskTotal } from "./money";

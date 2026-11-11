@@ -37,7 +37,7 @@ export const outboxKind = pgEnum("outbox_kind", [
   "reconcile",
 ]);
 export const reviewMode = pgEnum("review_mode", ["boreal", "requester"]);
-export const paymentRail = pgEnum("payment_rail", ["concordium", "paypal", "near"]);
+export const paymentRail = pgEnum("payment_rail", ["concordium", "paypal", "near", "evm"]);
 export const marketJobState = pgEnum("market_job_state", ["posted", "started", "delivered", "closed"]);
 /**
  * Who a requester is: an AI agent acting for its owner, a person posting on the website
@@ -50,6 +50,12 @@ export const fulfillers = pgEnum("fulfillers", ["people", "people_or_agents"]);
 export const workerKind = pgEnum("worker_kind", ["person", "agent"]);
 /** Chains a worker can set up a self-held payout account on through boreal. */
 export const walletChain = pgEnum("wallet_chain", ["near", "concordium"]);
+/**
+ * How an agent may use the payment method its owner saved. `ask`: the owner approves each
+ * payment (or batch) before any money is held. `auto`: the agent pays on its own, within its limits.
+ */
+export const spendingMode = pgEnum("spending_mode", ["ask", "auto"]);
+export const fundingApprovalStatus = pgEnum("funding_approval_status", ["pending", "approved", "declined", "used"]);
 export const agentLinkStatus = pgEnum("agent_link_status", ["pending", "approved", "denied", "collected"]);
 
 const timestamps = {
@@ -95,6 +101,10 @@ export const agents = pgTable("agents", {
    * funded without an approval page. Only boreal's own spending limits gate it.
    */
   paymentVaultId: text("payment_vault_id"),
+  /** Whether the saved payment method is charged only after the owner approves each payment. */
+  spendingMode: spendingMode("spending_mode").notNull().default("auto"),
+  /** Set while the owner has paused the agent: it can read, but not post, fund, accept or review. */
+  pausedAt: timestamp("paused_at", { withTimezone: true }),
   /**
    * `personal` is a person's own requester: made the first time they post on the website, owned
    * by them, named after their pseudonym. It never gets a key and isn't listed among their agents.
@@ -160,6 +170,8 @@ export const workers = pgTable("workers", {
   paypalEmail: text("paypal_email"),
   /** NEAR account that payouts go to on the NEAR rail. */
   nearAccount: text("near_account"),
+  /** EVM address (0x…, checksummed) that payouts go to on the EVM rail. */
+  evmAddress: text("evm_address"),
   kind: workerKind("kind").notNull().default("person"),
   /** Agent workers only: hash of their `bw_` API key's secret. */
   apiKeyHash: text("api_key_hash"),
@@ -312,6 +324,79 @@ export const marketJobs = pgTable("market_jobs", {
   note: text("note"),
   ...timestamps,
 });
+
+/**
+ * An agent in `ask` mode asking its owner to pay for some of its tasks from the saved payment
+ * method. Nothing is held until the owner approves; an approval covers exactly these tasks and
+ * this total, once.
+ */
+export const fundingApprovals = pgTable(
+  "funding_approvals",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    agentId: uuid("agent_id")
+      .notNull()
+      .references(() => agents.id),
+    taskIds: jsonb("task_ids").$type<string[]>().notNull(),
+    /** What the owner was shown: the tasks' totals together, in minor units. */
+    total: integer("total").notNull(),
+    status: fundingApprovalStatus("status").notNull().default("pending"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    /** After approval: which tasks were funded and which were refused, with why. */
+    result: jsonb("result").$type<{ funded: string[]; failed: { taskId: string; error: string }[] }>(),
+    ...timestamps,
+  },
+  (t) => [index("funding_approvals_agent_idx").on(t.agentId, t.createdAt)],
+);
+
+/** Every change an owner makes to one of their agents: what, when, and the values. Append-only. */
+export const ownerActions = pgTable(
+  "owner_actions",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    ownerId: uuid("owner_id")
+      .notNull()
+      .references(() => owners.id),
+    agentId: uuid("agent_id")
+      .notNull()
+      .references(() => agents.id),
+    action: text("action").notNull(),
+    detail: jsonb("detail"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("owner_actions_agent_idx").on(t.agentId, t.createdAt)],
+);
+
+/**
+ * Switches an operator sets from /admin while the site runs, such as closing a payment rail to
+ * new money. One row per switch; the audit log has who changed it and why.
+ */
+export const controls = pgTable("controls", {
+  key: text("key").primaryKey(),
+  value: jsonb("value").notNull(),
+  updatedBy: text("updated_by").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Passkeys (WebAuthn security keys) an admin must present, on top of signing in, to use /admin. */
+export const adminPasskeys = pgTable(
+  "admin_passkeys",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** The admin's worker pseudonym, as in ADMIN_PSEUDONYMS. */
+    adminRef: text("admin_ref").notNull(),
+    credentialId: text("credential_id").notNull().unique(),
+    /** The credential's public key, base64url (COSE). */
+    publicKey: text("public_key").notNull(),
+    counter: integer("counter").notNull().default(0),
+    transports: jsonb("transports").$type<string[]>(),
+    label: text("label"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+  },
+  (t) => [index("admin_passkeys_admin_idx").on(t.adminRef)],
+);
 
 /**
  * One row per worker who set up a payout account on a chain for the first time through boreal's
