@@ -121,8 +121,11 @@ async function Money() {
         </Table>
       </Section>
 
-      <Section title="Pending and failed entries" description="Live ledger entries not yet settled. A failed transfer means the money is back in escrow; resending it is an operator's call.">
-        <EntryTable entries={m.unsettled} empty="Every live entry is settled." resend />
+      <Section
+        title="Pending and failed entries"
+        description="Live ledger entries not yet settled. A failed transfer means the money is back in escrow, and nothing is sent again by itself. Send again makes a new PayPal payout for the same ledger entry, to the worker's PayPal email as it is now. Check the reason first: if it was the email, make sure the worker has logged in with PayPal again so their email is current."
+      >
+        <EntryTable entries={m.unsettled} empty="Every live entry is settled." failures={m.failures} />
       </Section>
 
       <Section title="Refunds">
@@ -138,9 +141,12 @@ async function Money() {
 
 type Entry = Awaited<ReturnType<ReturnType<typeof getDesk>["adminMoney"]>>["recent"][number];
 
-function EntryTable({ entries, empty, resend = false }: { entries: Entry[]; empty?: string; resend?: boolean }) {
+type Failures = Awaited<ReturnType<ReturnType<typeof getDesk>["adminMoney"]>>["failures"];
+
+function EntryTable({ entries, empty, failures }: { entries: Entry[]; empty?: string; failures?: Failures }) {
+  const resend = failures !== undefined;
   return (
-    <Table head={["When", "Task", "From → to", "Amount", "Status", "Rail", "Tx", ...(resend ? [""] : [])]} empty={empty}>
+    <Table head={["When", "Task", "From → to", "Amount", "Status", "Rail", "Tx", ...(resend ? ["Why it failed", "Sent", "Action"] : [])]} empty={empty}>
       {entries.map((e) => (
         <tr key={e.id}>
           <td className="text-xs whitespace-nowrap">{when(e.at)}</td>
@@ -165,13 +171,25 @@ function EntryTable({ entries, empty, resend = false }: { entries: Entry[]; empt
             <Mono title={e.txHash ?? undefined}>{e.txHash ? `${e.txHash.slice(0, 14)}…` : "—"}</Mono>
           </td>
           {resend && (
+            <td className="max-w-64 text-xs">
+              {e.status === "failed" ? (
+                <span className="text-destructive">{failures[e.key]?.reason ?? "No reason reported"}</span>
+              ) : (
+                "—"
+              )}
+            </td>
+          )}
+          {resend && (
+            <td className="tabular-nums">{e.status === "failed" ? `${failures[e.key]?.sends ?? 0}×` : "—"}</td>
+          )}
+          {resend && (
             <td>
               {/* The desk checks again: only a failed PayPal payout to a worker or reviewer is sent again. */}
               {e.status === "failed" && e.rail === "paypal" && (e.to === "worker" || e.to === "reviewer") && (
                 <AdminForm
                   action={resendPayout.bind(null, e.key)}
                   label="Send again"
-                  confirm="PayPal reported this payout failed and whatever stopped it is fixed. Send it again as a new PayPal payout."
+                  confirm="Send a new PayPal payout for this entry, to the worker's current PayPal email. Only do this once whatever stopped the last one is fixed."
                 >
                   {null}
                 </AdminForm>

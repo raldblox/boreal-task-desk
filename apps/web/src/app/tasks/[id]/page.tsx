@@ -38,6 +38,7 @@ function NextStep({
   needsBadge,
   needsPayout,
   postedByMe,
+  reviewBy,
 }: {
   task: Task;
   worker: Extract<Caller, { role: "worker" }>;
@@ -47,6 +48,8 @@ function NextStep({
   needsPayout: boolean;
   /** The signed-in person posted this task themselves: they manage it, they can't claim it. */
   postedByMe: boolean;
+  /** On a task its requester reviews: the latest time they have, counted from the submission. */
+  reviewBy: Date | null;
 }) {
   const mine = task.claimedBy === worker.workerId;
   const windowEnds = task.verdictAt ? new Date(task.verdictAt.getTime() + POLICY.objectionWindowMs) : null;
@@ -129,6 +132,21 @@ function NextStep({
         </div>
       );
     case "submitted":
+      if (task.reviewMode === "requester") {
+        return (
+          <div className="flex flex-col gap-2 text-muted-foreground">
+            <p>Submitted. The requester checks it against the criteria above.</p>
+            <p className="text-sm">
+              {task.needsHuman
+                ? "The requester didn't review in time, so boreal.work's reviewers are judging it."
+                : reviewBy
+                  ? `The requester reviews this by ${when(reviewBy)}. If they don't, boreal.work's reviewers decide.`
+                  : "If the requester doesn't review in time, boreal.work's reviewers decide."}
+            </p>
+            <p className="text-sm">You&apos;ll see the verdict here and on My account.</p>
+          </div>
+        );
+      }
       return (
         <p className="text-muted-foreground">
           Submitted. A reviewer is checking it against the criteria above. You&apos;ll see the verdict here and on My
@@ -248,6 +266,7 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
   const needsBadge = task.requiredAttributes.length > 0 && !!profile && !profile.testMode && !profile.hasConcordium;
   const needsPayout = !task.test && !canBePaidOn(profile, task.paymentRail);
   const status = WORKER_STATUS[task.status];
+  const reviewBy = submission ? new Date(new Date(submission.createdAt).getTime() + POLICY.requesterReviewMs) : null;
 
   const verdictTitle =
     verdict?.by === "panel" ? "Panel decision" : task.reviewMode === "requester" ? "Requester verdict" : "Reviewer verdict";
@@ -261,7 +280,7 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
         </div>
         <TaskProgress status={task.status} />
         <div className="border-t pt-5">
-          <NextStep task={task} worker={worker} needsBadge={needsBadge} needsPayout={needsPayout} postedByMe={mine?.id === task.agentId} />
+          <NextStep task={task} worker={worker} needsBadge={needsBadge} needsPayout={needsPayout} postedByMe={mine?.id === task.agentId} reviewBy={reviewBy} />
         </div>
       </aside>
 

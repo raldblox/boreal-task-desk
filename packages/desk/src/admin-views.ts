@@ -24,6 +24,7 @@ import {
 
 import { DeskError } from "./errors";
 import { taskMoney } from "./money-views";
+import { parseSendKey } from "./outbox";
 
 // Read-only views for boreal's operators. The web app checks the admin allowlist before
 // calling any of these; nothing here changes state. Workers show as their pseudonym and
@@ -171,7 +172,27 @@ export function adminViews(db: Database, now: () => Date) {
         .where(eq(ledgerEntries.toAccount, "requester"))
         .orderBy(desc(ledgerEntries.id))
         .limit(20);
-      return { totals, recent, unsettled, refunds, outbox: await this.adminOutbox() };
+      // For failed payouts: how many times each was sent, and the provider's latest reason.
+      const failedKeys = unsettled.filter((e) => e.status === "failed").map((e) => e.key);
+      const failures: Record<string, { sends: number; reason: string | null }> = {};
+      if (failedKeys.length > 0) {
+        const sends = await db
+          .select({ key: sql<string>`${outbox.payload}->>'ledgerKey'`, n: sql<number>`count(*)::int` })
+          .from(outbox)
+          .where(and(eq(outbox.kind, "payout"), inArray(sql<string>`${outbox.payload}->>'ledgerKey'`, failedKeys)))
+          .groupBy(sql`${outbox.payload}->>'ledgerKey'`);
+        const reports = await db
+          .select({ key: sql<string>`${outbox.payload}->>'ledgerKey'`, detail: sql<string | null>`${outbox.payload}->>'detail'` })
+          .from(outbox)
+          .where(and(eq(outbox.kind, "reconcile"), sql`${outbox.payload}->>'status' = 'failed'`))
+          .orderBy(desc(outbox.id))
+          .limit(500);
+        for (const key of failedKeys) {
+          const report = reports.find((r) => parseSendKey(r.key).ledgerKey === key);
+          failures[key] = { sends: sends.find((r) => r.key === key)?.n ?? 0, reason: report?.detail ?? null };
+        }
+      }
+      return { totals, recent, unsettled, refunds, failures, outbox: await this.adminOutbox() };
     },
 
     /** Outbox rows still to send, oldest first; failing ones carry their last error. */

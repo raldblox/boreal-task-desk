@@ -166,9 +166,18 @@ async function NextStep({ task, requester }: { task: Task; requester: { role: "r
       );
     case "submitted":
       if (task.reviewMode === "requester") {
+        const submission = await desk.getSubmission(requester, task.id);
+        const reviewBy = submission ? new Date(new Date(submission.createdAt).getTime() + POLICY.requesterReviewMs) : null;
         return (
           <div className="flex flex-col gap-3">
             <p className="text-sm text-muted-foreground">The result is in. Judge it against your checks only.</p>
+            <p className="rounded-lg bg-muted p-3 text-sm">
+              {task.needsHuman
+                ? "Your review time ran out, so boreal.work's reviewers are judging it. You can still send your verdict until theirs lands."
+                : reviewBy
+                  ? `Review by ${when(reviewBy)}. After that boreal.work's reviewers decide.`
+                  : `You have ${POLICY.requesterReviewMs / 3_600_000} hours from the submission. After that boreal.work's reviewers decide.`}
+            </p>
             <ReviewForm action={reviewResult.bind(null, task.id)} rules={REVIEW_RULES} />
           </div>
         );

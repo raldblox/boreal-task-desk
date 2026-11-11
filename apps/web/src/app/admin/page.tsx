@@ -10,7 +10,24 @@ import { getAddons } from "@/server/addons";
 import { requireAdmin } from "@/server/admin";
 import { getDesk } from "@/server/desk";
 
-/** Each rail's escrow against the ledger; a gap pauses the outbox. */
+type EscrowState = { label: string; detail: string; className: string };
+
+/** Short pauses the rail's payouts and refunds; in flight settles by itself; unmatched pauses nothing. */
+function escrowState(r: { gap: number | null; inFlight: number | null; short: number | null; error: string | null }): EscrowState {
+  if (r.error) return { label: "Couldn't check", detail: r.error, className: "text-destructive" };
+  if (r.short && r.short > 0) {
+    return { label: `Short ${usd(r.short)}`, detail: "Payouts and refunds on this rail are paused until it's found.", className: "font-semibold text-destructive" };
+  }
+  if (r.gap !== null && r.gap < 0) {
+    return { label: `In flight ${usd(-r.gap)}`, detail: "Sent and not yet recorded. Settles by itself; nothing is paused.", className: "text-foreground" };
+  }
+  if (r.gap !== null && r.gap > 0) {
+    return { label: `Unmatched ${usd(r.gap)}`, detail: "More than the ledger accounts for, such as a deposit no task claims. Nothing is paused.", className: "font-medium text-foreground" };
+  }
+  return { label: "Matches", detail: "", className: "text-muted-foreground" };
+}
+
+/** Each rail's escrow against the ledger; a shortfall pauses the outbox. */
 async function Escrow() {
   const desk = getDesk();
   const rails = Object.keys(desk.rails) as PaymentRail[];
@@ -19,16 +36,16 @@ async function Escrow() {
       try {
         return { rail, ...(await desk.reconcileEscrow(rail)), error: null };
       } catch (error) {
-        return { rail, expected: null, actual: null, gap: null, error: error instanceof Error ? error.message : String(error) };
+        return { rail, expected: null, actual: null, gap: null, inFlight: null, short: null, error: error instanceof Error ? error.message : String(error) };
       }
     }),
   );
   return (
     <Section
       title="Escrow reconciliation"
-      description="Settled live money the ledger says escrow holds, against the rail's own balance. A rail that holds less than the ledger says has its payouts and refunds paused; more than the ledger says is an unmatched deposit and pauses nothing. PayPal's account also holds boreal.work's fees, so its balance is read from the ledger and can't show a gap here."
+      description="Settled live money the ledger says escrow holds, against the rail's own balance. Short (red) means the rail holds less than the ledger and any transfers still in flight, so its payouts and refunds are paused. In flight means a transfer was sent and isn't recorded yet; it settles by itself. Unmatched means the rail holds more than the ledger says; nothing is paused. PayPal's account also holds boreal.work's fees, so its balance is read from the ledger and always matches here."
     >
-      <Table head={["Rail", "Ledger says", "Rail holds", "Gap"]} empty="No payment rail is switched on here.">
+      <Table head={["Rail", "Ledger says", "Rail holds", "State"]} empty="No payment rail is switched on here.">
         {rows.map((r) => (
           <tr key={r.rail}>
             <td className="font-medium">
@@ -37,7 +54,17 @@ async function Escrow() {
             </td>
             <td className="tabular-nums">{r.expected === null ? "—" : usd(r.expected)}</td>
             <td className="tabular-nums">{r.actual === null ? "—" : usd(r.actual)}</td>
-            <td className={r.gap ? "font-semibold text-destructive" : ""}>{r.error ? `couldn't check: ${r.error}` : r.gap === 0 ? "none" : usd(r.gap!)}</td>
+            <td>
+              {(() => {
+                const state = escrowState(r);
+                return (
+                  <>
+                    <span className={state.className}>{state.label}</span>
+                    {state.detail && <span className="block max-w-72 text-xs text-muted-foreground">{state.detail}</span>}
+                  </>
+                );
+              })()}
+            </td>
           </tr>
         ))}
       </Table>
