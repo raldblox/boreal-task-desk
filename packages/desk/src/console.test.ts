@@ -134,7 +134,7 @@ describe("money console", () => {
     expect(data.transfers.filter((t) => t.taskId === waiting.id && t.kind === "payout").map((t) => t.state)).toEqual(["stuck", "stuck", "stuck"]);
 
     const { anomalies, reconciliation } = await desk.adminAnomalies();
-    expect(reconciliation).toEqual([{ rail: "concordium", expected: expect.any(Number), actual: expect.any(Number), gap: 0 }]);
+    expect(reconciliation).toEqual([{ rail: "concordium", expected: expect.any(Number), actual: expect.any(Number), gap: 0, inFlight: 0, short: 0 }]);
     expect(anomalies.map((a) => a.kind)).toEqual(["failed_payouts", "stuck_payouts"]);
     expect(anomalies[0]).toMatchObject({ amount: paid.quote.budget, taskIds: [paid.id] });
     expect(anomalies[1]).toMatchObject({ count: 3, taskIds: [waiting.id] });

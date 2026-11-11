@@ -193,6 +193,11 @@ export const tasks = pgTable(
     fundingTxHash: text("funding_tx_hash"),
     /** On rails that hold funds (a PayPal authorization id): captured or released once the task is final. */
     fundingHold: text("funding_hold"),
+    /**
+     * On rails that settle at once (NEAR, Concordium): the account the funding came from, which
+     * a refund goes back to. Null on PayPal, where the hold itself is released.
+     */
+    fundingPayer: text("funding_payer"),
     /** The rail the task was funded on; its payouts and refunds settle on the same rail. Null for test money. */
     paymentRail: paymentRail("payment_rail"),
     claimedBy: uuid("claimed_by").references(() => workers.id),

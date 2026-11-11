@@ -143,7 +143,7 @@ describe("the PayPal-only configuration", () => {
 
     await desk.drainOutbox(); // captures the hold
     expect(paypal.authorizations.get(funded.fundingHold!)?.status).toBe("CAPTURED");
-    expect(await desk.drainOutbox()).toEqual({ sent: 2, failed: 0 });
+    expect(await desk.drainOutbox()).toMatchObject({ sent: 2, failed: 0 });
     expect(paypal.payouts.map((p) => [p.receiver, p.value])).toEqual([
       ["person2@example.com", "30.00"],
       ["reviews@boreal.example", (quote.reviewFee / 100).toFixed(2)],
@@ -151,7 +151,7 @@ describe("the PayPal-only configuration", () => {
     const entries = await db.select().from(ledgerEntries).where(eq(ledgerEntries.taskId, task.id));
     expect(entries.every((e) => e.status === "settled")).toBe(true);
     // No anchor could be sent, and nothing failed for want of one.
-    expect(await desk.drainOutbox()).toEqual({ sent: 0, failed: 0 });
+    expect(await desk.drainOutbox()).toMatchObject({ sent: 0, failed: 0 });
   });
 
   it("funds the next task from the saved PayPal account and voids the hold when it fails", async () => {

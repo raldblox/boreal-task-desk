@@ -1,5 +1,5 @@
 import type { Reviewer } from "@boreal/brain";
-import { agents, type Database, leases, owners, workers } from "@boreal/db";
+import { agents, type Database, eq, leases, outbox, owners, sql, workers } from "@boreal/db";
 import { createTestDb } from "@boreal/db/testing";
 import { type Caller, createDesk, type Desk } from "@boreal/desk";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -90,5 +90,108 @@ describe("tick", () => {
     const report = await monitor(broken).tick();
     expect(report.ran).toBe(true);
     expect(report.errors).toEqual(["ai-review: boom"]);
+  });
+});
+
+// RS-9 (docs/readiness.md): what escrow's balance may and may not stop.
+describe("escrow and the outbox", () => {
+  const input = () => ({
+    description: "Photograph item X on the shelf at the Manila shop, with its price tag visible.",
+    acceptanceCriteria: ["Photo shows item X on a shelf"],
+    resultFormat: "photo",
+    budget: 500,
+    deadline: new Date(clock.getTime() + 48 * 3600_000).toISOString(),
+  });
+
+  /** A rail that settles at once; its escrow balance is whatever the test says the chain holds. */
+  function fakeRail(name: "near" | "paypal") {
+    const rail = {
+      sent: [] as { to: string; amount: number }[],
+      balance: 0,
+      async createPaymentRequest(taskId: string, amount: number) {
+        return { scheme: "exact" as const, network: name, asset: "USD", payTo: name, amount: String(amount), maxTimeoutSeconds: 60, extra: { resource: taskId, minorUnits: amount, nonce: "n", expiresAt: "2099-01-01T00:00:00Z" } };
+      },
+      async confirmPayment(taskId: string, payment: unknown) {
+        return { txHash: `${name}-fund-${taskId}`, amount: (payment as { amount: number }).amount, payer: `payer.${name}` };
+      },
+      async sponsoredTransfer(t: { to: string; amount: number }) {
+        rail.sent.push({ to: t.to, amount: t.amount });
+        return { txHash: `${name}-pay-${rail.sent.length}` };
+      },
+      async escrowBalance() {
+        return rail.balance;
+      },
+    };
+    return rail;
+  }
+
+  /** Two rails, each with one cancelled task whose refund is waiting in the outbox. */
+  async function twoRefunds() {
+    const near = fakeRail("near");
+    const paypal = fakeRail("paypal");
+    const railDesk = createDesk({ db, now: () => clock, payments: paypal, rails: { paypal, near } });
+    const totals = { near: 0, paypal: 0 };
+    for (const [name, rail] of [["near", near], ["paypal", paypal]] as const) {
+      const { task } = await railDesk.postTask(requester, input());
+      totals[name] = task.budget + task.platformFee + task.reviewFee;
+      await railDesk.fundTask(requester, task.id, { confirm: async () => rail.confirmPayment(task.id, { amount: totals[name] }) }, { rail: name });
+      await railDesk.cancelTask(requester, task.id);
+      rail.balance = totals[name];
+    }
+    const tick = () => createMonitor({ db, desk: railDesk, concordium: null, payments: paypal, reviewer: null, readFile: async () => null, now: () => clock }).tick();
+    return { near, paypal, totals, tick };
+  }
+
+  it("holds only the money of the rail whose escrow is short", async () => {
+    const { near, paypal, totals, tick } = await twoRefunds();
+    near.balance = totals.near - 100;
+
+    const report = await tick();
+    expect(report.pausedRails).toEqual(["near"]);
+    expect(report.errors.join()).toContain("near is short of the ledger by 100");
+    expect(report.outbox).toMatchObject({ sent: 1, held: 1 });
+    expect(paypal.sent).toEqual([{ to: "payer.paypal", amount: totals.paypal }]);
+    expect(near.sent).toEqual([]);
+
+    // Once escrow matches again, the held refund goes out on the next pass.
+    near.balance = totals.near;
+    const next = await tick();
+    expect(next.pausedRails).toEqual([]);
+    expect(near.sent).toEqual([{ to: "payer.near", amount: totals.near }]);
+  });
+
+  it("reports money nobody matched to a task, and keeps paying", async () => {
+    const { near, totals, tick } = await twoRefunds();
+    near.balance = totals.near + 5;
+
+    const report = await tick();
+    expect(report.pausedRails).toEqual([]);
+    expect(report.errors.join()).toContain("near holds 5 more than the ledger");
+    expect(report.outbox).toMatchObject({ sent: 2, held: 0 });
+    expect(near.sent).toEqual([{ to: "payer.near", amount: totals.near }]);
+  });
+
+  it("lets a transfer that was sent but not yet recorded finish, instead of pausing on it", async () => {
+    const { near, totals, tick } = await twoRefunds();
+    // A crash right after sending: the refund left escrow and is journaled, the ledger still says pending.
+    near.balance = 0;
+    await db.update(outbox).set({ payload: sql`${outbox.payload} || '{"sent":{"txHash":"near-1","expiry":1}}'::jsonb` }).where(eq(outbox.kind, "refund"));
+
+    const report = await tick();
+    expect(report.pausedRails).toEqual([]);
+    expect(report.outbox).toMatchObject({ sent: 2, held: 0 });
+    expect(near.sent).toEqual([{ to: "payer.near", amount: totals.near }]);
+  });
+
+  it("holds a rail whose balance can't be read, and says so", async () => {
+    const { near, paypal, tick } = await twoRefunds();
+    near.escrowBalance = async () => {
+      throw new Error("rpc down");
+    };
+    const report = await tick();
+    expect(report.pausedRails).toEqual(["near"]);
+    expect(report.errors.join()).toContain("near couldn't be checked");
+    expect(paypal.sent).toHaveLength(1);
+    expect(near.sent).toEqual([]);
   });
 });

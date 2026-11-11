@@ -174,7 +174,8 @@ export function createNearPayments(options: NearPaymentsOptions): NearPayments {
       if (!outcome) throw new NearPaymentError("that transaction isn't final on NEAR yet; try again in a few seconds");
       const units = fundingUnits(outcome, token, escrow.accountId, fundingMemo(taskId));
       if (units % scale !== BigInt("0")) throw new NearPaymentError("the amount isn't a whole number of cents");
-      return { txHash: proof.txHash, amount: Number(units / scale) };
+      // The chain's own record of who signed it, not what the caller says: refunds go back there.
+      return { txHash: proof.txHash, amount: Number(units / scale), payer: outcome.signerId };
     },
 
     async sponsoredTransfer(transfer) {

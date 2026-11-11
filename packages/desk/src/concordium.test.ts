@@ -136,15 +136,15 @@ describe("outbox", () => {
 
   it("anchors every event and settles every payout, leaving escrow balanced", async () => {
     const id = await passedAndFinal();
-    expect(await desk.drainOutbox(100)).toEqual({ sent: expect.any(Number), failed: 0 });
+    expect(await desk.drainOutbox(100)).toMatchObject({ sent: expect.any(Number), failed: 0 });
 
     const events = await db.select().from(taskEvents).where(eq(taskEvents.taskId, id));
     expect(events.every((e) => e.anchorTxHash?.startsWith("dev-"))).toBe(true);
 
     const entries = await db.select().from(ledgerEntries).where(eq(ledgerEntries.taskId, id)).orderBy(asc(ledgerEntries.id));
     expect(entries.every((e) => e.status === "settled" && e.txHash)).toBe(true);
-    expect(await desk.reconcileEscrow()).toEqual({ expected: 0, actual: 0, gap: 0 });
-    expect(await desk.drainOutbox(100)).toEqual({ sent: 0, failed: 0 });
+    expect(await desk.reconcileEscrow()).toMatchObject({ expected: 0, actual: 0, gap: 0, short: 0 });
+    expect(await desk.drainOutbox(100)).toMatchObject({ sent: 0, failed: 0 });
   });
 
   it("backs off and retries a payout with no address, without blocking the rest", async () => {
@@ -155,7 +155,7 @@ describe("outbox", () => {
     expect(first.failed).toBe(1);
     const [stuck] = await db.select().from(outbox).where(eq(outbox.attempts, 1));
     expect(stuck?.lastError).toMatch(/no payout address for reviewer/);
-    expect(await desk.drainOutbox(100)).toEqual({ sent: 0, failed: 0 });
+    expect(await desk.drainOutbox(100)).toMatchObject({ sent: 0, failed: 0 });
 
     desk = createDesk({
       db,
@@ -164,7 +164,7 @@ describe("outbox", () => {
       addresses: { operating: "acct-boreal", reviewers: { "boreal-ai-reviewer": "acct-reviewer" } },
     });
     clock = new Date(clock.getTime() + 2 * 60 * 1000);
-    expect(await desk.drainOutbox(100)).toEqual({ sent: 1, failed: 0 });
+    expect(await desk.drainOutbox(100)).toMatchObject({ sent: 1, failed: 0 });
   });
 
   it("refuses to drain without adapters", async () => {

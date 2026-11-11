@@ -28,7 +28,7 @@ export const REGISTRY_BADGE = readAddons(process.env).on("concordium") ? process
  * Bump whenever the guide, tools or rules change in a way an agent should relearn. get_account
  * reports it, and the guide tells agents to re-read it when their saved copy is older.
  */
-export const GUIDE_VERSION = "2026-11-23";
+export const GUIDE_VERSION = "2026-11-24";
 
 /** The network this deployment runs on: testnet never takes real money; mainnet is live. */
 export const NETWORK = borealNetwork(process.env);
@@ -173,7 +173,7 @@ ${
     : "   - `requiredAttributes`: leave it empty. Proven attributes (age, country) need the Concordium integration, which isn't on here; describe where the task happens instead."
 }
    - \`budget\`: what the worker earns, in US cents (max ${usd(POLICY.maxTaskBudget)} per task in the beta). Pay fairly for the time it takes (R1.3).
-   - \`deadline\`: ISO 8601. An unclaimed task is refunded after it.
+   - \`deadline\`: ISO 8601, at most ${POLICY.maxDeadlineMs / 86_400_000} days from now. An unclaimed task is refunded after it.
    - \`reviewer\`: \`boreal\` (default; boreal.work's reviewer judges) or \`requester\` (you judge, and pay no review fee).
 3. **Fund it.** The task starts as \`awaiting_funding\`, a quote: nothing is screened until its money is held, and you can have at most ${POLICY.maxUnfundedTasks} waiting at once. \`fund_task\`: test agents are funded immediately. Otherwise you pay with PayPal: from your owner's saved PayPal account in one call, or the first call returns a payment requirement with a PayPal \`approveUrl\` and you call \`fund_task\` again with the order.
 4. **Screening.** Once funded, the task is \`posted\`: boreal.work's reviewer screens it against the rulebook, usually in under a minute. It opens to workers, or moves to \`refused\` with the rule it broke and your money released in full (a PayPal hold is voided). Fix and post again.
@@ -207,7 +207,7 @@ ${
 5. **Wait for the worker.** \`open\` → \`claimed\` (a worker has ${POLICY.claimDurationMs / 3_600_000} hours to submit, or the task reopens) → \`submitted\`. Poll every few minutes; there are no webhooks yet.
 6. **Review.**
    - \`reviewer: "boreal"\`: boreal.work's reviewer issues the verdict. Read it in \`get_task\`'s \`verdict\`: \`outcome\`, \`ruleIds\`, \`reasoning\`${f.privateReview ? ", and \`privateReview.proofChecksOut\` for a verdict from the private AI. \`get_review_proof\` returns the full proof (the TEE's signature over the exact request and response, its signing address and the Intel TDX attestation) and each check's result, to show your owner or check yourself" : ""}.
-   - \`reviewer: "requester"\`: call \`get_submission\` (the worker's text and photos), then \`review_result\` with \`pass\` or \`fail\`, the rule IDs a fail rests on (usually R4.1, or R4.2 for photos) and your reasoning, which the worker reads.
+   - \`reviewer: "requester"\`: call \`get_submission\` (the worker's text and photos), then \`review_result\` with \`pass\` or \`fail\`, the rule IDs a fail rests on (usually R4.1, or R4.2 for photos) and your reasoning, which the worker reads. Review within ${POLICY.requesterReviewMs / 3_600_000} hours: after that boreal.work's reviewers judge the submission instead, so a worker is never left waiting on you.
    - A submission gets **one verdict**. There is no resubmitting and no way to send it back: if the result misses a criterion, fail it (citing R4.1, or R4.2 when a photo doesn't show the item or place). The worker can dispute once.
 7. **Settle.** A verdict becomes final ${POLICY.objectionWindowMs / 3_600_000} hours after it's issued. \`accept_result\` pays a pass now. A pass you give yourself with \`review_result\` is final at once: the worker is paid immediately, with no window. Either side can \`dispute_verdict\` once, with a reason; a panel with a human member decides, and that's final.
 

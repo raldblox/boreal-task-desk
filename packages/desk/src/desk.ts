@@ -555,6 +555,10 @@ export function createDesk({
 
       const at = now();
       if (new Date(data.deadline) <= at) throw new DeskError("invalid", "deadline is in the past");
+      // The money is only held until the task is final, and a hold doesn't last forever.
+      if (new Date(data.deadline).getTime() - at.getTime() > POLICY.maxDeadlineMs) {
+        throw new DeskError("invalid", `deadline can be at most ${POLICY.maxDeadlineMs / (24 * 60 * 60 * 1000)} days away`);
+      }
       if (data.budget > effectiveLimits(agent, verified).maxTaskBudget) {
         if (!verified && data.budget <= agent.maxTaskBudget) {
           throw new DeskError(
@@ -652,7 +656,18 @@ export function createDesk({
           if ("amount" in payment && payment.amount !== total) {
             throw new DeskError("invalid", `payment must be exactly ${total}`);
           }
-          const [agent] = await tx.select().from(agents).where(eq(agents.id, task.agentId));
+          // Locked, so two of this requester's tasks funding at once can't both fit under the
+          // daily cap by each reading the spend before the other's is written.
+          const [agent] = await tx.select().from(agents).where(eq(agents.id, task.agentId)).for("update");
+          // What counts is what's in force now, not when the task was posted: a requester frozen
+          // since, or a per-task cap lowered since, stops the payment.
+          if (agent!.status !== "active") {
+            throw new DeskError("forbidden", agent!.kind === "personal" ? "posting is paused on your account" : "agent is frozen");
+          }
+          const limits = effectiveLimits(agent!, await requesterVerified(agent!, tx));
+          if (task.budget > limits.maxTaskBudget) {
+            throw new DeskError("limit", `this task pays ${task.budget} cents, over the per-task cap in force now (${limits.maxTaskBudget}); cancel it and post one within the cap`);
+          }
           const since = new Date(at.getTime() - 24 * 60 * 60 * 1000);
           const [spent] = await tx
             .select({ total: sql<number>`coalesce(sum(${ledgerEntries.amount}), 0)::int` })
@@ -664,7 +679,7 @@ export function createDesk({
                 gte(ledgerEntries.createdAt, since),
               ),
             );
-          if ((spent?.total ?? 0) + total > effectiveLimits(agent!, await requesterVerified(agent!, tx)).maxDailySpend) {
+          if ((spent?.total ?? 0) + total > limits.maxDailySpend) {
             throw new DeskError(
               "limit",
               agent!.kind === "personal"
@@ -695,6 +710,7 @@ export function createDesk({
           fundedAt: at,
           fundingTxHash: settled!.txHash,
           fundingHold: settled!.hold ?? null,
+          fundingPayer: settled!.payer ?? null,
           // Test money has no rail; real money settles where it came in.
           paymentRail: task.test ? null : ("vault" in payment ? "paypal" : (options.rail ?? defaultRail)),
         }),
@@ -970,6 +986,49 @@ export function createDesk({
       );
     },
 
+    /**
+     * A requester who reviews its own task has `POLICY.requesterReviewMs` to judge a submission.
+     * After that it goes to boreal.work's reviewers (the human queue), recorded in the trail:
+     * a silent requester never leaves a worker unpaid. The task's state doesn't change.
+     */
+    async escalateSilentReviews() {
+      const cutoff = new Date(now().getTime() - POLICY.requesterReviewMs);
+      const due = await db
+        .select({ id: tasks.id })
+        .from(tasks)
+        .where(and(eq(tasks.status, "submitted"), eq(tasks.reviewMode, "requester"), eq(tasks.needsHuman, false), lte(tasks.updatedAt, cutoff)));
+      const hours = POLICY.requesterReviewMs / (60 * 60 * 1000);
+      let escalated = 0;
+      for (const { id } of due) {
+        const flagged = await db.transaction(async (tx) => {
+          const at = now();
+          const [task] = await tx.select().from(tasks).where(eq(tasks.id, id)).for("update");
+          // The requester's verdict got there first.
+          if (!task || task.status !== "submitted" || task.needsHuman || task.updatedAt > cutoff) return false;
+          const reason = `the requester didn't review this within ${hours} hours`;
+          await tx.update(tasks).set({ needsHuman: true, humanReason: reason, updatedAt: at }).where(eq(tasks.id, id));
+          await appendEvent(tx, { taskId: id, type: "flagged_for_human", actor: "system", payload: { reason }, at });
+          return true;
+        });
+        if (flagged) escalated++;
+      }
+      return escalated;
+    },
+
+    /**
+     * Whether this worker may hand in a result for the task right now: they hold its claim and
+     * it hasn't run out. Checked before any file is stored, so files are only ever kept for a
+     * task the uploader is doing.
+     */
+    async assertCanSubmit(caller: Caller, taskId: string) {
+      requireRole(caller, "worker");
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(taskId)) throw new DeskError("not_found", "task not found");
+      const [task] = await db.select().from(tasks).where(eq(tasks.id, taskId));
+      if (!task) throw new DeskError("not_found", "task not found");
+      if (task.status !== "claimed" || task.claimedBy !== caller.workerId) throw new DeskError("forbidden", "this task is not claimed by you");
+      if (task.claimExpiresAt && task.claimExpiresAt <= now()) throw new DeskError("conflict", "your claim has expired");
+    },
+
     /** Starts Concordium ID sign-in: the proof the worker's wallet must answer. */
     async workerProofRequest(attributes: ProofRequest["attributes"] = []) {
       return requireConcordium().identity.createProofRequest(attributes);
@@ -1199,8 +1258,8 @@ export function createDesk({
     },
 
     /** Sends due anchors, payouts, refunds, captures and releases. Run by the monitor loop. */
-    async drainOutbox(limit?: number) {
-      return drainOutbox(db, { payments: requirePayments(), rails: allRails, anchor: concordium?.anchor ?? null }, { now, addresses, limit });
+    async drainOutbox(limit?: number, options: { pausedRails?: ReadonlySet<PaymentRail | "all"> } = {}) {
+      return drainOutbox(db, { payments: requirePayments(), rails: allRails, anchor: concordium?.anchor ?? null }, { now, addresses, limit, pausedRails: options.pausedRails });
     },
 
     async reconcileEscrow(rail?: PaymentRail) {
@@ -1575,14 +1634,21 @@ export function createDesk({
   ): Promise<number> {
     const due = await db.select({ id: tasks.id }).from(tasks).where(where);
     let moved = 0;
+    const failed: string[] = [];
     for (const { id } of due) {
       try {
         await mutate(id, { role: "system" }, event, patch ? { patch } : {});
         moved++;
       } catch (error) {
         // A user action got there first; the state machine refused the stale move.
-        if (!(error instanceof DeskError && error.code === "conflict")) throw error;
+        if (error instanceof DeskError && error.code === "conflict") continue;
+        // One task that can't move never holds up the rest: they all get their turn first.
+        console.error(`[desk] ${event.type} failed for task ${id}`, error);
+        failed.push(`${id}: ${error instanceof Error ? error.message.split("\n")[0]!.slice(0, 200) : String(error)}`);
       }
+    }
+    if (failed.length > 0) {
+      throw new Error(`${event.type}: ${failed.length} of ${due.length} tasks couldn't be moved (${moved} were): ${failed.slice(0, 3).join("; ")}`);
     }
     return moved;
   }

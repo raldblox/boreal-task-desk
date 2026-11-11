@@ -31,10 +31,15 @@ export interface TickReport {
   expiredDeadlines: number;
   closedWindows: number;
   ai: { screened: number; reviewed: number; toHumans: number; deferred: number } | null;
-  outbox: { sent: number; failed: number } | null;
+  outbox: { sent: number; failed: number; held?: number } | null;
+  /** Timed-out requester reviews handed to boreal.work's reviewers. */
+  escalatedReviews: number;
   /** NEAR Agent Market hires, when the bridge is on. */
   market: BridgeReport | null;
+  /** How far escrow and the ledger are apart, over every rail, in either direction. */
   escrowGap: number | null;
+  /** Rails whose payouts and refunds are held: escrow is short, or couldn't be read. */
+  pausedRails: string[];
   errors: string[];
 }
 
@@ -92,8 +97,10 @@ export function createMonitor({
         closedWindows: 0,
         ai: null,
         outbox: null,
+        escalatedReviews: 0,
         market: null,
         escrowGap: null,
+        pausedRails: [],
         errors: [],
       };
       const holder = randomUUID();
@@ -119,6 +126,9 @@ export function createMonitor({
         await step("close-objection-windows", async () => {
           report.closedWindows = await desk.closeObjectionWindows();
         });
+        await step("escalate-reviews", async () => {
+          report.escalatedReviews = await desk.escalateSilentReviews();
+        });
         if (reviewer) {
           await step("ai-review", async () => {
             report.ai = await runAiReview(desk, reviewer, { readFile, limit: aiLimit, screen: aiScreening });
@@ -131,27 +141,37 @@ export function createMonitor({
           });
         }
         if (payments) {
+          // Each rail's escrow against its own ledger. A rail that is short of money, or whose
+          // balance can't be read, holds its own payouts and refunds; the other rails, and
+          // everything that moves no money, carry on. Money nobody has matched to a task (more
+          // than the ledger expects) is reported and holds nothing: otherwise anyone could stop
+          // every payout by sending escrow a cent.
+          const paused = new Set<PaymentRail | "all">();
           await step("reconcile-escrow", async () => {
-            // Each rail's escrow against its own ledger; any gap on any rail pauses the outbox.
             const names = Object.keys(desk.rails) as PaymentRail[];
             let gap = 0;
             for (const rail of names.length > 0 ? names : [undefined]) {
-              const result = await desk.reconcileEscrow(rail);
-              if (result.gap !== 0) {
+              const name = rail ?? "escrow";
+              try {
+                const result = await desk.reconcileEscrow(rail);
                 gap += Math.abs(result.gap);
-                report.errors.push(`${rail ?? "escrow"} is off the ledger by ${result.gap}`);
+                if (result.short > 0) {
+                  paused.add(rail ?? "all");
+                  report.errors.push(`${name} is short of the ledger by ${result.short}: its payouts and refunds are paused`);
+                } else if (result.gap > 0) {
+                  report.errors.push(`${name} holds ${result.gap} more than the ledger: an unmatched deposit, payouts continue`);
+                }
+              } catch (error) {
+                paused.add(rail ?? "all");
+                report.errors.push(`${name} couldn't be checked, so its payouts and refunds are paused: ${error instanceof Error ? error.message : String(error)}`);
               }
             }
             report.escrowGap = gap;
+            report.pausedRails = [...paused];
           });
-          // Money stops moving while escrow and the ledger disagree.
-          if (report.escrowGap === 0) {
-            await step("drain-outbox", async () => {
-              report.outbox = await desk.drainOutbox();
-            });
-          } else if (report.escrowGap !== null) {
-            report.errors.push(`outbox paused: escrow is off the ledger by ${report.escrowGap}`);
-          }
+          await step("drain-outbox", async () => {
+            report.outbox = await desk.drainOutbox(undefined, { pausedRails: paused });
+          });
         }
       } finally {
         await release(db, holder);
@@ -182,6 +202,7 @@ export function describeTick(r: TickReport): string | null {
     r.expiredClaims && `${r.expiredClaims} claims expired`,
     r.expiredDeadlines && `${r.expiredDeadlines} deadlines expired`,
     r.closedWindows && `${r.closedWindows} verdicts final`,
+    r.escalatedReviews && `${r.escalatedReviews} unreviewed submissions to boreal.work's reviewers`,
     r.ai && (r.ai.screened || r.ai.reviewed || r.ai.toHumans || r.ai.deferred) &&
       `AI: ${r.ai.screened} screened, ${r.ai.reviewed} reviewed, ${r.ai.toHumans} to humans, ${r.ai.deferred} deferred`,
     r.outbox && (r.outbox.sent || r.outbox.failed) && `outbox: ${r.outbox.sent} sent, ${r.outbox.failed} failed`,

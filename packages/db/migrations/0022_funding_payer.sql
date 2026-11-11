@@ -1,0 +1,1 @@
+ALTER TABLE "tasks" ADD COLUMN "funding_payer" text;

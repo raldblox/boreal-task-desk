@@ -19,6 +19,12 @@ export async function GET(request: Request, ctx: RouteContext<"/api/market/files
   const file = await readSubmissionFile(path);
   if (!file) return missing();
   return new Response(file.body, {
-    headers: { "Content-Type": file.contentType, "Cache-Control": "private, max-age=300" },
+    headers: {
+      "Content-Type": file.contentType,
+      "Cache-Control": "private, max-age=300",
+      // A worker chose these bytes: no sniffing them into another type, no scripts, no framing.
+      "X-Content-Type-Options": "nosniff",
+      "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+    },
   });
 }

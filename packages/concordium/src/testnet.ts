@@ -265,7 +265,8 @@ export function createTestnetConcordium(config: TestnetConfig, options: TestnetO
           if (settled.transaction) console.error(`[testnet] funding for task ${taskId} failed after submission`, settled);
           throw new TestnetConcordiumError(`payment was not settled: ${settled.errorReason ?? "unknown reason"}`);
         }
-        return { txHash: settled.transaction, amount: accepted.extra.minorUnits };
+        const payer = (settled as { payer?: unknown }).payer;
+        return { txHash: settled.transaction, amount: accepted.extra.minorUnits, ...(typeof payer === "string" && payer ? { payer } : {}) };
       },
 
       /**

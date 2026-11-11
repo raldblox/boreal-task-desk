@@ -68,7 +68,7 @@ describe("NEAR rail", () => {
 
   it("confirms a final transfer to escrow with the task's memo, and refuses anything else", async () => {
     const good = chain.externalTransfer("agent.testnet", "escrow.boreal.testnet", BigInt("11550000"), fundingMemo("task-1"));
-    expect(await payments.confirmPayment("task-1", { txHash: good, signerId: "agent.testnet" })).toEqual({ txHash: good, amount: 1_155 });
+    expect(await payments.confirmPayment("task-1", { txHash: good, signerId: "agent.testnet" })).toEqual({ txHash: good, amount: 1_155, payer: "agent.testnet" });
 
     // The same transfer can't fund another task: its memo names task-1.
     await expect(payments.confirmPayment("task-2", { txHash: good, signerId: "agent.testnet" })).rejects.toThrow(/memo boreal:task-2/);

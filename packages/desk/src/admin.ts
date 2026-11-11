@@ -1,4 +1,4 @@
-import { adminActions, agents, and, asc, type Database, eq, or, outbox, type Task, tasks, type Transaction, workers } from "@boreal/db";
+import { adminActions, agents, and, asc, type Database, eq, ledgerEntries, or, outbox, sql, type Task, tasks, type Transaction, workers } from "@boreal/db";
 
 import type { Caller } from "./desk";
 import { DeskError } from "./errors";
@@ -151,6 +151,43 @@ export function adminCommands(db: Database, now: () => Date, review: ReviewComma
       });
     },
 
+    /**
+     * Sends a payout again after the provider reported it failed (PayPal returned, blocked or
+     * denied it), once whatever stopped it is fixed. The same ledger entry goes back to pending
+     * and a new outbox row sends it under a new provider key (`:r<attempt>`), since PayPal
+     * refuses a batch id it has seen. Only a failed entry out of escrow on PayPal qualifies, so
+     * money the provider still holds or has delivered is never sent twice: chain rails resend
+     * by themselves once the chain proves the first transfer can't land.
+     */
+    async adminResendPayout(admin: Admin, ledgerKey: string, reason: string) {
+      const why = requireReason(reason);
+      return db.transaction(async (tx) => {
+        const [entry] = await tx.select().from(ledgerEntries).where(eq(ledgerEntries.idempotencyKey, ledgerKey)).for("update");
+        if (!entry) throw new DeskError("not_found", "ledger entry not found");
+        if (entry.fromAccount !== "escrow" || (entry.toAccount !== "worker" && entry.toAccount !== "reviewer")) {
+          throw new DeskError("conflict", "only a payout to a worker or reviewer can be sent again");
+        }
+        if (entry.status !== "failed") throw new DeskError("conflict", `this payout is ${entry.status}, not failed`);
+        const [task] = entry.taskId ? await tx.select({ rail: tasks.paymentRail }).from(tasks).where(eq(tasks.id, entry.taskId)) : [];
+        if (task?.rail !== "paypal") throw new DeskError("conflict", "only PayPal payouts are sent again by hand");
+        const [{ sends } = { sends: 0 }] = await tx
+          .select({ sends: sql<number>`count(*)::int` })
+          .from(outbox)
+          .where(and(eq(outbox.kind, "payout"), sql`${outbox.payload}->>'ledgerKey' = ${ledgerKey}`));
+        const at = now();
+        const attempt = Math.max(1, sends);
+        await tx.update(ledgerEntries).set({ status: "pending", txHash: null, updatedAt: at }).where(eq(ledgerEntries.id, entry.id));
+        await tx.insert(outbox).values({
+          kind: "payout",
+          payload: { ledgerKey, to: entry.toAccount, party: entry.party, amount: entry.amount, attempt },
+          nextAttemptAt: at,
+          createdAt: at,
+        });
+        await record(tx, admin, { action: "resend_payout", target: `ledger:${ledgerKey}`, reason: why, detail: { amount: entry.amount, to: entry.toAccount, attempt } }, "ok");
+        return { ledgerKey, attempt, amount: entry.amount };
+      });
+    },
+
     /** Logs an operator action that happens outside the desk, like running a monitor tick. */
     async adminRecord(admin: Admin, input: AuditInput, outcome = "ok") {
       await record(db, admin, { ...input, reason: requireReason(input.reason) }, outcome);
@@ -159,6 +196,7 @@ export function adminCommands(db: Database, now: () => Date, review: ReviewComma
     /**
      * Every task waiting on boreal: posted ones to screen, submissions boreal reviews and
      * disputes for the panel, oldest first, whether or not the AI reviewer has tried them.
+     * Also anything flagged for a person, such as a submission its requester never reviewed.
      */
     async adminReviewQueue(limit = 100) {
       return db
@@ -169,6 +207,7 @@ export function adminCommands(db: Database, now: () => Date, review: ReviewComma
             eq(tasks.status, "posted"),
             and(eq(tasks.status, "submitted"), eq(tasks.reviewMode, "boreal")),
             eq(tasks.status, "disputed"),
+            and(eq(tasks.status, "submitted"), eq(tasks.needsHuman, true)),
           ),
         )
         .orderBy(asc(tasks.updatedAt))

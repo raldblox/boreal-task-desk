@@ -47,6 +47,10 @@ export interface ReconcileResult {
   expected?: number;
   actual?: number;
   gap?: number;
+  /** Sent but not yet settled in the ledger; a shortfall up to this much is expected. */
+  inFlight?: number;
+  /** What escrow is missing beyond that: any of it pauses the rail's money. */
+  short?: number;
   /** Set when the rail couldn't be checked here (not configured, or the provider is down). */
   error?: string;
 }
@@ -351,12 +355,19 @@ export function findAnomalies(data: ConsoleData, reconciliation: ReconcileResult
 
   for (const r of reconciliation) {
     if (r.gap !== undefined && r.gap !== 0) {
+      // Missing money stops the rail; extra money is an unmatched deposit and stops nothing.
+      const short = r.short ?? Math.max(0, -r.gap);
       found.push({
         id: `escrow-gap-${r.rail}`,
-        severity: "critical",
+        severity: short > 0 ? "critical" : "warning",
         kind: "escrow_gap",
         title: `${r.rail} escrow is ${r.gap > 0 ? "over" : "short"} by ${Math.abs(r.gap)} cents`,
-        detail: `The ledger expects ${r.expected} cents in escrow; the rail reports ${r.actual}. Payouts pause until it matches.`,
+        detail:
+          r.gap > 0
+            ? `The ledger expects ${r.expected} cents in escrow; the rail reports ${r.actual}. Someone sent money no task accounts for (a transfer whose fund_task never came, or a stray deposit). Payouts continue; match it to a task or send it back.`
+            : short > 0
+              ? `The ledger expects ${r.expected} cents in escrow; the rail reports ${r.actual}. This rail's payouts and refunds pause until it matches.`
+              : `The ledger expects ${r.expected} cents in escrow; the rail reports ${r.actual}. The difference is a transfer already sent and not yet recorded; it settles on the next pass.`,
         amount: Math.abs(r.gap),
         count: 1,
         taskIds: [],

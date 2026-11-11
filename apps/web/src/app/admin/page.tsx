@@ -26,7 +26,7 @@ async function Escrow() {
   return (
     <Section
       title="Escrow reconciliation"
-      description="Settled live money the ledger says escrow holds, against the rail's own balance. Any gap stops payouts. PayPal's account also holds boreal.work's fees, so its balance is read from the ledger and can't show a gap here."
+      description="Settled live money the ledger says escrow holds, against the rail's own balance. A rail that holds less than the ledger says has its payouts and refunds paused; more than the ledger says is an unmatched deposit and pauses nothing. PayPal's account also holds boreal.work's fees, so its balance is read from the ledger and can't show a gap here."
     >
       <Table head={["Rail", "Ledger says", "Rail holds", "Gap"]} empty="No payment rail is switched on here.">
         {rows.map((r) => (

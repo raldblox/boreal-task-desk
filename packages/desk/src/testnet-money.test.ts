@@ -137,12 +137,12 @@ describe("testnet money path through the desk", () => {
   it("funds escrow on-chain, pays out once each, and leaves escrow matching the ledger", async () => {
     const { id, total } = await passedTask();
     expect(balances.get(ESCROW)).toBe(BigInt(total) * 10_000n);
-    expect(await desk.reconcileEscrow()).toEqual({ expected: total, actual: total, gap: 0 });
+    expect(await desk.reconcileEscrow()).toMatchObject({ expected: total, actual: total, gap: 0, short: 0 });
 
     expect((await desk.drainOutbox(100)).failed).toBe(0);
     expect(sent.map((s) => s.split(" ")[0]).sort()).toEqual(["boreal-operating", "reviewer-account", "worker-account"]);
     expect(balances.get("worker-account")).toBe(1_000n * 10_000n);
-    expect(await desk.reconcileEscrow()).toEqual({ expected: 0, actual: 0, gap: 0 });
+    expect(await desk.reconcileEscrow()).toMatchObject({ expected: 0, actual: 0, gap: 0, short: 0 });
 
     // Every payout is journaled on its outbox row and settled in the ledger with its chain hash.
     const rows = await db.select().from(outbox);
@@ -164,6 +164,6 @@ describe("testnet money path through the desk", () => {
     expect(retried.failed).toBe(0);
     expect(retried.sent).toBeGreaterThan(3);
     expect(sent).toHaveLength(3);
-    expect(await desk.reconcileEscrow()).toEqual({ expected: 0, actual: 0, gap: 0 });
+    expect(await desk.reconcileEscrow()).toMatchObject({ expected: 0, actual: 0, gap: 0, short: 0 });
   });
 });

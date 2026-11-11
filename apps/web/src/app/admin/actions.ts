@@ -80,6 +80,14 @@ export async function retryOutbox(outboxId: number, _prev: AdminActionState, for
   });
 }
 
+export async function resendPayout(ledgerKey: string, _prev: AdminActionState, form: FormData): Promise<AdminActionState> {
+  return asAdmin(form, async (admin, reason) => {
+    const sent = await getDesk().adminResendPayout(admin, ledgerKey, reason);
+    after(kickMonitor);
+    return `Queued again (attempt ${sent.attempt + 1}); the monitor is sending it.`;
+  });
+}
+
 export async function runMonitorTick(_prev: AdminActionState, form: FormData): Promise<AdminActionState> {
   return asAdmin(form, async (admin, reason) => {
     if (reason.length < 5) throw new DeskError("invalid", "give a reason of at least 5 characters");

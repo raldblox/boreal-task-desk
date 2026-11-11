@@ -113,13 +113,13 @@ describe("PayPal rail", () => {
     await desk.drainOutbox();
     expect(paypal.authorizations.get(task.fundingHold!)).toMatchObject({ status: "CAPTURED", captured: toUsd(quote.total) });
     expect(paypal.payouts).toEqual([]);
-    expect(await desk.drainOutbox()).toEqual({ sent: 2, failed: 0 });
+    expect(await desk.drainOutbox()).toMatchObject({ sent: 2, failed: 0 });
     expect(paypal.payouts.map((p) => [p.senderBatchId, p.receiver, p.value])).toEqual([
       [`${task.id}:pay-worker`, "maria@example.com", "10.00"],
       [`${task.id}:pay-reviewer`, "reviews@boreal.example", toUsd(quote.reviewFee)],
     ]);
     // A repeated drain sends nothing again.
-    expect(await desk.drainOutbox()).toEqual({ sent: 0, failed: 0 });
+    expect(await desk.drainOutbox()).toMatchObject({ sent: 0, failed: 0 });
 
     const entries = await ledger(task.id);
     expect(entries.every((e) => e.status === "settled")).toBe(true);
@@ -147,7 +147,7 @@ describe("PayPal rail", () => {
     await desk.acceptEarly(requester, task.id);
 
     await desk.drainOutbox();
-    expect(await desk.drainOutbox()).toEqual({ sent: 1, failed: 0 });
+    expect(await desk.drainOutbox()).toMatchObject({ sent: 1, failed: 0 });
     expect(paypal.payouts.map((p) => p.senderBatchId)).toEqual([`${task.id}:pay-worker`]);
     const fee = (await ledger(task.id)).find((e) => e.toAccount === "reviewer");
     expect(fee).toMatchObject({ status: "settled", amount: quote.reviewFee });
@@ -163,7 +163,7 @@ describe("PayPal rail", () => {
     await desk.drainOutbox(); // capture: queues worker and reviewer payouts (an email was set then)
     // The reviewer email is removed before the payout goes out.
     desk = createDesk({ db, now: () => clock, payments, autoScreen: true });
-    expect(await desk.drainOutbox()).toEqual({ sent: 2, failed: 0 });
+    expect(await desk.drainOutbox()).toMatchObject({ sent: 2, failed: 0 });
     expect(paypal.payouts.map((p) => p.senderBatchId)).toEqual([`${task.id}:pay-worker`]);
     expect((await ledger(task.id)).find((e) => e.toAccount === "reviewer")).toMatchObject({
       status: "settled",

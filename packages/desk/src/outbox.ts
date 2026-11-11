@@ -31,7 +31,20 @@ export interface PayoutAddresses {
 }
 
 type OutboxRow = typeof outbox.$inferSelect;
-type Transfer = { ledgerKey: string; to: string; party: string | null; amount: number };
+/** `attempt` is set on a payout an operator sent again after the provider reported the last one failed. */
+type Transfer = { ledgerKey: string; to: string; party: string | null; amount: number; attempt?: number };
+
+/**
+ * What the provider knows a transfer by. The first send uses the ledger key itself; a resend
+ * adds `:r<attempt>`, because a provider (PayPal's sender_batch_id) refuses a key it has seen.
+ */
+export const sendKey = (ledgerKey: string, attempt = 0) => (attempt > 0 ? `${ledgerKey}:r${attempt}` : ledgerKey);
+
+/** The ledger key and attempt behind a key the provider reported on. */
+export function parseSendKey(key: string): { ledgerKey: string; attempt: number } {
+  const match = /^(.*):r(\d+)$/.exec(key);
+  return match ? { ledgerKey: match[1]!, attempt: Number(match[2]) } : { ledgerKey: key, attempt: 0 };
+}
 type HoldAction = { taskId: string; hold: string; amount: number; key: string };
 
 /** A payment provider's report on a transfer, such as a PayPal payout webhook. */
@@ -85,10 +98,20 @@ async function addressFor(db: Database, addresses: PayoutAddresses, t: Transfer,
     // A review fee with no NEAR account for its reviewer (boreal's own reviewer) goes to boreal.
     address = (t.to === "reviewer" && t.party && addresses.near?.reviewers?.[t.party]) || addresses.near?.operating;
   } else if (t.to === "requester" && t.party) {
-    [{ address } = { address: null }] = await db
-      .select({ address: agents.refundAddress })
-      .from(agents)
-      .where(eq(agents.id, t.party));
+    // Back to the account the funding came from; the agent's refund address only for tasks
+    // funded before the payer was recorded.
+    const [funding] = await db
+      .select({ payer: tasks.fundingPayer })
+      .from(ledgerEntries)
+      .innerJoin(tasks, eq(tasks.id, ledgerEntries.taskId))
+      .where(eq(ledgerEntries.idempotencyKey, t.ledgerKey));
+    address = funding?.payer;
+    if (!address) {
+      [{ address } = { address: null }] = await db
+        .select({ address: agents.refundAddress })
+        .from(agents)
+        .where(eq(agents.id, t.party));
+    }
   } else if (t.to === "reviewer" && t.party) {
     address = addresses.reviewers?.[t.party];
   } else if (t.to === "operating") {
@@ -105,8 +128,14 @@ async function addressFor(db: Database, addresses: PayoutAddresses, t: Transfer,
 export async function drainOutbox(
   db: Database,
   adapters: OutboxAdapters,
-  options: { now: () => Date; addresses: PayoutAddresses; limit?: number },
-): Promise<{ sent: number; failed: number }> {
+  options: {
+    now: () => Date;
+    addresses: PayoutAddresses;
+    limit?: number;
+    /** Rails whose money must not move now (escrow is short of the ledger); `all` holds every rail. */
+    pausedRails?: ReadonlySet<PaymentRail | "all">;
+  },
+): Promise<{ sent: number; failed: number; held: number }> {
   const at = options.now();
   const leased = await db.transaction(async (tx) => {
     const due = await tx
@@ -133,7 +162,15 @@ export async function drainOutbox(
 
   let sent = 0;
   let failed = 0;
+  let held = 0;
+  const paused = options.pausedRails;
   for (const row of leased) {
+    // Money on a paused rail waits, untouched, for the next pass; everything else goes on.
+    if (paused && paused.size > 0 && (await movesMoneyOn(db, row, paused))) {
+      await db.update(outbox).set({ nextAttemptAt: at }).where(eq(outbox.id, row.id));
+      held++;
+      continue;
+    }
     try {
       await send(db, adapters, options.addresses, row, options.now());
       await db.update(outbox).set({ doneAt: options.now(), lastError: null }).where(eq(outbox.id, row.id));
@@ -152,7 +189,17 @@ export async function drainOutbox(
         .where(eq(outbox.id, row.id));
     }
   }
-  return { sent, failed };
+  return { sent, failed, held };
+}
+
+/** Whether sending this row would move money on one of the paused rails. */
+async function movesMoneyOn(db: Database, row: OutboxRow, paused: ReadonlySet<PaymentRail | "all">): Promise<boolean> {
+  let rail: PaymentRail | null;
+  if (row.kind === "payout" || row.kind === "refund") rail = await railOfLedgerKey(db, (row.payload as Transfer).ledgerKey);
+  else if (row.kind === "capture" || row.kind === "release") rail = await railOfTask(db, (row.payload as HoldAction).taskId);
+  else return false;
+  // Tasks funded before rails were recorded count as Concordium, as in the escrow comparison.
+  return paused.has("all") || paused.has(rail ?? "concordium");
 }
 
 async function send(
@@ -192,7 +239,7 @@ async function send(
       const { txHash } = await needPayments(rail).sponsoredTransfer({
         to,
         amount: transfer.amount,
-        idempotencyKey: transfer.ledgerKey,
+        idempotencyKey: sendKey(transfer.ledgerKey, transfer.attempt),
       });
       await db
         .update(ledgerEntries)
@@ -217,15 +264,23 @@ async function send(
     }
     case "reconcile": {
       const update = row.payload as PaymentStatusUpdate;
+      // The provider reports on the key it was sent, which names the attempt after a resend.
+      const { ledgerKey, attempt } = parseSendKey(update.ledgerKey);
+      const [latest] = await db
+        .select({ attempt: sql<number>`coalesce(max((${outbox.payload}->>'attempt')::int), 0)::int` })
+        .from(outbox)
+        .where(and(eq(outbox.kind, "payout"), sql`${outbox.payload}->>'ledgerKey' = ${ledgerKey}`));
+      // A late report about an attempt that has since been sent again says nothing about the new one.
+      if (attempt < (latest?.attempt ?? 0)) return;
       const [entry] = await db
         .update(ledgerEntries)
         .set({ status: update.status, ...(update.txHash ? { txHash: update.txHash } : {}), updatedAt: at })
-        .where(eq(ledgerEntries.idempotencyKey, update.ledgerKey))
+        .where(eq(ledgerEntries.idempotencyKey, ledgerKey))
         .returning({ amount: ledgerEntries.amount, toAccount: ledgerEntries.toAccount });
-      if (!entry) throw new Error(`no ledger entry ${update.ledgerKey}`);
+      if (!entry) throw new Error(`no ledger entry ${ledgerKey}`);
       // The money is back in escrow; sending it again is an operator's call, so it's loud.
       if (update.status === "failed") {
-        console.error(`[outbox] ${entry.toAccount} transfer ${update.ledgerKey} of ${entry.amount} failed: ${update.detail}`);
+        console.error(`[outbox] ${entry.toAccount} transfer ${ledgerKey} of ${entry.amount} failed: ${update.detail}`);
       }
       return;
     }
@@ -331,14 +386,43 @@ export async function ledgerEscrowBalance(db: Database, rail?: PaymentRail): Pro
   return row?.balance ?? 0;
 }
 
-/** Compares the on-chain escrow balance with the ledger. Any gap must pause money movement. */
+/**
+ * Money that may already have left escrow without the ledger saying so yet: payouts and refunds
+ * journaled as sent (`payload.sent`) whose outbox row isn't done. A crash between sending and
+ * recording leaves exactly this, and the retry that settles it must be allowed to run.
+ */
+export async function inFlightTransfers(db: Database, rail?: PaymentRail): Promise<number> {
+  const [row] = await db
+    .select({ total: sql<number>`coalesce(sum((${outbox.payload}->>'amount')::int), 0)::int` })
+    .from(outbox)
+    .innerJoin(ledgerEntries, sql`${ledgerEntries.idempotencyKey} = ${outbox.payload}->>'ledgerKey'`)
+    .innerJoin(tasks, eq(tasks.id, ledgerEntries.taskId))
+    .where(
+      and(
+        inArray(outbox.kind, ["payout", "refund"]),
+        isNull(outbox.doneAt),
+        sql`${outbox.payload} ? 'sent'`,
+        ne(ledgerEntries.status, "settled"),
+        rail ? sql`coalesce(${tasks.paymentRail}, 'concordium') = ${rail}` : undefined,
+      ),
+    );
+  return row?.total ?? 0;
+}
+
+/**
+ * Compares the escrow balance with the ledger. `short` is how much escrow is missing beyond
+ * what is in flight: any of it must pause that rail's money. More than the ledger expects
+ * (`gap` above zero) is money nobody has matched to a task yet, such as a transfer whose
+ * `fund_task` hasn't come: it is reported, and never a reason to stop paying people.
+ */
 export async function reconcileEscrow(
   db: Database,
   payments: Payments,
   rail?: PaymentRail,
-): Promise<{ expected: number; actual: number; gap: number }> {
-  const [expected, actual] = await Promise.all([ledgerEscrowBalance(db, rail), payments.escrowBalance()]);
-  return { expected, actual, gap: actual - expected };
+): Promise<{ expected: number; actual: number; gap: number; inFlight: number; short: number }> {
+  const [expected, actual, inFlight] = await Promise.all([ledgerEscrowBalance(db, rail), payments.escrowBalance(), inFlightTransfers(db, rail)]);
+  const gap = actual - expected;
+  return { expected, actual, gap, inFlight, short: Math.max(0, -gap - inFlight) };
 }
 
 /**

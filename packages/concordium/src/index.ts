@@ -128,6 +128,11 @@ export interface ConfirmedPayment {
   txHash: string;
   amount: number;
   hold?: string;
+  /**
+   * The account the money came from, on rails that settle at once (a NEAR or Concordium
+   * account). A refund goes back to it.
+   */
+  payer?: string;
   /** A payment method the payer saved with this payment, to fund later tasks without approval. */
   vaultId?: string;
 }

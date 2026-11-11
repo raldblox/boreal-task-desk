@@ -95,6 +95,8 @@ export async function submitResult(taskId: string, _prev: ActionState, form: For
   return asWorker(async (worker) => {
     const text = String(form.get("text") ?? "").trim() || undefined;
     const file = form.get("file");
+    // Nothing is stored unless this worker holds the task: no uploads for other people's tasks.
+    await getDesk().assertCanSubmit(worker, taskId);
     const fileUrls = file instanceof File && file.size > 0 ? [await saveSubmissionFile(taskId, file)] : [];
     await getDesk().submitResult(worker, taskId, { text, fileUrls });
   });

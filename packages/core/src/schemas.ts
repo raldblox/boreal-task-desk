@@ -35,7 +35,7 @@ export const postTaskInput = z.object({
     .positive()
     .max(POLICY.maxTaskBudget)
     .describe("Worker pay in US cents. Platform and review fees are added on top."),
-  deadline: z.iso.datetime().describe("ISO 8601 time after which an unclaimed task is refunded."),
+  deadline: z.iso.datetime().describe("ISO 8601 time after which an unclaimed task is refunded. At most 14 days from now."),
   fulfillers: z
     .enum(["people", "people_or_agents"])
     .default("people")

@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { AdminForm } from "@/components/admin/admin-form";
 import { LiveBadge, Mono, Section, shortId, StatusBadge, Table } from "@/components/admin/parts";
 import { usd, when } from "@/lib/format";
-import { retryOutbox } from "@/app/admin/actions";
+import { resendPayout, retryOutbox } from "@/app/admin/actions";
 import { requireAdmin } from "@/server/admin";
 import { getDesk } from "@/server/desk";
 
@@ -122,7 +122,7 @@ async function Money() {
       </Section>
 
       <Section title="Pending and failed entries" description="Live ledger entries not yet settled. A failed transfer means the money is back in escrow; resending it is an operator's call.">
-        <EntryTable entries={m.unsettled} empty="Every live entry is settled." />
+        <EntryTable entries={m.unsettled} empty="Every live entry is settled." resend />
       </Section>
 
       <Section title="Refunds">
@@ -138,9 +138,9 @@ async function Money() {
 
 type Entry = Awaited<ReturnType<ReturnType<typeof getDesk>["adminMoney"]>>["recent"][number];
 
-function EntryTable({ entries, empty }: { entries: Entry[]; empty?: string }) {
+function EntryTable({ entries, empty, resend = false }: { entries: Entry[]; empty?: string; resend?: boolean }) {
   return (
-    <Table head={["When", "Task", "From → to", "Amount", "Status", "Rail", "Tx"]} empty={empty}>
+    <Table head={["When", "Task", "From → to", "Amount", "Status", "Rail", "Tx", ...(resend ? [""] : [])]} empty={empty}>
       {entries.map((e) => (
         <tr key={e.id}>
           <td className="text-xs whitespace-nowrap">{when(e.at)}</td>
@@ -164,6 +164,20 @@ function EntryTable({ entries, empty }: { entries: Entry[]; empty?: string }) {
           <td>
             <Mono title={e.txHash ?? undefined}>{e.txHash ? `${e.txHash.slice(0, 14)}…` : "—"}</Mono>
           </td>
+          {resend && (
+            <td>
+              {/* The desk checks again: only a failed PayPal payout to a worker or reviewer is sent again. */}
+              {e.status === "failed" && e.rail === "paypal" && (e.to === "worker" || e.to === "reviewer") && (
+                <AdminForm
+                  action={resendPayout.bind(null, e.key)}
+                  label="Send again"
+                  confirm="PayPal reported this payout failed and whatever stopped it is fixed. Send it again as a new PayPal payout."
+                >
+                  {null}
+                </AdminForm>
+              )}
+            </td>
+          )}
         </tr>
       ))}
     </Table>

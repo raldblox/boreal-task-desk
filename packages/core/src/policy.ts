@@ -5,6 +5,17 @@ const HOUR = 60 * 60 * 1000;
 export const POLICY = {
   objectionWindowMs: 48 * HOUR,
   disputeDecisionMs: 72 * HOUR,
+  /**
+   * How long a requester who reviews its own task has to judge a submission. After that the
+   * submission goes to boreal.work's reviewers, so a silent requester never leaves a worker unpaid.
+   */
+  requesterReviewMs: 72 * HOUR,
+  /**
+   * The furthest a deadline can be from posting. PayPal keeps an authorization for 29 days, and
+   * a task's money is only held until it is final: the deadline, the review, the objection
+   * window and a dispute must all fit inside that, or the hold lapses and nobody can be paid.
+   */
+  maxDeadlineMs: 14 * 24 * HOUR,
   reconcileIntervalMs: 5 * 60 * 1000,
   /** Beta ceilings, in minor units. */
   maxTaskBudget: 5_000,

@@ -171,7 +171,7 @@ Set these in the environment of the site and the monitor:
 
 The network follows `BOREAL_NETWORK`: the testnet site refuses NEAR mainnet and the mainnet site refuses NEAR testnet.
 
-Keys stay in environment variables, never in the repository. The escrow account holds only task money, because the monitor compares its balance with the ledger and pauses all payouts on any gap.
+Keys stay in environment variables, never in the repository. The escrow account holds only task money, because the monitor compares its balance with the ledger and pauses NEAR payouts and refunds whenever escrow holds less than the ledger says (an unmatched extra deposit is reported, and pauses nothing).
 
 ## Workers who only have PayPal
 

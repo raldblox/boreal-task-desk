@@ -166,7 +166,7 @@ describe("testnet funding over x402", () => {
   it("settles a payment for the requirement it issued and reports minor units", async () => {
     const r = await c.payments.createPaymentRequest("task-1", 1_170);
     const settled = await c.payments.confirmPayment("task-1", paymentFor(r));
-    expect(settled).toEqual({ txHash: "f".repeat(64), amount: 1_170 });
+    expect(settled).toEqual({ txHash: "f".repeat(64), amount: 1_170, payer: "payer" });
     expect(facilitator.settle).toHaveBeenCalledOnce();
     expect(facilitator.settle.mock.calls[0]![1]).toMatchObject({ amount: "11700000", payTo: cfg.escrowAccount });
   });
@@ -365,7 +365,7 @@ describe("x402 facilitator on a signed agent transfer", () => {
     await expect(real.payments.confirmPayment("task-1", paymentFor(r, await signedTransfer(r, undefined, address())))).rejects.toThrow(/recipient_mismatch/);
     expect(submitted).toHaveLength(0);
 
-    expect(await real.payments.confirmPayment("task-1", paymentFor(r, await signedTransfer(r)))).toEqual({ txHash: "e".repeat(64), amount: 1_170 });
+    expect(await real.payments.confirmPayment("task-1", paymentFor(r, await signedTransfer(r)))).toEqual({ txHash: "e".repeat(64), amount: 1_170, payer: payerAccount });
     expect(submitted).toHaveLength(1);
   });
 });
