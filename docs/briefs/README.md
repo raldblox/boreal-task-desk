@@ -2,7 +2,9 @@
 
 Ambitious, open-ended technical work for Fable 5.2 (see "Who does what" in `CLAUDE.md`). Each brief stands alone: start a session on that model and send "Read docs/briefs/<file> and do it."
 
-Run them **one at a time, in this order**. They all commit on `main` in the main checkout, and several touch the same packages.
+**Standing:** [readiness-sweep.md](readiness-sweep.md) finds and fixes bugs, design and architecture problems, scalability, stability and confusing parts, until boreal.work is ready for workers, production, business and market. Its ledger is `docs/readiness.md`. Run it between the briefs below, or any time.
+
+Run the numbered briefs **one at a time, in this order**. They all commit on `main` in the main checkout, and several touch the same packages.
 
 | # | Brief | Why now | Touches |
 | --- | --- | --- | --- |
