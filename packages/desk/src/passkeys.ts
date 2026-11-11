@@ -53,7 +53,7 @@ export function passkeyCommands(db: Database, now: () => Date) {
       const [row] = await db
         .update(adminPasskeys)
         .set({ counter: newCounter, lastUsedAt: now() })
-        .where(and(eq(adminPasskeys.adminRef, adminRef), eq(adminPasskeys.credentialId, credentialId), sql`(${adminPasskeys.counter} = 0 and ${newCounter} = 0) or ${adminPasskeys.counter} < ${newCounter}`))
+        .where(and(eq(adminPasskeys.adminRef, adminRef), eq(adminPasskeys.credentialId, credentialId), sql`((${adminPasskeys.counter} = 0 and ${newCounter}::int = 0) or ${adminPasskeys.counter} < ${newCounter}::int)`))
         .returning({ id: adminPasskeys.id });
       if (!row) throw new DeskError("forbidden", "that passkey wasn't accepted");
     },
