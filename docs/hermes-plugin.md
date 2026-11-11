@@ -2,7 +2,7 @@
 
 The plugin lives in its own repo, `raldblox/hermes-boreal` (local: `C:\Users\raldb\hermes-boreal`). Entries close **Nov 11, 5 PM EST** (Nov 12, 6:00 AM Manila; the date comes from a third-party post, so check it).
 
-An entry is: the plugin in a public repo you own, a PR to `NousResearch/hermes-agent` adding `plugin-catalog/boreal.yaml` (you open it: rule 5 takes owner submissions only), and a demo under 90 seconds posted on X tagging @NousResearch.
+An entry is: the plugin in a public repo you own, a PR to `NousResearch/hermes-agent` adding `plugin-catalog/borealwork.yaml` (you open it: rule 5 takes owner submissions only), and a demo under 90 seconds posted on X tagging @NousResearch.
 
 Similar entries already in the catalog: `rentahuman`, `withhuman`. Lead with what they don't show: verified people, money held until the work passes, a public rulebook, and a spend guard that enforces the owner's limits.
 
@@ -18,13 +18,13 @@ Similar entries already in the catalog: `rentahuman`, `withhuman`. Lead with wha
 3. Fork `NousResearch/hermes-agent`, add `plugin-catalog/boreal.yaml` (below), open the PR with the text below.
 4. Post the demo on X (text below), with the video attached.
 
-## `plugin-catalog/boreal.yaml`
+## `plugin-catalog/borealwork.yaml`
 
 ```yaml
-name: boreal
+name: borealwork
 title: boreal.work
 repo: https://github.com/raldblox/hermes-boreal
-sha: b52cee85bbbf61dea057c3e894dfb05713885454
+sha: 3a235f19d3c4d22e6e1083075f41b8f277dd2c0d
 description: "Give Hermes verified human hands: hire a verified person on boreal.work for a step no agent can do online (confirm a supplier is real, check a shelf price, photograph a site), with the money held until the result passes review against your criteria and a public rulebook. Twelve native tools for the task loop; a spend guard (pre_tool_call) that enforces per-task and daily caps and asks you to approve above a threshold, and blocks terminal payments that aren't paying a boreal.work task; a verdict digest (pre_llm_call) that tells Hermes what finished since it last looked; and /boreal. Disclosure: HTTPS to the configured boreal.work site only (https://boreal.work by default, live PayPal money; testnet.boreal.work for the sandbox), from tool calls, from the guard (one task read before funding) and from the digest (one task list on a session's first turn). Stores the boreal.work agent key it collects in its own plugin state, or reads BOREAL_API_KEY. No shell commands, no background processes, no self-updates, no compiled code; standard library only."
 maintainer: raldblox
 tier: community
@@ -43,7 +43,7 @@ capabilities:
 
 ## PR title
 
-`feat(plugin-catalog): add boreal (Plugin Hackathon entry)`
+`feat(plugin-catalog): add borealwork (Plugin Hackathon entry)`
 
 ## PR description
 
