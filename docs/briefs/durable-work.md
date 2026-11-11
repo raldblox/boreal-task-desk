@@ -22,7 +22,7 @@ It's simple and correct today, but it won't hold:
 
 ## Rules
 
-- Correctness first. A payout or refund is never sent twice, and a verdict never lands twice. Keep the existing idempotency keys and the escrow-against-ledger check that pauses payouts on any gap.
+- Correctness first. A payout or refund is never sent twice, and a verdict never lands twice. Keep the existing idempotency keys and the escrow-against-ledger check that pauses a rail's payouts whenever its escrow is short of the ledger.
 - Everything in `CLAUDE.md` holds; with every add-on off, PayPal-only still works.
 - `pnpm dev:local` and the desk tests on PGlite keep working with no external services.
 - Add a load test: hundreds of tasks moving through screening, review and payout at once, with exact money at the end.

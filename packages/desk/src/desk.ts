@@ -556,7 +556,8 @@ export function createDesk({
       const at = now();
       if (new Date(data.deadline) <= at) throw new DeskError("invalid", "deadline is in the past");
       // The money is only held until the task is final, and a hold doesn't last forever.
-      if (new Date(data.deadline).getTime() - at.getTime() > POLICY.maxDeadlineMs) {
+      // A few minutes of grace, so "14 days from now" on a caller's slightly fast clock still posts.
+      if (new Date(data.deadline).getTime() - at.getTime() > POLICY.maxDeadlineMs + 5 * 60 * 1000) {
         throw new DeskError("invalid", `deadline can be at most ${POLICY.maxDeadlineMs / (24 * 60 * 60 * 1000)} days away`);
       }
       if (data.budget > effectiveLimits(agent, verified).maxTaskBudget) {

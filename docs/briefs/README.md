@@ -9,11 +9,12 @@ Run the numbered briefs **one at a time, in this order**. They all commit on `ma
 | # | Brief | Why now | Touches |
 | --- | --- | --- | --- |
 | 1 | [near-vault.md](near-vault.md): an on-chain spending-limit vault for agents | NEAR HACKATHON closes Nov 14, 23:59 UTC; adds the AI Security track | a new `contracts/`, `packages/near`, link page, agents.md |
-| 2 | [rails-and-money.md](rails-and-money.md): payment rails as plug-ins, money with a currency | Every new payout option (GCash, Stripe, other chains) is a hunt through 34 name checks today, and pesos can't be expressed | `packages/core` or a new `packages/rails`, desk, outbox, monitor, web, a migration |
-| 3 | [operations-registry.md](operations-registry.md): one definition per agent operation for MCP, REST, A2A, OpenAPI and the guide | Each new tool is hand-copied into five places; agents depend on these never drifting | `apps/web/src/server`, `/api/v1`, agent guide |
-| 4 | [reviewer-evals.md](reviewer-evals.md): measure the AI reviewer, and route between models on evidence | The reviewer is the product's promise, and nothing measures it yet; it backs the "fake photos don't pass" story | `packages/brain`, review loop |
-| 5 | [durable-work.md](durable-work.md): background work that survives failures and scales | One tick does everything today; it matters once there's real traffic | `packages/monitor`, outbox, cron, `/admin`, `/status` |
+| 2 | [owner-controls.md](owner-controls.md): owners approve, limit, pause and are told about what their agents spend | Readiness RS-1 to RS-3: any client with a key moves an owner's money unasked; the Hermes catalog blocked the plugin over it | `packages/desk` (links, funding), `/me`, `/link`, MCP, REST, A2A, the guide, the plugin |
+| 3 | [rails-and-money.md](rails-and-money.md): payment rails as plug-ins, money with a currency | Every new payout option (GCash, Stripe, other chains) is a hunt through 34 name checks today, and pesos can't be expressed | `packages/core` or a new `packages/rails`, desk, outbox, monitor, web, a migration |
+| 4 | [operations-registry.md](operations-registry.md): one definition per agent operation for MCP, REST, A2A, OpenAPI and the guide | Each new tool is hand-copied into five places; agents depend on these never drifting | `apps/web/src/server`, `/api/v1`, agent guide |
+| 5 | [reviewer-evals.md](reviewer-evals.md): measure the AI reviewer, and route between models on evidence | The reviewer is the product's promise, and nothing measures it yet; it backs the "fake photos don't pass" story | `packages/brain`, review loop |
+| 6 | [durable-work.md](durable-work.md): background work that survives failures and scales | One tick does everything today; it matters once there's real traffic | `packages/monitor`, outbox, cron, `/admin`, `/status` |
 
-**After the hackathon:** signed in-app photo capture (workers take proof photos in boreal.work's own camera page, signed on the phone) is the next big product brief. Write it once 2–4 are in.
+**After the hackathon:** signed in-app photo capture (workers take proof photos in boreal.work's own camera page, signed on the phone) is the next big product brief. Write it once 3–5 are in.
 
 **Between briefs:** a cheaper model clears the open notes in `docs/handoff.md`, so UI and copy keep up with the engineering.

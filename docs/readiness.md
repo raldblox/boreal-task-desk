@@ -10,25 +10,29 @@ Kept by the readiness sweep (`docs/briefs/readiness-sweep.md`). Each finding has
 
 It is ranked by severity, then by how many people a finding hits.
 
+Last sweep: 2026-11-12 (Fable 5.2). It read the money, state and security paths in `packages/core`, `desk`, `monitor`, `paypal`, `near` and the web app's API, sessions and file routes. It did **not** drive the app in a browser: see [Not verified](#not-verified).
+
 ## Verdicts
 
 | Lens | Verdict | Why |
 | --- | --- | --- |
-| Workers | not assessed | |
-| Production | not assessed | |
-| Business | **not ready** | RS-1 to RS-5: an owner can't control or even see what their agent spends |
-| Market | **not ready** | Agent builders and the Hermes catalog expect the owner to approve money moves (RS-1) |
+| Workers | **not ready** | Nobody is told when a verdict, dispute or payout needs them (RS-17). A dispute nobody decides holds the worker's pay with no time limit (RS-18). Timers run once a day unless someone is using the site (RS-16). Fixed this sweep: a silent requester (RS-11) and a failed PayPal payout (RS-12) no longer leave a worker unpaid forever. The worker flow on a phone was not driven this sweep. |
+| Production | **not ready** | Timers and payouts depend on a daily cron plus traffic (RS-16). A failing payout is visible only to an operator who opens `/admin`: nothing alerts (RS-19). No rate limits on agent keys (RS-21). Backups, restore and rollback are undocumented and untested (Gaps). Fixed this sweep: RS-6, 7, 8, 9, 13, 14. |
+| Business | **not ready** | RS-1 to RS-4: an owner can't control or see what their agent spends, and a self-reviewed pass pays at once. No contact path on the legal pages (Gaps). The ledger itself reconciles in tests: every `pnpm test` money flow ends with escrow at zero. |
+| Market | **not ready** | Agent builders and the Hermes catalog expect the owner to approve money moves (RS-1). The guide, MCP, REST and A2A were not compared tool by tool this sweep. |
 
 ## Open
 
-Seeded on 2026-11-12. The Hermes catalog review (NousResearch/hermes-agent#153094) blocked the plugin until every call that moves money asks the user. The plugin now does, but only inside Hermes: any other MCP, REST or A2A client with a `bk_` key moves money with no approval. These need server-side fixes.
+Ranked by severity, then reach.
 
 ### RS-1 · wrong design · business, market · S1 — Owners can't require approval before an agent pays
+
+Seeded on 2026-11-12. The Hermes catalog review (NousResearch/hermes-agent#153094) blocked the plugin until every call that moves money asks the user. The plugin now does, but only inside Hermes: any other MCP, REST or A2A client with a `bk_` key moves money with no approval. These need server-side fixes.
 
 **Evidence**
 - The approval form only sets a per-task and a daily limit (`apps/web/src/app/link/approve-form.tsx:123,137`; checked in `packages/desk/src/links.ts:237-243`), and the agent is live right away (`links.ts:277`).
 - `fund_task` charges the owner's saved PayPal with no per-payment approval (`apps/web/src/server/mcp.ts:428-437`).
-- `fund_tasks` charges up to 10 tasks at once (`packages/desk/src/desk.ts:757-775`).
+- `fund_tasks` charges up to 10 tasks at once (`desk.fundTasksSaved`).
 
 **Fix**
 - Add a spending mode per agent, chosen at approval and enforced in `packages/desk`:
@@ -37,15 +41,15 @@ Seeded on 2026-11-12. The Hermes catalog review (NousResearch/hermes-agent#15309
 - The owner can change the mode later (see RS-2).
 - `get_account` reports the mode. The agent guide, the MCP tool descriptions, the A2A card and the Hermes plugin all explain the pending-approval reply. The plugin's approval prompt stays on as well.
 
-**Status:** open
+**Status:** open. Briefed in [`docs/briefs/owner-controls.md`](briefs/owner-controls.md); the default for existing agents is under [Needs the owner](#needs-the-owner).
 
 ### RS-2 · gap · business · S1 — No owner controls: pause, revoke, change limits, disconnect PayPal, see spend
 
 **Evidence**
 - My agents (`apps/web/src/app/me/page.tsx:583-634`) shows only the agent's name, badges, NEAR wallet and Connect PayPal.
-- `listOwnerAgents` returns no spend (`packages/desk/src/links.ts:192-205`). `spentLast24h` and `leftToday` are visible only to the agent (`desk.ts:1531-1532`) and to admins.
+- `listOwnerAgents` returns no spend (`packages/desk/src/links.ts:192-205`). `spentLast24h` and `leftToday` are visible only to the agent (`desk.getAgentAccount`) and to admins.
 - Limits change only through a new link that the agent has to start (`links.ts:251-262`).
-- Only admins can freeze an agent (`packages/desk/src/admin.ts:124-134`).
+- Only admins can freeze an agent (`packages/desk/src/admin.ts`, `adminSetAgentStatus`).
 
 **Fix**
 - Owner commands in the desk, each one audited:
@@ -56,56 +60,207 @@ Seeded on 2026-11-12. The Hermes catalog review (NousResearch/hermes-agent#15309
 - My agents shows each agent's spend today, this week and in total, and its open holds.
 - UI beyond the minimum goes to `docs/handoff.md`.
 
-**Status:** open
+**Status:** open. Briefed in [`docs/briefs/owner-controls.md`](briefs/owner-controls.md); when to run it is under [Needs the owner](#needs-the-owner). RS-5 (done) already makes funding honour a limit or freeze the moment it changes.
 
 ### RS-3 · gap · business, production · S1 — Owners aren't told when their agent spends
 
 **Evidence:** there is no notification code in `packages/*/src` or `apps/web/src/server`. Funding, early accepts and self-review passes happen silently.
 
 **Fix**
-- A receipt to the owner for every hold, release and refund that comes from their agent. It goes through the outbox, in the same transaction as the money change.
+- A receipt to the owner for every hold, release and refund that comes from their agent. It goes through the outbox, in the same transaction as the money change (the `webhook` outbox kind exists and delivers nothing: `packages/desk/src/outbox.ts`, `case "webhook"`).
 - An alert when the agent reaches 80% of its daily limit, and when funding is refused.
 - Pick a channel (email to the PayPal-verified address is the obvious first one) and record the decision.
-- Needs: an email provider. This is an owner decision; recommend one in **Needs the owner**.
 
-**Status:** open
+**Status:** open, waiting on the owner (email provider). Briefed with RS-17 in [`docs/briefs/owner-controls.md`](briefs/owner-controls.md).
 
 ### RS-4 · wrong design · business · S1 — A self-reviewed pass pays out at once, which makes collusion cheap
 
 **Evidence**
-- With `reviewer: "requester"`, a pass runs `accept_early` straight away, so there is no objection window (`packages/desk/src/desk.ts:1386-1390`).
-- `claimTask` only blocks a worker who owns the posting agent (`desk.ts:797-800`). A separate verified accomplice can claim, submit, be passed, and be paid at once.
-- Self-review lowers the fee: `reviewFee` is 0 (`packages/core/src/fees.ts:41-45`).
+- With `reviewer: "requester"`, a pass runs `accept_early` straight away, so there is no objection window (`desk.requesterReview`).
+- `claimTask` only blocks a worker who owns the posting agent. A separate verified accomplice can claim, submit, be passed, and be paid at once.
+- Self-review lowers the fee: `reviewFee` is 0 (`packages/core/src/fees.ts`, `quoteFees`).
 - Only the caps bound this.
+- The other direction is open too: a requester who reviews its own task has seen the result (`get_submission`) before it decides, so it can fail good work and keep it. The worker's one dispute is the only check, and nothing counts a requester's overturned fails (`POLICY.lostDisputesBeforePause` is never read: RS-23).
 
 **Fix**
 - A self-reviewed pass keeps a short hold before it is final (for example 24 h), which the owner can cut short.
 - In "ask" mode (RS-1), the owner confirms an early accept or a self-review pass before money is released.
-- Collusion signals go to `/admin`: the same worker passed repeatedly by the same agent or owner, accounts sharing identity or payout details, and self-reviewed tasks with near-instant passes.
+- Collusion signals go to `/admin`: the same worker passed repeatedly by the same agent or owner, accounts sharing identity or payout details, self-reviewed tasks with near-instant passes, and requesters whose fails a panel keeps overturning.
 - Rulebook and spec changes must stay in sync with `packages/brain/src/rulebook.ts`.
 
-**Status:** open
+**Status:** open, waiting on the owner (it changes when workers are paid, which is rulebook policy): see [Needs the owner](#needs-the-owner).
 
-### RS-5 · defect · business · S2 — The per-task cap is checked when a task is posted, not when it is funded
+### RS-20 · defect · business · S1 (NEAR and Concordium add-ons) — Money sent to escrow for a task that then isn't funded has no way back
 
 **Evidence**
-- The cap is enforced at post time (`packages/desk/src/desk.ts:558-568`).
-- `holdFunding` checks the quote and the daily cap, but not the per-task cap (`desk.ts:652-674`).
-- An owner who lowers the limit (once RS-2 lets them) would still be charged at the old limit for tasks already posted.
+- On NEAR the agent pays first: it sends `ft_transfer` to escrow, then calls `fund_task` with the transaction hash (`packages/near/src/payments.ts`, `confirmPayment`). The claim "a task its checks refuse never takes money" holds on PayPal (the hold is placed inside the checks) and on Concordium x402 (settled inside the checks), but not on NEAR.
+- If `fund_task` then refuses (the daily cap, a cap lowered since posting (RS-5), a frozen agent, a task cancelled or already funded) or is never called, the USDC stays in escrow with no ledger entry and no task. Nothing returns it, and `/admin` has no tool to.
+- Until this sweep that unmatched money also paused every payout on every rail (RS-9). Now it is reported as "holds N more than the ledger" and pauses nothing.
 
-**Fix:** re-check the per-task cap and the verification caps inside `holdFunding`, using the limits in force at funding time. Add a test that lowers the limit between posting and funding.
+**Fix**
+- When funding is refused after the rail confirmed a payment that has already settled (`ConfirmedPayment` without `hold`), record it and queue its return to `payer` (now known: RS-6) through the outbox, with its own ledger entries (`requester → escrow`, `escrow → requester`) so the books still balance.
+- An admin action to return an unmatched deposit by transaction hash, for transfers whose `fund_task` never came.
+- Needs a ledger entry that belongs to no funded task, which the current `ledgerEscrowBalance` join on tasks doesn't count: design it with [`rails-and-money.md`](briefs/rails-and-money.md).
 
-**Status:** open
+**Status:** open. Safe for now only while NEAR handles test money; see [Needs the owner](#needs-the-owner).
+
+### RS-16 · gap · workers, production · S2 — Timers and payouts run once a day unless someone is using the site
+
+**Evidence**
+- `apps/web/vercel.json`: the only cron is `0 3 * * *`.
+- Everything time-driven is one monitor tick (`packages/monitor/src/index.ts`): claims expiring, deadlines, the 48-hour objection window that pays the worker, AI review retries, payouts, refunds, and now the 72-hour review limit (RS-11).
+- Between crons the tick runs only after someone's write, or at most once a minute on a read (`apps/web/src/server/monitor.ts`, `kickMonitorSoon`). On a quiet day a worker's pay can be up to 24 hours later than the "48 hours" the rulebook and guide promise, and a refund the same.
+
+**Fix:** call `GET /api/cron/tick` every 5 minutes or less. Either Vercel Cron on a plan that allows it (changing `vercel.json` on a plan that doesn't fails the deploy, so this wasn't changed), or an outside scheduler with `CRON_SECRET`. [`durable-work.md`](briefs/durable-work.md) is the larger answer.
+
+**Status:** open, waiting on the owner (which scheduler).
+
+### RS-17 · gap · workers, business · S2 — Nobody is told when something needs them
+
+**Evidence:** no notification code anywhere (`grep -ri "sendEmail\|notif"` over `apps/web/src` and `packages/*/src` finds only the A2A card's `pushNotifications: false`). A worker learns of a verdict, a fail they have 48 hours to dispute, a dispute decision or a payout only by opening the task page. A requester who reviews its own tasks learns of a submission only by polling, and now has 72 hours (RS-11). An operator learns of the human queue only by opening `/admin`.
+
+**Fix:** one notification path through the outbox (same transaction as the state change), email first: to workers on verdict, dispute decision and payout sent or failed; to posters on a submission to review; to operators on a new human-queue item. Same channel decision as RS-3.
+
+**Status:** open, waiting on the owner (email provider, with RS-3).
+
+### RS-18 · gap · workers · S2 — A dispute nobody decides holds the money with no time limit
+
+**Evidence**
+- `POLICY.disputeDecisionMs` (72 hours) is defined in `packages/core/src/policy.ts` and never read.
+- The only exits from `disputed` are `panel_pass` and `panel_fail`, by a person in `/admin` (`packages/core/src/task.ts`). No timer escalates or alerts on an old dispute, and the same is true of anything in the human queue (`needsHuman`).
+- A PayPal hold lasts 29 days (RS-7): a dispute left for weeks ends with a hold that can't be captured, and the worker can't be paid at all.
+
+**Fix**
+- Put disputes and human-queue items older than 24 hours in the anomaly scan (`findAnomalies`) and in the operator alert (RS-19).
+- Decide what happens at 72 hours with no decision (see [Needs the owner](#needs-the-owner)).
+
+**Status:** open, waiting on the owner (the default outcome).
+
+### RS-19 · gap · production · S2 — A failing payout is silent until someone opens /admin
+
+**Evidence**
+- A failing outbox row retries with backoff up to an hour, forever (`drainOutbox`); there is no attempt limit and no dead-letter state.
+- Failures are written to `outbox.last_error`, the tick report and `console.error`. Nothing pushes them anywhere: no alert, no email, no webhook (`grep -ri "sentry\|slack\|pagerduty"` finds nothing).
+- The cron route answers 207 when a tick has errors (`apps/web/src/app/api/cron/tick/route.ts`), which Vercel Cron doesn't act on.
+
+**Fix:** an operator alert channel (a webhook URL in the environment is enough to start) fired from the tick when: a rail is paused, an outbox row has failed 5 times, a transfer is `failed`, or the human queue or a dispute is older than 24 hours. Part of [`durable-work.md`](briefs/durable-work.md).
+
+**Status:** open, waiting on the owner (where alerts go).
+
+### RS-21 · gap · production, market · S2 — No rate limits on agent keys or the worker API
+
+**Evidence:** the only limits are on unauthenticated starts: link requests (`links.ts`, 5 per client per 10 minutes) and Concordium sign-in starts (`desk.checkVerificationAllowed`). `asRequester` and `asAgentWorker` (`apps/web/src/server/desk.ts`) run every call a key sends. Each call hits the database, each write starts a monitor tick, and `post_task`/`cancel_task` can loop freely under the five-unfunded cap, appending trail events and anchor rows each time.
+
+**Fix:** a per-key and per-IP limit at the API edge (requests per minute, writes per minute), answering 429 with `Retry-After`; say the limits in the guide. Needs a shared counter (the database, or a KV store).
+
+**Status:** open, waiting on the owner (the limits themselves, and whether to add a KV store).
+
+### RS-22 · gap · workers · S3 — A worker can claim and drop the same tasks over and over
+
+**Evidence:** `claimTask` limits active claims to one (`workers.maxActiveClaims`), but nothing counts claims that were released or left to expire. A worker (or a requester's competitor) can hold any task for four hours at a time, again and again, until its deadline.
+
+**Fix:** count a worker's expired claims in the last 7 days; after three, a cooling-off period before the next claim, and never the same task twice after letting it expire. Needs a rulebook line.
+
+**Status:** open.
+
+### RS-23 · wrong design · business · S3 — Policy that is written down and never enforced
+
+**Evidence:** `POLICY.lostDisputesBeforePause`, `lostDisputesWindowMs`, `maxActiveClaimsPerNewWorker`, `disputeDecisionMs`, `reconcileIntervalMs` and `disputeDeposit()` (`packages/core/src/fees.ts`) are read by nothing but tests. Disputes are free, nobody is paused for losing them, and no dispute deposit is taken. The code reads as if these rules were in force.
+
+**Fix:** for each, either enforce it or delete it; the spec says which were meant. Free disputes are right for workers; a requester who keeps losing disputes should be paused (RS-4).
+
+**Status:** open, waiting on the owner (which of these the spec still wants).
+
+### RS-24 · defect · production · S3 (add-ons) — A chain rail with no operating account retries its fee payout forever
+
+**Evidence:** on NEAR and Concordium the platform fee is a payout to `operating` (`settlementMovements`); `addressFor` throws "no payout address for operating" when `OPERATING_ACCOUNT_ADDRESS` / `NEAR_OPERATING_ACCOUNT` is unset (`packages/desk/src/outbox.ts`). Neither is a requirement in `packages/core/src/addons.ts`, so the add-on shows as ready and every passed task leaves one outbox row failing hourly.
+
+**Fix:** make the operating account a requirement of each chain rail's part in `addons.ts`, so the rail is blocked with the reason until it is set.
+
+**Status:** open.
+
+### RS-25 · wrong design · business · S3 — A person's verdict is recorded as the AI reviewer's
+
+**Evidence:** an operator's verdict from `/admin` goes in as `BOREAL_REVIEWER`, whose `reviewerRef` is `boreal-ai-reviewer` (`packages/desk/src/admin.ts`). The task's hashed trail, which the worker and requester can read, then says the AI reviewed it; only the internal audit log says a person did. With RS-11 this now includes submissions a silent requester left behind.
+
+**Fix:** a separate reviewer ref for people (`boreal-human-reviewer`), paid the same way, so the trail says who decided in kind (never who by name).
+
+**Status:** open.
+
+### RS-26 · gap · market · S4 — The Hermes plugin doesn't say the deadline limit
+
+**Evidence:** `integrations/hermes-boreal/schemas.py:59` describes `deadline_hours` with no maximum. The server now refuses more than 14 days (RS-7) with a clear message, so nothing breaks; the agent just learns it late.
+
+**Fix:** in the plugin's own repo, add "at most 336" to the description, then move the pin.
+
+**Status:** open.
 
 ## Needs the owner
 
-- **RS-1 default mode for existing agents.** Recommendation: leave existing agents on "spend within limits", tell each owner once, and default every new agent to "ask me each time".
-- **RS-3 email provider.** Not chosen yet.
+Each has a recommendation; none blocks the others.
+
+1. **Which scheduler runs the monitor (RS-16)?** Recommendation: call `/api/cron/tick` every 2 minutes from a scheduler you already pay for (Vercel Cron on Pro, or a free external one with `CRON_SECRET`), on both sites, this week. It is the cheapest fix with the largest effect on "pay arrives when we say".
+2. **Email provider, and where operator alerts go (RS-3, RS-17, RS-19).** Recommendation: one transactional email provider for people, and a single webhook URL (Slack or Discord) for operator alerts. Not chosen yet.
+3. **When to run [`owner-controls.md`](briefs/owner-controls.md) (RS-1, RS-2, RS-3).** Recommendation: straight after the NEAR HACKATHON closes on Nov 14, ahead of `rails-and-money.md`. It decides whether owners trust boreal.work with a saved PayPal account.
+4. **RS-1 default mode for existing agents.** Recommendation: leave existing agents on "spend within limits", tell each owner once, and default every new agent to "ask me each time".
+5. **RS-4: hold a self-reviewed pass for 24 hours before it pays?** Recommendation: yes, with the owner able to release it at once from My account. It costs honest workers a day on self-reviewed tasks and removes the instant cash-out.
+6. **RS-11: what should a requester's silence mean?** Now: after 72 hours the submission goes to boreal.work's reviewers, who judge it for no review fee. Recommendation: keep that while volume is small, and move to "passes automatically after 72 hours" (as MTurk and Upwork do) once the reviewers' queue is the bottleneck; that needs a state-machine change (`verdict_pass` by `system`) and a rulebook line. Either way the 72 hours belongs in the rulebook: see 9.
+7. **RS-18: a dispute with no decision after 72 hours.** Recommendation: it never decides itself (a panel with a person is the promise), but it alerts operators at 24 and 72 hours, and the status page counts disputes past 72 hours.
+8. **RS-20: is NEAR going live with real money before unmatched deposits can be returned?** Recommendation: no. Keep `BOREAL_ADDONS` without `near` on boreal.work until RS-20 is done.
+9. **Rulebook 2.1.** Two limits a requester is now held to aren't in the rulebook: a deadline at most 14 days away (RS-7) and 72 hours to review your own task (RS-11). Recommendation: add both to the spec's Rulebook tab and `packages/brain/src/rulebook.ts` as protective rules, bump `POLICY.rulebookVersion`, then have the copy model update `/rules`, `/terms` and the FAQ (handoff note 5).
+10. **RS-9 changed a documented safety behaviour.** Escrow holding *more* than the ledger used to pause all payouts; now it is reported and pauses nothing, and a shortfall pauses only its own rail. The reasoning is in RS-9. Say so if you want the old behaviour back on a rail: it is one condition in `packages/monitor/src/index.ts`.
+11. **A contact address** for the terms and privacy pages, support and privacy requests (Gaps). Recommendation: one monitored mailbox, named on `/terms`, `/privacy`, `/faq` and in the agent guide.
+12. **RS-21 rate limits.** Recommendation: 60 requests and 20 writes a minute per key to start, counted in Postgres.
+13. **RS-23: which unenforced policies the spec still wants.** Recommendation: delete the dispute deposit and the new-worker claim limit (the per-worker limit already does it); enforce the lost-disputes pause for requesters.
 
 ## Gaps
 
-RS-2 and RS-3 so far. The sweep adds the rest.
+Capabilities a product moving other people's money needs. Ranked; each is fixed, briefed or waiting on the owner.
+
+| # | Gap | Evidence | Status |
+| --- | --- | --- | --- |
+| 1 | Owner controls and approvals | RS-1, RS-2 | Briefed: `owner-controls.md` |
+| 2 | Notifications to workers, posters, owners | RS-3, RS-17 | Waiting on the owner (provider) |
+| 3 | A scheduler that runs every few minutes | RS-16 | Waiting on the owner |
+| 4 | Operator alerting and a dead-letter state | RS-19 | Waiting on the owner (channel); then `durable-work.md` |
+| 5 | Returning money that never funded a task | RS-20 | Open; NEAR stays off mainnet meanwhile |
+| 6 | Support and contact paths | `/terms` and `/privacy` name no way to reach boreal.work (`grep -i "contact\|mailto"` finds none) | Waiting on the owner (address) |
+| 7 | Fraud, collusion and sybil defences | RS-4, RS-22; one worker per PayPal account is the only defence | RS-4 waiting on the owner; RS-22 open |
+| 8 | Abuse limits on the API | RS-21 | Waiting on the owner |
+| 9 | Abuse reporting | A worker who claims a task that turns out harmful can only release it; there is no report action (`grep -i "report.*task\|abuse"` finds none) | Open: add "Report this task" to the worker page, which flags it for the human queue |
+| 10 | Dispute and human-review time limits | RS-18 | Waiting on the owner |
+| 11 | Backups, restore drills, rollback | `docs/deployments.md` says nothing of backups, point-in-time restore or how to roll back a deploy whose migration has run | Open: write the runbook, run one restore on testnet. Migrations so far only add (0022 adds a nullable column), so a code rollback is safe today |
+| 12 | Tax and identity records | No earnings statement or export per worker; no record of who a payee is beyond PayPal's (`grep -i "tax\|1099"` finds only copy) | Waiting on the owner (what the law requires where you operate) |
+| 13 | Account recovery | An account is a PayPal identity. Someone who loses that PayPal account loses their boreal.work account, history and any payout PayPal returns; identities are never swapped (`linkIdentity`) | Open: a support-run, audited "move this account to a new PayPal identity" action, once there is a contact path |
+| 14 | Funnel analytics | The admin console has a funnel page from the database; nothing measures visits, sign-in drop-off or claim-to-submit on the worker side | Open, low |
+| 15 | Localization | `lang="en"` only (`apps/web/src/app/layout.tsx`); the first workers are in the Philippines | Open: a handoff note once copy is stable |
+| 16 | Offline and slow-network behaviour | Photos are shrunk in the browser; a submit that fails on mobile data loses the form (not driven this sweep) | Not verified |
+| 17 | Status and incident communication | `/status` shows live health; there is no incident history and no way to post a notice | Open, low |
+| 18 | Accessibility | Not assessed this sweep | Not verified |
 
 ## Done
 
-_None yet._
+| ID | Kind · lens · severity | What was wrong | Fix | Commit |
+| --- | --- | --- | --- | --- |
+| RS-6 | defect · business · S1 (NEAR and Concordium add-ons) | Refunds on a chain rail went to `agents.refund_address`, which nothing sets for agents that link themselves: every refund of a cancelled, expired, refused or failed task retried forever with "no payout address for requester" (reproduced: `drainOutbox` returned `failed: 1`) | The funding's payer is recorded (`tasks.funding_payer`, migration 0022: NEAR's signer from the chain, the x402 payer on Concordium) and refunds go back to it. Test: `readiness.test.ts`, RS-6 | `8e0d4c6` |
+| RS-7 | wrong design · workers · S1 | A deadline had no upper limit, but a task's money is a PayPal authorization that lasts 29 days: a task posted for 40 days could be done and passed with nothing left to capture | A deadline is at most 14 days away (`POLICY.maxDeadlineMs`); 14 days + 72 h review + 48 h window + 72 h dispute fits in 29. Guide 2026-11-24. Test: RS-7 | `8e0d4c6` |
+| RS-9 | defect · production · S1 | Any difference between a rail's escrow and its ledger stopped the whole outbox on every rail: a cent sent to the NEAR escrow account by anyone, or an agent's transfer waiting for its `fund_task`, paused PayPal payouts too. A transfer sent but not yet recorded made escrow short and paused the retry that would have recorded it, for good. A rail whose balance couldn't be read skipped the outbox silently | Judged per rail: short of the ledger beyond in-flight transfers (or unreadable) pauses that rail's payouts and refunds only; more than the ledger is reported and pauses nothing. `TickReport.pausedRails`. Tests: `monitor.test.ts`, "escrow and the outbox" (4) | `8e0d4c6` |
+| RS-11 | gap · workers · S1 | A submission on a requester-reviewed task waited forever if the requester never reviewed: no timer, not in the admin queue, the worker never paid | After 72 hours (`POLICY.requesterReviewMs`) the monitor flags it for boreal.work's reviewers, in the trail; the admin queue shows it. Guide 2026-11-24. Tests: RS-11 (2) | `8e0d4c6` |
+| RS-12 | gap · workers · S1 | A payout PayPal returned, blocked or denied was marked failed and nothing could send it again, though `/admin` and the anomaly agent told operators to "resend" it | `adminResendPayout`: same ledger entry back to pending, a new outbox row sent under `<key>:r<n>` (PayPal refuses a batch id it has seen), audited; PayPal's reports are matched to the attempt, and late ones about an old attempt are ignored. A minimal "Send again" on Money → Pending and failed (handoff note 3). Tests: RS-12 (3) | `8e0d4c6` |
+| RS-5 | defect · business · S2 | The per-task cap and the requester's status were checked when a task was posted, not when it was funded | `holdFunding` re-checks both with the limits in force now. Tests: RS-5 (2) | `8e0d4c6` |
+| RS-8 | defect · production · S2 | Calls to PayPal, the NEAR RPC, NEAR Agent Market and NEAR AI had no time limit; a call that never answered hung funding (holding the task's row lock) or the monitor (holding its lease) | 20 s (PayPal), 30 s (NEAR), 120 s (inference). Tests: `paypal/src/client.test.ts` (2) | `593eb0d` |
+| RS-13 | defect · production · S2 | In the timer sweeps, one task whose move threw stopped every task after it, on every tick | Each task gets its turn; the failures are reported together afterwards. Test: RS-13 | `8e0d4c6` |
+| RS-14 | defect · business · S3 | The daily cap was read without a lock: two of a requester's tasks funding at once could both fit under it | The requester's row is locked for the check. No failing test: PGlite runs one connection, so the race can't be reproduced there | `8e0d4c6` |
+| RS-15 | defect · production · S3 | A signed-in worker could store 4 MB files under any task id, claimed or not, and the id went into the storage path unchecked. Submission files were served without `nosniff` | `assertCanSubmit` runs before a file is stored; files are served with `nosniff` and a sandboxing CSP. Test: RS-15 | `8e0d4c6` |
+| RS-10 | defect · production · S3 | `pnpm test` failed at random: desk tests build a database each and passed vitest's 10 s hook limit under load, which also skipped every later package's tests | 60 s limits for the desk's tests | `22b1ef2` |
+
+Not split one finding per commit: RS-5, 6, 7, 9, 11, 12, 13, 14 and 15 share `desk.ts`, `outbox.ts` and one test file, and went in as one commit.
+
+## Not verified
+
+- **The app in a browser.** Another session's `pnpm dev:local` held ports 3000 and 5433 and the one local database folder for the whole sweep, and a second one would have opened the same PGlite files. So the worker, requester and agent flows were not driven, on desktop or phone. The "Send again" button and the upload check are covered by desk tests and the typecheck only.
+- **PayPal's real behaviour**: that a 20-day-old authorization still captures, that `RETURNED` arrives as assumed, that a resend under `<key>:r1` is accepted. The tests run on the in-memory PayPal.
+- **The x402 `payer` on a real Concordium facilitator.** The stand-in returns it; on testnet, check one funded task has `funding_payer` set.
+- **Production settings**: which add-ons are on at boreal.work, whether `PAYPAL_WEBHOOK_ID` and `CRON_SECRET` are set, and whether anything already calls the cron more than daily.
+- **Market**: MCP, REST, A2A, the guide and the Hermes plugin were not compared tool by tool.
+- **Accessibility, slow networks, localization**: not assessed.
