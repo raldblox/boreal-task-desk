@@ -24,8 +24,8 @@ Similar entries already in the catalog: `rentahuman`, `withhuman`. Lead with wha
 name: borealwork
 title: boreal.work
 repo: https://github.com/raldblox/hermes-boreal
-sha: 3a235f19d3c4d22e6e1083075f41b8f277dd2c0d
-description: "Give Hermes verified human hands: hire a verified person on boreal.work for a step no agent can do online (confirm a supplier is real, check a shelf price, photograph a site), with the money held until the result passes review against your criteria and a public rulebook. Twelve native tools for the task loop; a spend guard (pre_tool_call) that enforces per-task and daily caps and asks you to approve above a threshold, and blocks terminal payments that aren't paying a boreal.work task; a verdict digest (pre_llm_call) that tells Hermes what finished since it last looked; and /boreal. Disclosure: HTTPS to the configured boreal.work site only (https://boreal.work by default, live PayPal money; testnet.boreal.work for the sandbox), from tool calls, from the guard (one task read before funding) and from the digest (one task list on a session's first turn). Stores the boreal.work agent key it collects in its own plugin state, or reads BOREAL_API_KEY. No shell commands, no background processes, no self-updates, no compiled code; standard library only."
+sha: b2fa3429d268d35eec94dbecb787ccf6a715d847
+description: "Give Hermes verified human hands: hire a verified person on boreal.work for a step no agent can do online (confirm a supplier is real, check a shelf price, photograph a site), with the money held until the result passes review against your criteria and a public rulebook. Twelve native tools for the task loop; a spend guard (pre_tool_call) that enforces per-task and daily caps and asks you to approve above a threshold, and blocks terminal payments that aren't paying a boreal.work task; a verdict digest (pre_llm_call) that tells Hermes what finished since it last looked; and /borealwork. Disclosure: HTTPS to the configured boreal.work site only (https://boreal.work by default, live PayPal money; testnet.boreal.work for the sandbox), from tool calls, from the guard (one task read before funding) and from the digest (one task list on a session's first turn). Stores the boreal.work agent key it collects in its own plugin state, or reads BOREAL_API_KEY. No shell commands, no background processes, no self-updates, no compiled code; standard library only."
 maintainer: raldblox
 tier: community
 category: tools
@@ -56,9 +56,9 @@ capabilities:
 > **Why a plugin, not a skill.**
 > - **Spend guard** (`pre_tool_call`): before `boreal_fund_task` runs, it reads the task's real total and blocks it over the per-task or daily cap, or escalates to the human-approval gate above a threshold. It also blocks terminal commands that move USDC without a `boreal:<taskId>` memo. A skill can only ask Hermes to behave; this enforces it.
 > - **Verdict digest** (`pre_llm_call`): on a session's first turn, Hermes is told which tasks finished or need its review since it last looked.
-> - 12 native tools and `/boreal`.
+> - 12 native tools and `/borealwork`.
 >
-> **Hermes surfaces used:** `register_tool` (12), `register_hook` (`pre_tool_call`, `pre_llm_call`), `register_command` (`/boreal`), `ctx.get_config`, `ctx.state`, `agent.secret_scope.get_secret`.
+> **Hermes surfaces used:** `register_tool` (12), `register_hook` (`pre_tool_call`, `pre_llm_call`), `register_command` (`/borealwork`), `ctx.get_config`, `ctx.state`, `agent.secret_scope.get_secret`.
 >
 > **Risky behaviour (rule 13):** network calls over HTTPS to the configured boreal.work site only (default https://boreal.work, which moves real money through PayPal; the spend guard and boreal.work's own owner-set limits bound it). It stores the agent key it collects in its own plugin state. No shell commands, no background processes, no self-updating, no compiled files, no dependencies outside the standard library.
 >
@@ -78,7 +78,7 @@ capabilities:
 
 ## Demo, under 90 seconds
 
-1. (0–10 s) "Hermes can research anything. It can't stand in a shop." Hermes with the plugin enabled: `/boreal`.
+1. (0–10 s) "Hermes can research anything. It can't stand in a shop." Hermes with the plugin enabled: `/borealwork`.
 2. (10–35 s) Ask Hermes for a real-world check. It quotes, posts with criteria, and funds: the spend guard asks you to approve the amount.
 3. (35–50 s) Ask it to pay someone directly from a terminal: the guard blocks it.
 4. (50–75 s) The result and its verdict (from the NEAR film's footage: the worker, the rule-cited verdict, the proof).
