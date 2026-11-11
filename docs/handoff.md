@@ -10,18 +10,7 @@ Notes from the model doing deep technical work, for a cheaper model to carry out
 
 ## Open
 
-### 5. Say the two new limits where people read the rules (blocked on the owner)
-
-- **Blocked on:** "Rulebook 2.1" under Needs the owner in `docs/readiness.md`. Do this only once the rulebook has the two rules and their IDs.
-- **Where:** `/rules`, `/terms`, `/faq`, and the deadline help text in `apps/web/src/app/post/post-form.tsx`.
-- **What's missing:** a deadline can be at most 14 days away (RS-7), and a requester who reviews their own task has 72 hours before boreal.work's reviewers take over (RS-11). Both are enforced and in the agent guide; none of the pages people read mention them.
-- **Done looks like:** each page states the limit once, citing the rule ID, using `POLICY.maxDeadlineMs` and `POLICY.requesterReviewMs` rather than typed numbers.
-
-### 6. A way to reach boreal.work (blocked on the owner)
-
-- **Blocked on:** the contact address (Needs the owner, item 11).
-- **Where:** `/terms`, `/privacy`, `/faq`, the site footer, and the agent guide's last section.
-- **Done looks like:** one line with the address on each, and on `/privacy` what to write for a privacy request.
+_None._
 
 ## Done
 
@@ -29,3 +18,5 @@ Notes from the model doing deep technical work, for a cheaper model to carry out
 - 2. Tell the poster their review time (RS-11): 8dd3302
 - 3. Money → Pending and failed: the "Send again" action (RS-12): 8dd3302
 - 4. Overview: escrow against the ledger now has three states (RS-9): 8dd3302
+- 5. Say the two new limits where people read the rules (blocked on the owner): d551dab
+- 6. A way to reach boreal.work (blocked on the owner): d551dab
