@@ -68,13 +68,23 @@ capabilities:
 
 ## X post (with the demo video)
 
-> Hermes can now hire a verified human.
->
-> The boreal.work plugin gives @NousResearch's Hermes Agent real-world hands: it posts a step only a person on the spot can do, holds the money until the work passes review, and a spend guard enforces your limits before any money moves.
->
-> #HermesAgent
+Two posts: the video on the first, the install line as a reply. Both under 280 characters as X counts them.
 
-(Check the length before posting; X counts each link as 23 characters.)
+**1/2** (attach `apps/film/out/borealwork-hermes-demo.mp4`)
+
+> Hermes can search the web. Now it can hire a verified human.
+>
+> boreal.work for Hermes posts a real-world task, holds the money until the work passes review, and its spend guard asks you before any money moves.
+>
+> Built for the @NousResearch Hermes plugin hackathon 🧵
+
+**2/2**
+
+> Install:
+> hermes plugins install raldblox/hermes-boreal
+>
+> Code: github.com/raldblox/hermes-boreal
+> Try it on testnet: testnet.boreal.work
 
 ## Demo, under 90 seconds
 
