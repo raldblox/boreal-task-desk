@@ -17,6 +17,48 @@ boreal.work is ready for real workers, real requesters and real money, on boreal
 | **Business** | Fees, holds, refunds and payouts reconcile to the cent in the ledger and in PayPal. Every rule a worker or requester is held to is in the rulebook and cited by ID. An operator can answer "where is my money?" for any task from `/admin`. |
 | **Market** | An agent builder goes from `/agents` to a funded task in minutes over MCP, REST, A2A or the Hermes plugin, and the guide, the API and the plugin never disagree. Pricing, limits and what happens on a fail are clear before anyone pays. |
 
+## Your stance: strict, independent, from first principles
+
+You are not here to check that what we built works as built. You are here to decide what boreal.work **should** be, and close the distance.
+
+- **Don't trust what exists.** Treat the code, the docs, the rulebook, this brief and `CLAUDE.md`'s choices as claims to test, not facts. If a design is wrong for a worker, a requester, an operator or the business, say so and propose the better one, even when it's established, documented or someone's earlier decision. Keep `CLAUDE.md`'s safety rules (money, privacy, state changes) unless you can show a safer design. Then write the proposal under **Needs the owner**; don't break them silently.
+- **Start from the people, not the code.** For each person (a worker in the Philippines on a phone, an agent builder, an agent, an owner approving spend, an operator, a disputing party), ask what they need to trust boreal.work with money and work. Then check whether we deliver it. What's missing counts as much as what's broken.
+- **Rediscover what's lacking.** Look for whole capabilities a product like this needs and we don't have, not only defects in what we have. For example:
+  - support and contact paths;
+  - account recovery;
+  - notifications when something needs a person;
+  - payout schedules and receipts;
+  - tax and identity records;
+  - fraud, collusion and sybil defences;
+  - abuse reporting;
+  - terms and privacy pages;
+  - status and incident communication;
+  - backups and restore drills;
+  - alerting;
+  - analytics on the funnel;
+  - onboarding;
+  - localization;
+  - accessibility;
+  - offline and slow-network behaviour;
+  - an operator's daily tools.
+
+  Benchmark against the best marketplaces and payment products you know, and against what regulators and PayPal expect of a business moving other people's money.
+- **Be strict.**
+  - Nothing is "ready" without evidence: a passing test, a flow you ran, a number you measured.
+  - "Works on the happy path" is not ready.
+  - "Probably fine" is a finding.
+  - A missing safeguard on money is S1 even if nothing has gone wrong yet.
+  - Don't soften a finding because the fix is large.
+- **Decide, then justify.** When there are options, pick the one that's best for us and write down why in a sentence or two. Weigh trust, money safety, workers' experience, cost and how fast it lets us grow. Don't list options without choosing.
+
+Findings come in three kinds; mark each:
+
+- **Defect:** it's broken.
+- **Wrong design:** it works but it's the wrong approach.
+- **Gap:** it's missing.
+
+Gaps and wrong designs get fixed like defects when they fit a sweep. When one is too big, it becomes a new brief in `docs/briefs/`, ranked in that folder's README.
+
 ## How to work
 
 1. **Read first.** Read `CLAUDE.md`, `README.md`, `docs/readiness.md` (if there is one), `docs/handoff.md` and `docs/briefs/README.md`. Run `pnpm typecheck` and `pnpm test` to know where things stand before you change anything.
@@ -29,6 +71,7 @@ boreal.work is ready for real workers, real requesters and real money, on boreal
    - **Confusion:** names that mean two things, copy that contradicts the rulebook, docs that disagree with the code, errors that don't say what to do next.
 3. **Write the ledger.** Every finding goes into `docs/readiness.md` with:
    - an ID (`RS-12`);
+   - its kind: defect, wrong design or gap;
    - its lens;
    - its severity: **S1** loses money, data or trust; **S2** blocks a flow; **S3** wrong but has a workaround; **S4** polish;
    - evidence: a file and line, a failing test, or the steps to reproduce;
@@ -79,7 +122,8 @@ This model doesn't redesign UI, write copy or do visual design itself. When a fi
 - `docs/readiness.md` is current:
   - every finding has evidence and a status;
   - no S1 or S2 is open without an owner question attached;
-  - each lens has a one-line verdict: ready, ready with caveats, or not ready.
+  - each lens has a one-line verdict, backed by evidence: ready, ready with caveats, or not ready;
+  - a **Gaps** section lists every missing capability you found, ranked, each fixed, briefed or waiting on the owner.
 - Every fix has a test, and `pnpm typecheck` and `pnpm test` pass on the last commit.
 - UI work is waiting in `docs/handoff.md` as notes, not done half-way in code.
 - The summary from step 6.
