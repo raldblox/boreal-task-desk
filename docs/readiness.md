@@ -10,7 +10,7 @@ Kept by the readiness sweep (`docs/briefs/readiness-sweep.md`). Each finding has
 
 It is ranked by severity, then by how many people a finding hits.
 
-Last sweep: 2026-11-12 (Fable 5.2). It read the money, state and security paths in `packages/core`, `desk`, `monitor`, `paypal`, `near` and the web app's API, sessions and file routes. It did **not** drive the app in a browser: see [Not verified](#not-verified).
+Last sweep: 2026-11-12 (Fable 5.2), with a second pass the same day at the owner's request (owner controls, rail switches, admin passkey, the EVM add-on, rulebook 2.1). It read the money, state and security paths in `packages/core`, `desk`, `monitor`, `paypal`, `near` and the web app's API, sessions and file routes. It did **not** drive the app in a browser: see [Not verified](#not-verified).
 
 ## Verdicts
 
@@ -41,7 +41,7 @@ Seeded on 2026-11-12. The Hermes catalog review (NousResearch/hermes-agent#15309
 - The owner can change the mode later (see RS-2).
 - `get_account` reports the mode. The agent guide, the MCP tool descriptions, the A2A card and the Hermes plugin all explain the pending-approval reply. The plugin's approval prompt stays on as well.
 
-**Status:** open. Briefed in [`docs/briefs/owner-controls.md`](briefs/owner-controls.md); the default for existing agents is under [Needs the owner](#needs-the-owner).
+**Status:** done (`693cf11`). A spending mode per agent, enforced in the desk: in `ask` (the default for a newly linked agent) the saved PayPal account moves only under an approval the owner gave at `/approve/<id>` for exactly those tasks; `fund_task` and `fund_tasks` answer `approvalRequired` (REST 202) and hold nothing. Existing agents stay on `auto`. Tests: `packages/desk/src/owner.test.ts` (5), and the PayPal end-to-end test now goes through the approval. Left: `accept_result` and a self-review pass are not gated (the owner's decision: they release pay at once); money already in an agent's own NEAR or EVM wallet can't be held back by this; the Hermes plugin doesn't explain the new reply yet (RS-27).
 
 ### RS-2 · gap · business · S1 — No owner controls: pause, revoke, change limits, disconnect PayPal, see spend
 
@@ -60,7 +60,7 @@ Seeded on 2026-11-12. The Hermes catalog review (NousResearch/hermes-agent#15309
 - My agents shows each agent's spend today, this week and in total, and its open holds.
 - UI beyond the minimum goes to `docs/handoff.md`.
 
-**Status:** open. Briefed in [`docs/briefs/owner-controls.md`](briefs/owner-controls.md); when to run it is under [Needs the owner](#needs-the-owner). RS-5 (done) already makes funding honour a limit or freeze the moment it changes.
+**Status:** done (`693cf11`). The owner pauses and resumes, revokes the key, changes limits and mode, and disconnects PayPal (also deleted at PayPal, best effort), each in `owner_actions`; My account → Agents shows spend today, this week and in all, and what is held. Tests: `owner.test.ts` (4), the spend view against the ledger to the cent. The page is the bare minimum: handoff note 7.
 
 ### RS-3 · gap · business, production · S1 — Owners aren't told when their agent spends
 
@@ -88,7 +88,7 @@ Seeded on 2026-11-12. The Hermes catalog review (NousResearch/hermes-agent#15309
 - Collusion signals go to `/admin`: the same worker passed repeatedly by the same agent or owner, accounts sharing identity or payout details, self-reviewed tasks with near-instant passes, and requesters whose fails a panel keeps overturning.
 - Rulebook and spec changes must stay in sync with `packages/brain/src/rulebook.ts`.
 
-**Status:** open, waiting on the owner (it changes when workers are paid, which is rulebook policy): see [Needs the owner](#needs-the-owner).
+**Status:** open, by the owner's decision of 2026-11-12: a pass the requester gives or accepts releases the worker's pay at once, with no hold. What remains is making abuse visible: collusion signals in `/admin` (the same worker passed again and again by one owner's agents, near-instant self-review passes, requesters whose fails a panel overturns). Not built.
 
 ### RS-20 · defect · business · S1 (NEAR and Concordium add-ons) — Money sent to escrow for a task that then isn't funded has no way back
 
@@ -102,7 +102,7 @@ Seeded on 2026-11-12. The Hermes catalog review (NousResearch/hermes-agent#15309
 - An admin action to return an unmatched deposit by transaction hash, for transfers whose `fund_task` never came.
 - Needs a ledger entry that belongs to no funded task, which the current `ledgerEscrowBalance` join on tasks doesn't count: design it with [`rails-and-money.md`](briefs/rails-and-money.md).
 
-**Status:** open. Safe for now only while NEAR handles test money; see [Needs the owner](#needs-the-owner).
+**Status:** open. The owner agreed on 2026-11-12: NEAR stays off boreal.work. An operator can also close any rail to new money at once from `/admin/controls` (`693cf11`). The EVM rail (`docs/evm.md`) doesn't have this flaw: the agent signs, and boreal.work submits only inside the funding checks.
 
 ### RS-16 · gap · workers, production · S2 — Timers and payouts run once a day unless someone is using the site
 
@@ -113,7 +113,7 @@ Seeded on 2026-11-12. The Hermes catalog review (NousResearch/hermes-agent#15309
 
 **Fix:** call `GET /api/cron/tick` every 5 minutes or less. Either Vercel Cron on a plan that allows it (changing `vercel.json` on a plan that doesn't fails the deploy, so this wasn't changed), or an outside scheduler with `CRON_SECRET`. [`durable-work.md`](briefs/durable-work.md) is the larger answer.
 
-**Status:** open, waiting on the owner (which scheduler).
+**Status:** accepted by the owner on 2026-11-12: the cron stays daily (the hosting plan's limit). Pay is released at once when a requester reviews or accepts, because every write runs the monitor straight away; only the timers (the 48-hour window, deadlines, the 72-hour review limit) can run late on a day nobody uses the site, by up to 24 hours. The rulebook's "48 hours" is therefore "48 hours, or the next activity or daily run after it": say so where pay timing is promised (handoff note 12).
 
 ### RS-17 · gap · workers, business · S2 — Nobody is told when something needs them
 
@@ -134,7 +134,7 @@ Seeded on 2026-11-12. The Hermes catalog review (NousResearch/hermes-agent#15309
 - Put disputes and human-queue items older than 24 hours in the anomaly scan (`findAnomalies`) and in the operator alert (RS-19).
 - Decide what happens at 72 hours with no decision (see [Needs the owner](#needs-the-owner)).
 
-**Status:** open, waiting on the owner (the default outcome).
+**Status:** partly done (`026b44c`): every tick reports disputes past 72 hours and human-queue items older than a day, in the cron's answer, the logs and `/admin`'s tick. Nothing decides itself. Left: pushing that to an operator needs the alert channel (RS-19).
 
 ### RS-19 · gap · production · S2 — A failing payout is silent until someone opens /admin
 
@@ -187,6 +187,14 @@ Seeded on 2026-11-12. The Hermes catalog review (NousResearch/hermes-agent#15309
 
 **Status:** open.
 
+### RS-27 · gap · market · S2 — The Hermes plugin doesn't know the owner-approval reply
+
+**Evidence:** `integrations/hermes-boreal/__init__.py`, `boreal_fund_task` (around line 233): it understands a payment requirement with an `approveUrl` and a funded task. For an agent in `ask` mode with a saved PayPal account the server now answers `approvalRequired` with its own `approveUrl` (REST 202); the plugin passes the JSON through, so the model sees the link, but its `next` hint and its session digest don't mention it.
+
+**Fix:** in the plugin's own repo: read `approvalRequired`, tell the owner the link, poll `get_task`; add `spendingMode` and `paused` to what `/borealwork` shows; then move the pin here. The plugin's own approval prompt stays.
+
+**Status:** open. Not a breaking change for the plugin (nothing it relied on changed for `auto` agents, and existing agents stay on `auto`).
+
 ### RS-26 · gap · market · S4 — The Hermes plugin doesn't say the deadline limit
 
 **Evidence:** `integrations/hermes-boreal/schemas.py:59` describes `deadline_hours` with no maximum. The server now refuses more than 14 days (RS-7) with a clear message, so nothing breaks; the agent just learns it late.
@@ -199,19 +207,22 @@ Seeded on 2026-11-12. The Hermes catalog review (NousResearch/hermes-agent#15309
 
 Each has a recommendation; none blocks the others.
 
-1. **Which scheduler runs the monitor (RS-16)?** Recommendation: call `/api/cron/tick` every 2 minutes from a scheduler you already pay for (Vercel Cron on Pro, or a free external one with `CRON_SECRET`), on both sites, this week. It is the cheapest fix with the largest effect on "pay arrives when we say".
+1. **Scheduler (RS-16).** Settled 2026-11-12: the cron stays daily; pay is released at once on a review or an accept. See RS-16 for what can still run late.
 2. **Email provider, and where operator alerts go (RS-3, RS-17, RS-19).** Recommendation: one transactional email provider for people, and a single webhook URL (Slack or Discord) for operator alerts. Not chosen yet.
-3. **When to run [`owner-controls.md`](briefs/owner-controls.md) (RS-1, RS-2, RS-3).** Recommendation: straight after the NEAR HACKATHON closes on Nov 14, ahead of `rails-and-money.md`. It decides whether owners trust boreal.work with a saved PayPal account.
-4. **RS-1 default mode for existing agents.** Recommendation: leave existing agents on "spend within limits", tell each owner once, and default every new agent to "ask me each time".
-5. **RS-4: hold a self-reviewed pass for 24 hours before it pays?** Recommendation: yes, with the owner able to release it at once from My account. It costs honest workers a day on self-reviewed tasks and removes the instant cash-out.
+3. **When to run `owner-controls.md`.** Settled: done on 2026-11-12 (`693cf11`), except telling owners about spending (RS-3), which waits on item 2.
+4. **RS-1 default mode for existing agents.** Settled as recommended: existing agents stay on "pay on its own", new ones ask each time. Nobody has been told yet: there is no way to tell them until item 2.
+5. **RS-4: a hold on self-reviewed passes.** Settled 2026-11-12: no hold. A review or an accept by the requester releases pay at once.
 6. **RS-11: what should a requester's silence mean?** Now: after 72 hours the submission goes to boreal.work's reviewers, who judge it for no review fee. Recommendation: keep that while volume is small, and move to "passes automatically after 72 hours" (as MTurk and Upwork do) once the reviewers' queue is the bottleneck; that needs a state-machine change (`verdict_pass` by `system`) and a rulebook line. Either way the 72 hours belongs in the rulebook: see 9.
 7. **RS-18: a dispute with no decision after 72 hours.** Recommendation: it never decides itself (a panel with a person is the promise), but it alerts operators at 24 and 72 hours, and the status page counts disputes past 72 hours.
-8. **RS-20: is NEAR going live with real money before unmatched deposits can be returned?** Recommendation: no. Keep `BOREAL_ADDONS` without `near` on boreal.work until RS-20 is done.
+8. **NEAR on mainnet (RS-20).** Settled 2026-11-12: it stays off boreal.work; only PayPal is needed there. Rails can also be closed from `/admin/controls`.
 9. **Rulebook 2.1.** Settled: R1.8 and R5.8 are in the spec's Rulebook tab (v2.1), and `/rules`, `/terms`, `/faq` and the post form cite them. The `rulebook.ts` and `POLICY.rulebookVersion` change sits uncommitted with the owner-controls work and lands with it.
-10. **RS-9 changed a documented safety behaviour.** Escrow holding *more* than the ledger used to pause all payouts; now it is reported and pauses nothing, and a shortfall pauses only its own rail. The reasoning is in RS-9. Say so if you want the old behaviour back on a rail: it is one condition in `packages/monitor/src/index.ts`.
+10. **RS-9's changed safety behaviour.** Settled 2026-11-12: the owner approved it.
 11. **A contact address.** Settled: a direct message to @borealwork on X for now (`apps/web/src/content/contact.ts`), on the footer, `/terms`, `/privacy`, `/faq` and the agent guide. Change that one file when there is a mailbox or a support chat.
 12. **RS-21 rate limits.** Recommendation: 60 requests and 20 writes a minute per key to start, counted in Postgres.
 13. **RS-23: which unenforced policies the spec still wants.** Recommendation: delete the dispute deposit and the new-worker claim limit (the per-worker limit already does it); enforce the lost-disputes pause for requesters.
+
+14. **A first passkey for each admin on boreal.work.** `/admin` now needs one on mainnet. Set `ADMIN_PASSKEY_ENROLL_CODE` (16+ characters) in the mainnet project, enrol two keys at `/admin-passkey`, then remove the variable (README, Admin). Until then nobody can open `/admin` on boreal.work after the next deploy: do this at the deploy.
+15. **Which chain and token for the EVM rail.** Built for USDC on Base by default, but nothing is baked in. Recommendation: Base, Circle's USDC; follow `docs/evm.md`, testnet first.
 
 ## Gaps
 
@@ -219,16 +230,16 @@ Capabilities a product moving other people's money needs. Ranked; each is fixed,
 
 | # | Gap | Evidence | Status |
 | --- | --- | --- | --- |
-| 1 | Owner controls and approvals | RS-1, RS-2 | Briefed: `owner-controls.md` |
+| 1 | Owner controls and approvals | RS-1, RS-2 | Done (`693cf11`) |
 | 2 | Notifications to workers, posters, owners | RS-3, RS-17 | Waiting on the owner (provider) |
-| 3 | A scheduler that runs every few minutes | RS-16 | Waiting on the owner |
+| 3 | A scheduler that runs every few minutes | RS-16 | Accepted by the owner: daily cron, plus a tick on every write |
 | 4 | Operator alerting and a dead-letter state | RS-19 | Waiting on the owner (channel); then `durable-work.md` |
 | 5 | Returning money that never funded a task | RS-20 | Open; NEAR stays off mainnet meanwhile |
 | 6 | Support and contact paths | `/terms` and `/privacy` name no way to reach boreal.work (`grep -i "contact\|mailto"` finds none) | Waiting on the owner (address) |
 | 7 | Fraud, collusion and sybil defences | RS-4, RS-22; one worker per PayPal account is the only defence | RS-4 waiting on the owner; RS-22 open |
 | 8 | Abuse limits on the API | RS-21 | Waiting on the owner |
 | 9 | Abuse reporting | A worker who claims a task that turns out harmful can only release it; there is no report action (`grep -i "report.*task\|abuse"` finds none) | Open: add "Report this task" to the worker page, which flags it for the human queue |
-| 10 | Dispute and human-review time limits | RS-18 | Waiting on the owner |
+| 10 | Dispute and human-review time limits | RS-18 | Reported on every tick (`026b44c`); alerting waits on the channel |
 | 11 | Backups, restore drills, rollback | `docs/deployments.md` says nothing of backups, point-in-time restore or how to roll back a deploy whose migration has run | Open: write the runbook, run one restore on testnet. Migrations so far only add (0022 adds a nullable column), so a code rollback is safe today |
 | 12 | Tax and identity records | No earnings statement or export per worker; no record of who a payee is beyond PayPal's (`grep -i "tax\|1099"` finds only copy) | Waiting on the owner (what the law requires where you operate) |
 | 13 | Account recovery | An account is a PayPal identity. Someone who loses that PayPal account loses their boreal.work account, history and any payout PayPal returns; identities are never swapped (`linkIdentity`) | Open: a support-run, audited "move this account to a new PayPal identity" action, once there is a contact path |
@@ -237,6 +248,20 @@ Capabilities a product moving other people's money needs. Ranked; each is fixed,
 | 16 | Offline and slow-network behaviour | Photos are shrunk in the browser; a submit that fails on mobile data loses the form (not driven this sweep) | Not verified |
 | 17 | Status and incident communication | `/status` shows live health; there is no incident history and no way to post a notice | Open, low |
 | 18 | Accessibility | Not assessed this sweep | Not verified |
+
+## Added on 2026-11-12, at the owner's request
+
+Not findings: new capabilities. Each is tested as far as it can be without the outside thing it talks to; what wasn't is under [Not verified](#not-verified).
+
+| What | Where | Commit |
+| --- | --- | --- |
+| Owner controls: approve each payment, pause, revoke, limits, disconnect, spend view | `packages/desk/src/owner.ts`, `/approve/[id]`, My account → Agents | `693cf11` |
+| Rail switches: close a rail to new money at once, with no deploy | `packages/desk/src/controls.ts`, `/admin/controls` | `693cf11` |
+| Rulebook 2.1: R1.8 (deadline at most 14 days), R5.8 (72 hours to review your own task) | `packages/brain/src/rulebook.ts`; the spec's Rulebook tab already matched, word for word | `693cf11` |
+| Admin passkey: `/admin` needs a security key on top of signing in, always on mainnet | `apps/web/src/lib/admin-passkey.ts`, `/admin-passkey`, `packages/desk/src/passkeys.ts` | `9858eea`, `3a2b333` |
+| EVM add-on, prepared and off: USDC on an EVM chain over x402 | `packages/evm`, `docs/evm.md` | `0953231` |
+
+`9858eea` also contains the other session's rewrite of `apps/web/src/app/page.tsx`, staged by mistake with a broad `git add`; nothing was lost, its content is simply in that commit.
 
 ## Done
 
@@ -257,6 +282,11 @@ Capabilities a product moving other people's money needs. Ranked; each is fixed,
 Not split one finding per commit: RS-5, 6, 7, 9, 11, 12, 13, 14 and 15 share `desk.ts`, `outbox.ts` and one test file, and went in as one commit.
 
 ## Not verified
+
+- **Everything added on 2026-11-12, in a browser**: the approval page, the agent controls on My account, the rail switches, the passkey page. The other session's dev server held the ports and the local database throughout. They typecheck, lint and are covered by desk and library tests only.
+- **The passkey ceremony with a real security key.** The gate, the cookies and the store are tested; registering and using a YubiKey has not been done once. Do it on testnet.boreal.work (`ADMIN_PASSKEY=required`) before the mainnet deploy.
+- **The EVM rail on a real chain.** Its tests run against an in-memory chain that checks signatures, nonces and balances. `docs/evm.md` lists the five steps before real money.
+- **PayPal deleting a saved account** (`DELETE /v3/vault/payment-tokens/<id>`) when an owner disconnects: boreal.work forgets the account either way; the PayPal call is best effort and untested against the sandbox.
 
 - **The app in a browser.** Another session's `pnpm dev:local` held ports 3000 and 5433 and the one local database folder for the whole sweep, and a second one would have opened the same PGlite files. So the worker, requester and agent flows were not driven, on desktop or phone. The "Send again" button and the upload check are covered by desk tests and the typecheck only.
 - **PayPal's real behaviour**: that a 20-day-old authorization still captures, that `RETURNED` arrives as assumed, that a resend under `<key>:r1` is accepted. The tests run on the in-memory PayPal.
