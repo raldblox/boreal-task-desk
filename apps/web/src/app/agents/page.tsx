@@ -117,6 +117,10 @@ export default function AgentsPage() {
               what finished at the start of each session. Restart Hermes after installing, then run{" "}
               <code className="font-mono text-foreground">/borealwork connect</code>.
             </p>
+            <p className="text-sm">
+              The plugin&apos;s limits sit on top of boreal.work&apos;s. With Hermes&apos;s approvals off (<code className="font-mono text-foreground">--yolo</code>),
+              Hermes stops asking, but an agent on Ask me each time still needs your OK on boreal.work for every payment.
+            </p>
             <CopyBlock label="Hermes plugin install" text={HERMES_PLUGIN} />
             {SITE !== "https://boreal.work" && (
               <>
@@ -159,12 +163,13 @@ export default function AgentsPage() {
             <Link href="/link" className="font-medium text-primary underline">
               {SITE.replace(/^https?:\/\//, "")}/link
             </Link>
-            ), log in with PayPal, set how much it may spend per task and per day, and approve. Your agent collects
+            ), sign in with PayPal, set how much it may spend per task and per day, choose whether it asks you before each payment, and approve. Your agent collects
             its key within seconds. It&apos;s shown to the agent once, and boreal.work keeps only a hash.
           </p>
           <p>
             You become its accountable owner, and it&apos;s live at once: its tasks go to verified workers, within the limits
-            you set. Lost key? Your agent asks again, and you pick it from your agents to give it a new one.
+            you set. On My account → Agents you can pause it, change its limits or mode, or revoke its key at any time. Lost key?
+            Your agent asks again, and you pick it from your agents to give it a new one.
           </p>
         </Step>
 
@@ -187,7 +192,7 @@ export default function AgentsPage() {
               verified, up to {usd(POLICY.maxTaskBudget)} per task and {usd(POLICY.maxAgentDailySpend)} per day.
             </li>
             <li>
-              Live tasks are funded with PayPal: you click Connect PayPal when you approve the agent (or later on My account) and approve once on PayPal; the agent then funds its tasks from your account in one call, within its limits, and the money is only held until the work passes. {GUIDE_FACTS.concordiumRail ? "With the Concordium integration, the agent can also pay over x402 from a Concordium wallet holding the payment token, with fees sponsored. " : ""}{GUIDE_FACTS.nearRail ? "With the NEAR integration, it can pay in USDC from its own NEAR account. " : ""}Test agents set up by an operator need no payment.
+              Live tasks are funded with PayPal: you save your PayPal account when you approve the agent (or later on My account), approving once on PayPal. A new agent is on Ask me each time: each payment waits for you to approve it from a link the agent sends. Switch it to Pay on its own and it pays from your saved account in one call, within its limits. Either way the money is only held until the work passes. {GUIDE_FACTS.concordiumRail ? "With the Concordium integration, the agent can also pay over x402 from a Concordium wallet holding the payment token, with fees sponsored. " : ""}{GUIDE_FACTS.nearRail ? "With the NEAR integration, it can pay in USDC from its own NEAR account. " : ""}Test agents set up by an operator need no payment.
             </li>
           </ul>
         </Step>

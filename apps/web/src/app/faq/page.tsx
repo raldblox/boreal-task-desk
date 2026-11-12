@@ -43,8 +43,9 @@ function questions(): { title: string; items: QA[] }[] {
           q: "Who can take tasks?",
           a: (
             <>
-              Anyone who logs in with PayPal.{live ? " On live money, PayPal must have verified your account before you can claim." : ""} A
-              new worker holds one task at a time and has {HOURS(POLICY.claimDurationMs)} hours to finish it after claiming.
+              Anyone who signs in with PayPal.{live ? ` On live money, PayPal must have verified your account${concordiumId ? ", or you need the Verified by Concordium badge," : ""} before you can claim.` : ""}{" "}
+              You hold one task at a time, and have {HOURS(POLICY.claimDurationMs)} hours after claiming to send your result, or until the
+              deadline if that is sooner.
             </>
           ),
         },
@@ -82,11 +83,15 @@ function questions(): { title: string; items: QA[] }[] {
         },
         {
           q: "When am I paid?",
-          a: `When the result is final: ${HOURS(POLICY.objectionWindowMs)} hours after it passes review, or sooner if the requester accepts it early.`,
+          a: `At once, if the requester passes or accepts your result. Otherwise when the ${HOURS(POLICY.objectionWindowMs)} hours to dispute a pass end; the site acts on that at its next activity or its daily run, so it is sometimes up to a day later. Then PayPal's own delivery time applies.`,
         },
         {
           q: "What if my result fails?",
-          a: "You can dispute the verdict once, and a person on a panel decides. Reviewers judge only against the task's own checks and the rulebook, and an unclear check is read in your favour.",
+          a: `You have ${HOURS(POLICY.objectionWindowMs)} hours to dispute it, and a panel with a person on it decides. A task has one dispute: if the requester has already disputed, you can't. Reviewers judge only against the task's own checks and the rulebook, and an unclear check is read in your favour.`,
+        },
+        {
+          q: "PayPal sent my pay back. What now?",
+          a: "It happens when a PayPal account can't receive the payment yet, for example before PayPal has verified it. Your pay stays held for you. Fix your PayPal account, then message boreal.work (below), and it is sent again.",
         },
       ],
     },
@@ -99,7 +104,11 @@ function questions(): { title: string; items: QA[] }[] {
         },
         {
           q: "When am I charged?",
-          a: "Your payment is held when you fund the task and taken only when the work passes. If the task is refused, expires or you cancel before anyone claims it, everything is released. If the result fails, only the review part of the fee is kept.",
+          a: "Your payment is held when you fund the task and taken only when the work passes. If the task is refused, expires or you cancel before anyone claims it, everything is released. If boreal.work's reviewer fails the result, only the review part of the fee is kept; if you fail it yourself, nothing is.",
+        },
+        {
+          q: "Can I cancel a task?",
+          a: "Yes, until a worker claims it: before you fund it, while it is being checked, or while it is open. Everything you paid is released. Once someone has claimed it, it can't be cancelled.",
         },
         {
           q: "Why do I pay before the task is checked?",
@@ -126,7 +135,11 @@ function questions(): { title: string; items: QA[] }[] {
       items: [
         {
           q: "Who checks the work?",
-          a: "boreal.work's AI reviewer, against your checks and the rulebook, or you, if you chose to review it yourself. Anything the AI isn't sure about goes to a person.",
+          a: "boreal.work's reviewer, which is an AI, against the task's checks and the rulebook; or you, if you chose to review it yourself. Anything the AI isn't sure of goes to a person at boreal.work.",
+        },
+        {
+          q: "Will I be told when something happens?",
+          a: "Not yet. boreal.work sends no email or notifications. A verdict, the time left to dispute it and your pay all show on the task's page, and your tasks are listed on My account. An owner sees a payment their agent asks for on My account, or from the link the agent sends.",
         },
         {
           q: "What if I review it myself and don't get to it?",
@@ -166,12 +179,20 @@ function questions(): { title: string; items: QA[] }[] {
           q: "Can my AI agent post tasks?",
           a: (
             <>
-              Yes, over MCP, REST or A2A. It asks you to approve it once, with spending limits you set, and pays the same way you do.{" "}
+              Yes, over MCP, REST or A2A. It asks you to approve it once, and you set what it may spend per task and per day.{" "}
               <Link href="/agents" className="text-primary underline-offset-4 hover:underline">
                 Set up your agent
               </Link>
             </>
           ),
+        },
+        {
+          q: "Does my agent need my OK to pay?",
+          a: `By default, yes. A new agent is on "Ask me each time": nothing is held on your saved PayPal account until you approve that payment from the link it sends you, which waits ${HOURS(POLICY.fundingApprovalMs)} hours. You can switch it to "Pay on its own", and it then pays within its limits without asking. Either way, accepting a pass and its own pass as reviewer pay the worker at once.`,
+        },
+        {
+          q: "How do I stop or limit my agent?",
+          a: "On My account → Agents: pause and resume it, change its limits or its mode, disconnect your saved PayPal account, or revoke its key. A paused agent can still read and cancel its tasks, but can't post, pay, accept or review.",
         },
       ],
     },

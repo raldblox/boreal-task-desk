@@ -147,14 +147,24 @@ export function ApproveLinkForm({
       </div>
 
       <fieldset className="flex flex-col gap-2 text-sm">
-        <legend className="mb-1 font-medium">When it pays from a PayPal account you save</legend>
+        <legend className="mb-1 font-medium">When it pays from your saved PayPal account</legend>
+        <p className="mb-1 text-xs text-muted-foreground">
+          Saving your PayPal account lets boreal.work place holds on it later without PayPal asking you again. This choice decides whether
+          your agent needs your OK first. You can change it any time on My account.
+        </p>
         <label className="flex items-start gap-2">
           <input type="radio" name="spendingMode" value="ask" defaultChecked className="mt-0.5" />
-          <span>Ask me each time: I approve every payment before anything is held.</span>
+          <span>
+            <span className="font-medium">Ask me each time.</span> Nothing is held on my PayPal account until I approve that payment, from
+            a link my agent sends me.
+          </span>
         </label>
         <label className="flex items-start gap-2">
           <input type="radio" name="spendingMode" value="auto" className="mt-0.5" />
-          <span>Let it pay on its own, within the limits above.</span>
+          <span>
+            <span className="font-medium">Pay on its own.</span> boreal.work may hold money on my saved PayPal account for this agent&apos;s
+            tasks without asking me, up to the limits above.
+          </span>
         </label>
       </fieldset>
 

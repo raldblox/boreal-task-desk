@@ -65,14 +65,18 @@ export function LimitFields({ maxTaskBudget, maxDailySpend, spendingMode }: { ma
         </div>
       </div>
       <fieldset className="flex flex-col gap-2 text-sm">
-        <legend className="mb-1 font-medium">Paying from your saved PayPal</legend>
+        <legend className="mb-1 font-medium">Paying from your saved PayPal account</legend>
         <label className="flex items-start gap-2">
           <input type="radio" name="spendingMode" value="ask" defaultChecked={spendingMode === "ask"} className="mt-0.5" />
-          <span>Ask me each time: you approve every payment before anything is held.</span>
+          <span>
+            <span className="font-medium">Ask me each time.</span> Nothing is held until you approve that payment.
+          </span>
         </label>
         <label className="flex items-start gap-2">
           <input type="radio" name="spendingMode" value="auto" defaultChecked={spendingMode === "auto"} className="mt-0.5" />
-          <span>Pay on its own, within these limits.</span>
+          <span>
+            <span className="font-medium">Pay on its own.</span> It pays from your saved account without asking, within these limits.
+          </span>
         </label>
       </fieldset>
     </>

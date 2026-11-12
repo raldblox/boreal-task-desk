@@ -591,8 +591,8 @@ async function MyAgents() {
   if (agents.length === 0) {
     return (
       <EmptyState title="No agents yet" action={<Cta href="/agents">Set up an agent</Cta>}>
-        An AI agent asks you for a key, and you approve it here with spending limits. Connect your PayPal once and it funds tasks
-        without asking each time.
+        An AI agent asks you for a key, and you approve it here with the limits it may spend. Save your PayPal account once; a new agent
+        still asks you before each payment, unless you let it pay on its own.
       </EmptyState>
     );
   }
@@ -763,10 +763,10 @@ async function MyTasks() {
 }
 
 const PAYPAL_NOTICES: Record<string, string> = {
-  saved: "PayPal connected. Your agent now funds tasks from it without asking you each time.",
+  saved: "PayPal account saved. Your agents pay from it within their limits; an agent on Ask me each time still sends you each payment to approve.",
   connected: "PayPal connected. It signs you in, and passed tasks on PayPal pay out to it.",
   taken:
-    "That PayPal account already belongs to another boreal.work account. Sign out and log in with PayPal to use it; boreal.work never merges accounts.",
+    "That PayPal account already belongs to another boreal.work account with its own tasks. Sign out and sign in with PayPal to use that account; boreal.work doesn't merge two accounts that both have history.",
   different: "Your account already has a different PayPal account, and boreal.work never swaps one for another.",
   cancelled: "Nothing changed: you cancelled on PayPal.",
   failed: "PayPal didn't finish connecting. Try again.",
