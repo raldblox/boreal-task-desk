@@ -1,6 +1,6 @@
 # boreal-task-desk
 
-pnpm workspace. See README.md for the layout. The product spec lives in the "boreal.work — Vision & Draft Specs" Claude Doc (https://claude.ai/artifact/84JJPMPj7NFfCUJ6SUHAvg), with the rulebook in its Rulebook tab (v2.1, also published at `/rules`).
+pnpm workspace. See README.md for the layout. The product spec lives in the "boreal.work — Vision & Draft Specs" Claude Doc (https://claude.ai/artifact/84JJPMPj7NFfCUJ6SUHAvg), with the rulebook in its Rulebook tab (v2.2, also published at `/rules`).
 
 ## Rules that the code must keep
 

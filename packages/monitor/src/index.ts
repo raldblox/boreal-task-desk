@@ -32,7 +32,7 @@ export interface TickReport {
   expiredClaims: number;
   expiredDeadlines: number;
   closedWindows: number;
-  ai: { screened: number; reviewed: number; toHumans: number; deferred: number } | null;
+  ai: { screened: number; reviewed: number; toHumans: number; deferred: number; panelVotes: number } | null;
   outbox: { sent: number; failed: number; held?: number } | null;
   /** Timed-out requester reviews handed to boreal.work's reviewers. */
   escalatedReviews: number;
@@ -225,8 +225,8 @@ export function describeTick(r: TickReport): string | null {
     r.escalatedReviews && `${r.escalatedReviews} unreviewed submissions to boreal.work's reviewers`,
     r.retention && (r.retention.results || r.retention.clientHashes) &&
       `retention: ${r.retention.files} files from ${r.retention.results} results deleted, ${r.retention.clientHashes} old sign-in hashes cleared`,
-    r.ai && (r.ai.screened || r.ai.reviewed || r.ai.toHumans || r.ai.deferred) &&
-      `AI: ${r.ai.screened} screened, ${r.ai.reviewed} reviewed, ${r.ai.toHumans} to humans, ${r.ai.deferred} deferred`,
+    r.ai && (r.ai.screened || r.ai.reviewed || r.ai.toHumans || r.ai.deferred || r.ai.panelVotes) &&
+      `AI: ${r.ai.screened} screened, ${r.ai.reviewed} reviewed, ${r.ai.toHumans} to humans, ${r.ai.deferred} deferred, ${r.ai.panelVotes} dispute votes`,
     r.outbox && (r.outbox.sent || r.outbox.failed) && `outbox: ${r.outbox.sent} sent, ${r.outbox.failed} failed`,
     r.market && (r.market.taken || r.market.funded || r.market.delivered || r.market.closed) &&
       `NEAR market: ${r.market.taken} hired, ${r.market.funded} funded, ${r.market.delivered} delivered, ${r.market.closed} closed`,

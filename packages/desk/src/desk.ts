@@ -972,20 +972,109 @@ export function createDesk({
       });
     },
 
+    /**
+     * The dispute panel has two members: boreal.work's AI reviewer and a person (R6.3). The AI
+     * votes first; its vote is recorded in the trail and changes nothing. The person decides with
+     * the vote in front of them, and their verdict stands when the two disagree. Only this moves
+     * the task, so a panel decision is always a person's.
+     */
     async decideDispute(
       caller: Caller,
       taskId: string,
       decision: { outcome: "pass" | "fail"; ruleIds: string[]; reasoning: string },
     ) {
       requireRole(caller, "panel");
+      const vote = await this.panelAiVote(taskId);
+      const aiVote = vote ? { outcome: vote.outcome, ruleIds: vote.ruleIds, model: vote.model } : null;
       return mutate(
         taskId,
         caller,
         decision.outcome === "pass"
           ? { type: "panel_pass", ruleIds: decision.ruleIds }
           : { type: "panel_fail", ruleIds: decision.ruleIds },
-        { payload: { ...decision, panelRef: caller.reviewerRef } },
+        {
+          payload: {
+            ...decision,
+            panelRef: caller.reviewerRef,
+            aiVote,
+            // When the two agree it's unanimous; when they don't, the person's verdict stands.
+            agreed: aiVote && aiVote.outcome !== "unsure" ? aiVote.outcome === decision.outcome : null,
+          },
+        },
       );
+    },
+
+    /** Disputed tasks the AI hasn't voted on yet, oldest first. */
+    async disputeAiQueue(limit = 10) {
+      return db
+        .select()
+        .from(tasks)
+        .where(
+          and(
+            eq(tasks.status, "disputed"),
+            sql`not exists (select 1 from ${taskEvents} where ${taskEvents.taskId} = ${tasks.id} and ${taskEvents.type} = 'panel_ai_vote')`,
+          ),
+        )
+        .orderBy(asc(tasks.updatedAt))
+        .limit(limit);
+    },
+
+    /** What the AI needs to vote: the disputed verdict and each side's statement (R6.2). */
+    async disputeContext(taskId: string) {
+      const events = await db
+        .select()
+        .from(taskEvents)
+        .where(and(eq(taskEvents.taskId, taskId), inArray(taskEvents.type, ["verdict_pass", "verdict_fail", "dispute"])))
+        .orderBy(asc(taskEvents.id));
+      const verdictEvent = events.filter((e) => e.type !== "dispute").at(-1);
+      const v = (verdictEvent?.payload ?? {}) as { ruleIds?: string[]; reasoning?: string; reviewerRef?: string };
+      return {
+        verdict: verdictEvent
+          ? {
+              outcome: verdictEvent.type === "verdict_pass" ? ("pass" as const) : ("fail" as const),
+              ruleIds: v.ruleIds ?? [],
+              reasoning: v.reasoning ?? "",
+              by: v.reviewerRef ?? verdictEvent.actor,
+            }
+          : null,
+        statements: events
+          .filter((e) => e.type === "dispute")
+          .map((e) => {
+            const d = e.payload as { by?: string; reason?: string };
+            return { party: d.by === "requester" ? ("requester" as const) : ("worker" as const), reason: d.reason ?? "" };
+          }),
+      };
+    },
+
+    /** Records the AI's panel vote in the trail. A vote, never a transition: the task doesn't move. */
+    async recordPanelAiVote(
+      caller: Caller,
+      taskId: string,
+      vote:
+        | { outcome: "pass" | "fail"; ruleIds: string[]; reasoning: string; model: string; proof?: PrivateInferenceProof }
+        | { outcome: "unsure"; reason: string },
+    ) {
+      requireRole(caller, "reviewer");
+      return db.transaction(async (tx) => {
+        const at = now();
+        const [task] = await tx.select().from(tasks).where(eq(tasks.id, taskId)).for("update");
+        if (!task) throw new DeskError("not_found", "task not found");
+        if (task.status !== "disputed") throw new DeskError("conflict", "the dispute was already decided");
+        await appendEvent(tx, { taskId, type: "panel_ai_vote", actor: caller.role, payload: { ...vote, reviewerRef: caller.reviewerRef }, at });
+      });
+    },
+
+    /** The AI's latest panel vote on a task, for the person deciding the dispute. */
+    async panelAiVote(taskId: string) {
+      const [event] = await db
+        .select()
+        .from(taskEvents)
+        .where(and(eq(taskEvents.taskId, taskId), eq(taskEvents.type, "panel_ai_vote")))
+        .orderBy(desc(taskEvents.id))
+        .limit(1);
+      if (!event) return null;
+      const p = event.payload as { outcome: "pass" | "fail" | "unsure"; ruleIds?: string[]; reasoning?: string; reason?: string; model?: string };
+      return { outcome: p.outcome, ruleIds: p.ruleIds ?? [], reasoning: p.reasoning ?? p.reason ?? "", model: p.model ?? null, at: event.createdAt };
     },
 
     // Timers, run by the monitor loop. Each task moves in its own transaction, so one

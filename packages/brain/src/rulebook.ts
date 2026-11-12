@@ -1,8 +1,8 @@
-// boreal.work rulebook v2.1, as published in the spec's "Rulebook" tab and at /rules. Verdicts may
+// boreal.work rulebook v2.2, as published in the spec's "Rulebook" tab and at /rules. Verdicts may
 // cite only these IDs; the code rejects any other. IDs are permanent: a rule's meaning never
 // changes under the same ID (old verdicts cite them), new rules get new IDs.
 
-export const RULEBOOK_VERSION = "2.1";
+export const RULEBOOK_VERSION = "2.2";
 
 export type RuleStage = "screening" | "review" | "reviewer" | "dispute";
 
@@ -72,7 +72,7 @@ export const RULES: readonly Rule[] = [
   // R6: disputes.
   { id: "R6.1", stage: "dispute", severity: "protective", outcome: "Dispute not accepted", text: "Either side may dispute a verdict once, within 48 hours, with a reason." },
   { id: "R6.2", stage: "dispute", severity: "protective", outcome: "Extra evidence set aside", text: "The panel sees the reviewer's evidence plus a statement from each side; new evidence is allowed only to prove fraud." },
-  { id: "R6.3", stage: "dispute", severity: "protective", outcome: "Appeal not accepted", text: "The panel decides by majority, and its human member breaks ties. A panel decision can be appealed only for a procedural error or new evidence of fraud." },
+  { id: "R6.3", stage: "dispute", severity: "protective", outcome: "Decision void; the panel decides again", text: "The panel has two members: boreal.work's AI reviewer and a person. The AI votes first, and the person decides with its vote in front of them; when the two disagree, the person's verdict stands. The panel's decision is final." },
 ];
 
 /** Which rule wins when two meet. */

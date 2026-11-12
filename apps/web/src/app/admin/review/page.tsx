@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { LiveBadge, Mono, shortId, StatusBadge } from "@/components/admin/parts";
+import { PanelAiVote } from "@/components/admin/panel-ai-vote";
 import { ReviewControls } from "@/components/admin/review-controls";
 import { Badge } from "@/components/ui/badge";
 import { usd, when } from "@/lib/format";
@@ -44,6 +45,7 @@ async function Queue() {
           {task.status !== "posted" && (
             <p className="text-sm text-muted-foreground">Open the details to see the submission before deciding.</p>
           )}
+          {task.status === "disputed" && <PanelAiVote taskId={task.id} />}
           <ReviewControls task={task} />
         </article>
       ))}

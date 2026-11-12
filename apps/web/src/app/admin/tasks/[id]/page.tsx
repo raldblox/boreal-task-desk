@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { LiveBadge, Mono, Section, StatusBadge, Table } from "@/components/admin/parts";
+import { PanelAiVote } from "@/components/admin/panel-ai-vote";
 import { canDecide, ReviewControls } from "@/components/admin/review-controls";
 import { Badge } from "@/components/ui/badge";
 import { attributeLabel, usd, when } from "@/lib/format";
@@ -70,6 +71,7 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
 
       {canDecide(task) && (
         <Section title="Decide" description="Goes through the desk's reviewer commands; the trail shows boreal.work's reviewer, the audit log shows you.">
+          {task.status === "disputed" && <PanelAiVote taskId={task.id} />}
           <ReviewControls task={task} />
         </Section>
       )}

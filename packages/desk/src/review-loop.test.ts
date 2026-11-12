@@ -180,3 +180,50 @@ describe("private review", () => {
     expect((await desk.getVerdict(requester, task.id))?.privateReview).toBeNull();
   });
 });
+
+describe("dispute panel", () => {
+  it("records the AI's vote without moving the task; the person decides and the trail says whether they agreed", async () => {
+    const task = await submittedTask();
+    const fail: ReviewResult = { outcome: "fail", ruleIds: ["R4.1"], reasoning: "The shelf isn't shown.", model: "claude-opus-5-5" };
+    await runAiReview(desk, scripted({ outcome: "ok", reasoning: "fine" }, fail).reviewer, { readFile: photo });
+    await desk.disputeVerdict(worker, task.id, "The shelf is in the second photo, top left.");
+
+    let seen: { statements: { party: string; reason: string }[]; verdict: { outcome: string } } | null = null;
+    const voter = scripted({ outcome: "ok", reasoning: "fine" });
+    voter.reviewer.dispute = async (input) => {
+      seen = input;
+      return { outcome: "pass", ruleIds: [], reasoning: "The second photo shows the shelf.", model: "claude-opus-5-5" };
+    };
+    const pass = await runAiReview(desk, voter.reviewer, { readFile: photo });
+    expect(pass.panelVotes).toBe(1);
+    expect(seen!.verdict.outcome).toBe("fail");
+    expect(seen!.statements).toEqual([{ party: "worker", reason: "The shelf is in the second photo, top left." }]);
+    expect((await desk.getTask(requester, task.id)).status).toBe("disputed");
+    expect((await desk.panelAiVote(task.id))?.outcome).toBe("pass");
+
+    // One vote per dispute: the next pass doesn't ask again.
+    expect((await runAiReview(desk, voter.reviewer, { readFile: photo })).panelVotes).toBe(0);
+
+    // The person disagrees: their verdict stands, and the trail records both.
+    const decided = await desk.decideDispute({ role: "panel", reviewerRef: "boreal-panel" }, task.id, {
+      outcome: "fail",
+      ruleIds: ["R4.1"],
+      reasoning: "The second photo is of a different shop.",
+    });
+    expect(decided.status).toBe("final_fail");
+    const [event] = await db.select().from(taskEvents).where(eq(taskEvents.type, "panel_fail"));
+    expect(event!.payload).toMatchObject({ aiVote: { outcome: "pass" }, agreed: false });
+  });
+
+  it("can't vote on a dispute that's already decided", async () => {
+    const task = await submittedTask();
+    await runAiReview(desk, scripted({ outcome: "ok", reasoning: "fine" }).reviewer, { readFile: photo });
+    await desk.disputeVerdict(requester, task.id, "This photo is from another branch.");
+    await desk.decideDispute({ role: "panel", reviewerRef: "boreal-panel" }, task.id, { outcome: "pass", ruleIds: [], reasoning: "Right branch." });
+    await expectConflict(desk.recordPanelAiVote(AI_REVIEWER, task.id, { outcome: "unsure", reason: "late" }));
+  });
+});
+
+async function expectConflict(promise: Promise<unknown>) {
+  await expect(promise).rejects.toMatchObject({ code: "conflict" });
+}
