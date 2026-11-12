@@ -193,13 +193,20 @@ Functional placeholders throughout (handoff notes 7 and 8). Every state needs it
 
 Legal facts the copy session must not make up. Each has a recommendation; write the surrounding copy now and leave the item open in Progress.
 
+**The owner's answers (2026-11-13).** 1: no company yet; boreal.work is an open-source project run by its maintainer (written in the terms and privacy policy). 2: 18 or older, and a person (written in the terms). For 3 to 7 the owner asked for suggestions; the copy session's are below each item as **Suggested**, waiting for the owner's yes. Item 3 needs code before its words can go live.
+
 1. **Who boreal.work is**: the legal name and country behind it, for the terms' first paragraph and the privacy policy's "who is responsible for your data". Recommendation: state it plainly even if it is one person.
 2. **Minimum age.** Recommendation: 18, since PayPal requires it and Concordium ID proves "18 or older".
 3. **How long results and accounts are kept**, and what "delete" covers (fact 33). Recommendation: files of a result for 90 days after the task is final, then deleted; the account's email until the account is closed; the money record kept as amounts and hashes.
+   **Suggested:** a result's photos and files 90 days after the task is final, then deleted (long enough for any dispute); the PayPal email and payout accounts while the account is open, deleted within 30 days of a request to close it; the trail and ledger kept for good, as amounts, hashes and pseudonyms; the hashed IP used for rate limits, 30 days. Nothing deletes files today: this needs a scheduled job (Fable) before the privacy policy may promise it.
 4. **An appeal after the panel** (fact 14). Recommendation: keep "the panel's decision is final", and change R6.3 in the rulebook to match, as rulebook 2.2.
+   **Suggested:** the panel is final (the terms already say so); R6.3 changes to match in rulebook 2.2, in the spec's Rulebook tab and `rulebook.ts` together.
 5. **Notice before the terms change.** Recommendation: 14 days, the same as the rulebook, shown on the page.
+   **Suggested:** 14 days' notice on the page for any change that takes something away from people (fees, limits, rights); fixes and new features apply at once. The date stays at the top.
 6. **Liability, governing law and taxes.** Recommendation: a short, plain clause each (workers are responsible for their own taxes; boreal.work's liability is limited to the fees it kept on the task in question; the law of the country in item 1), written by or checked with a lawyer before the live site takes real volume.
+   **Suggested:** provided as is; boreal.work's liability on a task is at most the service fee it kept on that task; workers are independent and handle their own taxes, and boreal.work is not their employer; the law of the maintainer's country (the site shows times in PHT, so the Philippines, if that's right). Have a lawyer read it before real volume.
 7. **Closing an account** (fact 34). Recommendation: say today that an account can be closed on request through the contact address, and build the action later.
+   **Suggested:** on request by direct message on X, done within 30 days: sign-in removed, email and payout accounts deleted, open tasks cancelled or finished first; the trail and ledger stay, as in item 3. A button on My account later.
 
 ## Progress
 
@@ -214,7 +221,7 @@ Tick with the commit hash. Add what you found under the last heading.
 - [x] 6. Task page and posted-task page (with handoff note 12): 311b080
 - [x] 7. Home page and agent guide read against the facts: d6b3429 (home), f2c565f (guide, `GUIDE_VERSION` 2026-11-26)
 - [x] 8. Refusals: db22a3b
-- [ ] Owner items 1 to 7 answered and written in
+- [ ] Owner items 1 to 7 answered and written in: 1 and 2 written in; 3 to 7 suggested, waiting for the owner
 
 ### Found while writing
 
