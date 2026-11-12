@@ -1,4 +1,7 @@
 import { POLICY } from "@boreal/core";
+/** Money in a refusal a person reads: dollars, never cents. */
+const dollars = (c: number) => `$${(c / 100).toFixed(2)}`;
+
 import {
   agents,
   and,
@@ -38,10 +41,10 @@ const DAY = 24 * 60 * 60 * 1000;
 /** The limits an owner may set, checked the same way at approval and when they change them later. */
 export function checkLimits(maxTaskBudget: number, maxDailySpend: number): void {
   if (!Number.isSafeInteger(maxTaskBudget) || maxTaskBudget < 1 || maxTaskBudget > POLICY.maxTaskBudget) {
-    throw new DeskError("invalid", `the per-task limit must be between 1 and ${POLICY.maxTaskBudget} cents`);
+    throw new DeskError("invalid", `the most per task must be between $0.01 and ${dollars(POLICY.maxTaskBudget)}`);
   }
   if (!Number.isSafeInteger(maxDailySpend) || maxDailySpend < maxTaskBudget || maxDailySpend > POLICY.maxAgentDailySpend) {
-    throw new DeskError("invalid", `the daily limit must be at least the per-task limit and at most ${POLICY.maxAgentDailySpend} cents`);
+    throw new DeskError("invalid", `the most per day must be at least the most per task, and at most ${dollars(POLICY.maxAgentDailySpend)}`);
   }
 }
 
@@ -150,7 +153,7 @@ export function ownerCommands(db: Database, now: () => Date, fundApproved: FundA
      */
     async ownerDisconnectPayment(workerId: string, agentId: string) {
       return change(workerId, agentId, "disconnect_payment", async (tx, agent, at) => {
-        if (!agent.paymentVaultId) throw new DeskError("conflict", "no payment method is saved for this agent");
+        if (!agent.paymentVaultId) throw new DeskError("conflict", "no PayPal account is saved for this agent");
         await tx.update(agents).set({ paymentVaultId: null, updatedAt: at }).where(eq(agents.id, agent.id));
         return { result: { vaultId: agent.paymentVaultId } };
       });

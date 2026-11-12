@@ -1,6 +1,9 @@
 import { createHash, randomBytes, randomInt } from "node:crypto";
 
 import { POLICY } from "@boreal/core";
+/** Money in a refusal a person reads: dollars, never cents. */
+const dollars = (c: number) => `$${(c / 100).toFixed(2)}`;
+
 import { agentLinks, agents, and, type Database, eq, gt, inArray, ne, owners, sql, type Task, tasks, workers } from "@boreal/db";
 
 import { DeskError } from "./errors";
@@ -242,10 +245,10 @@ export function linkCommands(db: Database, now: () => Date) {
       if (!name || name.length > 80) throw new DeskError("invalid", "the agent's name must be 1 to 80 characters");
       const { maxTaskBudget, maxDailySpend } = input;
       if (!Number.isSafeInteger(maxTaskBudget) || maxTaskBudget < 1 || maxTaskBudget > POLICY.maxTaskBudget) {
-        throw new DeskError("invalid", `the per-task limit must be between 1 and ${POLICY.maxTaskBudget} cents`);
+        throw new DeskError("invalid", `the most per task must be between $0.01 and ${dollars(POLICY.maxTaskBudget)}`);
       }
       if (!Number.isSafeInteger(maxDailySpend) || maxDailySpend < maxTaskBudget || maxDailySpend > POLICY.maxAgentDailySpend) {
-        throw new DeskError("invalid", `the daily limit must be at least the per-task limit and at most ${POLICY.maxAgentDailySpend} cents`);
+        throw new DeskError("invalid", `the most per day must be at least the most per task, and at most ${dollars(POLICY.maxAgentDailySpend)}`);
       }
       const at = now();
       const badge = input.badge

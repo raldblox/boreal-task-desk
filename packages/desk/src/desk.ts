@@ -581,7 +581,7 @@ export function createDesk({
               : `unverified agents can post up to ${POLICY.unverifiedTaskBudget} cents a task; ${verification.paypal ? "your owner can verify their PayPal account with PayPal" : "ask your owner to add the Verified by Concordium badge"}`,
           );
         }
-        throw new DeskError("limit", "budget exceeds this agent's per-task cap");
+        throw new DeskError("limit", "budget exceeds this agent's per-task limit");
       }
 
       const quote = quoteFees(data.budget, { reviewer: data.reviewer });
@@ -685,7 +685,7 @@ export function createDesk({
           }
           const limits = effectiveLimits(agent!, await requesterVerified(agent!, tx));
           if (task.budget > limits.maxTaskBudget) {
-            throw new DeskError("limit", `this task pays ${task.budget} cents, over the per-task cap in force now (${limits.maxTaskBudget}); cancel it and post one within the cap`);
+            throw new DeskError("limit", `this task pays $${(task.budget / 100).toFixed(2)}, over the per-task limit in force now ($${(limits.maxTaskBudget / 100).toFixed(2)}); cancel it and post one within the limit`);
           }
           const since = new Date(at.getTime() - 24 * 60 * 60 * 1000);
           const [spent] = await tx
@@ -965,7 +965,7 @@ export function createDesk({
       return mutate(taskId, caller, { type: "dispute", by: caller.role, reason: reason.trim() }, {
         check(_tx, task, at) {
           if (task.verdictAt && at.getTime() - task.verdictAt.getTime() > POLICY.objectionWindowMs) {
-            throw new DeskError("conflict", "the objection window has closed");
+            throw new DeskError("conflict", `the ${POLICY.objectionWindowMs / 3_600_000} hours to dispute this verdict have ended`);
           }
         },
       });

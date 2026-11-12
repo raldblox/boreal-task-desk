@@ -53,7 +53,7 @@ describe("transition", () => {
         { type: "dispute", by: "requester", reason: "second try" },
         "requester",
       ),
-    ).toThrow(/only once/);
+    ).toThrow(/one dispute has already been used/);
   });
 
   it("rejects a dispute filed on behalf of the other side", () => {

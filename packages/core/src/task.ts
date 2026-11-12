@@ -101,7 +101,7 @@ export function transition(task: TaskSnapshot, event: TaskEvent, actor: Actor): 
   }
   if (event.type === "dispute") {
     if (task.disputeUsed) {
-      throw new TransitionError("dispute_used", "a verdict can be disputed only once per task");
+      throw new TransitionError("dispute_used", "this task's one dispute has already been used");
     }
     if (event.by !== actor) {
       throw new TransitionError("actor_not_allowed", `${actor} cannot dispute as ${event.by}`);
