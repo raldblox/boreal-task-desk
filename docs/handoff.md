@@ -23,23 +23,11 @@ Notes from the model doing deep technical work, for a cheaper model to carry out
 - **What's wrong:** plain boxes. The amount, who is asking and what "held, not charged" means should be readable in a few seconds; after deciding, the page should say plainly what happened, per task when some couldn't be paid.
 - **Done looks like:** the total and the agent's name first, each task as a short card, Approve as the one primary action with Decline beside it, the states (pending, approved, declined, expired) each with their own words. The same care on the same form in `apps/web/src/app/link/approve-form.tsx`, where the owner now picks "ask me each time" or "pay on its own".
 
-### 9. The admin passkey page
+### 10b. My account → Integrations: an EVM payout card (only once the EVM add-on is on)
 
-- **Where:** `apps/web/src/app/admin-passkey/page.tsx`, `apps/web/src/components/admin/passkey-panel.tsx`.
-- **What's wrong:** functional only. A first-time admin isn't told what a passkey is or to enrol a second one before relying on the first; the list of keys is bare.
-- **Done looks like:** three clear states: enrol your first key (with the code field only when one is needed), use your key, manage your keys. Errors from the browser in plain words. Desktop is enough; security keys are used there.
-- **Don't change:** the actions, or anything in `apps/web/src/lib/admin-passkey.ts`.
-
-### 10. A button for workers to connect an EVM wallet (only once the EVM add-on is switched on)
-
-- **Where:** My account → Integrations (`apps/web/src/components/addons-panel.tsx`, `connect-wallet.tsx`) and the guided setup on a task page, beside the NEAR and Concordium ones.
-- **What's missing:** the server side exists (`connectPayoutAccount({ rail: "evm", address, issuedAt, signature })` in `apps/web/src/app/actions.ts`; the message to sign is `evmConnectMessage(host, issuedAt)` from `@boreal/evm`), but nothing asks the wallet. Use `window.ethereum`: `eth_requestAccounts`, then `personal_sign` of that message. Nobody types an address.
-- **Done looks like:** a Connect button like NEAR's, the connected address shown shortened, and the claim blocked with a clear reason until it is connected (`canBePaidOn` in `apps/web/src/lib/rails.ts` already takes `evmAddress`; pass it from `getWorker`). Also `RAIL_LABEL.evm` says "USDC on Base": make it name the configured chain.
-
-### 11. Admin → Controls: the rail switches
-
-- **Where:** `apps/web/src/app/admin/controls/page.tsx`, `Rails`.
-- **What's wrong:** a plain table. A closed rail should be impossible to miss, here and on the admin overview, and `/status` should say a rail isn't taking new payments (the desk has `closedRails()`).
+- **Where:** `apps/web/src/app/me/page.tsx`, beside the NEAR "USDC payouts" card.
+- **What's missing:** the button exists (`ConnectEvm` in `apps/web/src/components/connect-wallet.tsx`; pass `template={evmConnectMessage(host, "{issuedAt}")}` and the chain's name from `EVM_CHAIN_NAMES[EVM_CHAIN_ID]`), and the guided setup on a task uses it. My account doesn't show it yet, because another session was editing that page.
+- **Done looks like:** a card like NEAR's, shown only when `getAddons().ready("evm", "rail")`, with the connected address shortened, and Change when one is set.
 
 ### 12. Say when pay really arrives (RS-16)
 
@@ -61,3 +49,6 @@ Notes from the model doing deep technical work, for a cheaper model to carry out
 - 4. Overview: escrow against the ledger now has three states (RS-9): 8dd3302
 - 5. Say the two new limits where people read the rules (blocked on the owner): d551dab
 - 6. A way to reach boreal.work (blocked on the owner): d551dab
+- 9. The admin passkey page: 68adef7
+- 10. A button for workers to connect an EVM wallet (only once the EVM add-on is switched on): 0651abb (the button, the guided setup on a task, a chain-neutral badge; the My account card is still open below)
+- 11. Admin → Controls: the rail switches: b2e7f63
