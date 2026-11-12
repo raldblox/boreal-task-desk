@@ -113,8 +113,8 @@ export function getDesk(): Desk {
     verification: verification(),
     // Testnet only: pass screening automatically when no reviewer runs. Never on live money.
     autoScreen: NETWORK === "testnet" && process.env.AUTO_SCREEN === "1",
-    // Live money: workers without Concordium ID need an account PayPal has verified.
-    requireVerifiedPayPal: NETWORK === "mainnet",
+    // Only verified people work, on every network (testnet too: its claims must hold there as well).
+    requireVerifiedPayPal: true,
     addresses: addressesFromEnv(),
     testInvite: process.env.TEST_WORKER_INVITE,
   });

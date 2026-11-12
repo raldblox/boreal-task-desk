@@ -43,7 +43,7 @@ function questions(): { title: string; items: QA[] }[] {
           q: "Who can take tasks?",
           a: (
             <>
-              Anyone who signs in with PayPal.{live ? ` On live money, PayPal must have verified your account${concordiumId ? ", or you need the Verified by Concordium badge," : ""} before you can claim.` : ""}{" "}
+              Only verified people. Sign in with a PayPal account PayPal has verified{concordiumId ? ", or with Concordium ID (free, and it proves you're a real person without sharing who you are)" : ""}; until you're verified you can look at tasks but not claim them.{" "}
               You hold one task at a time, and have {HOURS(POLICY.claimDurationMs)} hours after claiming to send your result, or until the
               deadline if that is sooner.
             </>

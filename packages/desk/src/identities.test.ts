@@ -219,10 +219,19 @@ describe("who may claim", () => {
     await expectDeskError(desk.claimTask(worker, forPh), "forbidden", /haven't proven/);
   });
 
-  it("lets any PayPal worker claim a task without required attributes off mainnet", async () => {
+  it("refuses an unverified person by default, on every network", async () => {
     const forAnyone = await openTask([]);
     const worker = asWorker(await desk.signInWithPayPal(paypal(1, false)));
+    await expectDeskError(desk.claimTask(worker, forAnyone), "forbidden", /only verified people can work here/);
+  });
+
+  it("counts a Concordium account as verified: the chain opens accounts only on a checked identity", async () => {
+    const forAnyone = await openTask([]);
+    const needsAttributes = await openTask([{ attribute: "residency", value: "PH" }]);
+    const worker = asWorker(await desk.signInWithWallet(`cw:${"c".repeat(64)}`, { create: true }));
     expect((await desk.claimTask(worker, forAnyone)).status).toBe("claimed");
+    // Proven attributes still need the Concordium ID proof itself.
+    await expectDeskError(desk.claimTask(worker, needsAttributes), "forbidden", /Verified by Concordium badge/);
   });
 
   it("on mainnet, needs PayPal's verified account (or Concordium ID) for a task without required attributes", async () => {

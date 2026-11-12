@@ -82,8 +82,10 @@ export interface DeskOptions {
    */
   autoScreen?: boolean;
   /**
-   * Workers without Concordium ID claim only with a PayPal account PayPal has verified
-   * (`verified_account`). On for live money (mainnet); the sandbox's accounts are all test ones.
+   * Only verified people work. A person claims only once verified: a PayPal account PayPal has
+   * verified (`verified_account`), Concordium ID, or a Concordium account (every one is opened on
+   * an identity a regulated identity provider checked). On by default, on every network; only
+   * desk tests that aren't about verification turn it off.
    */
   requireVerifiedPayPal?: boolean;
   /**
@@ -174,7 +176,7 @@ export function createDesk({
   payments = concordium?.payments ?? null,
   rails = {},
   requireBadge = false,
-  requireVerifiedPayPal = false,
+  requireVerifiedPayPal = true,
   autoScreen = false,
   verification = { concordiumId: true, paypal: false },
 }: DeskOptions) {
@@ -847,12 +849,14 @@ export function createDesk({
                   : "this task needs proven attributes, which need the Concordium integration; it isn't on here",
               );
             }
-            if (requireVerifiedPayPal && !worker.paypalVerified) {
+            // A Concordium account counts: the chain only opens accounts on an identity a
+            // regulated identity provider has checked.
+            if (requireVerifiedPayPal && !worker.paypalVerified && !worker.concordiumWalletRef) {
               throw new DeskError(
                 "forbidden",
                 verification.concordiumId
-                  ? "verify your PayPal account with PayPal, or add Concordium ID on My account, before claiming tasks"
-                  : "verify your PayPal account with PayPal, then log in with PayPal again, before claiming tasks",
+                  ? "only verified people can work here: verify your PayPal account with PayPal and log in again, or add Concordium ID on My account (free)"
+                  : "only verified people can work here: verify your PayPal account with PayPal, then log in with PayPal again",
               );
             }
           }
@@ -1415,6 +1419,8 @@ export function createDesk({
           hasPayPal: sql<boolean>`${workers.paypalRef} is not null`,
           paypalVerified: workers.paypalVerified,
           hasConcordium: sql<boolean>`${workers.concordiumRef} is not null`,
+          hasConcordiumAccount: sql<boolean>`${workers.concordiumWalletRef} is not null`,
+          kind: workers.kind,
           createdAt: workers.createdAt,
         })
         .from(workers)

@@ -8,7 +8,9 @@ import { startWorkerSession } from "@/server/session";
 import { addonRefusal } from "@/server/addons";
 
 // Wallet sign-in, step 2: check the wallet account signed this browser's challenge, then sign
-// in its worker, creating one for a new wallet: no proof, nothing on-chain, no CCD. When linking
+// in its worker, creating one for a new wallet: nothing on-chain, no CCD. The account itself is the
+// proof of a verified person (Concordium opens accounts only on an identity a provider checked), so
+// the worker may claim tasks; proven attributes still need the Concordium ID proof. When linking
 // to a signed-in account, hold the wallet for the identity proof that follows instead.
 export const maxDuration = 30;
 

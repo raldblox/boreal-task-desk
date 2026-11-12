@@ -37,6 +37,7 @@ function NextStep({
   worker,
   needsBadge,
   needsPayout,
+  needsVerification,
   postedByMe,
   reviewBy,
 }: {
@@ -46,6 +47,8 @@ function NextStep({
   needsBadge: boolean;
   /** The task pays on a rail this worker has no payout account for yet. */
   needsPayout: boolean;
+  /** Only verified people work: this person hasn't verified with PayPal or Concordium yet. */
+  needsVerification: boolean;
   /** The signed-in person posted this task themselves: they manage it, they can't claim it. */
   postedByMe: boolean;
   /** On a task its requester reviews: the latest time they have, counted from the submission. */
@@ -67,6 +70,26 @@ function NextStep({
 
   switch (task.status) {
     case "open":
+      if (needsVerification) {
+        const concordium = getAddons().ready("concordium", "id");
+        return (
+          <div className="flex flex-col gap-3">
+            <p className="text-sm font-medium">Only verified people work on boreal.work.</p>
+            <p className="text-sm text-muted-foreground">
+              PayPal hasn&apos;t verified the account you logged in with. Verify it with PayPal (it&apos;s free), then log in with
+              PayPal again{concordium ? ", or add Concordium ID on My account instead: it's free, and proves you're a real person without sharing who you are" : ""}.
+            </p>
+            {concordium && (
+              <Link href="/me" className={buttonVariants({ className: "w-full" })}>
+                Add Concordium ID
+              </Link>
+            )}
+            <a href="https://www.paypal.com/myaccount/summary" target="_blank" rel="noreferrer" className={buttonVariants({ variant: "outline", className: "w-full" })}>
+              Verify with PayPal
+            </a>
+          </div>
+        );
+      }
       if (needsBadge && !getAddons().ready("concordium", "id")) {
         return (
           <p className="text-sm text-muted-foreground">
@@ -265,6 +288,8 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
   ]);
   const needsBadge = task.requiredAttributes.length > 0 && !!profile && !profile.testMode && !profile.hasConcordium;
   const needsPayout = !task.test && !canBePaidOn(profile, task.paymentRail);
+  const needsVerification =
+    !!profile && profile.kind === "person" && !profile.testMode && !profile.paypalVerified && !profile.hasConcordium && !profile.hasConcordiumAccount;
   const status = WORKER_STATUS[task.status];
   const reviewBy = submission ? new Date(new Date(submission.createdAt).getTime() + POLICY.requesterReviewMs) : null;
 
@@ -280,7 +305,7 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
         </div>
         <TaskProgress status={task.status} />
         <div className="border-t pt-5">
-          <NextStep task={task} worker={worker} needsBadge={needsBadge} needsPayout={needsPayout} postedByMe={mine?.id === task.agentId} reviewBy={reviewBy} />
+          <NextStep task={task} worker={worker} needsBadge={needsBadge} needsPayout={needsPayout} needsVerification={needsVerification} postedByMe={mine?.id === task.agentId} reviewBy={reviewBy} />
         </div>
       </aside>
 

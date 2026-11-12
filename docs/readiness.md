@@ -203,6 +203,32 @@ Seeded on 2026-11-12. The Hermes catalog review (NousResearch/hermes-agent#15309
 
 **Status:** open.
 
+### RS-28 · wrong design · workers, market · S1 — "Verified people" wasn't enforced off mainnet, and a Concordium account didn't count
+
+**Evidence:** the claim gate's verified-PayPal check ran only on mainnet (`apps/web/src/server/desk.ts`, `requireVerifiedPayPal: NETWORK === "mainnet"`). On testnet any signed-in person could claim a task with no required attributes. A worker signed in with a Concordium Wallet signature was created and then refused on mainnet, a dead end, although Concordium opens accounts only on an identity a provider has checked.
+
+**Fix (done, see Done):** verification is on by default in the desk and on every network. A person claims only with a PayPal account PayPal has verified, Concordium ID, or a Concordium account. The task page tells an unverified person why and how to verify before they try. `/signin` offers Concordium as a full way in when PayPal fails or hasn't verified them, with the steps and costs.
+
+**Still open:** "verified" is not "unique". One person with two verified PayPal accounts, or two Concordium accounts on one identity, can work as two. Recommendation: key Concordium workers on the identity (the proof's credential ID) rather than the account, and flag workers who share a payout email in `/admin`.
+
+**Status:** fixed except uniqueness
+
+### RS-29 · wrong design · workers, business · S2 — The dispute "panel" is one admin
+
+**Evidence:** the rulebook (R6.3) and the site promise a panel that decides by majority with a human member breaking ties. `decideDispute` takes one admin's decision (`packages/desk/src/admin.ts`, `BOREAL_PANEL`).
+
+**Fix:** either record a real panel (two or three deciders, a majority, the human member named in the trail) or change R6.3 and the copy to "a person at boreal.work decides". Owner decision; recommendation: change the words now, add a second decider once there are two admins.
+
+**Status:** open
+
+### RS-30 · wrong design · business · S3 — "Escrow" on PayPal is a hold on the payer's own account
+
+**Evidence:** the site says money is "held in escrow" (`apps/web/src/app/layout.tsx` metadata, the footer, the Open Graph image). On PayPal it is an authorization on the payer's account that boreal.work captures on a pass (`/agents` says this correctly).
+
+**Fix:** say "held until the work passes" everywhere a PayPal task is described, and keep "escrow" for the add-on rails where boreal.work's escrow account holds the money.
+
+**Status:** open
+
 ## Needs the owner
 
 Each has a recommendation; none blocks the others.

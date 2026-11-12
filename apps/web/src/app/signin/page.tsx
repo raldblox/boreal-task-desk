@@ -60,8 +60,9 @@ function PayPalSignIn({ next }: { next: string }) {
 }
 
 /**
- * For people who already added Concordium ID on My account: a quiet way back in, with no pitch.
- * Concordium ID is offered and explained on My account (Integrations), never here.
+ * The other way in for verified people: when PayPal login fails, or PayPal hasn't verified the
+ * account. Both Concordium paths prove a real person checked by an identity provider, and neither
+ * needs CCD from the person: boreal.work pays the network fee for recording a proof.
  */
 async function ConcordiumReturn({ next, open }: { next: string; open: boolean }) {
   let body: React.ReactNode = null;
@@ -69,7 +70,33 @@ async function ConcordiumReturn({ next, open }: { next: string; open: boolean })
     const network = gatedEnv().CONCORDIUM_NETWORK === "mainnet" ? "mainnet" : "testnet";
     body = (
       <>
+        <p className="text-muted-foreground">
+          Concordium ID proves you&apos;re a real, verified person without telling boreal.work who you are. Only verified people
+          work here, so this is the way in if PayPal didn&apos;t work for you or hasn&apos;t verified your account.
+        </p>
+        <ol className="flex list-decimal flex-col gap-1.5 pl-5 text-muted-foreground">
+          <li>
+            Get the Concordium ID App (free) on{" "}
+            <a href="https://play.google.com/store/apps/details?id=com.idwallet.app" target="_blank" rel="noreferrer" className="text-primary underline-offset-4 hover:underline">
+              Android
+            </a>{" "}
+            or{" "}
+            <a href="https://apps.apple.com/app/concordium-id/id6746754485" target="_blank" rel="noreferrer" className="text-primary underline-offset-4 hover:underline">
+              iPhone
+            </a>
+            .
+          </li>
+          <li>Verify once in the app with your passport or national ID and a selfie. An identity provider checks them; boreal.work never sees them.</li>
+          <li>Scan the code below with the app and approve.</li>
+        </ol>
+        <p className="text-muted-foreground">
+          You don&apos;t need any CCD: proving yourself is free for you, and boreal.work pays the small network fee for recording it.
+        </p>
         <ConcordiumSignIn projectId={gatedEnv().NEXT_PUBLIC_REOWN_PROJECT_ID!} network={network} next={next} />
+        <p className="mt-2 text-muted-foreground">
+          Already have a Concordium account in Concordium Wallet for Web? Sign in by signing a message. Opening an account is
+          free, and the chain only opens one on an identity a provider has checked.
+        </p>
         <ConcordiumWalletSignIn next={next} />
       </>
     );
@@ -87,7 +114,7 @@ async function ConcordiumReturn({ next, open }: { next: string; open: boolean })
   return (
     <details open={open} className="group rounded-2xl border bg-card px-6 py-4 text-sm">
       <summary className="cursor-pointer text-muted-foreground marker:text-muted-foreground">
-        Added Concordium ID to your account? Sign in with it
+        No PayPal, or PayPal hasn&apos;t verified you? Sign in with Concordium ID
       </summary>
       <div className="mt-4 flex flex-col gap-3">{body}</div>
     </details>
@@ -98,7 +125,10 @@ async function SignInOptions({ searchParams }: { searchParams: Promise<{ next?: 
   const params = await searchParams;
   const next = safeNext(params.next);
   // Already signed in: nothing to do here.
-  if (await workerFromSession()) redirect(next);
+  // A session whose worker no longer exists (a reset database) would bounce between here and a
+  // page that fails, so only a real worker skips sign-in.
+  const session = await workerFromSession();
+  if (session && (await getDesk().getWorker(session).catch(() => null))) redirect(next);
   const paypal = paypalLoginEnabled();
   const notice = PAYPAL_NOTICES[params.paypal ?? ""];
   return (
