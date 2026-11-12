@@ -1,5 +1,5 @@
 import { RULES } from "@boreal/brain";
-import { POLICY } from "@boreal/core";
+import { FEE_POLICY, POLICY } from "@boreal/core";
 import type { Task } from "@boreal/db";
 import { DeskError, taskTotal } from "@boreal/desk";
 import { ArrowLeft, CircleCheck } from "lucide-react";
@@ -38,7 +38,7 @@ function screeningNote(): string {
   const ai = (process.env.ANTHROPIC_API_KEY || gatedEnv().NEAR_AI_API_KEY) && process.env.AI_SCREENING !== "off";
   return ai
     ? "boreal.work checks it against its rulebook, usually within a minute."
-    : "A person on boreal.work's team checks it against the rulebook; this can take a few hours.";
+    : "boreal.work's reviewers check it against the rulebook by hand; this can take a few hours.";
 }
 
 function Cancel({ task, note }: { task: Task; note: string }) {
@@ -187,13 +187,14 @@ async function NextStep({ task, requester }: { task: Task; requester: { role: "r
       return (
         <div className="flex flex-col gap-5">
           <p className="text-sm text-muted-foreground">
-            Passed. The worker is paid when the objection window closes{windowEnds ? ` on ${when(windowEnds)}` : ""}. Accept now to
-            pay them straight away. You can&apos;t overrule a pass, but you can dispute it once.
+            Passed. The worker is paid when the {POLICY.objectionWindowMs / 3_600_000} hours to dispute end
+            {windowEnds ? `, on ${when(windowEnds)}` : ""}, sometimes up to a day later. Accept now to pay them straight away. You
+            can&apos;t overrule a pass, but you can dispute it. A task has one dispute, for you or the worker.
           </p>
           <ActionButton action={acceptResult.bind(null, task.id)}>Accept and pay now</ActionButton>
           {canDispute && (
             <div className="flex flex-col gap-2 border-t pt-5">
-              <p className="text-sm text-muted-foreground">A panel with a human member decides, and its decision is final.</p>
+              <p className="text-sm text-muted-foreground">A panel with a person on it decides, and its decision is final.</p>
               <DisputeForm action={disputeAsPoster.bind(null, task.id)} />
             </div>
           )}
@@ -205,25 +206,29 @@ async function NextStep({ task, requester }: { task: Task; requester: { role: "r
         return (
           <p className="text-sm text-muted-foreground">
             You failed it. Unless the worker disputes it to the panel, it becomes final
-            {windowEnds ? ` on ${when(windowEnds)}` : ""} and your budget is refunded.
+            {windowEnds ? ` on ${when(windowEnds)}` : ""} and everything you paid is released: a fail you give takes nothing.
           </p>
         );
       }
       return (
         <div className="flex flex-col gap-5">
           <p className="text-sm text-muted-foreground">
-            Failed. It becomes final{windowEnds ? ` on ${when(windowEnds)}` : ""}, and your budget is refunded (the review fee is
-            kept).
+            Failed. It becomes final{windowEnds ? ` on ${when(windowEnds)}` : ""}, and what you paid is released except the review
+            part of the fee ({Math.round(FEE_POLICY.reviewRate * 100)}% of the pay). A task has one dispute, for you or the worker.
           </p>
           {canDispute && <DisputeForm action={disputeAsPoster.bind(null, task.id)} />}
         </div>
       );
     case "disputed":
-      return <p className="text-sm text-muted-foreground">With the dispute panel. Its decision is final; the money stays held until then.</p>;
+      return <p className="text-sm text-muted-foreground">With the dispute panel. Its decision is final, and the money stays held until then. The decision shows here; nothing is sent to you.</p>;
     case "final_pass":
       return <p className="text-sm">Done. The worker was paid {usd(task.budget)}.</p>;
     case "final_fail":
-      return <p className="text-sm">Not paid. Your budget was refunded.</p>;
+      return (
+        <p className="text-sm">
+          Not paid. {task.reviewMode === "requester" ? "Everything you paid was released." : "What you paid was released, except the review part of the fee."}
+        </p>
+      );
     case "expired":
       return <p className="text-sm">Nobody claimed it before the deadline. Everything you paid was released.</p>;
     case "cancelled":

@@ -158,7 +158,7 @@ function NextStep({
       if (task.reviewMode === "requester") {
         return (
           <div className="flex flex-col gap-2 text-muted-foreground">
-            <p>Submitted. The requester checks it against the criteria above.</p>
+            <p>Submitted. The requester checks it against the checks above.</p>
             <p className="text-sm">
               {task.needsHuman
                 ? "The requester didn't review in time, so boreal.work's reviewers are judging it."
@@ -166,32 +166,41 @@ function NextStep({
                   ? `The requester reviews this by ${when(reviewBy)}. If they don't, boreal.work's reviewers decide.`
                   : "If the requester doesn't review in time, boreal.work's reviewers decide."}
             </p>
-            <p className="text-sm">You&apos;ll see the verdict here and on My account.</p>
+            <p className="text-sm">The verdict shows here and on My account. Nothing is sent to you, so check back.</p>
           </div>
         );
       }
       return (
         <p className="text-muted-foreground">
-          Submitted. A reviewer is checking it against the criteria above. You&apos;ll see the verdict here and on My
-          account.
+          Submitted. boreal.work&apos;s reviewer is checking it against the checks above. The verdict shows here and on My
+          account; nothing is sent to you, so check back.
         </p>
       );
     case "passed":
       return (
-        <p className="text-muted-foreground">
-          Passed. Your {usd(task.budget)} is held for you and paid when the objection window closes
-          {windowEnds ? ` on ${when(windowEnds)}` : ""}, or sooner if the requester accepts early.
-        </p>
+        <div className="flex flex-col gap-1.5 text-muted-foreground">
+          <p>
+            Passed. Your {usd(task.budget)} is held for you. It is paid when the {POLICY.objectionWindowMs / 3_600_000} hours to dispute end
+            {windowEnds ? `, on ${when(windowEnds)}` : ""}, or at once if the requester accepts it early.
+          </p>
+          <p className="text-sm">Sometimes it takes up to a day more for boreal.work to send it, then PayPal&apos;s own delivery time.</p>
+        </div>
       );
     case "failed":
       if (task.disputeUsed || !windowEnds || windowEnds <= new Date()) {
-        return <p className="text-muted-foreground">This verdict can no longer be disputed.</p>;
+        return (
+          <p className="text-muted-foreground">
+            {task.disputeUsed
+              ? "This task's one dispute has been used, so this verdict can no longer be disputed."
+              : "The time to dispute this verdict has ended. It is final."}
+          </p>
+        );
       }
       return (
         <div className="flex flex-col gap-3">
           <p className="text-sm text-muted-foreground">
-            You can dispute once, until {when(windowEnds)}. A panel with a human reviewer decides, and its decision is
-            final.
+            You can dispute this until {when(windowEnds)}. A task has one dispute, for you or the requester, so once you
+            send yours there is no other. A panel with a person on it decides, and its decision is final.
           </p>
           <DisputeForm action={disputeVerdict.bind(null, task.id)} />
         </div>
@@ -199,7 +208,7 @@ function NextStep({
     case "disputed":
       return (
         <p className="text-muted-foreground">
-          Disputed. A panel with a human reviewer is deciding, and its decision is final. The money stays held until then.
+          Disputed. A panel with a person on it is deciding, and its decision is final. The money stays held until then. The decision shows here; nothing is sent to you.
         </p>
       );
     case "final_pass":
