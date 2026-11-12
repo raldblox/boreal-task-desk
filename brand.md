@@ -1,61 +1,169 @@
-# boreal.work brand
+# boreal.work brand book
 
-boreal.work is a verified human task desk for AI agents: agents hand off the steps they can't do alone, verified people do them, and get paid when the result passes review.
+<img src="docs/brand/logo/boreal-mark-light.svg" width="72" alt="The boreal.work mark">
 
-Status: active · chosen 2026-11-01 · logo 2026-11-12
+boreal.work is a verified human task desk for AI agents. Agents post the real-world steps they can't do alone, verified people (many of them in the Philippines, on phones) do them, and the money is held in escrow until the result passes review against a public rulebook. Everything here serves one feeling: **calm, trustworthy, human, northern.** Never crypto-flashy.
 
-The full brand book (logo files and rules, colour and type tokens, voice, illustration, social) is the boreal.work design system: https://claude.ai/artifact/BJR32FGtSjREePPTA3yd5R. This file and the book say the same thing; if they ever differ, fix both.
+Status: active · palette chosen 2026-11-01 · logo chosen 2026-11-12
 
-## Palette: Aurora Teal
+**These rules are strict.** Every page, deck, film, post and agent-written screen follows them. When this book and a habit disagree, this book wins. When it is silent, choose the quieter option. This file is the source of truth; the brand kit (logo files, tokens, social images) is in [`docs/brand/`](docs/brand/).
 
-Calm · serious · northern light. Deep teal on softly tinted surfaces; trust first, never crypto-flashy.
+| What | Where |
+| --- | --- |
+| Logo files | `docs/brand/logo/` |
+| Tokens (colour, type, spacing, radius, logo) | `docs/brand/tokens.json`, mirroring `apps/web/src/app/globals.css` |
+| Mark in code | `BorealMark`, `BorealLogo`, `MARK_PATHS` in `apps/web/src/components/brand.tsx` |
+| App icons | `apps/web/src/app/icon.svg`, `favicon.ico`, `apple-icon.png` |
+| Share image | `apps/web/src/app/opengraph-image.tsx` |
+| X avatar and banner | `docs/brand/x-avatar.png`, `x-banner.png`, rendered from `apps/film/src/XProfile.tsx` |
 
-| Seed | Light | Dark |
-|---|---|---|
-| bg-base | `oklch(0.985 0.006 195)` | `oklch(0.155 0.016 215)` |
-| bg-elevated | `oklch(1 0 0)` | `oklch(0.20 0.02 215)` |
-| primary | `oklch(0.47 0.085 195)` · `#00696a` | `oklch(0.76 0.10 188)` · `#5ac6bd` |
-| primary-soft | `oklch(0.86 0.05 195)` | `oklch(0.86 0.07 188)` |
-| fg-base | `oklch(0.21 0.02 225)` | `oklch(0.96 0.008 200)` |
+## The name
 
-The full token set lives in `apps/web/src/app/globals.css` (`:root` and `.dark`); every text pair passes WCAG AA in both modes. Extra tokens: `primary-soft` / `primary-soft-foreground` (Tailwind `bg-primary-soft`, `text-primary-soft-foreground`) for badges and quiet highlights. Radius `0.625rem`.
+- Always **boreal.work**: lowercase, one word, with ".work". Never "Boreal", "boreal", "Boreal Work", "BOREAL.WORK" or "boreal work", not even at the start of a sentence; rewrite the sentence instead.
+- In running text the name is plain text in the surrounding style. Don't bold, colour or link it just because it's the name.
+- The X handle is @borealwork; the domain is boreal.work.
 
 ## Logo
 
-Chosen 2026-11-12 (the discovery page, with every round, is in the shared notes as `boreal-logo-directions.html`).
+<img src="docs/brand/logo/boreal-mark-light.svg" width="96" alt="Mark on light"> <img src="docs/brand/logo/boreal-mark-dark.svg" width="96" alt="Mark for dark grounds"> <img src="docs/brand/logo/boreal-mark-ink.svg" width="96" alt="One-colour mark"> <img src="docs/brand/logo/boreal-app-icon.svg" width="96" alt="App icon">
 
-**The idea: two rockets moving forward in step.** The top band is the AI agent and the bottom band is the person. Both start from one line with the same notched tail. The agent's band ends in a square head. The person's band carries one more stage, a rectangular load under the agent's head, and its round head flies out ahead: the agent sets the work going, the person carries it over the line. Bodies are in the light tone, heads are solid. The short top band over the longer, rounded bottom also reads as a b.
+### The idea
 
-- **Source of truth:** `MARK_PATHS` in `apps/web/src/components/brand.tsx` (32-unit grid). The same paths are in `apps/web/src/app/icon.svg`, `opengraph-image.tsx` and `apps/film/src/XProfile.tsx`; `favicon.ico` and `apple-icon.png` are rendered from them.
-- **Geometry:** bands 11.625 units tall; 1.75 units between the two bands and 0.9 units between the pieces of a band, so each band reads as one body. The tails and the two rectangles line up in columns. Keep it exact; don't redraw by eye.
-- **Colour:** on light, Aurora Teal `#00696a` with the bodies at 45%; on dark, `#5ac6bd` the same way. As an app icon, white on a teal tile, bodies at 55%. One colour only, never two hues.
-- **Lockup:** mark, then "boreal.work" in Manrope semibold, always lowercase. In the header the mark is `size-6` (24 px) with an 8 px gap.
-- **Clear space:** at least one head width (a fifth of the mark's width) on every side.
-- **Minimum size:** 20 px freestanding, 16 px as the teal app icon.
+Two rockets moving forward in step. The **top band is the AI agent**: a notched tail and a **square head**. The **bottom band is the person**: the same tail, a rectangular **load**, and a **round head** that flies out ahead. The agent sets the work going; the person carries it over the line. Bodies are in the light tone and heads are solid. The short top over the longer, rounded bottom also reads as a **b**.
 
-Don'ts: don't rotate, flip or skew it; don't change the order (the agent stays on top, the person's round head leads); don't close the gaps or make them uneven; don't add gradients, outlines, shadows or glows; don't recolour the heads and bodies in different hues; don't set the mark inside another shape except the teal app tile.
+### Files
+
+Use these files or `BorealMark`. Never redraw the mark by eye.
+
+| File | Use on |
+| --- | --- |
+| `docs/brand/logo/boreal-mark-light.svg` | Light grounds (`background`, `card`). Ink #00696a. |
+| `docs/brand/logo/boreal-mark-dark.svg` | Dark grounds. Ink #5ac6bd. |
+| `docs/brand/logo/boreal-mark-ink.svg` | One-colour print and light share images. Ink #1b2a30. |
+| `docs/brand/logo/boreal-app-icon.svg` | App icons, favicons, social avatars: white mark on a teal tile. |
+
+`MARK_PATHS` in `apps/web/src/components/brand.tsx` is the single source of the geometry. `icon.svg`, `favicon.ico`, `apple-icon.png`, the share image, the X stills and the files above are all made from it: change it there first, then regenerate the rest.
+
+### Construction
+
+- A 32-unit grid. Each band is 11.625 units tall.
+- 1.75 units between the two bands; 0.9 units between the pieces inside a band, so each band reads as one body.
+- Both tails start on the same line. The agent's square head sits exactly over the person's load. The round head is the only piece beyond that column.
+- Bodies (both tails and the load) at 45% of the ink; on the teal tile, white at 55%. Heads at 100%.
+
+### Lockup
+
+Mark, then **boreal.work** in Manrope semibold. In the header the mark is 24 px (`size-6`) beside 16 px type with an 8 px gap, centred on the x-height. Always lowercase. No tagline in the lockup.
+
+### Clear space and size
+
+- Clear space on every side: at least one head width (about a fifth of the mark's width). Nothing (text, edges, other logos) inside it.
+- Minimum: 20 px freestanding, 16 px as the app icon.
+
+### Never
+
+- Rotate, flip, skew, stretch or animate the pieces apart.
+- Change the order: the agent stays on top; the person's round head always leads.
+- Close the gaps, make them uneven, or join the pieces into one shape.
+- Add gradients, outlines, shadows, glows or textures.
+- Recolour heads and bodies in different hues, or use any colour but the files' inks and white.
+- Put the mark inside any container except the teal app tile.
+- Set the wordmark in another face, in capitals, or without ".work".
+- Make a rounded-box "B": another company already uses one in teal.
+
+## Colour: Aurora Teal
+
+Calm, serious, northern light: deep teal on softly tinted grounds. Every text pair passes WCAG AA in both themes. In the app, colours come only from the tokens in `apps/web/src/app/globals.css` (Tailwind `bg-primary`, `text-muted-foreground` and so on); never paste hex values into components.
+
+| Token | Light | Dark | Use |
+|---|---|---|---|
+| `background` | `oklch(0.985 0.006 195)` | `oklch(0.155 0.016 215)` | Page ground |
+| `card` | `oklch(1 0 0)` | `oklch(0.20 0.02 215)` | Raised surfaces, footer |
+| `foreground` | `oklch(0.21 0.02 225)` | `oklch(0.96 0.008 200)` | Text |
+| `muted-foreground` | `oklch(0.48 0.02 225)` | `oklch(0.70 0.008 200)` | Supporting text |
+| `primary` | `oklch(0.47 0.085 195)` · `#00696a` | `oklch(0.76 0.10 188)` · `#5ac6bd` | The one main action, links, logo, money |
+| `primary-soft` | `oklch(0.86 0.05 195)` | `oklch(0.86 0.07 188)` | Badges, quiet highlights |
+| `destructive` | `oklch(0.55 0.20 25)` | `oklch(0.68 0.19 25)` | Errors and failed verdicts only |
+| `border` | `oklch(0.90 0.006 195)` | `oklch(0.29 0.02 215)` | Hairlines |
+
+The full set (with `secondary`, `accent`, `input`, `ring`, `chart-1` to `chart-5`) is in `globals.css` and `docs/brand/tokens.json`. File-only inks: `#00696a` / `#5ac6bd` (logo), `#1b2a30` (one-colour ink), `#0b2326` (night sky in the X banner and films).
+
+- `primary` is for the **one main action** on a screen, links, the logo and key numbers. Secondary actions are outline or ghost buttons.
+- Text is `foreground` on `background`, `card` and `popover`; supporting text is `muted-foreground`.
+- `primary-soft` with `primary-soft-foreground` for badges, quiet highlights and the testnet banner.
+- `destructive` only for errors and failed verdicts. No other red, anywhere.
+- Charts use `chart-1` to `chart-5` in order; `chart-1` is the brand teal.
+- No gradients, glows or neon in UI. Soft sky gradients exist only inside illustrations and the share image, never on buttons, cards or text.
 
 ## Typography
 
-Manrope for all text, JetBrains Mono for IDs, hashes, rule IDs and code (loaded with `next/font/google` in `apps/web/src/app/layout.tsx`, exposed as `font-sans` / `font-mono`). Rounded, open forms: calm and warm, a touch distinctive.
+**Manrope** for all text; **JetBrains Mono** for IDs, hashes, rule IDs, code and eyebrows. Both load with `next/font/google` in `apps/web/src/app/layout.tsx` and are exposed as `font-sans` and `font-mono`. Rounded, open forms: calm and warm, a touch distinctive.
 
-- Headlines: light (300) with tight tracking (`font-light tracking-[-0.04em]` for the hero, `-0.03em` for sections), sentence case, balanced wrap. Never bold, never capitals.
-- Money: light, in `text-primary`, with tabular numbers (`tabular-nums`); the most prominent number on a task.
-- Small labels and eyebrows: JetBrains Mono, uppercase, wide tracking, in `text-primary` or `text-muted-foreground`.
+| Style | Size / line | Weight | Tracking | Use |
+| --- | --- | --- | --- | --- |
+| display | 72 / 1.02 (60 at sm, 48 on phones) | 300 | -0.04em | The one hero headline per page |
+| heading | 36 / 1.1 (30 on phones) | 300 | -0.03em | Section headings |
+| subheading | 24 / 1.25 | 300 | -0.025em | Card and panel headings |
+| title | 20 / 1.4 | 400 | -0.015em | Task titles, list headings |
+| lead | 18 / 1.625 | 400 | | Intro paragraph, `muted-foreground` |
+| body | 16 / 1.5 | 400 | | Running text |
+| small | 14 / 1.43 | 400 | | Nav, buttons, table cells |
+| label | 14 / 1.43 (16 in the lockup) | 600 | -0.015em | Wordmark, button and form labels |
+| money | 24 / 1.25 | 300 | -0.025em | Task amounts, `text-primary`, `tabular-nums` |
+| eyebrow | 12 / 1.33, mono, uppercase | 500 | 0.18em | Labels above headings, after a 24 px rule |
+| code | 13 / 1.5, mono | 400 | | IDs, hashes, rule IDs |
 
-## Voice
+- Headlines are light (300) with tight tracking, sentence case, balanced wrap. Never bold a headline, never set one in capitals.
+- Money is the most prominent number on any task. Figures in tables and stats use tabular numbers.
+- Inter, Roboto and system fonts are fallbacks only, never the brand face.
 
-Plain and direct. Say what happens, who decides and when money moves: "You're paid when your result passes review", not "Earn instantly!". Short sentences; no hype, no crypto jargon for workers (say "Concordium ID", never "ZK credential presentation").
+## Voice and copy
 
-Respect privacy out loud. Whenever we ask for something, say what we keep and what we never see.
+Plain and direct. Say what happens, who decides and when money moves.
 
-Fairness is concrete: cite the rule (R4.2), the time limit (48 hours) and the next step. Workers in the Philippines read this on phones, so write for mobile first and keep it scannable.
+- Write: "You're paid when your result passes review." Not: "Earn instantly!"
+- Short sentences, active voice, sentence case. Write for phones first: scannable, one idea per line.
+- Fairness is concrete: cite the rule (R4.2), the time limit (48 hours) and the next step.
+- Respect privacy out loud: whenever we ask for something, say what we keep and what we never see.
+- No hype, no exclamation marks in product copy, no emoji in UI.
+- No crypto jargon for workers: say "Concordium ID", never "ZK credential presentation"; say "held in escrow", never "locked in a smart contract".
+- Label test money and requester review clearly ("Testnet: never real money.").
+- Never hide fees or rules in fine print: "One fee: 15% + $0.50".
 
-## Do / don't
+## Illustration and imagery
 
-- Do use teal for the one main action on a screen; secondary actions are outline or ghost.
-- Do show money as the most prominent number on a task.
-- Do label test money and requester review clearly.
-- Don't add gradients, glows or neon; the brand is calm.
-- Don't use red except for errors and failed verdicts.
-- Don't hide fees or rules in fine print.
+- **Hand-built SVG only.** No generated images, no stock photos of people, no 3D renders.
+- The world is the north: daylight or night sky over ridges and rows of spruce, an aurora as soft bands. Flat fills from the palette, a few tones each.
+- Faces and figures stay abstract; show the work, not people's identities.
+- The share image (`opengraph-image.tsx`) and the X banner are the reference scenes.
+
+## Iconography
+
+- Lucide icons (`lucide-react`), outline style, 16 px in text and buttons (`size-4`), `currentColor`.
+- One icon per action at most; icons support a label, they don't replace it.
+- No emoji as icons or section markers.
+
+## Layout and surfaces
+
+- Calm and roomy: a 16 px side gutter on phones, 24 px card padding on desktop, a 64 px sticky header with a translucent `background` and a `border` rule.
+- Radius `0.625rem` (10 px) is the base; cards one step up (14 px). No pill-shaped cards.
+- Separate surfaces with `border` hairlines and `card` fills, not heavy shadows. No coloured left-border accent cards.
+- Components are shadcn (base-nova style on Base UI). Links styled as buttons use `buttonVariants()`.
+
+## Social
+
+<img src="docs/brand/x-avatar.png" width="96" alt="X avatar"> <img src="docs/brand/x-banner.png" width="288" alt="X banner">
+
+- X avatar: `docs/brand/x-avatar.png`, the app icon at 400×400 on flat Aurora Teal. X crops it to a circle; the mark sits centred inside.
+- X banner: `docs/brand/x-banner.png`, 1500×500, night sky with the aurora, the light-teal mark and "boreal.work", text kept right of centre where the avatar can't cover it.
+- Both are rendered from `apps/film/src/XProfile.tsx` (`npx remotion still src/index.ts XAvatar out/x-avatar.png`, then copy into `docs/brand/`). Change the source, never the PNGs.
+
+## Checklist before anything ships
+
+1. The name is exactly **boreal.work**.
+2. The logo comes from the files or `BorealMark`, untouched, with clear space.
+3. Colours come from tokens; one teal main action; red only for errors.
+4. Manrope light headlines, Manrope text, JetBrains Mono for IDs and eyebrows.
+5. Copy says what happens, who decides and when money moves, in short sentences.
+6. Art is hand-built SVG in the palette.
+7. It reads on a phone in both light and dark.
