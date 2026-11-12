@@ -38,11 +38,11 @@ export default function OpengraphImage() {
         <div style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 34, color: "#1b2a30", fontWeight: 600 }}>
           {/* The mark (components/brand.tsx, MARK_PATHS): light bodies, solid heads. */}
           <svg width="52" height="52" viewBox="0 0 32 32">
-            <path d="M2.44 3.5H14.44V15.125H2.44L8.25 9.31Z" fill="#00696a" fillOpacity="0.45" />
+            <path d="M3.29 3.5H15.29V15.125H3.29L9.1 9.31Z" fill="#00696a" fillOpacity="0.45" />
             <path d="M16.19 3.5H22V15.125H16.19Z" fill="#00696a" />
-            <path d="M2.44 16.875H14.44V28.5H2.44L8.25 22.69Z" fill="#00696a" fillOpacity="0.45" />
+            <path d="M3.29 16.875H15.29V28.5H3.29L9.1 22.69Z" fill="#00696a" fillOpacity="0.45" />
             <path d="M16.19 16.875H22V28.5H16.19Z" fill="#00696a" fillOpacity="0.45" />
-            <path d="M23.75 16.875A5.81 5.81 0 0 1 23.75 28.5Z" fill="#00696a" />
+            <path d="M22.9 16.875A5.81 5.81 0 0 1 22.9 28.5Z" fill="#00696a" />
           </svg>
           boreal.work
         </div>

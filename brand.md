@@ -25,7 +25,7 @@ Chosen 2026-11-12 (the discovery page, with every round, is in the shared notes 
 **The idea: two rockets moving forward in step.** The top band is the AI agent and the bottom band is the person. Both start from one line with the same notched tail. The agent's band ends in a square head. The person's band carries one more stage, a rectangular load under the agent's head, and its round head flies out ahead: the agent sets the work going, the person carries it over the line. Bodies are in the light tone, heads are solid. The short top band over the longer, rounded bottom also reads as a b.
 
 - **Source of truth:** `MARK_PATHS` in `apps/web/src/components/brand.tsx` (32-unit grid). The same paths are in `apps/web/src/app/icon.svg`, `opengraph-image.tsx` and `apps/film/src/XProfile.tsx`; `favicon.ico` and `apple-icon.png` are rendered from them.
-- **Geometry:** bands 11.625 units tall; every gap is 1.75 units, between the bands and between each piece. The tails and the two rectangles line up in columns. Keep it exact; don't redraw by eye.
+- **Geometry:** bands 11.625 units tall; 1.75 units between the two bands and 0.9 units between the pieces of a band, so each band reads as one body. The tails and the two rectangles line up in columns. Keep it exact; don't redraw by eye.
 - **Colour:** on light, Aurora Teal `#00696a` with the bodies at 45%; on dark, `#5ac6bd` the same way. As an app icon, white on a teal tile, bodies at 55%. One colour only, never two hues.
 - **Lockup:** mark, then "boreal.work" in Manrope semibold, always lowercase. In the header the mark is `size-6` (24 px) with an 8 px gap.
 - **Clear space:** at least one head width (a fifth of the mark's width) on every side.
