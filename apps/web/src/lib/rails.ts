@@ -7,7 +7,8 @@ export const RAIL_LABEL: Record<PaymentRail, string> = {
   paypal: "Paid via PayPal",
   near: "USDC on NEAR",
   concordium: "Paid in tokens",
-  evm: "USDC on Base",
+  // The chain is a deployment setting (EVM_CHAIN_ID); pages that need it name it themselves.
+  evm: "Paid in USDC",
 };
 
 /** The worker's payout details, as the desk's getWorker returns them. */

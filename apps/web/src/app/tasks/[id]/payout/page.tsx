@@ -4,11 +4,12 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 
+import { EVM_CHAIN_NAMES, evmConnectMessage } from "@boreal/evm";
 import { CONNECT_MESSAGE } from "@boreal/near";
 
 import { Eyebrow } from "@/components/brand";
 import { Container } from "@/components/page";
-import { ConnectConcordiumAccount, ConnectNear } from "@/components/connect-wallet";
+import { ConnectConcordiumAccount, ConnectEvm, ConnectNear } from "@/components/connect-wallet";
 import { buttonVariants } from "@/components/ui/button";
 import { SITE } from "@/content/agent-guide";
 import { gatedEnv } from "@/server/addons";
@@ -64,6 +65,37 @@ async function Setup({ params }: { params: Promise<{ id: string }> }) {
     );
   }
 
+  if (task.paymentRail === "evm") {
+    const chainId = Number(gatedEnv().EVM_CHAIN_ID);
+    const chain = EVM_CHAIN_NAMES[chainId] ?? `chain ${chainId}`;
+    return (
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-2">
+          <Eyebrow>USDC on {chain}</Eyebrow>
+          <h1 className="text-4xl font-light tracking-[-0.035em]">Connect a wallet on {chain}</h1>
+          <p className="text-muted-foreground">
+            This task pays {usd(task.budget)} in USDC on {chain}. Connect your wallet once and you&apos;re paid there once it passes.
+          </p>
+        </div>
+        <ol className="flex flex-col gap-5">
+          <Step n={1}>
+            <p>
+              No wallet yet? Install one that supports {chain}, such as MetaMask, and create an account: it&apos;s free, and the keys are yours alone.
+              boreal.work never holds them.
+            </p>
+          </Step>
+          <Step n={2}>
+            <p>
+              Connect it and sign a short message. It&apos;s free (no transaction, no fee) and proves the address is yours. We claim the task for you as
+              soon as it&apos;s connected.
+            </p>
+            <ConnectEvm template={evmConnectMessage(new URL(SITE).host, "{issuedAt}")} chain={chain} taskId={id} label="Connect wallet and claim" />
+          </Step>
+        </ol>
+      </div>
+    );
+  }
+
   const near = task.paymentRail === "near";
   return (
     <div className="flex flex-col gap-6">
@@ -86,7 +118,7 @@ async function Setup({ params }: { params: Promise<{ id: string }> }) {
           ) : (
             <p>
               Install the Concordium wallet and create an account with the Concordium ID App. The same ID also earns you the Verified by Concordium
-              badge, which unlocks tasks that ask for your age or country. Adding the badge on My account costs a little CCD for its proof.
+              badge, which unlocks tasks that ask for your age or country. Adding the badge on My account is free for you: boreal.work pays the network fee for its proof.
             </p>
           )}
           <a href={near ? NEAR_WALLET : CONCORDIUM_WALLET} target="_blank" rel="noreferrer" className={buttonVariants({ variant: "outline", className: "w-fit gap-1.5" })}>

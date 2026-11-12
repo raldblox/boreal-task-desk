@@ -118,6 +118,87 @@ export function ConnectNear({
   );
 }
 
+type Eip1193 = { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> };
+
+/**
+ * Connect an EVM wallet (MetaMask, Coinbase Wallet, Rabby and others in the browser) for USDC
+ * payouts: the wallet shares its address and signs a free message that moves nothing.
+ * `template` is the server's connect message with `{issuedAt}` where the time goes, so the
+ * wording lives in one place (`evmConnectMessage` in @boreal/evm).
+ */
+export function ConnectEvm({
+  template,
+  chain,
+  taskId,
+  label = "Connect wallet",
+  quiet = false,
+}: {
+  template: string;
+  /** The chain the rail pays on, by name, for the words around the button. */
+  chain: string;
+  taskId?: string;
+  label?: string;
+  quiet?: boolean;
+}) {
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [missing, setMissing] = useState(false);
+  const [, startTransition] = useTransition();
+
+  async function connect() {
+    setError(null);
+    setMissing(false);
+    const ethereum = (window as unknown as { ethereum?: Eip1193 }).ethereum;
+    if (!ethereum) {
+      setMissing(true);
+      return;
+    }
+    try {
+      setBusy("Connect in your wallet…");
+      const accounts = (await ethereum.request({ method: "eth_requestAccounts" })) as string[];
+      const address = accounts?.[0];
+      if (!address) throw new Error("The wallet didn't share an address.");
+      setBusy("Sign the message in your wallet (free)…");
+      const issuedAt = new Date().toISOString();
+      const message = template.replace("{issuedAt}", issuedAt);
+      const signature = (await ethereum.request({ method: "personal_sign", params: [message, address] })) as string;
+      setBusy("Checking your signature…");
+      startTransition(async () => {
+        const result = await connectPayoutAccount({ rail: "evm", address, issuedAt, signature }, taskId);
+        if (result?.error) setError(result.error);
+        setBusy(null);
+      });
+    } catch (e) {
+      const code = (e as { code?: number })?.code;
+      const text = e instanceof Error ? e.message : "";
+      setError(code === 4001 || /reject|denied|cancel/i.test(text) ? "The wallet didn't connect. Try again when you're ready." : text || "That didn't work. Try again.");
+      setBusy(null);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <ConnectButton quiet={quiet} busy={busy} label={label} onClick={connect} />
+      {missing && (
+        <Alert>
+          <AlertDescription>
+            No wallet found in this browser. Install a wallet that supports {chain}, such as{" "}
+            <a href="https://metamask.io/download/" target="_blank" rel="noreferrer" className="font-medium text-primary underline">
+              MetaMask
+            </a>
+            , create an account, then come back and connect.
+          </AlertDescription>
+        </Alert>
+      )}
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+    </div>
+  );
+}
+
 /** Connect the Concordium Wallet for Web: the account picked in the wallet is the payout account. */
 export function ConnectConcordiumAccount({
   taskId,
