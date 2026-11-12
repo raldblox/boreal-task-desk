@@ -32,7 +32,7 @@ beforeEach(async () => {
     .insert(agents)
     .values({ ownerId: owner!.id, registryId: "dev-a", name: "a", maxTaskBudget: 5_000, maxDailySpend: 50_000 })
     .returning();
-  const [w] = await db.insert(workers).values({ pseudonym: "w", provenAttributes: {} }).returning();
+  const [w] = await db.insert(workers).values({ pseudonym: "w", provenAttributes: {}, paypalVerified: true }).returning();
   requester = { role: "requester", agentId: agent!.id };
   worker = { role: "worker", workerId: w!.id };
 });
