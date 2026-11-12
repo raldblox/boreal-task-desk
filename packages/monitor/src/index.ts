@@ -130,6 +130,12 @@ export function createMonitor({
         await step("escalate-reviews", async () => {
           report.escalatedReviews = await desk.escalateSilentReviews();
         });
+        await step("overdue", async () => {
+          // Said on every tick until someone acts: the cron's answer, the logs and /admin all carry it.
+          const overdue = await desk.overdueForPeople();
+          if (overdue.disputes > 0) report.errors.push(`${overdue.disputes} ${overdue.disputes === 1 ? "dispute has" : "disputes have"} waited more than 72 hours for a panel decision`);
+          if (overdue.queued > 0) report.errors.push(`${overdue.queued} ${overdue.queued === 1 ? "task has" : "tasks have"} waited more than a day for a human reviewer`);
+        });
         if (reviewer) {
           await step("ai-review", async () => {
             report.ai = await runAiReview(desk, reviewer, { readFile, limit: aiLimit, screen: aiScreening });

@@ -195,3 +195,30 @@ describe("escrow and the outbox", () => {
     expect(near.sent).toEqual([]);
   });
 });
+
+// RS-18 (docs/readiness.md): work waiting on boreal.work's own people can't wait unnoticed.
+describe("overdue work", () => {
+  it("says on every tick when a dispute or the human queue has waited too long", async () => {
+    const { task } = await desk.postTask(requester, {
+      description: "Photograph item X on the shelf at the Manila shop, with its price tag visible.",
+      acceptanceCriteria: ["Photo shows item X on a shelf"],
+      resultFormat: "text",
+      budget: 500,
+      deadline: new Date(clock.getTime() + 48 * 3600_000).toISOString(),
+    });
+    await desk.fundTask(requester, task.id, { txHash: "t", amount: task.budget + task.platformFee + task.reviewFee });
+    const reviewer: Caller = { role: "reviewer", reviewerRef: "boreal-ai-reviewer" };
+    await desk.screenTask(reviewer, task.id, { outcome: "ok" });
+    await desk.claimTask(worker, task.id);
+    await desk.submitResult(worker, task.id, { text: "On the second shelf, 129 pesos." });
+    await desk.recordVerdict(reviewer, task.id, { outcome: "fail", ruleIds: ["R4.1"], reasoning: "No price." });
+    await desk.disputeVerdict(worker, task.id, "The price is in the second sentence.");
+
+    clock = new Date(clock.getTime() + 71 * 3600_000);
+    expect((await monitor().tick()).errors).toEqual([]);
+    clock = new Date(clock.getTime() + 2 * 3600_000);
+    expect((await monitor().tick()).errors).toEqual(["1 dispute has waited more than 72 hours for a panel decision"]);
+    // Still disputed: nothing decides itself.
+    expect((await desk.getTask(requester, task.id)).status).toBe("disputed");
+  });
+});

@@ -1039,6 +1039,24 @@ export function createDesk({
     },
 
     /**
+     * Work that has waited on boreal.work's own people for too long: disputes past the time a
+     * panel has to decide (`POLICY.disputeDecisionMs`), and anything in the human queue for
+     * more than a day. Nothing decides itself; this is so it can't wait unnoticed (RS-18).
+     */
+    async overdueForPeople() {
+      const at = now();
+      const disputeCutoff = new Date(at.getTime() - POLICY.disputeDecisionMs);
+      const queueCutoff = new Date(at.getTime() - 24 * 60 * 60 * 1000);
+      const [row] = await db
+        .select({
+          disputes: sql<number>`count(*) filter (where ${tasks.status} = 'disputed' and ${tasks.updatedAt} <= ${disputeCutoff.toISOString()}::timestamptz)::int`,
+          queued: sql<number>`count(*) filter (where ${tasks.needsHuman} and ${tasks.status} in ('posted', 'submitted') and ${tasks.updatedAt} <= ${queueCutoff.toISOString()}::timestamptz)::int`,
+        })
+        .from(tasks);
+      return { disputes: row?.disputes ?? 0, queued: row?.queued ?? 0 };
+    },
+
+    /**
      * Whether this worker may hand in a result for the task right now: they hold its claim and
      * it hasn't run out. Checked before any file is stored, so files are only ever kept for a
      * task the uploader is doing.
