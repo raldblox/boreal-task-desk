@@ -25,6 +25,7 @@ function scripted(screen: ScreenResult | (() => ScreenResult), review: ReviewRes
       calls.review++;
       return review;
     },
+    dispute: async () => ({ outcome: "needs_human", reason: "not scripted" }),
   };
   return { reviewer, calls };
 }

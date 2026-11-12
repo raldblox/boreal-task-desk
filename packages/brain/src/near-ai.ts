@@ -4,6 +4,10 @@ import sharp from "sharp";
 import { z } from "zod";
 
 import {
+  type DisputeInput,
+  disputeBlock,
+  disputeOutcome,
+  disputePrompt,
   IMAGE_TYPES,
   type Reviewer,
   type ReviewInput,
@@ -185,6 +189,23 @@ export function createNearAiReviewer(options: NearAiReviewerOptions): Reviewer {
   }
 
   return {
+    async dispute(input: DisputeInput) {
+      const content: Exclude<Content, string> = [{ type: "text", text: disputePrompt(input) }];
+      for (const file of input.submission.files) {
+        if (!IMAGE_TYPES.includes(file.contentType)) return { outcome: "needs_human", reason: `can't read a ${file.contentType} file privately` };
+        try {
+          content.push({ type: "image_url", image_url: { url: await fitImage(file.bytes) } });
+        } catch {
+          return { outcome: "needs_human", reason: "a submitted photo couldn't be read" };
+        }
+      }
+      content.push({ type: "text", text: submissionBlock(input) }, { type: "text", text: disputeBlock(input) });
+      const answer = await ask(reviewSchema, "dispute", content);
+      if ("outcome" in answer) return answer;
+      const result = disputeOutcome(answer.parsed, input, answer.proof.model);
+      return "reason" in result ? result : { ...result, proof: answer.proof };
+    },
+
     async screen(input) {
       const answer = await ask(screenSchema, "screening", screenPrompt(input));
       if ("outcome" in answer) return answer;

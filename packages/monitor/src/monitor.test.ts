@@ -16,6 +16,7 @@ let worker: Caller;
 const passAll: Reviewer = {
   screen: async () => ({ outcome: "ok", reasoning: "fine" }),
   review: async () => ({ outcome: "pass", ruleIds: [], reasoning: "ok", model: "claude-opus-5-5" }),
+  dispute: async () => ({ outcome: "pass", ruleIds: [], reasoning: "agree", model: "claude-opus-5-5" }),
 };
 
 function monitor(reviewer: Reviewer | null = null) {

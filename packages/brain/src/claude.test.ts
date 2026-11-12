@@ -130,3 +130,28 @@ describe("review", () => {
     expect(requests).toHaveLength(0);
   });
 });
+
+describe("dispute vote", () => {
+  const disputeInput = {
+    ...reviewInput,
+    verdict: { outcome: "fail" as const, ruleIds: ["R4.5"], reasoning: "The price tag can't be read.", by: "ai" },
+    statements: [{ party: "worker" as const, reason: "The tag is readable in the second photo: 129.50." }],
+  };
+
+  it("sends the verdict and both statements after the submission, as material to weigh", async () => {
+    const { client, requests } = fakeClient({
+      parsed_output: { criteria: met(), decision: "pass", rule_ids: [], reasoning: "The second photo shows the tag clearly; I disagree with the fail." },
+    });
+    const vote = await createClaudeReviewer({ client }).dispute(disputeInput);
+    expect(vote).toMatchObject({ outcome: "pass", model: "claude-opus-5-5" });
+    const content = (requests[0] as { messages: { content: { type: string; text?: string }[] }[] }).messages[0]!.content;
+    expect(content[0]!.text).toContain("dispute panel");
+    expect(content.at(-1)?.text).toContain("<statements>");
+    expect(content.at(-1)?.text).toContain("129.50");
+  });
+
+  it("holds a vote to the same checks as a review: a fail without a failing rule goes to the person", async () => {
+    const { client } = fakeClient({ parsed_output: { criteria: met(false), decision: "fail", rule_ids: [], reasoning: "Not good." } });
+    expect((await createClaudeReviewer({ client }).dispute(disputeInput)).outcome).toBe("needs_human");
+  });
+});

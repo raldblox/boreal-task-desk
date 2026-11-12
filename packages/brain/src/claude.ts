@@ -3,6 +3,10 @@ import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import type { z } from "zod";
 
 import {
+  type DisputeInput,
+  disputeBlock,
+  disputeOutcome,
+  disputePrompt,
   IMAGE_TYPES,
   type Reviewer,
   reviewOutcome,
@@ -21,7 +25,7 @@ import { RULEBOOK_VERSION } from "./rulebook";
 // against the rulebook (judge.ts) before it can become a verdict, and anything uncertain goes
 // to a human.
 
-export type { ReviewInput, Reviewer, ReviewResult, ScreenInput, ScreenResult } from "./judge";
+export type { DisputeInput, DisputeVote, ReviewInput, Reviewer, ReviewResult, ScreenInput, ScreenResult } from "./judge";
 
 type Effort = "low" | "medium" | "high" | "xhigh" | "max";
 
@@ -75,7 +79,32 @@ export function createClaudeReviewer(options: ClaudeReviewerOptions = {}): Revie
     return { parsed: response.parsed_output as z.infer<S>, model: response.model };
   }
 
+  /** The task's prompt, then the submission's files, then its text block. */
+  function withFiles(prompt: string, input: { submission: { text: string | null; files: { contentType: string; bytes: Buffer }[] } }) {
+    const content: Anthropic.Beta.BetaContentBlockParam[] = [{ type: "text", text: prompt }];
+    for (const file of input.submission.files) {
+      const data = file.bytes.toString("base64");
+      if (file.contentType === "application/pdf") {
+        content.push({ type: "document", source: { type: "base64", media_type: "application/pdf", data } });
+      } else if (IMAGE_TYPES.includes(file.contentType)) {
+        content.push({ type: "image", source: { type: "base64", media_type: file.contentType as "image/jpeg", data } });
+      } else {
+        return null;
+      }
+    }
+    return content;
+  }
+
   return {
+    async dispute(input: DisputeInput) {
+      const content = withFiles(disputePrompt(input), input);
+      if (!content) return { outcome: "needs_human", reason: "the submission has a file the panel's AI can't read" };
+      content.push({ type: "text", text: submissionBlock(input) }, { type: "text", text: disputeBlock(input) });
+      const answer = await ask(reviewSchema, content);
+      if ("outcome" in answer) return answer;
+      return disputeOutcome(answer.parsed, input, answer.model);
+    },
+
     async screen(input) {
       const answer = await ask(screenSchema, [{ type: "text", text: screenPrompt(input) }]);
       if ("outcome" in answer) return answer;
