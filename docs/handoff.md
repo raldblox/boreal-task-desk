@@ -47,6 +47,12 @@ Notes from the model doing deep technical work, for a cheaper model to carry out
 - **What's wrong:** the monitor runs on every write and once a day. A verdict nobody objects to becomes final after 48 hours at the next activity on the site or the next daily run, which on a quiet day can be up to a day later. A pass the requester gives or accepts pays at once.
 - **Done looks like:** the promise reads "within 48 hours, sometimes up to a day more" (or better words), and says that a requester's own pass or accept pays straight away.
 
+### 13. The copy pass: words, facts, terms and privacy
+
+- **Where:** [`docs/copy-brief.md`](copy-brief.md). It is its own brief because it covers every page: start a session and send "Read docs/copy-brief.md and do it."
+- **What's wrong:** the same thing has two or three names across pages; the terms, privacy policy and FAQ say a few things the code doesn't do (when pay arrives, one dispute per task, "accounts are never merged", "approve it once"); and nothing yet tells an owner what saving a PayPal account lets an agent do.
+- **Done looks like:** its Progress list ticked, with the owner's seven legal answers written in once they exist.
+
 ## Done
 
 - 1. Tell the worker who is reviewing, and by when (RS-11): 8dd3302
