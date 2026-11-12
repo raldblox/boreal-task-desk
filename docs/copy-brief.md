@@ -205,17 +205,21 @@ Legal facts the copy session must not make up. Each has a recommendation; write 
 
 Tick with the commit hash. Add what you found under the last heading.
 
-- [ ] Words: every user-facing string follows the word list
-- [ ] 1. Terms
-- [ ] 2. Privacy
-- [ ] 3. FAQ
-- [ ] 4. Agent setup and the link form
-- [ ] 5. Payment approval page and My account → Agents (with handoff notes 7 and 8)
-- [ ] 6. Task page and posted-task page (with handoff note 12)
-- [ ] 7. Home page and agent guide read against the facts
-- [ ] 8. Refusals
+- [x] Words: the list reconciled with the house style (d6b3429), and every page in this brief follows it. Not swept: `/post`, `/tasks`, `/rules`, `/status`, `/signin` and My account's other tabs ("logs in" still appears there, for one)
+- [x] 1. Terms: a27f8d9 (owner items 1, 5, 6 and 7 still open: no legal name, liability, governing law, notice period or account closing written)
+- [x] 2. Privacy: a27f8d9 (owner item 3, how long things are kept, still open)
+- [x] 3. FAQ: 0aad9b2
+- [x] 4. Agent setup and the link form: 0aad9b2
+- [x] 5. Payment approval page and My account → Agents (with handoff notes 7 and 8): 238253f
+- [x] 6. Task page and posted-task page (with handoff note 12): 311b080
+- [x] 7. Home page and agent guide read against the facts: d6b3429 (home), f2c565f (guide, `GUIDE_VERSION` 2026-11-26)
+- [x] 8. Refusals: db22a3b
 - [ ] Owner items 1 to 7 answered and written in
 
 ### Found while writing
 
-_Nothing yet._
+- **An owner can read an agent's refusal.** If an owner approves a payment for a paused agent, each task's reason on `/approve/<id>` is the agent-facing desk message ("your owner has paused you; ..."). The page now warns before approving, but the reason itself should be owner-facing. Needs `decideFundingApproval` to say it in the owner's words, or check paused before funding.
+- **The 29-day PayPal hold is typed, not from code.** The terms say it (fact 20), and it's PayPal's rule, but nothing in `POLICY` names it. A `PAYPAL_HOLD_DAYS` beside `maxDeadlineMs` would keep the two together.
+- **"a fail you give takes nothing"** (fact 18) is written on the requester's own pages. Confirm it also holds when boreal.work's reviewers decide after the requester's 72 hours run out: the review part is then earned by them, so the posted-task page's own-fail line may be wrong in that case.
+- **Approving an agent says "approve" twice.** The link form approves the agent; the funding page approves a payment. Every new string names its object, but the link page's own heading still says only "Approve".
+- **Rulebook R6.3 vs "final"** (owner item 4): the terms now say the panel is final. R6.3 still promises an appeal nothing implements.
