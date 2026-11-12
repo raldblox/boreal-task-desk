@@ -4,6 +4,7 @@ import { LegalPage, LegalSection } from "@/components/legal-page";
 import { CONTACT } from "@/content/contact";
 import { NETWORK, SITE } from "@/content/agent-guide";
 import { getAddons } from "@/server/addons";
+import { paymentRails } from "@/server/desk";
 
 export const metadata: Metadata = {
   title: "Privacy",
@@ -13,8 +14,10 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   const addons = getAddons();
+  const usdc = paymentRails().some((r) => r !== "paypal");
+  const concordiumId = addons.ready("concordium", "id");
   return (
-    <LegalPage eyebrow="Privacy" title="Privacy policy" updated="November 9, 2026">
+    <LegalPage eyebrow="Privacy" title="Privacy policy" updated="November 12, 2026">
       <p className="leading-relaxed">
         boreal.work ({SITE}) is a task desk where AI agents pay people for real-world tasks. We keep as little about you as
         the work needs. This page says what that is.
@@ -26,16 +29,24 @@ export default function PrivacyPage() {
             <strong className="font-medium text-foreground">A pseudonym.</strong> A one-way code made from the identity you
             sign in with: <code className="font-mono text-sm">pp:</code> plus a keyed hash of your PayPal account ID, or, with
             the Concordium integration, <code className="font-mono text-sm">ccdid:</code> plus a keyed hash of your identity
-            document from Concordium ID. It can&apos;t be turned back into who you are.
+            document from Concordium ID. On its own it can&apos;t be turned back into who you are. We also keep your PayPal email (below), which does identify you, so the two together are personal data and we treat them that way.
           </li>
-          <li>
-            <strong className="font-medium text-foreground">Proven attributes.</strong> If you add Concordium ID (Concordium integration): that
-            you&apos;re 18 or older and your country of residence, proven with a zero-knowledge proof.
-          </li>
+          {concordiumId && (
+            <li>
+              <strong className="font-medium text-foreground">Proven attributes.</strong> If you add Concordium ID: that you&apos;re 18 or older
+              and your country of residence, and nothing else from your document.
+            </li>
+          )}
           <li>
             <strong className="font-medium text-foreground">Your PayPal email,</strong> used only to pay you, and whether
             PayPal has verified your account. Agents never see it.
           </li>
+          {usdc && (
+            <li>
+              <strong className="font-medium text-foreground">A payout account you connect,</strong> such as a NEAR or Concordium address, to
+              pay you there.
+            </li>
+          )}
           <li>
             <strong className="font-medium text-foreground">Your work:</strong> the tasks you claim, the photos, files or
             text you submit, the verdicts and any dispute. Only you, the task&apos;s requester, its reviewers and boreal.work&apos;s
@@ -45,10 +56,12 @@ export default function PrivacyPage() {
       </LegalSection>
 
       <LegalSection title="What we keep about agent owners">
-        <p>
-          The pseudonym you sign in with, the agents you approve and their spending limits. If you let an agent pay from your
-          PayPal account, we keep PayPal&apos;s token for that saved account, never your card or bank details.
-        </p>
+        <ul>
+          <li>The pseudonym you sign in with, the agents you approve, their limits and their mode.</li>
+          <li>A log of the changes you make to your agents (pausing, limits, revoking a key), with when you made them.</li>
+          <li>If you save your PayPal account for your agents: PayPal&apos;s token for it, never your card or bank details.</li>
+          {usdc && <li>For a task paid in USDC, the account that paid, so a refund goes back to it.</li>}
+        </ul>
       </LegalSection>
 
       <LegalSection title="What we never keep">
@@ -72,7 +85,7 @@ export default function PrivacyPage() {
       <LegalSection title="Who else handles your data">
         <ul>
           <li>PayPal, to sign you in with PayPal, hold task money and pay you.</li>
-          <li>With the Concordium integration: Concordium&apos;s ID App or Wallet, on your device, to make the proofs you approve.</li>
+          {concordiumId && <li>Concordium&apos;s ID App or Wallet, on your device, to make the proofs you approve.</li>}
           {addons.ready("near", "privateReview") ? (
             <li>
               NEAR AI Cloud, which screens tasks and reviews submissions for boreal.work, privately inside a TEE that no one
@@ -95,9 +108,16 @@ export default function PrivacyPage() {
 
       <LegalSection title="Your requests">
         <p>
-          To see, correct or delete what we keep about you, send a direct message to <a href={CONTACT.url} target="_blank" rel="noreferrer" className="font-medium text-primary underline">{CONTACT.handle} on X</a> saying which, and the
-          email of the PayPal account you log in with, so we can find your record. Don&apos;t send passwords or ID
+          To see or correct what we keep about you, or to ask for it to be deleted, send a direct message to{" "}
+          <a href={CONTACT.url} target="_blank" rel="noreferrer" className="font-medium text-primary underline">
+            {CONTACT.handle} on X
+          </a>{" "}
+          saying which, and the email of the PayPal account you sign in with, so we can find your record. Don&apos;t send passwords or ID
           documents; we never need them.
+        </p>
+        <p>
+          Deleting has a limit. Each task&apos;s trail and the record of its money can only be added to, never edited or removed: that is how
+          anyone can check a payment was right. So the record that a task was done and paid stays, even when the rest can go.
         </p>
       </LegalSection>
 
