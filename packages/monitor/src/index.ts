@@ -14,6 +14,7 @@ import {
   runAiReview,
 } from "@boreal/desk";
 import { readSubmissionBytes } from "@boreal/files";
+import { loadEvm } from "@boreal/evm";
 import { type BridgeReport, loadMarketBridge, loadNear, type MarketBridge } from "@boreal/near";
 import { loadRails } from "@boreal/paypal";
 
@@ -188,7 +189,8 @@ export async function loadMonitor(db: Database, raw: Record<string, string | und
   const escrowBalance = () => ledgerEscrowBalance(db, "concordium");
   const concordium = loadConcordium(env, { escrowBalance, journal: outboxTransferJournal(db) });
   const near = loadNear(env, { journal: outboxTransferJournal(db) });
-  const { rails, payments } = loadRails(env, concordium, { escrowBalance: (rail) => ledgerEscrowBalance(db, rail), near });
+  const evm = loadEvm(env, { journal: outboxTransferJournal(db) });
+  const { rails, payments } = loadRails(env, concordium, { escrowBalance: (rail) => ledgerEscrowBalance(db, rail), near, evm });
   const desk = createDesk({ db, concordium, payments, rails, addresses: addressesFromEnv(env), requireBadge: env.REQUIRE_AGENT_BADGE === "1", verification: deskVerification(readAddons(raw)) });
   const reviewer = await loadReviewer(env);
   const market = loadMarketBridge(db, desk, env, { near });
@@ -216,6 +218,6 @@ export function describeTick(r: TickReport): string | null {
 /** The add-ons switched on, for logs: "none (PayPal only)" or e.g. "concordium, near". */
 export function addonSummary(env: Record<string, string | undefined> = process.env): string {
   const addons = readAddons(env);
-  const on = (["concordium", "near"] as const).filter((id) => addons.on(id));
+  const on = (["concordium", "near", "evm"] as const).filter((id) => addons.on(id));
   return `${on.length ? on.join(", ") : "none (PayPal only)"}${addons.source === "inferred" ? " (inferred; set BOREAL_ADDONS)" : ""}`;
 }

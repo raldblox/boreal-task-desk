@@ -99,7 +99,7 @@ async function Overview() {
         title="Integrations"
         description="PayPal is the core. NEAR and Concordium are optional, switched on per deployment with BOREAL_ADDONS; each lists what it needs before it can run."
       >
-        <AddonsPanel addons={[addons.concordium, addons.near]} source={addons.source} operator />
+        <AddonsPanel addons={[addons.concordium, addons.near, addons.evm]} source={addons.source} operator />
         {(addons.on("near") || addons.on("concordium")) && (
           <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
             {/* Counted per chain only, from the guided setup on a task; nothing about who. */}

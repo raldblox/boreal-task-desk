@@ -18,6 +18,7 @@
     "@boreal/core": "workspace:*",
     "@boreal/db": "workspace:*",
     "@boreal/desk": "workspace:*",
+    "@boreal/evm": "workspace:*",
     "@boreal/files": "workspace:*",
     "@boreal/monitor": "workspace:*",
     "@boreal/near": "workspace:*",

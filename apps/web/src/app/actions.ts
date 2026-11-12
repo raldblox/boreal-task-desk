@@ -2,6 +2,7 @@
 
 import { type Caller, DeskError } from "@boreal/desk";
 import type { ProofRequest } from "@boreal/concordium";
+import { EvmConnectError, verifyEvmConnect } from "@boreal/evm";
 import { CONNECT_MESSAGE, loadNearChain, NearSignInError, type NearSignIn, verifyNearSignIn } from "@boreal/near";
 import { refresh } from "next/cache";
 import { after } from "next/server";
@@ -110,7 +111,7 @@ export async function submitResult(taskId: string, _prev: ActionState, form: For
  * a wallet for anyone and never converts between rails.
  */
 export async function connectPayoutAccount(
-  connection: { rail: "near"; signed: NearSignIn } | { rail: "concordium"; account: string },
+  connection: { rail: "near"; signed: NearSignIn } | { rail: "concordium"; account: string } | { rail: "evm"; address: string; issuedAt: string; signature: string },
   taskId?: string,
 ): Promise<ActionState> {
   const worker = await workerFromSession();
@@ -126,10 +127,13 @@ export async function connectPayoutAccount(
               message: CONNECT_MESSAGE,
             })
           ).accountId
-        : connection.account;
+        : connection.rail === "evm"
+          ? // The wallet signs a free message; nobody types an address.
+            await verifyEvmConnect(connection, { site: new URL(SITE).host })
+          : connection.account;
     await getDesk().setPayoutAddress(worker, account, connection.rail, { guided: Boolean(taskId) });
   } catch (error) {
-    if (error instanceof NearSignInError) return { error: `Your wallet's signature didn't check out: ${error.message}.` };
+    if (error instanceof NearSignInError || error instanceof EvmConnectError) return { error: `Your wallet's signature didn't check out: ${error.message}.` };
     if (error instanceof DeskError) return { error: error.message };
     console.error("[connect payout account] failed", error);
     return { error: "Something went wrong. Try again." };

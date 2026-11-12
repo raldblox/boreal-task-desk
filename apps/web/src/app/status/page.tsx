@@ -156,7 +156,7 @@ async function Checks() {
       {setupLine.length > 0 && <p className="text-sm text-muted-foreground">{setupLine.join(". ")}.</p>}
       <section className="flex flex-col gap-3">
         <h2 className="text-2xl font-light tracking-[-0.025em]">Integrations</h2>
-        <AddonsPanel addons={[addons.concordium, addons.near]} source={addons.source} />
+        <AddonsPanel addons={[addons.concordium, addons.near, addons.evm]} source={addons.source} />
       </section>
     </div>
   );

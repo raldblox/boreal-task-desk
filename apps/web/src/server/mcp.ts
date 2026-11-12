@@ -481,6 +481,18 @@ export function registerTools(server: McpServer): void {
             ...(others.length ? { otherRails: others } : {}),
           };
         }
+        if (requirement.network.startsWith("eip155:")) {
+          return {
+            rail,
+            paymentRequired: requirement,
+            next:
+              "x402 exact on EVM: from the wallet that holds the token, sign an EIP-3009 TransferWithAuthorization (EIP-712; domain name and version in extra, " +
+              "chainId from network, verifyingContract = asset) with to = payTo, value = amount, nonce = extra.nonce, validAfter 0 and validBefore within maxTimeoutSeconds. " +
+              "Then call fund_task with payment: { payload: { authorization: { from, to, value, validAfter, validBefore, nonce }, signature } }. " +
+              "You send no transaction and need no gas: boreal.work submits it only once the task's checks pass.",
+            ...(others.length ? { otherRails: others } : {}),
+          };
+        }
         return {
           rail,
           paymentRequired: requirement,

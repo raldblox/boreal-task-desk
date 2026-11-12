@@ -113,7 +113,39 @@ export interface NearPaymentRequirement {
   };
 }
 
-export type PaymentRequirement = X402PaymentRequirement | PayPalPaymentRequirement | NearPaymentRequirement;
+/**
+ * What the EVM rail asks for: x402 `exact` on EVM. The payer signs an EIP-3009
+ * `transferWithAuthorization` of `amount` to `payTo` on the token `asset`, with `extra.nonce`
+ * as its nonce, against the token's EIP-712 domain (`extra.name`, `extra.version`).
+ */
+export interface EvmPaymentRequirement {
+  scheme: "exact";
+  /** CAIP-2, like `eip155:8453`. */
+  network: `eip155:${string}`;
+  /** The token contract. */
+  asset: string;
+  payTo: string;
+  /** Token units, as a decimal string. */
+  amount: string;
+  maxTimeoutSeconds: number;
+  extra: {
+    rail: "evm";
+    resource: string;
+    minorUnits: number;
+    decimals: number;
+    name: string;
+    version: string;
+    /** The EIP-3009 nonce to use: derived from the task, so the payment can fund nothing else. */
+    nonce: string;
+    expiresAt: string;
+  };
+}
+
+export type PaymentRequirement = X402PaymentRequirement | PayPalPaymentRequirement | NearPaymentRequirement | EvmPaymentRequirement;
+
+export function isEvmRequirement(r: PaymentRequirement): r is EvmPaymentRequirement {
+  return r.network.startsWith("eip155:");
+}
 
 export function isNearRequirement(r: PaymentRequirement): r is NearPaymentRequirement {
   return r.network.startsWith("near:");
@@ -205,6 +237,9 @@ export interface SentTransfer {
   txHash: string;
   /** Epoch seconds after which the chain will never execute it. */
   expiry: number;
+  /** EVM only: the account nonce it was sent at, and every other hash broadcast at that nonce. */
+  nonce?: number;
+  also?: string[];
 }
 
 /** Durable record of sent transfers by ledger idempotency key, written before each send. */

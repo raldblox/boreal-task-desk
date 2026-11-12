@@ -865,6 +865,9 @@ export function createDesk({
           if (task.paymentRail === "concordium" && !worker.payoutAddress) {
             throw new DeskError("forbidden", "this task pays in tokens on Concordium: add your Concordium account on My account first");
           }
+          if (task.paymentRail === "evm" && !worker.evmAddress) {
+            throw new DeskError("forbidden", "this task pays in USDC to an EVM wallet: connect your wallet on My account first");
+          }
           if (task.paymentRail === "near" && !worker.nearAccount) {
             throw new DeskError("forbidden", "this task pays in USDC on NEAR: add your NEAR account on My account first");
           }
@@ -1327,8 +1330,9 @@ export function createDesk({
       const value = address.trim();
       if (rail === "paypal" && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value)) throw new DeskError("invalid", "enter the email address of your PayPal account");
       if (rail === "near" && !NEAR_ACCOUNT.test(value)) throw new DeskError("invalid", "enter a NEAR account id, such as you.near or a 64-character implicit account");
+      if (rail === "evm" && !/^0x[0-9a-fA-F]{40}$/.test(value)) throw new DeskError("invalid", "that isn't an EVM address");
       if (value.length < 3 || value.length > 254 || /\s/.test(value)) throw new DeskError("invalid", "that payout address doesn't look right");
-      const column = rail === "paypal" ? { paypalEmail: value } : rail === "near" ? { nearAccount: value } : { payoutAddress: value };
+      const column = rail === "paypal" ? { paypalEmail: value } : rail === "near" ? { nearAccount: value } : rail === "evm" ? { evmAddress: value } : { payoutAddress: value };
       await db.transaction(async (tx) => {
         const [before] = await tx.select().from(workers).where(eq(workers.id, caller.workerId)).for("update");
         if (!before) throw new DeskError("not_found", "worker not found");
@@ -1353,7 +1357,7 @@ export function createDesk({
       if (!rail) return true;
       const [worker] = await db.select().from(workers).where(eq(workers.id, caller.workerId));
       if (!worker) return false;
-      return rail === "paypal" ? !!worker.paypalEmail : rail === "near" ? !!worker.nearAccount : !!worker.payoutAddress;
+      return rail === "paypal" ? !!worker.paypalEmail : rail === "near" ? !!worker.nearAccount : rail === "evm" ? !!worker.evmAddress : !!worker.payoutAddress;
     },
 
     /** An owner moves one of their agents between test money and real (testnet or sandbox) money. */
@@ -1388,6 +1392,7 @@ export function createDesk({
           payoutAddress: workers.payoutAddress,
           paypalEmail: workers.paypalEmail,
           nearAccount: workers.nearAccount,
+          evmAddress: workers.evmAddress,
           // Which identities sign this worker in; the hashes themselves stay in the database.
           hasPayPal: sql<boolean>`${workers.paypalRef} is not null`,
           paypalVerified: workers.paypalVerified,

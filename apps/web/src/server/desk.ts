@@ -17,6 +17,7 @@ import {
   verifyWorkerKey,
 } from "@boreal/desk";
 
+import { loadEvm } from "@boreal/evm";
 import { loadNear } from "@boreal/near";
 import { loadRails, type PayPalPayments } from "@boreal/paypal";
 import { after } from "next/server";
@@ -45,6 +46,7 @@ function rails() {
   loaded ??= loadRails(gatedEnv(), getConcordium(), {
     escrowBalance: (rail) => ledgerEscrowBalance(getDb(), rail),
     near: loadNear(gatedEnv(), { journal: outboxTransferJournal(getDb()) }),
+    evm: loadEvm(gatedEnv(), { journal: outboxTransferJournal(getDb()) }),
   });
   return loaded;
 }
@@ -85,7 +87,9 @@ export function pickRail(named: string | undefined, payment?: unknown): { rail: 
     rail = named as PaymentRail;
   } else if (payment !== undefined) {
     const shape = typeof payment === "object" && payment !== null ? payment : {};
-    rail = "orderId" in shape ? "paypal" : "txHash" in shape && "signerId" in shape ? "near" : "concordium";
+    // An EVM x402 payload carries a signed EIP-3009 authorization.
+    const evm = "authorization" in shape || (typeof (shape as { payload?: unknown }).payload === "object" && (shape as { payload: object | null }).payload !== null && "authorization" in (shape as { payload: object }).payload);
+    rail = "orderId" in shape ? "paypal" : "txHash" in shape && "signerId" in shape ? "near" : evm ? "evm" : "concordium";
   } else {
     rail = enabled[0]!;
   }

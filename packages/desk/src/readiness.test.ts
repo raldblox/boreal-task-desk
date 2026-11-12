@@ -254,3 +254,40 @@ describe("RS-12: a payout PayPal sent back can be sent again", () => {
     expect(rows.filter((r) => (r.payload as { ledgerKey: string }).ledgerKey === key)).toHaveLength(1);
   });
 });
+
+describe("the EVM rail in the desk", () => {
+  const WALLET = "0x52908400098527886E0F7030069857D2E4169EE7";
+
+  it("pays the worker's connected wallet, the fee to the operating address, and refunds the payer", async () => {
+    const evm = fakeRail("evm", "0xPayerOfTheTask");
+    const railDesk = createDesk({ db, now: () => clock, payments: evm, rails: { evm }, addresses: { evm: { operating: "0xOperating" } } });
+    const { task, quote } = await railDesk.postTask(requester, taskInput());
+    await railDesk.fundTask(requester, task.id, { confirm: async () => evm.confirmPayment(task.id, { amount: quote.total }) }, { rail: "evm" });
+    await railDesk.screenTask(reviewer, task.id, { outcome: "ok" });
+    expect((await railDesk.getTask(requester, task.id)).paymentRail).toBe("evm");
+
+    // No wallet connected yet: the claim says what to do.
+    await expectDeskError(railDesk.claimTask(worker, task.id), "forbidden");
+    await expectDeskError(railDesk.setPayoutAddress(worker, "not-an-address", "evm"), "invalid");
+    await railDesk.setPayoutAddress(worker, WALLET, "evm");
+    await railDesk.claimTask(worker, task.id);
+    await railDesk.submitResult(worker, task.id, { text: "Item X is on the second shelf, 129 pesos." });
+    await railDesk.recordVerdict(BOREAL_REVIEWER, task.id, { outcome: "pass", ruleIds: ["R4.1"], reasoning: "ok" });
+    await railDesk.acceptEarly(requester, task.id);
+    expect(await railDesk.drainOutbox()).toMatchObject({ failed: 0 });
+    expect(evm.sent.map((s) => [s.to, s.amount])).toEqual(
+      expect.arrayContaining([
+        [WALLET, quote.budget],
+        ["0xOperating", quote.platformFee + quote.reviewFee],
+      ].slice(0, 1)),
+    );
+    expect(evm.sent.reduce((sum, s) => sum + s.amount, 0)).toBe(quote.total);
+    expect(evm.sent.filter((s) => s.to === "0xOperating").reduce((sum, s) => sum + s.amount, 0)).toBe(quote.platformFee + quote.reviewFee);
+
+    const second = await railDesk.postTask(requester, taskInput());
+    await railDesk.fundTask(requester, second.task.id, { confirm: async () => evm.confirmPayment(second.task.id, { amount: second.quote.total }) }, { rail: "evm" });
+    await railDesk.cancelTask(requester, second.task.id);
+    await railDesk.drainOutbox();
+    expect(evm.sent.at(-1)).toMatchObject({ to: "0xPayerOfTheTask", amount: second.quote.total });
+  });
+});

@@ -28,6 +28,8 @@ export interface PayoutAddresses {
   paypal?: { operating?: string; reviewers?: Record<string, string> };
   /** The same on the NEAR rail: NEAR account ids. */
   near?: { operating?: string; reviewers?: Record<string, string> };
+  /** The same on the EVM rail: addresses. */
+  evm?: { operating?: string; reviewers?: Record<string, string> };
 }
 
 type OutboxRow = typeof outbox.$inferSelect;
@@ -87,7 +89,7 @@ async function addressFor(db: Database, addresses: PayoutAddresses, t: Transfer,
   const paypal = rail === "paypal";
   if (t.to === "worker" && t.party) {
     [{ address } = { address: null }] = await db
-      .select({ address: paypal ? workers.paypalEmail : rail === "near" ? workers.nearAccount : workers.payoutAddress })
+      .select({ address: paypal ? workers.paypalEmail : rail === "near" ? workers.nearAccount : rail === "evm" ? workers.evmAddress : workers.payoutAddress })
       .from(workers)
       .where(eq(workers.id, t.party));
   } else if (paypal && t.to === "reviewer" && t.party) {
@@ -97,6 +99,9 @@ async function addressFor(db: Database, addresses: PayoutAddresses, t: Transfer,
   } else if (rail === "near" && (t.to === "reviewer" || t.to === "operating")) {
     // A review fee with no NEAR account for its reviewer (boreal's own reviewer) goes to boreal.
     address = (t.to === "reviewer" && t.party && addresses.near?.reviewers?.[t.party]) || addresses.near?.operating;
+  } else if (rail === "evm" && (t.to === "reviewer" || t.to === "operating")) {
+    // As on NEAR: a review fee with no address for its reviewer (boreal.work's own) goes to boreal.work.
+    address = (t.to === "reviewer" && t.party && addresses.evm?.reviewers?.[t.party]) || addresses.evm?.operating;
   } else if (t.to === "requester" && t.party) {
     // Back to the account the funding came from; the agent's refund address only for tasks
     // funded before the payer was recorded.
@@ -447,5 +452,6 @@ export function addressesFromEnv(env: Record<string, string | undefined> = proce
     reviewers,
     paypal: { operating: env.PAYPAL_OPERATING_EMAIL || undefined, reviewers: paypalReviewers },
     near: { operating: env.NEAR_OPERATING_ACCOUNT || undefined },
+    evm: { operating: env.EVM_OPERATING_ADDRESS || undefined },
   };
 }

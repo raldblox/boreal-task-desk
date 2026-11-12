@@ -5,12 +5,13 @@
 
 type Env = Record<string, string | undefined>;
 
-export const ADDON_IDS = ["concordium", "near"] as const;
+export const ADDON_IDS = ["concordium", "near", "evm"] as const;
 export type AddonId = (typeof ADDON_IDS)[number];
 
 export type ConcordiumPart = "id" | "anchors" | "rail" | "registry";
 export type NearPart = "rail" | "agentWorkers" | "market" | "privateReview";
-export type AddonPartId = ConcordiumPart | NearPart;
+export type EvmPart = "rail";
+export type AddonPartId = ConcordiumPart | NearPart | EvmPart;
 
 /** One thing a part needs. `met: null` means it can only be checked live (a balance, say). */
 export interface Requirement {
@@ -49,11 +50,13 @@ export interface Addons {
   source: "explicit" | "inferred";
   concordium: AddonStatus;
   near: AddonStatus;
+  evm: AddonStatus;
   /** The add-on is switched on for this deployment. */
   on(id: AddonId): boolean;
   /** The add-on is on and this part has everything it needs. */
   ready(id: "concordium", part: ConcordiumPart): boolean;
   ready(id: "near", part: NearPart): boolean;
+  ready(id: "evm", part: EvmPart): boolean;
   /** Nothing on: PayPal only. */
   paypalOnly: boolean;
 }
@@ -104,7 +107,7 @@ function part(
 }
 
 /** PAYMENT_RAILS, if set, lists the rails the operator wants; unset means every rail that's ready. */
-function railListed(env: Env, rail: "concordium" | "near"): boolean {
+function railListed(env: Env, rail: "concordium" | "near" | "evm"): boolean {
   if (env.PAYMENT_RAILS === undefined || env.PAYMENT_RAILS.trim() === "") {
     // Older deployments only ran NEAR when PAYMENT_RAILS named it.
     return rail === "concordium" || env.BOREAL_ADDONS !== undefined;
@@ -222,11 +225,34 @@ export function readAddons(env: Env = process.env): Addons {
     ],
   };
 
-  const byId = { concordium, near: nearAddon };
+  const evm = ids.has("evm");
+  const evmChain = has(env, "EVM_CHAIN_ID") && has(env, "EVM_RPC_URL");
+  const evmToken = has(env, "EVM_TOKEN_CONTRACT") && has(env, "EVM_TOKEN_NAME") && has(env, "EVM_TOKEN_VERSION");
+  const evmAddon: AddonStatus = {
+    id: "evm",
+    name: "EVM",
+    enabled: evm,
+    summary: "A USDC rail on an EVM chain such as Base: agents fund tasks with a signed x402 authorization, and workers are paid to their own wallet.",
+    personNeeds: ["An EVM wallet (any that signs messages)", "USDC on the chain this site uses, to fund tasks on this rail"],
+    parts: [
+      part(evm, "rail", "USDC on an EVM chain", "Agents fund tasks in USDC over x402 (EIP-3009, no gas for the agent), and workers are paid in USDC to their own wallet.", [
+        { label: "The chain and an RPC endpoint for it", setting: "EVM_CHAIN_ID, EVM_RPC_URL", met: evmChain },
+        { label: "The token contract and its EIP-712 name and version", setting: "EVM_TOKEN_CONTRACT, EVM_TOKEN_NAME, EVM_TOKEN_VERSION", met: evmToken },
+        { label: "An escrow key", setting: "EVM_ESCROW_KEY", met: has(env, "EVM_ESCROW_KEY") },
+        { label: "The chain's gas coin in the escrow account, to pay for transfers", setting: "EVM_ESCROW_KEY", met: has(env, "EVM_ESCROW_KEY") ? null : false },
+        // Without it the platform fee of every passed task would retry forever.
+        { label: "An address the platform fee is paid to", setting: "EVM_OPERATING_ADDRESS", met: has(env, "EVM_OPERATING_ADDRESS") },
+        { label: "EVM listed in PAYMENT_RAILS (or PAYMENT_RAILS unset)", setting: "PAYMENT_RAILS", met: railListed(env, "evm") },
+      ]),
+    ],
+  };
+
+  const byId = { concordium, near: nearAddon, evm: evmAddon };
   return {
     source,
     concordium,
     near: nearAddon,
+    evm: evmAddon,
     on: (id) => byId[id].enabled,
     ready: (id: AddonId, p: AddonPartId) => byId[id].parts.find((x) => x.id === p)?.state === "ready",
     paypalOnly: ids.size === 0,
@@ -255,11 +281,15 @@ export function addonEnv(env: Env = process.env): Env {
   if (!addons.on("near")) {
     for (const key of Object.keys(out)) if (key.startsWith("NEAR_")) delete out[key];
   }
+  if (!addons.on("evm")) {
+    for (const key of Object.keys(out)) if (key.startsWith("EVM_")) delete out[key];
+  }
   const rails: string[] = [];
   const wantedPayPal = env.PAYMENT_RAILS ? listed(env.PAYMENT_RAILS).includes("paypal") : has(env, "PAYPAL_CLIENT_ID") || env.PAYMENTS_RAIL === "paypal";
   if (wantedPayPal) rails.push("paypal");
   if (addons.on("concordium") && railListed(env, "concordium") && has(env, "CONCORDIUM_MODE")) rails.push("concordium");
   if (addons.ready("near", "rail")) rails.push("near");
+  if (addons.ready("evm", "rail")) rails.push("evm");
   // "none" rather than empty: an empty PAYMENT_RAILS reads as unset to the older loaders.
   out.PAYMENT_RAILS = rails.length ? rails.join(",") : "none";
   // One secret keys both PayPal and Concordium ID pseudonyms; the ID App reads it by its old name.

@@ -84,7 +84,7 @@ export function loadPayPalAccounts(env: Record<string, string | undefined>): Pay
 export function loadRails(
   env: Record<string, string | undefined>,
   concordium: Concordium | null,
-  options: { escrowBalance: (rail: PaymentRail) => Promise<number>; near?: Payments | null },
+  options: { escrowBalance: (rail: PaymentRail) => Promise<number>; near?: Payments | null; evm?: Payments | null },
 ): { rails: PaymentRails; payments: Payments | null } {
   const on = railsOn(env);
   const rails: PaymentRails = {};
@@ -93,6 +93,8 @@ export function loadRails(
   if (paypal) rails.paypal = paypal;
   // The NEAR rail is loaded by `@boreal/near` (`loadNear`) and passed in; it is never the default.
   if (options.near) rails.near = options.near;
+  // The EVM rail likewise (`@boreal/evm`, `loadEvm`); never the default.
+  if (options.evm) rails.evm = options.evm;
   const wanted = env.DEFAULT_PAYMENT_RAIL as PaymentRail | undefined;
   const payments = (wanted && rails[wanted]) || rails.paypal || rails.concordium || null;
   return { rails, payments };

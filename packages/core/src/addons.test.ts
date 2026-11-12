@@ -140,3 +140,36 @@ describe("add-ons", () => {
     expect(addonEnv({ BOREAL_PSEUDONYM_SECRET: "n".repeat(32) }).CONCORDIUM_PSEUDONYM_SECRET).toBe("n".repeat(32));
   });
 });
+
+describe("the EVM add-on", () => {
+  const ready = {
+    BOREAL_ADDONS: "evm",
+    PAYPAL_CLIENT_ID: "id",
+    EVM_CHAIN_ID: "8453",
+    EVM_RPC_URL: "https://rpc.example",
+    EVM_TOKEN_CONTRACT: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    EVM_TOKEN_NAME: "USD Coin",
+    EVM_TOKEN_VERSION: "2",
+    EVM_ESCROW_KEY: "0x" + "1".repeat(64),
+    EVM_OPERATING_ADDRESS: "0x" + "2".repeat(40),
+  };
+
+  it("is off unless switched on, and its settings then reach nothing", () => {
+    const env = { ...ready, BOREAL_ADDONS: "none" };
+    expect(readAddons(env).on("evm")).toBe(false);
+    expect(Object.keys(addonEnv(env)).filter((k) => k.startsWith("EVM_"))).toEqual([]);
+    expect(addonEnv(env).PAYMENT_RAILS).toBe("paypal");
+  });
+
+  it("opens its rail beside PayPal once everything it needs is set", () => {
+    expect(readAddons(ready).ready("evm", "rail")).toBe(true);
+    expect(addonEnv(ready).PAYMENT_RAILS).toBe("paypal,evm");
+  });
+
+  it("is blocked, with the reason, while the fee address or the token's signing domain is missing", () => {
+    const noFee = readAddons({ ...ready, EVM_OPERATING_ADDRESS: undefined });
+    expect(noFee.evm.parts[0]).toMatchObject({ state: "blocked", reason: expect.stringContaining("platform fee") });
+    expect(addonEnv({ ...ready, EVM_OPERATING_ADDRESS: undefined }).PAYMENT_RAILS).toBe("paypal");
+    expect(readAddons({ ...ready, EVM_TOKEN_NAME: undefined }).ready("evm", "rail")).toBe(false);
+  });
+});
