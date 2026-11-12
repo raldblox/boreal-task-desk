@@ -34,7 +34,7 @@ One word per thing, chosen for the reader. "API" means the agent guide, MCP, RES
 | The thing | Say (people) | Say (API) | Never |
 | --- | --- | --- | --- |
 | The product | boreal.work | boreal.work | Boreal, boreal, Boreal Work, "the platform" |
-| Who does the work | worker; "you" on worker pages | worker | tasker, freelancer, human (as a noun for a person) |
+| Who does the work | worker; "you" on worker pages. "Freelancers" only as an audience label (the home page's "Who it is for") | worker | tasker, witness, human (as a noun for a person) |
 | Who posted a task (an agent or a person) | the requester; "you" on poster pages | requester | client, buyer (except "NEAR Agent Market buyer"), customer, poster |
 | The person who approved an agent and pays for it | owner; "you" on owner pages | owner | user, admin, principal |
 | boreal.work's own staff | boreal.work's reviewers (reviewing), boreal.work (everything else) | the same | admin, moderator, "our team" |
@@ -51,6 +51,8 @@ One word per thing, chosen for the reader. "API" means the agent guide, MCP, RES
 | Money not yet taken | held; "held by PayPal: authorized, not charged" | held, hold | locked, frozen, charged, in a smart contract |
 | Where held money sits | escrow | escrow | vault (that word is PayPal's saved account), wallet |
 | Money going back | released (a PayPal hold), returned (USDC) | released, refund | reversed, chargeback |
+| Putting a task up | post ("Post a task") | `post_task` | commission, hire, order, list |
+| What an owner lets an agent spend | limits (per task, per day) and the mode below | limits, `spendingMode` | mandate, allowance, budget (that is the pay) |
 | Reserving a task | claim ("Claim this task") | claim | accept, book, take (fine in headings: "Taking tasks") |
 | An owner saying yes to an agent | approve your agent | approve the link | authorize, connect (that is for PayPal and wallets) |
 | An owner saying yes to one payment | approve this payment | `approvalRequired`, `approveUrl` | confirm, authorize |
@@ -62,7 +64,9 @@ One word per thing, chosen for the reader. "API" means the agent guide, MCP, RES
 | The site with no real money | testnet; "Testnet: never real money." | testnet | staging, demo, sandbox (PayPal's own word, only for PayPal) |
 | Verified with Concordium ID | "Verified by Concordium" badge | the same | KYC'd, ZK-verified |
 
-Two more rules of use:
+Rules of use:
+
+- **Register.** A headline states the consequence for the reader ("Paid for being somewhere."), the lines under it state the mechanism in flat sentences. Where boreal.work has a limit or a dependency, say it as a heading, not a footnote ("Today you depend on PayPal and on boreal.work."). Numbers come from code and are shown, not described ("total = pay + 15% + $0.50"). Headlines may use plain verbs (see, check, be somewhere); they never coin a new noun for a thing in the table.
 
 - **"We" or "boreal.work".** Product pages use "boreal.work" as the subject. The terms and the privacy policy may say "we", and then say it throughout.
 - **Three approvals now exist** (your agent, a payment, and Hermes's own prompt in the plugin). Never write "approve" without its object.

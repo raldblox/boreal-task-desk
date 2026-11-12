@@ -21,7 +21,7 @@ import { getRails } from "@/server/desk";
 export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 // The home page is the inventory as much as the pitch: boreal.work is new, so it says plainly who
-// it serves, what exists today (and only what's on here), what it costs, where you depend on us,
+// it serves, what exists today (and only what's on here), what it costs, where you depend on boreal.work,
 // and what is not built yet. Every number comes from POLICY or the fee rules, never typed in.
 
 const JSON_LD = {
@@ -33,7 +33,7 @@ const JSON_LD = {
       name: "boreal.work",
       url: SITE,
       description:
-        "AI agents and businesses commission verified people for steps in the physical world. The money is held before the task is seen, and the worker is paid when the result passes review.",
+        "AI agents and businesses post tasks in the physical world for verified people to do. The money is held before the task is seen, and the worker is paid when the result passes review.",
     },
   ],
 };
@@ -61,7 +61,7 @@ function audiences(): Audience[] {
       facts: [
         "Every task's money is held before you can see it.",
         "You keep your pay in full. Workers pay no fees.",
-        "An unclear check is read in your favour, and you can appeal a fail once.",
+        `An unclear check is read in your favour, and a fail can be disputed within ${HOURS(POLICY.objectionWindowMs)} hours.`,
       ],
       cta: { href: "/tasks", label: "Find paid tasks" },
     },
@@ -71,7 +71,7 @@ function audiences(): Audience[] {
       title: "Hands, for software that has none.",
       facts: [
         "MCP, REST and A2A v1.0, with one guide written for agents.",
-        "The agent asks its owner for its own key, and works inside the owner's mandate.",
+        "The agent asks its owner for its own key, and spends only within the limits they set.",
         "Quote, fund, review and settle, all in tool calls.",
       ],
       cta: { href: "/agents", label: "Connect an agent" },
@@ -85,25 +85,25 @@ function audiences(): Audience[] {
         "You say what counts as done. You pay only for a result that passes.",
         "Refused, expired or cancelled before a claim: everything is released.",
       ],
-      cta: { href: "/post", label: "Commission a task" },
+      cta: { href: "/post", label: "Post a task" },
     },
     {
       icon: Building2,
       label: "Enterprises",
-      title: "A mandate, a ledger and a trail.",
+      title: "Limits, a ledger and a trail.",
       facts: [
-        "Limits per agent, per task and per day; approve each payment or let it spend within them.",
+        "Limits per agent, per task and per day. Approve each payment, or let the agent pay on its own within them.",
         "A double-entry ledger, and a hash-chained record of every step of every task.",
         "A public, versioned rulebook that every verdict must cite.",
       ],
-      cta: { href: CONTACT.url, label: `Talk to us on X`, external: true },
+      cta: { href: CONTACT.url, label: `Message ${CONTACT.handle} on X`, external: true },
     },
   ];
 }
 
 /* ---------------------------------------------------------------- use cases */
 
-// Illustrative, like the hero's sample tasks: what is worth commissioning, not live tasks.
+// Illustrative, like the hero's sample tasks: what is worth posting, not live tasks.
 const USE_CASES = [
   {
     title: "Suppliers and addresses",
@@ -153,7 +153,7 @@ const STEPS = [
     body: "The task is checked against the rulebook, usually in under a minute. A refused task cites the rule it broke, and its money is released in full.",
   },
   {
-    title: "Witness",
+    title: "Do",
     body: `A verified worker claims it and has ${HOURS(POLICY.claimDurationMs)} hours to submit the photo, file or text it asks for, or it reopens.`,
   },
   {
@@ -162,7 +162,7 @@ const STEPS = [
   },
   {
     title: "Settle",
-    body: `A pass is final after ${HOURS(POLICY.objectionWindowMs)} hours, or at once if the requester accepts it, and the worker is paid. Either side may appeal once.`,
+    body: `A requester's own pass, or an accepted one, pays the worker at once. Otherwise a pass is final when its ${HOURS(POLICY.objectionWindowMs)} hours to dispute end, sometimes up to a day later. One dispute per task, by either side.`,
   },
 ];
 
@@ -187,8 +187,8 @@ function inventory(f: {
         { name: "Log in with PayPal", body: "One sign-in, which is also where you're paid. No new account to make.", href: "/signin" },
         { name: "Money held first", body: "You only ever see tasks whose money is already held." },
         { name: "Full pay", body: "The requester pays the fee. You receive the task's pay in full." },
-        { name: "Paid on a pass", body: `${HOURS(POLICY.objectionWindowMs)} hours after it passes, or sooner if the requester accepts early.` },
-        { name: "One appeal", body: "Dispute a verdict once, and a panel with a person on it decides." },
+        { name: "Paid on a pass", body: `At once when the requester passes or accepts it. Otherwise when the ${HOURS(POLICY.objectionWindowMs)} hours to dispute end, sometimes up to a day later.` },
+        { name: "One dispute", body: "A verdict can be disputed once per task, by you or the requester, and a panel with a person on it decides." },
         { name: "A pseudonym", body: "boreal.work keeps a one-way code for your sign-in, never your password or your name on a public record." },
         ...add(f.concordiumId, { name: "Proven attributes", body: "Prove your age or country with Concordium ID, without handing over documents.", tag: "Concordium" }),
         ...add(f.nearRail, { name: "Paid in USDC", body: "Tasks funded in USDC pay to your NEAR wallet, with no gas.", tag: "NEAR" }),
@@ -213,12 +213,12 @@ function inventory(f: {
       title: "For the owner",
       who: "Business owners and enterprises",
       items: [
-        { name: "Post from the web", body: "Commission a task yourself, no agent needed.", href: "/post" },
-        { name: "A mandate per agent", body: "You approve each agent once and set what it may spend per task and per day." },
-        { name: "Ask, or spend within limits", body: `Approve each payment from a link (it waits ${HOURS(POLICY.fundingApprovalMs)} hours), or let the agent pay on its own inside the limits.` },
+        { name: "Post from the web", body: "Post a task yourself, no agent needed.", href: "/post" },
+        { name: "Limits per agent", body: "You approve your agent once and set what it may spend per task and per day." },
+        { name: "Ask me each time, or pay on its own", body: `A new agent asks: you approve each payment from a link, which waits ${HOURS(POLICY.fundingApprovalMs)} hours. Or let it pay on its own within its limits.` },
         { name: "Pause, change, revoke", body: "Pause an agent, change its limits or take its key back at any time." },
-        { name: "Saved PayPal", body: "Connect PayPal once; your agents fund within their limits with no checkout page." },
-        { name: "Review it yourself", body: `Judge your own results and the fee drops to ${SERVICE_FEE_SELF_REVIEW}. Miss the ${HOURS(POLICY.requesterReviewMs)}-hour window and our reviewers step in.` },
+        { name: "Your saved PayPal account", body: "Save it once, and your agents pay from it within their limits and mode, without a PayPal checkout each time." },
+        { name: "Review it yourself", body: `Judge your own results and the fee drops to ${SERVICE_FEE_SELF_REVIEW}. Miss the ${HOURS(POLICY.requesterReviewMs)} hours and boreal.work's reviewers decide.` },
         { name: "Insights", body: "Your own tasks and money in one report: what was spent, held, paid and refunded.", href: "/me/insights" },
       ],
     },
@@ -229,14 +229,14 @@ function inventory(f: {
         { name: "Held, then captured or voided", body: "On PayPal the money is a hold on the payer's account, captured on a pass and voided otherwise." },
         { name: "Double-entry ledger", body: "Every movement is an entry with an idempotency key, written before any money moves." },
         { name: "Hash-chained trail", body: "Every step of every task is an event chained to the last, so an edit shows." },
-        { name: "Public rulebook", body: "The screener and the reviewer may cite only these rules. So may you, in an appeal.", href: "/rules" },
+        { name: "Public rulebook", body: "The screener and the reviewer may cite only these rules. So may you, in a dispute.", href: "/rules" },
         { name: "A person behind the AI", body: "Anything the AI reviewer isn't sure of goes to a person. The AI never moves money." },
         { name: "Status page", body: "Live checks on the desk and the services it depends on, in public.", href: "/status" },
         ...add(f.anchors, { name: "Anchored on-chain", body: "Salted hashes of the trail are anchored on Concordium. Nothing personal goes on-chain.", tag: "Concordium" }),
         ...add(f.privateReview, { name: "Private review", body: "Screening and review run inside a TEE, with a signed proof for every verdict.", tag: "NEAR AI" }),
         ...add(f.nearRail || f.concordiumRail, {
           name: "Stablecoin rails",
-          body: [f.nearRail && "USDC on NEAR", f.concordiumRail && "x402 tokens on Concordium"].filter(Boolean).join(" and ") + ", held in an escrow account apart from ours.",
+          body: [f.nearRail && "USDC on NEAR", f.concordiumRail && "x402 tokens on Concordium"].filter(Boolean).join(" and ") + ", held in an escrow account apart from boreal.work's own money.",
           tag: [f.nearRail && "NEAR", f.concordiumRail && "Concordium"].filter(Boolean).join(" · "),
         }),
       ],
@@ -261,27 +261,27 @@ const PLAIN = [
   },
   {
     title: "Today you depend on PayPal and on boreal.work.",
-    body: "PayPal holds the money and pays the worker. boreal.work runs the ledger, the reviewer and the queue that moves money when a verdict is final. We name that rather than soften it.",
+    body: "PayPal holds the money and pays the worker. boreal.work runs the ledger, the reviewer and the queue that moves money when a verdict is final.",
   },
   {
     title: "It is a beta, and the limits say so.",
-    body: `Up to ${whole(POLICY.unverifiedTaskBudget)} a task and ${whole(POLICY.unverifiedDailySpend)} a day until the payer is verified; then up to ${whole(POLICY.maxTaskBudget)} a task and ${whole(POLICY.maxAgentDailySpend)} a day per agent. Larger work, talk to us first.`,
+    body: `Up to ${whole(POLICY.unverifiedTaskBudget)} a task and ${whole(POLICY.unverifiedDailySpend)} a day until the payer is verified; then up to ${whole(POLICY.maxTaskBudget)} a task and ${whole(POLICY.maxAgentDailySpend)} a day per agent. For larger work, message boreal.work first.`,
   },
   {
-    title: "Agents poll. There are no webhooks yet.",
-    body: "An agent checks on its tasks every few minutes. The states it reads are the same ones the desk enforces, listed in the agent guide.",
+    title: "Nobody is notified yet.",
+    body: "No email, no push, no webhooks. A worker sees a verdict or a payout by opening the task, an owner sees a payment request on My account or from their agent, and an agent checks its tasks every few minutes.",
   },
 ];
 
 /* ---------------------------------------------------------------- not built yet */
 
 const ROADMAP = [
-  { title: "The mandate as a document", body: "An agent's limits and its owner's approval as a signed page the agent can show to whoever it deals with." },
+  { title: "Limits as a document", body: "An agent's limits and its owner's approval as a signed page the agent can show to whoever it deals with." },
   { title: "Portable attestations", body: "A passed result as a public, verifiable record an agent can hand to a third party." },
-  { title: "Standing orders", body: "A recurring commission, funded once: check this shelf price every Monday." },
+  { title: "Standing orders", body: "A task that repeats, each one funded in turn: check this shelf price every Monday." },
   { title: "Corroboration", body: "Two independent workers on the same question, paid when their answers agree." },
-  { title: "Worker standing", body: "A pseudonymous record of passed work a freelancer can carry and show." },
-  { title: "Webhooks", body: "The desk tells an agent when its task moves, instead of being asked." },
+  { title: "Worker standing", body: "A pseudonymous record of passed work a worker can carry and show." },
+  { title: "Notifications and webhooks", body: "An email when a verdict lands or pay is sent, and a signed call to an agent when its task moves." },
 ];
 
 /* ---------------------------------------------------------------- page */
@@ -302,17 +302,17 @@ export default function Home() {
       <section data-hero="full" className="flex min-h-[calc(100svh-7rem)] items-center">
         <Container className="grid w-full items-center gap-14 py-16 md:py-20 lg:grid-cols-[1.2fr_1fr]">
           <div className="flex flex-col gap-7">
-            <Kicker>Witnessed work, held in escrow</Kicker>
+            <Kicker>Real-world work, held in escrow</Kicker>
             <h1 className="text-5xl leading-[1.02] font-light tracking-[-0.04em] text-balance sm:text-6xl lg:text-7xl">Software that can be somewhere.</h1>
             <p className="max-w-xl text-lg leading-relaxed text-muted-foreground">
-              boreal.work is a task desk for the steps that happen in the physical world. An AI agent or a business commissions a verified person to visit,
+              boreal.work is a task desk for the steps that happen in the physical world. An AI agent or a business posts a task, and a verified person goes to see,
               photograph, check or judge something. The money is held before anyone sees the task, and paid to the worker only when the result passes review
               against a public rulebook.
             </p>
             <div className="flex flex-wrap items-center gap-3">
               <Cta href="/tasks">Find paid tasks</Cta>
               <Cta href="/post" variant="outline">
-                Commission a task
+                Post a task
               </Cta>
               <MoreLink href="/agents" className="px-2">
                 Connect an agent
@@ -322,7 +322,7 @@ export default function Home() {
               <li>Workers keep 100% of their pay</li>
               <li>One fee: {SERVICE_FEE}</li>
               <li>Every fail cites a rule</li>
-              <li>One appeal, decided by a person</li>
+              <li>One dispute per task, decided by a person</li>
             </ul>
             <div className="flex flex-col gap-3">
               <PoweredBy />
@@ -383,7 +383,7 @@ export default function Home() {
       {/* Use cases */}
       <Section
         kicker="Use cases"
-        title="What is worth witnessing."
+        title="What is worth seeing in person."
         description="Anything an agent or a business needs to know about the physical world, cannot see for itself, and cannot afford to take on trust."
       >
         <div className="grid gap-px overflow-hidden rounded-3xl border bg-border sm:grid-cols-2 lg:grid-cols-3">
@@ -405,7 +405,7 @@ export default function Home() {
       <Section
         band
         kicker="How it works"
-        title="How a commission settles."
+        title="How a task settles."
         description="Six steps. The first two happen when you post; the rest run on rules, and the money moves only at the last."
         action={<MoreLink href="/rules">Read the rulebook</MoreLink>}
       >
@@ -421,7 +421,7 @@ export default function Home() {
       </Section>
 
       {/* The arithmetic */}
-      <Section kicker="Pricing" title="The whole price is one line." description={`The fee covers ${SERVICE_FEE_COVERS}. It is not all ours to keep.`}>
+      <Section kicker="Pricing" title="The whole price is one line." description={`The fee covers ${SERVICE_FEE_COVERS}. It is not all boreal.work's to keep.`}>
         <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-start">
           <div className="flex flex-col gap-6">
             <div className="rounded-2xl border bg-card p-6 md:p-8">
@@ -438,7 +438,7 @@ export default function Home() {
               <dt className="font-mono text-primary">{SERVICE_FEE_SELF_REVIEW}</dt>
               <dd className="text-muted-foreground">When you review the result yourself.</dd>
               <dt className="font-mono text-primary">on a fail</dt>
-              <dd className="text-muted-foreground">Only the review part is kept, because the review happened. The rest is released.</dd>
+              <dd className="text-muted-foreground">With boreal.work reviewing, only the review part is kept, because the review happened. With you reviewing, nothing is taken.</dd>
             </dl>
           </div>
           <div className="overflow-x-auto rounded-2xl border bg-card">
@@ -520,7 +520,7 @@ export default function Home() {
       <Section kicker="Stated plainly" title="Questions worth asking first." description="A careful buyer, worker or agent owner will ask these before anything else. Better answered here.">
         <div className="grid gap-x-12 gap-y-10 md:grid-cols-2">
           {PLAIN.map(({ title, body }) => (
-            <div key={title} className="flex flex-col gap-2 border-l-2 border-primary/40 pl-5">
+            <div key={title} className="flex flex-col gap-2 border-t pt-5">
               <h3 className="text-lg font-medium tracking-tight">{title}</h3>
               <p className="leading-relaxed text-muted-foreground">{body}</p>
             </div>
@@ -530,11 +530,11 @@ export default function Home() {
       </Section>
 
       {/* For agent builders */}
-      <Section band id="agents" kicker="For agent builders" title="Give your agent a witness.">
+      <Section band id="agents" kicker="For agent builders" title="Give your agent someone on the ground.">
         <div className="grid items-start gap-10 lg:grid-cols-2">
           <div className="flex flex-col gap-5">
             <p className="text-lg leading-relaxed text-muted-foreground">
-              Your agent posts the step it can&apos;t do, funds it inside the mandate you set, and gets back a result checked against its own criteria. It
+              Your agent posts the step it can&apos;t do, pays for it within the limits you set, and gets back a result checked against its own criteria. It
               reads one guide and asks you for a key.
             </p>
             <div className="flex flex-wrap gap-3">
@@ -562,7 +562,7 @@ export default function Home() {
       </Section>
 
       {/* Roadmap */}
-      <Section kicker="Roadmap, not built" title="What comes next." description="None of this exists yet. It is here so you know where boreal.work is going, and can tell us which to build first.">
+      <Section kicker="Roadmap, not built" title="What comes next." description="None of this exists yet. It is here so you know where boreal.work is going, and can say which to build first.">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {ROADMAP.map(({ title, body }) => (
             <div key={title} className="flex flex-col gap-2 rounded-2xl border border-dashed p-6">
@@ -572,7 +572,7 @@ export default function Home() {
           ))}
         </div>
         <a href={CONTACT.url} target="_blank" rel="noreferrer" className="group inline-flex w-fit items-center gap-1 text-sm font-medium text-primary">
-          Tell us what you need: {CONTACT.handle} on X
+          Say what you need first: {CONTACT.handle} on X
           <ArrowUpRight className="size-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden />
         </a>
       </Section>

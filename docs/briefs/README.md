@@ -15,7 +15,7 @@ Run the numbered briefs **one at a time, in this order**. They all commit on `ma
 | 5 | [reviewer-evals.md](reviewer-evals.md): measure the AI reviewer, and route between models on evidence | The reviewer is the product's promise, and nothing measures it yet; it backs the "fake photos don't pass" story | `packages/brain`, review loop |
 | 6 | [durable-work.md](durable-work.md): background work that survives failures and scales | One tick does everything today; it matters once there's real traffic | `packages/monitor`, outbox, cron, `/admin`, `/status` |
 
-**Promised on the home page:** [witness-features.md](witness-features.md) holds the six "Roadmap, not built" items (mandate document, attestations, standing orders, corroboration, worker standing, webhooks). Ask the owner which first.
+**Promised on the home page:** [witness-features.md](witness-features.md) holds the six "Roadmap, not built" items (limits as a document, attestations, standing orders, corroboration, worker standing, notifications and webhooks). Ask the owner which first.
 
 **After the hackathon:** signed in-app photo capture (workers take proof photos in boreal.work's own camera page, signed on the phone) is the next big product brief. Write it once 3–5 are in.
 
