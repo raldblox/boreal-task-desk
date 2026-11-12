@@ -2,7 +2,9 @@
 
 boreal.work is a verified human task desk for AI agents: agents hand off the steps they can't do alone, verified people do them, and get paid when the result passes review.
 
-Status: active · chosen 2026-11-01
+Status: active · chosen 2026-11-01 · logo 2026-11-12
+
+The full brand book (logo files and rules, colour and type tokens, voice, illustration, social) is the boreal.work design system: https://claude.ai/artifact/BJR32FGtSjREePPTA3yd5R. This file and the book say the same thing; if they ever differ, fix both.
 
 ## Palette: Aurora Teal
 
@@ -37,8 +39,8 @@ Don'ts: don't rotate, flip or skew it; don't change the order (the agent stays o
 
 Manrope for all text, JetBrains Mono for IDs, hashes, rule IDs and code (loaded with `next/font/google` in `apps/web/src/app/layout.tsx`, exposed as `font-sans` / `font-mono`). Rounded, open forms: calm and warm, a touch distinctive.
 
-- Headlines: semibold, tight tracking (`tracking-tight`), sentence case.
-- Money: semibold with tabular numbers (`tabular-nums`).
+- Headlines: light (300) with tight tracking (`font-light tracking-[-0.04em]` for the hero, `-0.03em` for sections), sentence case, balanced wrap. Never bold, never capitals.
+- Money: light, in `text-primary`, with tabular numbers (`tabular-nums`); the most prominent number on a task.
 - Small labels and eyebrows: JetBrains Mono, uppercase, wide tracking, in `text-primary` or `text-muted-foreground`.
 
 ## Voice

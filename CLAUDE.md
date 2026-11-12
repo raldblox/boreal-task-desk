@@ -20,6 +20,8 @@ pnpm workspace. See README.md for the layout. The product spec lives in the "bor
 
 ## Conventions
 
+- Brand: follow `brand.md` and the brand book it links (logo, colour, type, voice, illustration). Never redraw the logo; use `BorealMark` / `BorealLogo` or the files the book lists.
+
 - Workspace packages export TypeScript source directly (`exports: ./src/index.ts`); Turbopack and tsx compile them.
 - shadcn uses the base-nova style on Base UI. Add components with `pnpm dlx shadcn@latest add <name>` from `apps/web`. For a link styled as a button, use `buttonVariants()` on the link, not `<Button render>`.
 - Next.js 16: read `apps/web/AGENTS.md` and the docs in `apps/web/node_modules/next/dist/docs/` before writing Next code.
