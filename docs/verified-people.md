@@ -18,13 +18,39 @@ Exceptions: operator-made test workers (`testMode`), and AI agents on tasks a re
 
 ## Concordium's identity providers
 
-Concordium lists three identity providers for Verify and Access: Digital Trust Solutions, Notabene and Global FinReg. The mainnet wallet proxy lists Digital Trust Solutions and Notabene for people. Neither page lists supported countries; before telling Filipino workers to use it, try the Concordium ID App with a Philippine passport and a PhilSys ID and record which works.
+Concordium lists three identity providers for Verify and Access: Digital Trust Solutions, Notabene and Global FinReg. The mainnet wallet proxy lists Digital Trust Solutions and Notabene for people. The owner confirmed (2026-11-13) that a Philippine passport and other Philippine IDs are accepted.
+
+## What a Concordium check costs, and who pays
+
+- **The person pays nothing.** Concordium: "For zero-knowledge proofs (ZKPs), there is no charge for the user."
+- **boreal.work pays one small fee per check, and can't avoid it on the ID App path.** The ID App's protocol (Verify and Access, V1) needs the request anchored on chain first: the app reads the anchor's block before it answers, so the request can't be faked. Fees are fixed in euros, paid in CCD from `CONCORDIUM_ANCHOR_ACCOUNT`.
+- **The second record is already skipped.** The audit-record anchor is opt-in ("Services can opt in"); `packages/concordium/src/id-app.ts` checks the presentation with `VerificationAuditRecordV1.createChecked`, which doesn't anchor.
+- **A fee-free path exists for the browser wallet.** Concordium Wallet for Web also answers the older Web3 ID request (`requestVerifiablePresentation` with a challenge built from a recent block hash), which the verifier checks by reading the chain: no transaction, no fee for anyone. Today the wallet path sends the V1 request too; switching it to the challenge request would make wallet checks free. The ID App on phones needs V1.
+
+Sources: [Verifiable presentations (V1), JS SDK](https://docs.concordium.com/concordium-node-sdk-js/12.0.0/pages/verifiable-presentations.html), [ZK proof generation tutorial](https://docs.concordium.com/en/mainnet/tutorials/using-ID-in-dApps/zk-proofs-tutorial.html).
+
+## One person, one account
+
+- **Concordium ID:** a worker's `concordiumRef` is a keyed hash of the identity provider, the document's issuer and its number. One document can't make two accounts. It doesn't stop one person using a second document, or the same document at a second identity provider.
+- **PayPal:** one account per PayPal account. PayPal's own rules allow one personal account per person, but nothing here checks it.
 
 Sources: [How it works](https://docs.concordium.com/en/mainnet/how-to/concordium-id/verify-and-access/how-it-works.html), [Manage transaction costs](https://docs.concordium.com/en/mainnet/how-to/concordium-id/verify-and-access/manage-transaction-costs.html), [Select identity provider](https://docs.concordium.com/en/mainnet/how-to/concordium-id/verify-and-access/select-identity-provider.html), [Account creation](https://docs.concordium.com/concordium-node-sdk-js/pages/misc-pages/account-creation.html), [Concordium ID App launch](https://www.concordium.com/article/concordium-debuts-id-app-with-coin98-to-solve-the-internets-age-check-problem).
 
 ## Not enforced yet
 
-- **Uniqueness.** Verified isn't unique: one person with two verified PayPal accounts, or two Concordium accounts on one identity, can work as two (RS-28 in `docs/readiness.md`).
+- **Uniqueness across documents and PayPal accounts.** One person with two verified PayPal accounts, or two identity documents, can still work as two (RS-28 in `docs/readiness.md`). The fix in progress: a second keyed hash per Concordium proof (name and date of birth, never stored in the clear) so a second document finds the first account; unique payout destinations; and a duplicates view in `/admin`.
+
+## ZKPassport
+
+[ZKPassport](https://docs.zkpassport.id/intro) reads the NFC chip of a passport, national ID or residence permit and proves facts about it on the phone, with zero-knowledge proofs. Assessed on 2026-11-13:
+
+- **Philippine passports:** supported. Its certificate registry lists Philippine (PHL) signing certificates (139 countries, 614 certificates, updated 2026-11-10). A Philippine ePassport has the chip; the PhilSys card doesn't follow the ICAO 9303 chip standard, so it won't work.
+- **Uniqueness, built in:** it returns a unique identifier per document per site and scope, a Poseidon2 hash of the chip data with the site's domain. The same document always gives the same identifier on boreal.work and a different one elsewhere, so sites can't track a person. A salted version keeps even the issuing government from recomputing it. Like Concordium, it is one document = one identifier, not one person: someone with two passports gets two.
+- **Face match:** optional, done on the phone, comparing the face to the chip's photo. It refuses rooted or untrusted phones, which some cheap Android phones may be.
+- **Cost:** the SDK is open source (Apache-2.0), and the self-served mode needs no account or dashboard; verification happens in our backend. No per-check fee was found.
+- **Reliability:** the chip's signature makes a forged document very hard; a photo of a passport can't pass. It has no independent audit we could find, and it is young (SDK 0.x). The app is over 400 MB, which matters on phones with little storage.
+
+Verdict: good, and a better fit than Concordium for workers with a Philippine ePassport. Free for the person and for boreal.work, no identity provider in between, and uniqueness built in. Worth adding as a third way to verify, keyed into the same uniqueness check as Concordium.
 
 ## NEAR and EVM: options to add later
 
