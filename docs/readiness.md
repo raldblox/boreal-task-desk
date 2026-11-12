@@ -193,7 +193,7 @@ Seeded on 2026-11-12. The Hermes catalog review (NousResearch/hermes-agent#15309
 
 **Fix:** in the plugin's own repo: read `approvalRequired`, tell the owner the link, poll `get_task`; add `spendingMode` and `paused` to what `/borealwork` shows; then move the pin here. The plugin's own approval prompt stays.
 
-**Status:** open. Not a breaking change for the plugin (nothing it relied on changed for `auto` agents, and existing agents stay on `auto`).
+**Status:** done in the plugin (`raldblox/hermes-boreal` `9ed0133`, 0.2.1; pin moved here). `boreal_fund_task` passes on `approvalRequired` with the next step. The same release closes the Hermes catalog review's last blocker (money calls now run only after the spend guard has cleared them) and three more gaps: a per-call approval key, a daily cap that counts boreal.work's own 24-hour figure, and HTTPS only with no redirects. Left: `/borealwork` doesn't show `spendingMode` or `paused`; the catalog PR (NousResearch/hermes-agent#153094) awaits re-review.
 
 ### RS-26 · gap · market · S4 — The Hermes plugin doesn't say the deadline limit
 
