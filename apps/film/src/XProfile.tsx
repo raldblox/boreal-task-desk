@@ -13,34 +13,24 @@ const NIGHT = "#0b2326";
 const NIGHT_DEEP = "#061416";
 const SNOW = "#f3fbfa";
 
-/** The site's mark (apps/web/src/components/brand.tsx): three arcs rising, like an aurora over the horizon. */
-const Arcs = ({ stroke = SNOW, width = 2.2 }: { stroke?: string; width?: number }) => (
-  <>
-    <path d="M7 22c3-7 6-10 9-10s6 3 9 10" fill="none" stroke={stroke} strokeWidth={width} strokeLinecap="round" />
-    <path d="M10 22c2-4.5 4-6.5 6-6.5s4 2 6 6.5" fill="none" stroke={stroke} strokeOpacity={0.7} strokeWidth={width} strokeLinecap="round" />
-    <path d="M13 22c1-2 2-3 3-3s2 1 3 3" fill="none" stroke={stroke} strokeOpacity={0.45} strokeWidth={width} strokeLinecap="round" />
-  </>
+/** The site's mark (apps/web/src/components/brand.tsx, MARK_PATHS): two rockets in step, light bodies and solid heads. */
+const Mark = ({ color = SNOW, light = 0.55 }: { color?: string; light?: number }) => (
+  <g fill={color}>
+    <path d="M2.44 3.5H14.44V15.125H2.44L8.25 9.31Z" fillOpacity={light} />
+    <path d="M16.19 3.5H22V15.125H16.19Z" />
+    <path d="M2.44 16.875H14.44V28.5H2.44L8.25 22.69Z" fillOpacity={light} />
+    <path d="M16.19 16.875H22V28.5H16.19Z" fillOpacity={light} />
+    <path d="M23.75 16.875A5.81 5.81 0 0 1 23.75 28.5Z" />
+  </g>
 );
 
 export const XAvatar = () => (
   <AbsoluteFill>
     <svg viewBox="0 0 400 400" width={400} height={400}>
-      <defs>
-        <radialGradient id="av-bg" cx="50%" cy="38%" r="70%">
-          <stop offset="0%" stopColor="#0b8584" />
-          <stop offset="60%" stopColor={TEAL} />
-          <stop offset="100%" stopColor="#004b4c" />
-        </radialGradient>
-        <radialGradient id="av-glow" cx="50%" cy="62%" r="40%">
-          <stop offset="0%" stopColor={TEAL_LIGHT} stopOpacity={0.45} />
-          <stop offset="100%" stopColor={TEAL_LIGHT} stopOpacity={0} />
-        </radialGradient>
-      </defs>
-      <rect width="400" height="400" fill="url(#av-bg)" />
-      <ellipse cx="200" cy="250" rx="170" ry="110" fill="url(#av-glow)" />
-      {/* The mark, centred inside X's circle crop with room to breathe. */}
-      <g transform="translate(200 206) scale(10.2) translate(-16 -17)">
-        <Arcs width={2.3} />
+      {/* Flat Aurora Teal; X crops to a circle, so the mark sits centred with room to breathe. */}
+      <rect width="400" height="400" fill={TEAL} />
+      <g transform="translate(200 200) scale(6.6) translate(-16 -16)">
+        <Mark />
       </g>
     </svg>
   </AbsoluteFill>
@@ -126,9 +116,8 @@ export const XBanner = () => (
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-        <svg viewBox="0 0 32 32" width={74} height={74}>
-          <rect width="32" height="32" rx="8" fill={TEAL} />
-          <Arcs />
+        <svg viewBox="0 0 32 32" width={80} height={80}>
+          <Mark color={TEAL_LIGHT} light={0.5} />
         </svg>
         <span style={{ fontSize: 76, fontWeight: 700, letterSpacing: -2.5 }}>boreal.work</span>
       </div>

@@ -35,12 +35,14 @@ export default function OpengraphImage() {
           <path d="M0 520 L200 470 L380 500 L560 430 L760 480 L940 420 L1200 470 L1200 630 L0 630 Z" fill="#c2d8de" />
           <path d={trees} fill="#4a7b78" />
         </svg>
-        <div style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 34, color: "#1d6a6c", fontWeight: 600 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 34, color: "#1b2a30", fontWeight: 600 }}>
+          {/* The mark (components/brand.tsx, MARK_PATHS): light bodies, solid heads. */}
           <svg width="52" height="52" viewBox="0 0 32 32">
-            <rect width="32" height="32" rx="8" fill="#1d6a6c" />
-            <path d="M7 22c3-7 6-10 9-10s6 3 9 10" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" />
-            <path d="M10 22c2-4.5 4-6.5 6-6.5s4 2 6 6.5" fill="none" stroke="#fff" strokeOpacity="0.7" strokeWidth="2.2" strokeLinecap="round" />
-            <path d="M13 22c1-2 2-3 3-3s2 1 3 3" fill="none" stroke="#fff" strokeOpacity="0.45" strokeWidth="2.2" strokeLinecap="round" />
+            <path d="M2.44 3.5H14.44V15.125H2.44L8.25 9.31Z" fill="#00696a" fillOpacity="0.45" />
+            <path d="M16.19 3.5H22V15.125H16.19Z" fill="#00696a" />
+            <path d="M2.44 16.875H14.44V28.5H2.44L8.25 22.69Z" fill="#00696a" fillOpacity="0.45" />
+            <path d="M16.19 16.875H22V28.5H16.19Z" fill="#00696a" fillOpacity="0.45" />
+            <path d="M23.75 16.875A5.81 5.81 0 0 1 23.75 28.5Z" fill="#00696a" />
           </svg>
           boreal.work
         </div>
