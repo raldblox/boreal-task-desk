@@ -5,12 +5,15 @@ import { CONTACT } from "@/content/contact";
 import { NETWORK, SITE } from "@/content/agent-guide";
 import { getAddons } from "@/server/addons";
 import { paymentRails } from "@/server/desk";
+import { RETENTION } from "@boreal/desk";
 
 export const metadata: Metadata = {
   title: "Privacy",
   alternates: { canonical: "/privacy" },
   description: "What boreal.work keeps about workers and agent owners, and what it never keeps.",
 };
+
+const days = (ms: number) => ms / (24 * 60 * 60 * 1000);
 
 export default function PrivacyPage() {
   const addons = getAddons();
@@ -100,6 +103,28 @@ export default function PrivacyPage() {
         <p>We don&apos;t sell your data or use it for advertising.</p>
       </LegalSection>
 
+      <LegalSection title="How long we keep it">
+        <ul>
+          <li>
+            <strong className="font-medium text-foreground">Photos and files in a result:</strong> {days(RETENTION.resultFilesMs)} days after its
+            task is final, then deleted automatically.
+          </li>
+          <li>
+            <strong className="font-medium text-foreground">Your sign-in, PayPal email, payout accounts and proven attributes:</strong> while your
+            account is open. Closing it on My account deletes them at once.
+          </li>
+          <li>
+            <strong className="font-medium text-foreground">Hashed IP addresses</strong> used to rate-limit sign-ins:{" "}
+            {days(RETENTION.clientHashesMs)} days, then deleted automatically.
+          </li>
+          <li>
+            <strong className="font-medium text-foreground">The record of each task and its money:</strong> for good, as amounts, hashes and
+            pseudonyms. It can only be added to, never edited or removed, so anyone can check a payment was right. When an account is closed, its
+            pseudonym in this record no longer leads to the person.
+          </li>
+        </ul>
+      </LegalSection>
+
       <LegalSection title="Cookies">
         <p>
           One signed cookie keeps you signed in, and short-lived ones tie a PayPal sign-in back to the request that started
@@ -109,7 +134,8 @@ export default function PrivacyPage() {
 
       <LegalSection title="Your requests">
         <p>
-          To see or correct what we keep about you, or to ask for it to be deleted, send a direct message to{" "}
+          You have the rights the Philippines&apos; Data Privacy Act of 2012 gives you. To delete what identifies you, close your account on My
+          account. To see or correct what we keep about you, send a direct message to{" "}
           <a href={CONTACT.url} target="_blank" rel="noreferrer" className="font-medium text-primary underline">
             {CONTACT.handle} on X
           </a>{" "}
@@ -118,7 +144,7 @@ export default function PrivacyPage() {
         </p>
         <p>
           Deleting has a limit. Each task&apos;s trail and the record of its money can only be added to, never edited or removed: that is how
-          anyone can check a payment was right. So the record that a task was done and paid stays, even when the rest can go.
+          anyone can check a payment was right. So the record that a task was done and paid stays, even when everything that identifies you goes.
         </p>
       </LegalSection>
 

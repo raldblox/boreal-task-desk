@@ -7,13 +7,14 @@ import { and, type Database, eq, leases, lt } from "@boreal/db";
 import {
   addressesFromEnv,
   createDesk,
+  type DeleteFiles,
   type Desk,
   ledgerEscrowBalance,
   outboxTransferJournal,
   type ReadFile,
   runAiReview,
 } from "@boreal/desk";
-import { readSubmissionBytes } from "@boreal/files";
+import { deleteSubmissionFiles, readSubmissionBytes } from "@boreal/files";
 import { loadEvm } from "@boreal/evm";
 import { type BridgeReport, loadMarketBridge, loadNear, type MarketBridge } from "@boreal/near";
 import { loadRails } from "@boreal/paypal";
@@ -41,6 +42,8 @@ export interface TickReport {
   escrowGap: number | null;
   /** Rails whose payouts and refunds are held: escrow is short, or couldn't be read. */
   pausedRails: string[];
+  /** What the retention step deleted: results whose files went, how many files, old sign-in hashes. */
+  retention: { results: number; files: number; clientHashes: number } | null;
   errors: string[];
 }
 
@@ -52,6 +55,8 @@ export interface MonitorDeps {
   payments?: Payments | null;
   reviewer: Reviewer | null;
   readFile: ReadFile;
+  /** Deletes stored result files. With it, each tick deletes what the privacy policy says boreal.work stops keeping. */
+  deleteFiles?: DeleteFiles | null;
   /** boreal on NEAR Agent Market: hires in, deliverables out. */
   market?: MarketBridge | null;
   /** False leaves screening to people in /admin (AI_SCREENING=off); the AI still reviews. */
@@ -85,6 +90,7 @@ export function createMonitor({
   payments = concordium?.payments ?? null,
   reviewer,
   readFile,
+  deleteFiles = null,
   market = null,
   aiScreening = true,
   now = () => new Date(),
@@ -102,6 +108,7 @@ export function createMonitor({
         market: null,
         escrowGap: null,
         pausedRails: [],
+        retention: null,
         errors: [],
       };
       const holder = randomUUID();
@@ -136,6 +143,11 @@ export function createMonitor({
           if (overdue.disputes > 0) report.errors.push(`${overdue.disputes} ${overdue.disputes === 1 ? "dispute has" : "disputes have"} waited more than 72 hours for a panel decision`);
           if (overdue.queued > 0) report.errors.push(`${overdue.queued} ${overdue.queued === 1 ? "task has" : "tasks have"} waited more than a day for a human reviewer`);
         });
+        if (deleteFiles) {
+          await step("retention", async () => {
+            report.retention = await desk.applyRetention(deleteFiles);
+          });
+        }
         if (reviewer) {
           await step("ai-review", async () => {
             report.ai = await runAiReview(desk, reviewer, { readFile, limit: aiLimit, screen: aiScreening });
@@ -200,7 +212,7 @@ export async function loadMonitor(db: Database, raw: Record<string, string | und
   const desk = createDesk({ db, concordium, payments, rails, addresses: addressesFromEnv(env), requireBadge: env.REQUIRE_AGENT_BADGE === "1", verification: deskVerification(readAddons(raw)) });
   const reviewer = await loadReviewer(env);
   const market = loadMarketBridge(db, desk, env, { near });
-  return createMonitor({ db, desk, concordium, payments, reviewer, readFile: readSubmissionBytes, market, aiScreening: env.AI_SCREENING !== "off" });
+  return createMonitor({ db, desk, concordium, payments, reviewer, readFile: readSubmissionBytes, deleteFiles: deleteSubmissionFiles, market, aiScreening: env.AI_SCREENING !== "off" });
 }
 
 /** A one-line summary for logs, or null when the tick did nothing worth saying. */
@@ -211,6 +223,8 @@ export function describeTick(r: TickReport): string | null {
     r.expiredDeadlines && `${r.expiredDeadlines} deadlines expired`,
     r.closedWindows && `${r.closedWindows} verdicts final`,
     r.escalatedReviews && `${r.escalatedReviews} unreviewed submissions to boreal.work's reviewers`,
+    r.retention && (r.retention.results || r.retention.clientHashes) &&
+      `retention: ${r.retention.files} files from ${r.retention.results} results deleted, ${r.retention.clientHashes} old sign-in hashes cleared`,
     r.ai && (r.ai.screened || r.ai.reviewed || r.ai.toHumans || r.ai.deferred) &&
       `AI: ${r.ai.screened} screened, ${r.ai.reviewed} reviewed, ${r.ai.toHumans} to humans, ${r.ai.deferred} deferred`,
     r.outbox && (r.outbox.sent || r.outbox.failed) && `outbox: ${r.outbox.sent} sent, ${r.outbox.failed} failed`,

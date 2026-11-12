@@ -1,6 +1,4 @@
 import { POLICY } from "@boreal/core";
-/** Money in a refusal a person reads: dollars, never cents. */
-const dollars = (c: number) => `$${(c / 100).toFixed(2)}`;
 
 import {
   agents,
@@ -24,6 +22,9 @@ import {
 
 import { DeskError } from "./errors";
 import { taskTotal } from "./money";
+
+/** Money in a refusal a person reads: dollars, never cents. */
+const dollars = (c: number) => `$${(c / 100).toFixed(2)}`;
 
 // What an owner controls about their agents: whether each payment from the saved payment
 // method needs their approval, the limits, pausing, taking the key back and disconnecting the

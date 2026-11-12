@@ -1,13 +1,14 @@
 import { createHash, randomBytes, randomInt } from "node:crypto";
 
 import { POLICY } from "@boreal/core";
-/** Money in a refusal a person reads: dollars, never cents. */
-const dollars = (c: number) => `$${(c / 100).toFixed(2)}`;
 
 import { agentLinks, agents, and, type Database, eq, gt, inArray, ne, owners, sql, type Task, tasks, workers } from "@boreal/db";
 
 import { DeskError } from "./errors";
 import { issueAgentKey } from "./keys";
+
+/** Money in a refusal a person reads: dollars, never cents. */
+const dollars = (c: number) => `$${(c / 100).toFixed(2)}`;
 
 // Agent linking: an agent gets its own key, and its owner only approves. The agent asks for
 // a link and receives a short code plus a secret poll token; the owner signs in on
@@ -69,7 +70,7 @@ export function linkCommands(db: Database, now: () => Date) {
   /** The signed-in person approving: any real worker (PayPal or Concordium ID), never a tester. */
   async function ownerFor(workerId: string) {
     const [worker] = await db.select().from(workers).where(eq(workers.id, workerId));
-    if (!worker) throw new DeskError("not_found", "sign in again");
+    if (!worker || worker.closedAt) throw new DeskError("not_found", "sign in again");
     if (worker.testMode) throw new DeskError("forbidden", "sign in with PayPal or Concordium ID to own an agent; tester accounts can't");
     const at = now();
     const [owner] = await db

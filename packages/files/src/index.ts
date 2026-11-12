@@ -1,9 +1,9 @@
 
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join, normalize } from "node:path";
 
-import { get, put } from "@vercel/blob";
+import { del, get, put } from "@vercel/blob";
 
 // Submission files live in a private Blob store, or on local disk under `pnpm dev:local`.
 // Paths are `submissions/<task id>/<random>.<ext>`; only the API's file route reads them.
@@ -63,6 +63,21 @@ export async function readSubmissionFile(path: string): Promise<{ body: FileBody
   const result = await get(path, { access: "private" });
   if (!result || result.statusCode !== 200) return null;
   return { body: result.stream as ReadableStream<Uint8Array<ArrayBuffer>>, contentType: result.blob.contentType };
+}
+
+/**
+ * Deletes stored result files, for the retention job: 90 days after a task is final. A path
+ * that is already gone is fine, so a run that stopped halfway can simply run again.
+ */
+export async function deleteSubmissionFiles(paths: string[]): Promise<void> {
+  const safe = paths.filter((p) => p.startsWith("submissions/") && !normalize(p).includes(".."));
+  if (safe.length === 0) return;
+  const dir = localDir();
+  if (dir) {
+    await Promise.all(safe.map((p) => rm(join(/* turbopackIgnore: true */ dir, p), { force: true })));
+    return;
+  }
+  await del(safe);
 }
 
 /** Reads a stored file fully, for jobs that need the bytes (like the AI reviewer). */

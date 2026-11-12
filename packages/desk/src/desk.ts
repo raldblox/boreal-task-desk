@@ -47,6 +47,7 @@ import { consoleViews, findAnomalies, type ReconcileResult } from "./console-vie
 import { insightsViews } from "./insights-views";
 import { DeskError, fromTransitionError } from "./errors";
 import { linkCommands } from "./links";
+import { accountCommands } from "./accounts";
 import { assertSavedPaymentAllowed, ownerCommands } from "./owner";
 import { moneyViews } from "./money-views";
 import { recordFunding, settle, taskTotal } from "./money";
@@ -825,7 +826,7 @@ export function createDesk({
         async check(tx, task, at) {
           if (task.deadline <= at) throw new DeskError("conflict", "task deadline has passed");
           const [worker] = await tx.select().from(workers).where(eq(workers.id, caller.workerId));
-          if (!worker) throw new DeskError("not_found", "worker not found");
+          if (!worker || worker.closedAt) throw new DeskError("not_found", "sign in again");
           fulfiller = worker.kind;
           if (worker.kind === "agent") {
             if (task.fulfillers !== "people_or_agents") throw new DeskError("forbidden", "this task is for verified people only");
@@ -1683,7 +1684,7 @@ export function createDesk({
 
   // Object.assign is typed for up to three sources, so the read-only views go in as one.
   const owner = ownerCommands(db, now, (caller, taskId, approvalId) => commands.fundTask(caller, taskId, { vault: true }, { rail: "paypal", approvalId }));
-  return Object.assign(commands, { ...adminViews(db, now), ...consoleViews(db, now), ...insightsViews(db), ...owner }, { ...adminCommands(db, now, commands), ...controlCommands(db, now), ...passkeyCommands(db, now) });
+  return Object.assign(commands, { ...adminViews(db, now), ...consoleViews(db, now), ...insightsViews(db), ...owner }, { ...adminCommands(db, now, commands), ...controlCommands(db, now), ...passkeyCommands(db, now), ...accountCommands(db, now) });
 
   async function sweep(
     where: ReturnType<typeof and>,

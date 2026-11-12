@@ -179,6 +179,11 @@ export const workers = pgTable("workers", {
   apiKeyIssuedAt: timestamp("api_key_issued_at", { withTimezone: true }),
   /** Signed in with a test invite; sees and claims only test tasks. */
   testMode: boolean("test_mode").notNull().default(false),
+  /**
+   * Set when the person closed their account: every identity, email and payout address is gone,
+   * and the pseudonym became `closed:<id>`, so signing in again starts a new, empty account.
+   */
+  closedAt: timestamp("closed_at", { withTimezone: true }),
   ...timestamps,
 });
 
@@ -249,6 +254,8 @@ export const submissions = pgTable(
       .references(() => workers.id),
     text: text("text"),
     fileUrls: jsonb("file_urls").$type<string[]>().notNull(),
+    /** When the result's files were deleted (90 days after the task was final); `fileUrls` is then empty. */
+    filesDeletedAt: timestamp("files_deleted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("submissions_task_idx").on(t.taskId)],

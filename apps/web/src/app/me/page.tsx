@@ -944,6 +944,12 @@ function TabPanel({ tab }: { tab: AccountTab }) {
           <Suspense fallback={null}>
             <InsightsLink />
           </Suspense>
+          <div className="flex flex-col gap-1 border-t pt-6">
+            <p className="text-sm text-muted-foreground">Done with boreal.work? Closing deletes what identifies you. You&apos;ll see everything it does first.</p>
+            <MoreLink href="/me/close" className="text-destructive">
+              Close your account
+            </MoreLink>
+          </div>
         </>
       );
     case "work":
