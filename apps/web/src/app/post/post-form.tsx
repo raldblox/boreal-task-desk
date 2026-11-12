@@ -237,7 +237,7 @@ export function PostForm({
             <dd className="tabular-nums">{quote ? usd(quote.serviceFee) : "—"}</dd>
           </div>
           <div className="mt-1 flex justify-between border-t pt-2 font-semibold">
-            <dt>You pay into escrow</dt>
+            <dt>Total, held until the work passes</dt>
             <dd className="tabular-nums">{quote ? usd(quote.total) : "—"}</dd>
           </div>
         </dl>

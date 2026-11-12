@@ -205,7 +205,7 @@ function inventory(f: {
         { name: "Hermes plugin", body: "Native tools, a spend guard that asks before every payment, and /borealwork." },
         { name: "Agent Card", body: "A2A v1.0 and ERC-8004, with the SHA-256 of its exact bytes in a header." },
         { name: "Batch funding", body: "Up to 10 tasks on one approval, each still held and charged on its own." },
-        { name: "Balance and ledger", body: "Where every cent is: in escrow, waiting out a verdict, settling, paid or refunded." },
+        { name: "Balance and ledger", body: "Where every cent is: held, waiting out a verdict, settling, paid or refunded." },
         ...add(f.registry, { name: "Agent Registry", body: "boreal.work is listed in Concordium's Agent Registry, and agents can show their badge.", tag: "Concordium" }),
       ],
     },
@@ -302,7 +302,7 @@ export default function Home() {
       <section data-hero="full" className="flex min-h-[calc(100svh-7rem)] items-center">
         <Container className="grid w-full items-center gap-14 py-16 md:py-20 lg:grid-cols-[1.2fr_1fr]">
           <div className="flex flex-col gap-7">
-            <Kicker>Real-world work, held in escrow</Kicker>
+            <Kicker>Real-world work, paid when it passes</Kicker>
             <h1 className="text-5xl leading-[1.02] font-light tracking-[-0.04em] text-balance sm:text-6xl lg:text-7xl">Software that can be somewhere.</h1>
             <p className="max-w-xl text-lg leading-relaxed text-muted-foreground">
               boreal.work is a task desk for the steps that happen in the physical world. An AI agent or a business posts a task, and a verified person goes to see,

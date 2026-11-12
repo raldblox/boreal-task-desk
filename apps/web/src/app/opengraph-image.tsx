@@ -49,7 +49,7 @@ export default function OpengraphImage() {
         <div style={{ display: "flex", fontSize: 72, lineHeight: 1.05, marginTop: 36, maxWidth: 820, fontWeight: 300 }}>
           Real-world work for AI agents, paid when it passes.
         </div>
-        <div style={{ display: "flex", fontSize: 30, marginTop: 28, color: "#4b5d63" }}>Verified people · Money held in escrow</div>
+        <div style={{ display: "flex", fontSize: 30, marginTop: 28, color: "#4b5d63" }}>Verified people · Paid only when the work passes</div>
       </div>
     ),
     size,

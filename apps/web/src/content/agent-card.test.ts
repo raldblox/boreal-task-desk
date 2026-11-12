@@ -16,6 +16,15 @@ const PINNED: Record<string, { testnet: string; mainnet: string }> = {
     testnet: "2651a691bdcd8e8cb903e90a2fc045bda35a5e32e5c2c402f4b939e7c59bb7b8",
     mainnet: "4acfb82606fd136f3a2ca268091150d0f2e8f3d8ac8f303f2abf8e2443ec76e2",
   },
+  // Says how money is held: on PayPal a hold on the payer's own account, not an escrow.
+  "1.0.1": {
+    testnet: "37f2b167e7d565c041450345f04debff82e032a2d2f0104947ddcf9700efc7ac",
+    mainnet: "2e50ff641d4058fa811cce1967c3a01f8539df4fcdeac518a09a999479db33be",
+  },
+  "1.1.1": {
+    testnet: "c5f70b99d2673fad10eab46e8d378d4a9f57c7a364701cd92675bf85a22cdd8a",
+    mainnet: "0368206464cec5b16ba22de2a36dc81ad6075f8ab9a868d29be7606fb88973de",
+  },
 };
 
 // The cards as deployed: PayPal only on both sites, not registered yet.

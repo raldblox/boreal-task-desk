@@ -52,7 +52,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/v1/tasks/[i
       const required = {
         x402Version: 2,
         error: "payment required",
-        resource: { url: request.url, description: `Fund task ${task.id} into escrow`, mimeType: "application/json" },
+        resource: { url: request.url, description: `Fund task ${task.id}: held in boreal.work's escrow account until the work passes`, mimeType: "application/json" },
         accepts,
         retry:
           "PayPal: once the payer approves extra.approveUrl, POST here again with header PAYMENT-SIGNATURE: " +

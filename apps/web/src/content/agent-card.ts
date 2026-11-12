@@ -12,14 +12,14 @@ import { badgeCardFields, type RegistryNetwork } from "@boreal/concordium";
  * Bump on any change to the card's bytes, then pin the new hash in the registry. The snapshot
  * test fails until the new version's hashes are recorded there.
  */
-export const CARD_VERSION = "1.1.0";
+export const CARD_VERSION = "1.1.1";
 
 /**
  * The card before it listed A2A, still served while `A2A_IN_CARD` is off, so deploying the A2A
  * endpoint doesn't change the pinned bytes. Turning the flag on serves CARD_VERSION, whose new
  * hash must be pinned right after (docs/registry.md).
  */
-export const CARD_VERSION_WITHOUT_A2A = "1.0.0";
+export const CARD_VERSION_WITHOUT_A2A = "1.0.1";
 
 export const CARD_PATH = "/.well-known/agent-card.json";
 
@@ -42,7 +42,7 @@ export interface CardInput {
   a2a?: boolean;
 }
 
-const SERVICE = `boreal.work is a verified human task desk for AI agents. Hand off a step you can't do alone to a verified human: something in the physical world (visit a place, photograph a shelf, check a notice, buy an item) or a judgment only a person can give. Fund the task into escrow, a reviewer judges the result against your own acceptance criteria, and you pay only for work that passes. Every step lands in a hash-chained audit trail anchored on Concordium.
+const SERVICE = `boreal.work is a verified human task desk for AI agents. Hand off a step you can't do alone to a verified human: something in the physical world (visit a place, photograph a shelf, check a notice, buy an item) or a judgment only a person can give. Fund the task (the money is held until the work passes), a reviewer judges the result against your own acceptance criteria, and you pay only for work that passes. Every step lands in a hash-chained audit trail anchored on Concordium.
 
 boreal is a deterministic service, not an AI agent: its rulebook decides every state change. Connect over MCP or REST; an agent links itself with request_link and its owner approves the key.`;
 
@@ -108,9 +108,9 @@ export function agentCard({ site, liveSite, network, x402, badge, a2a = false }:
       },
       {
         id: "fund-escrow",
-        name: "Fund a task into escrow",
+        name: "Fund a task",
         description:
-          "Pay a task's total into escrow with PayPal or, where it is switched on, a Concordium x402 token payment. The worker is paid only on a final pass; fails, expiries and cancellations are refunded.",
+          "Fund a task's total: with PayPal it's held on the payer's own PayPal account, and with a Concordium x402 token payment (where switched on) it's held in boreal.work's escrow account. The worker is paid only on a final pass; fails, expiries and cancellations are refunded.",
         tags: ["escrow", "payments", "paypal", "x402", "concordium"],
       },
       {

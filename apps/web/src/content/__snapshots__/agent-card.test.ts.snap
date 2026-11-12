@@ -4,8 +4,8 @@ exports[`agent card > keeps the mainnet card with A2A byte-stable unless its ver
 "{
   "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
   "name": "boreal.work",
-  "description": "boreal.work is a verified human task desk for AI agents. Hand off a step you can't do alone to a verified human: something in the physical world (visit a place, photograph a shelf, check a notice, buy an item) or a judgment only a person can give. Fund the task into escrow, a reviewer judges the result against your own acceptance criteria, and you pay only for work that passes. Every step lands in a hash-chained audit trail anchored on Concordium.\\n\\nboreal is a deterministic service, not an AI agent: its rulebook decides every state change. Connect over A2A, MCP or REST; an agent links itself with request_link and its owner approves the key. Over A2A, each message carries one structured data part, { \\"action\\": \\"<tool>\\", ...arguments }: boreal doesn't read free text.\\n\\nThis is the live site: money here is real. Guide: https://boreal.work/agents.md",
-  "version": "1.1.0",
+  "description": "boreal.work is a verified human task desk for AI agents. Hand off a step you can't do alone to a verified human: something in the physical world (visit a place, photograph a shelf, check a notice, buy an item) or a judgment only a person can give. Fund the task (the money is held until the work passes), a reviewer judges the result against your own acceptance criteria, and you pay only for work that passes. Every step lands in a hash-chained audit trail anchored on Concordium.\\n\\nboreal is a deterministic service, not an AI agent: its rulebook decides every state change. Connect over A2A, MCP or REST; an agent links itself with request_link and its owner approves the key. Over A2A, each message carries one structured data part, { \\"action\\": \\"<tool>\\", ...arguments }: boreal doesn't read free text.\\n\\nThis is the live site: money here is real. Guide: https://boreal.work/agents.md",
+  "version": "1.1.1",
   "provider": {
     "organization": "boreal.work",
     "url": "https://boreal.work"
@@ -79,8 +79,8 @@ exports[`agent card > keeps the mainnet card with A2A byte-stable unless its ver
     },
     {
       "id": "fund-escrow",
-      "name": "Fund a task into escrow",
-      "description": "Pay a task's total into escrow with PayPal or, where it is switched on, a Concordium x402 token payment. The worker is paid only on a final pass; fails, expiries and cancellations are refunded.",
+      "name": "Fund a task",
+      "description": "Fund a task's total: with PayPal it's held on the payer's own PayPal account, and with a Concordium x402 token payment (where switched on) it's held in boreal.work's escrow account. The worker is paid only on a final pass; fails, expiries and cancellations are refunded.",
       "tags": [
         "escrow",
         "payments",
@@ -141,8 +141,8 @@ exports[`agent card > keeps the mainnet card without A2A byte-stable unless its 
 "{
   "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
   "name": "boreal.work",
-  "description": "boreal.work is a verified human task desk for AI agents. Hand off a step you can't do alone to a verified human: something in the physical world (visit a place, photograph a shelf, check a notice, buy an item) or a judgment only a person can give. Fund the task into escrow, a reviewer judges the result against your own acceptance criteria, and you pay only for work that passes. Every step lands in a hash-chained audit trail anchored on Concordium.\\n\\nboreal is a deterministic service, not an AI agent: its rulebook decides every state change. Connect over MCP or REST; an agent links itself with request_link and its owner approves the key.\\n\\nThis is the live site: money here is real. Guide: https://boreal.work/agents.md",
-  "version": "1.0.0",
+  "description": "boreal.work is a verified human task desk for AI agents. Hand off a step you can't do alone to a verified human: something in the physical world (visit a place, photograph a shelf, check a notice, buy an item) or a judgment only a person can give. Fund the task (the money is held until the work passes), a reviewer judges the result against your own acceptance criteria, and you pay only for work that passes. Every step lands in a hash-chained audit trail anchored on Concordium.\\n\\nboreal is a deterministic service, not an AI agent: its rulebook decides every state change. Connect over MCP or REST; an agent links itself with request_link and its owner approves the key.\\n\\nThis is the live site: money here is real. Guide: https://boreal.work/agents.md",
+  "version": "1.0.1",
   "provider": {
     "organization": "boreal.work",
     "url": "https://boreal.work"
@@ -195,8 +195,8 @@ exports[`agent card > keeps the mainnet card without A2A byte-stable unless its 
     },
     {
       "id": "fund-escrow",
-      "name": "Fund a task into escrow",
-      "description": "Pay a task's total into escrow with PayPal or, where it is switched on, a Concordium x402 token payment. The worker is paid only on a final pass; fails, expiries and cancellations are refunded.",
+      "name": "Fund a task",
+      "description": "Fund a task's total: with PayPal it's held on the payer's own PayPal account, and with a Concordium x402 token payment (where switched on) it's held in boreal.work's escrow account. The worker is paid only on a final pass; fails, expiries and cancellations are refunded.",
       "tags": [
         "escrow",
         "payments",
@@ -252,8 +252,8 @@ exports[`agent card > keeps the testnet card with A2A byte-stable unless its ver
 "{
   "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
   "name": "boreal.work testnet",
-  "description": "boreal.work is a verified human task desk for AI agents. Hand off a step you can't do alone to a verified human: something in the physical world (visit a place, photograph a shelf, check a notice, buy an item) or a judgment only a person can give. Fund the task into escrow, a reviewer judges the result against your own acceptance criteria, and you pay only for work that passes. Every step lands in a hash-chained audit trail anchored on Concordium.\\n\\nboreal is a deterministic service, not an AI agent: its rulebook decides every state change. Connect over A2A, MCP or REST; an agent links itself with request_link and its owner approves the key. Over A2A, each message carries one structured data part, { \\"action\\": \\"<tool>\\", ...arguments }: boreal doesn't read free text.\\n\\nThis is boreal's testnet: money here is never real (PayPal sandbox, Concordium testnet tokens). The live site is https://boreal.work, with its own keys and accounts. Guide: https://testnet.boreal.work/agents.md",
-  "version": "1.1.0",
+  "description": "boreal.work is a verified human task desk for AI agents. Hand off a step you can't do alone to a verified human: something in the physical world (visit a place, photograph a shelf, check a notice, buy an item) or a judgment only a person can give. Fund the task (the money is held until the work passes), a reviewer judges the result against your own acceptance criteria, and you pay only for work that passes. Every step lands in a hash-chained audit trail anchored on Concordium.\\n\\nboreal is a deterministic service, not an AI agent: its rulebook decides every state change. Connect over A2A, MCP or REST; an agent links itself with request_link and its owner approves the key. Over A2A, each message carries one structured data part, { \\"action\\": \\"<tool>\\", ...arguments }: boreal doesn't read free text.\\n\\nThis is boreal's testnet: money here is never real (PayPal sandbox, Concordium testnet tokens). The live site is https://boreal.work, with its own keys and accounts. Guide: https://testnet.boreal.work/agents.md",
+  "version": "1.1.1",
   "provider": {
     "organization": "boreal.work",
     "url": "https://boreal.work"
@@ -327,8 +327,8 @@ exports[`agent card > keeps the testnet card with A2A byte-stable unless its ver
     },
     {
       "id": "fund-escrow",
-      "name": "Fund a task into escrow",
-      "description": "Pay a task's total into escrow with PayPal or, where it is switched on, a Concordium x402 token payment. The worker is paid only on a final pass; fails, expiries and cancellations are refunded.",
+      "name": "Fund a task",
+      "description": "Fund a task's total: with PayPal it's held on the payer's own PayPal account, and with a Concordium x402 token payment (where switched on) it's held in boreal.work's escrow account. The worker is paid only on a final pass; fails, expiries and cancellations are refunded.",
       "tags": [
         "escrow",
         "payments",
@@ -389,8 +389,8 @@ exports[`agent card > keeps the testnet card without A2A byte-stable unless its 
 "{
   "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
   "name": "boreal.work testnet",
-  "description": "boreal.work is a verified human task desk for AI agents. Hand off a step you can't do alone to a verified human: something in the physical world (visit a place, photograph a shelf, check a notice, buy an item) or a judgment only a person can give. Fund the task into escrow, a reviewer judges the result against your own acceptance criteria, and you pay only for work that passes. Every step lands in a hash-chained audit trail anchored on Concordium.\\n\\nboreal is a deterministic service, not an AI agent: its rulebook decides every state change. Connect over MCP or REST; an agent links itself with request_link and its owner approves the key.\\n\\nThis is boreal's testnet: money here is never real (PayPal sandbox, Concordium testnet tokens). The live site is https://boreal.work, with its own keys and accounts. Guide: https://testnet.boreal.work/agents.md",
-  "version": "1.0.0",
+  "description": "boreal.work is a verified human task desk for AI agents. Hand off a step you can't do alone to a verified human: something in the physical world (visit a place, photograph a shelf, check a notice, buy an item) or a judgment only a person can give. Fund the task (the money is held until the work passes), a reviewer judges the result against your own acceptance criteria, and you pay only for work that passes. Every step lands in a hash-chained audit trail anchored on Concordium.\\n\\nboreal is a deterministic service, not an AI agent: its rulebook decides every state change. Connect over MCP or REST; an agent links itself with request_link and its owner approves the key.\\n\\nThis is boreal's testnet: money here is never real (PayPal sandbox, Concordium testnet tokens). The live site is https://boreal.work, with its own keys and accounts. Guide: https://testnet.boreal.work/agents.md",
+  "version": "1.0.1",
   "provider": {
     "organization": "boreal.work",
     "url": "https://boreal.work"
@@ -443,8 +443,8 @@ exports[`agent card > keeps the testnet card without A2A byte-stable unless its 
     },
     {
       "id": "fund-escrow",
-      "name": "Fund a task into escrow",
-      "description": "Pay a task's total into escrow with PayPal or, where it is switched on, a Concordium x402 token payment. The worker is paid only on a final pass; fails, expiries and cancellations are refunded.",
+      "name": "Fund a task",
+      "description": "Fund a task's total: with PayPal it's held on the payer's own PayPal account, and with a Concordium x402 token payment (where switched on) it's held in boreal.work's escrow account. The worker is paid only on a final pass; fails, expiries and cancellations are refunded.",
       "tags": [
         "escrow",
         "payments",
