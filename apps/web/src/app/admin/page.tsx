@@ -74,7 +74,7 @@ async function Escrow() {
 
 async function Overview() {
   await requireAdmin();
-  const [o, setups] = await Promise.all([getDesk().adminOverview(), getDesk().walletSetupCounts()]);
+  const [o, setups, closedRails] = await Promise.all([getDesk().adminOverview(), getDesk().walletSetupCounts(), getDesk().closedRails()]);
   const count = (status: string, test: boolean) => o.byStatus.find((s) => s.status === status && s.test === test)?.n ?? 0;
   const failing = o.outbox.reduce((sum, r) => sum + r.failing, 0);
   const backlog = o.outbox.reduce((sum, r) => sum + r.n, 0);
@@ -82,6 +82,15 @@ async function Overview() {
   const waiting = o.queue.screen + o.queue.review + o.queue.human + o.queue.disputed;
   return (
     <div className="flex flex-col gap-8">
+      {closedRails.size > 0 && (
+        <Link
+          href="/admin/controls"
+          role="alert"
+          className="rounded-lg border border-destructive/50 bg-destructive/5 p-3 text-sm font-medium text-destructive hover:underline"
+        >
+          Closed to new money: {[...closedRails].join(", ")}. New funding on {closedRails.size === 1 ? "it" : "them"} is refused. Open it again in Controls.
+        </Link>
+      )}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Link href="/admin/review">
           <Stat label="Waiting on boreal.work" value={waiting} note={`${o.queue.screen} to screen · ${o.queue.review} to review · ${o.queue.disputed} disputed · ${o.queue.human} flagged`} tone={waiting ? "warn" : undefined} />

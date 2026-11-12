@@ -53,7 +53,15 @@ async function Rails() {
   await requireAdmin();
   const switches = await getDesk().railControls();
   const on = paymentRails();
+  const closed = switches.filter((s) => s.closed).map((s) => s.rail);
   return (
+    <>
+      {closed.length > 0 && (
+        <p role="alert" className="mb-3 rounded-lg border border-destructive/50 bg-destructive/5 p-3 text-sm font-medium text-destructive">
+          Closed to new money: {closed.join(", ")}. Funding on {closed.length === 1 ? "it" : "them"} is refused everywhere; tasks
+          already funded still pay out or go back.
+        </p>
+      )}
     <Table head={["Rail", "Configured here", "New money", "Last changed", ""]}>
       {switches.map((s) => (
         <tr key={s.rail}>
@@ -76,6 +84,7 @@ async function Rails() {
         </tr>
       ))}
     </Table>
+    </>
   );
 }
 

@@ -87,9 +87,20 @@ async function Checks() {
         setups.concordium && concordium ? `${setups.concordium} ${setups.concordium === 1 ? "worker" : "workers"} set up a Concordium account through boreal.work` : "",
       ].filter(Boolean)
     : [];
+  // Rails an operator closed to new money (Admin → Controls); nothing personal.
+  const closed = db.health === "down" ? [] : [...(await getDesk().closedRails().catch(() => new Set<string>()))];
   const checks: Check[] = [
     { name: "Website and agent API", health: "ok", detail: "Pages, MCP server and REST API are answering" },
     db,
+    ...(closed.length > 0
+      ? [
+          {
+            name: "New payments",
+            health: "degraded",
+            detail: `Not taking new payments on ${closed.join(", ")} for now. Tasks already paid for are unaffected: they still pay out or go back.`,
+          } satisfies Check,
+        ]
+      : []),
     {
       name: "Payments",
       health: railNames.length ? "ok" : "off",
