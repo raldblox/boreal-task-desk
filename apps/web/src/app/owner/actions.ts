@@ -77,7 +77,7 @@ export async function decideApproval(approvalId: string, decision: "approve" | "
     const result = await getDesk().decideFundingApproval(workerId, approvalId, decision);
     if (result.status === "declined") return "Declined. Nothing was held.";
     after(kickMonitor); // screening starts once the money is held
-    const failed = result.failed.length ? ` ${result.failed.length} couldn't be paid: ${result.failed.map((f) => f.error).join("; ")}.` : "";
-    return `Approved: ${result.funded.length} ${result.funded.length === 1 ? "task" : "tasks"} paid for.${failed}`;
+    const failed = result.failed.length ? ` ${result.failed.length} couldn't be paid for; each task says why.` : "";
+    return `Approved. ${result.funded.length} ${result.funded.length === 1 ? "task" : "tasks"} paid for.${failed}`;
   });
 }

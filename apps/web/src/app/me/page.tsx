@@ -599,83 +599,198 @@ async function MyAgents() {
   // Offer Connect PayPal only when PayPal lets boreal save accounts; otherwise each task sends a checkout link.
   const paypal = paymentRails().includes("paypal") && ((await paypalAccounts()?.canSaveAccounts()) ?? false);
   // Limits, spend and the owner's controls per agent (RS-1, RS-2).
-  const overview = await getDesk().ownerAgentsOverview(worker.workerId);
+  const desk = getDesk();
+  const overview = await desk.ownerAgentsOverview(worker.workerId);
+  const activity = new Map(
+    await Promise.all(
+      overview.map(async (o) => [o.id, await desk.ownerAgentActivity(worker.workerId, o.id, 5).catch(() => ({ payments: [], changes: [] }))] as const),
+    ),
+  );
   return (
     <section className="flex flex-col gap-6">
       <BlockHeading
         title={`Your agents · ${agents.length}`}
-        description="Agents you approved, each inside the spending limits you set."
+        description="Agents you approved. Each spends only within the limits you set, and only from what you saved for it."
         action={<MoreLink href="/agents">Add another agent</MoreLink>}
       />
-      <div className="flex flex-col divide-y rounded-2xl border bg-card">
-      {agents.map((agent) => (
-        <div key={agent.id} className="flex flex-wrap items-center gap-4 p-5 md:p-6">
-          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary-soft-foreground">
-            <Bot className="size-5" />
-          </span>
-          <p className="min-w-0 flex-1 truncate text-lg font-light tracking-tight">{agent.name}</p>
-          {agent.badgeVerifiedAt && getAddons().on("concordium") && <Badge>Verified by Concordium</Badge>}
-          {agent.testMode && <Badge variant="outline">Test money</Badge>}
-          {agent.nearAccount && (
-            <Suspense fallback={null}>
-              <AgentNearWallet agent={{ name: agent.name, nearAccount: agent.nearAccount }} />
-            </Suspense>
-          )}
-          {paypal &&
-            (agent.paypalConnected ? (
-              <Badge variant="outline">PayPal connected</Badge>
-            ) : (
-              <a href={`/paypal/save/${agent.id}`} className={buttonVariants({ className: "group gap-2" })}>
-                Connect PayPal
-                <ChevronRight className="size-4 transition-transform group-hover:translate-x-0.5" />
-              </a>
-            ))}
-          {overview
-            .filter((o) => o.id === agent.id)
-            .map((o) => (
-              <div key={o.id} className="flex w-full flex-col gap-3 text-sm">
-                <p className="text-muted-foreground">
-                  {o.paused ? "Paused. " : ""}
-                  {o.hasKey ? "" : "No key. "}
-                  Spent {usd(o.spent.last24h)} today, {usd(o.spent.last7d)} this week, {usd(o.spent.total)} in all; {usd(o.held)} held now. Limits: {usd(o.maxTaskBudget)} a task,{" "}
-                  {usd(o.maxDailySpend)} a day. {o.spendingMode === "ask" ? "Asks you before each payment from your saved PayPal." : "Pays on its own within its limits."}
-                </p>
-                {o.approvalsWaiting.map((a) => (
-                  <Link key={a.id} href={`/approve/${a.id}`} className={buttonVariants({ size: "sm", className: "w-fit" })}>
-                    Approve or decline {usd(a.total)}
+      <div className="flex flex-col gap-4">
+        {agents.map((agent) => {
+          const o = overview.find((row) => row.id === agent.id);
+          const recent = activity.get(agent.id);
+          return (
+            <article key={agent.id} className="flex flex-col gap-5 rounded-2xl border bg-card p-5 md:p-6">
+              {/* Who, and its state at a glance */}
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary-soft-foreground">
+                  <Bot className="size-5" />
+                </span>
+                <p className="min-w-0 flex-1 truncate text-lg font-light tracking-tight">{agent.name}</p>
+                {o && (o.paused ? <Badge variant="destructive">Paused</Badge> : o.hasKey ? <Badge variant="secondary">Active</Badge> : <Badge variant="outline">No key</Badge>)}
+                {o && <Badge variant="outline">{o.spendingMode === "ask" ? "Asks you first" : "Pays on its own"}</Badge>}
+                {agent.badgeVerifiedAt && getAddons().on("concordium") && <Badge>Verified by Concordium</Badge>}
+                {agent.testMode && <Badge variant="outline">Test money</Badge>}
+              </div>
+
+              {/* A payment waiting for the owner comes before anything else */}
+              {o?.approvalsWaiting.map((a) => (
+                <div key={a.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/40 bg-primary-soft/40 p-4">
+                  <p className="text-sm">
+                    <span className="font-medium">
+                      {agent.name} asks to pay {usd(a.total)}.
+                    </span>{" "}
+                    <span className="text-muted-foreground">Waits until {when(a.expiresAt)}.</span>
+                  </p>
+                  <Link href={`/approve/${a.id}`} className={buttonVariants({ size: "sm" })}>
+                    Approve or decline
                   </Link>
-                ))}
+                </div>
+              ))}
+
+              {o && (
+                <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                  {(
+                    [
+                      ["Today", o.spent.last24h],
+                      ["This week", o.spent.last7d],
+                      ["In all", o.spent.total],
+                      ["Held now", o.held],
+                    ] as const
+                  ).map(([label, cents]) => (
+                    <div key={label} className="flex flex-col gap-0.5">
+                      <dt className="text-xs text-muted-foreground">{label}</dt>
+                      <dd className="text-2xl font-light tracking-tight tabular-nums">{usd(cents)}</dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+              {o && (
+                <p className="text-sm text-muted-foreground">
+                  Limits: {usd(o.maxTaskBudget)} a task, {usd(o.maxDailySpend)} a day.{" "}
+                  {o.spendingMode === "ask"
+                    ? "Each payment from your saved PayPal account waits for your OK."
+                    : "It pays from your saved PayPal account without asking, within these limits."}
+                  {o.paused && " Paused: it can read and cancel its tasks, but not post, pay, accept or review."}
+                </p>
+              )}
+
+              {(paypal || agent.nearAccount) && (
+                <div className="flex flex-wrap items-center gap-3">
+                  {paypal &&
+                    (agent.paypalConnected ? (
+                      <Badge variant="outline">PayPal account saved</Badge>
+                    ) : (
+                      <a href={`/paypal/save/${agent.id}`} className={buttonVariants({ size: "sm", className: "group gap-2" })}>
+                        Save a PayPal account
+                        <ChevronRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+                      </a>
+                    ))}
+                  {agent.nearAccount && (
+                    <Suspense fallback={null}>
+                      <AgentNearWallet agent={{ name: agent.name, nearAccount: agent.nearAccount }} />
+                    </Suspense>
+                  )}
+                </div>
+              )}
+
+              {/* What it did lately, and what you changed */}
+              {recent && (recent.payments.length > 0 || recent.changes.length > 0) && (
+                <div className="grid gap-5 border-t pt-5 md:grid-cols-2">
+                  {recent.payments.length > 0 && (
+                    <div className="flex flex-col gap-2">
+                      <p className="text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">Latest payments</p>
+                      <ul className="flex flex-col gap-1.5 text-sm">
+                        {recent.payments.map((p, i) => (
+                          <li key={`${p.taskId}-${i}`} className="flex justify-between gap-3">
+                            <span className="text-muted-foreground">
+                              {when(p.at)}
+                              {p.test ? " · test money" : ""}
+                            </span>
+                            <span className="shrink-0 tabular-nums">
+                              {usd(p.amount)} <span className="text-muted-foreground">{paymentState(p.taskStatus)}</span>
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {recent.changes.length > 0 && (
+                    <div className="flex flex-col gap-2">
+                      <p className="text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">Your changes</p>
+                      <ul className="flex flex-col gap-1.5 text-sm">
+                        {recent.changes.map((c, i) => (
+                          <li key={i} className="flex justify-between gap-3">
+                            <span>{OWNER_ACTION[c.action] ?? c.action}</span>
+                            <span className="shrink-0 text-muted-foreground">{when(c.at)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* The controls: everyday ones first, the ones that cut it off apart */}
+              {o && (
                 <details className="rounded-xl border p-4">
                   <summary className="cursor-pointer font-medium">Limits and controls</summary>
                   <div className="mt-4 flex flex-col gap-6">
-                    <OwnerActionForm action={setAgentLimits.bind(null, o.id)} label="Save limits" variant="default">
+                    <OwnerActionForm action={setAgentLimits.bind(null, o.id)} label="Save limits and mode" variant="default">
                       <LimitFields maxTaskBudget={o.maxTaskBudget} maxDailySpend={o.maxDailySpend} spendingMode={o.spendingMode} />
                     </OwnerActionForm>
-                    <OwnerActionForm action={setAgentPaused.bind(null, o.id, !o.paused)} label={o.paused ? "Resume this agent" : "Pause this agent"} />
-                    {o.paymentSaved && (
-                      <OwnerActionForm
-                        action={disconnectAgentPayPal.bind(null, o.id)}
-                        label="Disconnect PayPal"
-                        confirm="Forget the PayPal account saved for this agent. It will send me a checkout link to pay instead."
-                      />
-                    )}
-                    {o.hasKey && (
-                      <OwnerActionForm
-                        action={revokeAgentKey.bind(null, o.id)}
-                        label="Revoke its key"
-                        variant="destructive"
-                        confirm="Take this agent's key back now. It stops working until I approve a new link for it."
-                      />
+                    <div className="flex flex-col gap-1.5">
+                      <OwnerActionForm action={setAgentPaused.bind(null, o.id, !o.paused)} label={o.paused ? "Resume this agent" : "Pause this agent"} />
+                      <p className="text-xs text-muted-foreground">
+                        {o.paused ? "Resumed, it can post, pay, accept and review again." : "Paused, it can still read and cancel, but can't post, pay, accept or review."}
+                      </p>
+                    </div>
+                    {(o.paymentSaved || o.hasKey) && (
+                      <div className="flex flex-col gap-5 rounded-xl border border-destructive/30 p-4">
+                        <p className="text-sm font-medium text-destructive">These cut the agent off</p>
+                        {o.paymentSaved && (
+                          <OwnerActionForm
+                            action={disconnectAgentPayPal.bind(null, o.id)}
+                            label="Disconnect the saved PayPal account"
+                            variant="destructive"
+                            confirm="Forget the PayPal account saved for this agent. It will send me a PayPal checkout link for each payment instead."
+                          />
+                        )}
+                        {o.hasKey && (
+                          <OwnerActionForm
+                            action={revokeAgentKey.bind(null, o.id)}
+                            label="Revoke its key"
+                            variant="destructive"
+                            confirm="Take this agent's key back now. It stops working until I approve a new link for it."
+                          />
+                        )}
+                      </div>
                     )}
                   </div>
                 </details>
-              </div>
-            ))}
-        </div>
-      ))}
+              )}
+            </article>
+          );
+        })}
       </div>
     </section>
   );
+}
+
+/** An owner's own changes, as the log records them, in words. */
+const OWNER_ACTION: Record<string, string> = {
+  pause: "Paused it",
+  resume: "Resumed it",
+  revoke_key: "Revoked its key",
+  set_limits: "Changed its limits or mode",
+  disconnect_payment: "Disconnected the saved PayPal account",
+  approve_payment: "Approved a payment",
+  decline_payment: "Declined a payment",
+};
+
+/** Where an agent's payment into escrow stands, from its task. */
+function paymentState(status: string): string {
+  if (status === "final_pass") return "charged";
+  if (["final_fail", "refused", "expired", "cancelled"].includes(status)) return "released";
+  return "held";
 }
 
 /** Tasks this person posted themselves, on the website: each with where it stands and what's next. */
