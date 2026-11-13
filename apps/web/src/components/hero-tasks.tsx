@@ -88,7 +88,7 @@ export function HeroTasks({ privateReview }: { privateReview: boolean }) {
   const s = SAMPLES[i]!;
   return (
     <div
-      className="relative flex flex-col gap-5 rounded-2xl border bg-card p-7"
+      className="relative flex flex-col gap-5 rounded-2xl border border-white/12 bg-card/35 p-7 shadow-[inset_0_1px_0_rgb(255_255_255/0.08)] backdrop-blur-md backdrop-saturate-150"
       onPointerEnter={() => setPaused(true)}
       onPointerLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}
@@ -107,7 +107,7 @@ export function HeroTasks({ privateReview }: { privateReview: boolean }) {
             </Badge>
           ))}
         </div>
-        <div className={`flex flex-col gap-1 rounded-2xl p-4 text-sm ${s.outcome === "pass" ? "bg-muted" : "bg-destructive/5"}`}>
+        <div className={`flex flex-col gap-1 rounded-2xl p-4 text-sm ${s.outcome === "pass" ? "bg-foreground/6" : "bg-destructive/10"}`}>
           <p className="font-medium">
             Reviewer verdict: {s.outcome} <span className="font-mono text-xs font-normal text-muted-foreground">· {s.rule}</span>
           </p>

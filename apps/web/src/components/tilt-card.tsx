@@ -4,7 +4,7 @@ import { useRef } from "react";
 
 import { cn } from "@/lib/utils";
 
-const MAX_TILT = 7; // degrees
+const MAX_TILT = 3; // degrees
 
 /**
  * Tilts its child toward the pointer in 3D, with a soft glare that follows it. Mouse and pen only
@@ -39,12 +39,12 @@ export function TiltCard({ children, className }: { children: React.ReactNode; c
     <div className={cn("[perspective:1100px]", className)} onPointerMove={move} onPointerLeave={leave}>
       <div
         ref={ref}
-        className="group/tilt relative [transform:rotateX(var(--rx,0deg))_rotateY(var(--ry,0deg))] transition-transform duration-500 ease-out [transform-style:preserve-3d] data-tilting:duration-100"
+        className="group/tilt relative [transform:rotateX(var(--rx,0deg))_rotateY(var(--ry,0deg))] transition-transform duration-500 ease-out data-tilting:duration-100"
       >
         {children}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 rounded-3xl opacity-0 transition-opacity duration-300 group-data-tilting/tilt:opacity-100 [background:radial-gradient(420px_circle_at_var(--gx,50%)_var(--gy,50%),rgb(255_255_255/0.55),transparent_45%)] mix-blend-soft-light"
+          className="pointer-events-none absolute inset-0 rounded-3xl opacity-0 transition-opacity duration-300 group-data-tilting/tilt:opacity-100 [background:radial-gradient(420px_circle_at_var(--gx,50%)_var(--gy,50%),rgb(255_255_255/0.3),transparent_45%)] mix-blend-soft-light"
         />
       </div>
     </div>

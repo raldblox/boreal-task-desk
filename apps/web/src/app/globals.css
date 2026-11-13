@@ -148,8 +148,7 @@
   height: 100svh;
   mask-image: linear-gradient(to bottom, black 45%, transparent 95%);
 }
-/* The night (components/night-backdrop.tsx): its CSS gradient is the sky until the shader draws,
-   and stays where WebGL isn't available. The home hero's live one reaches up behind the header. */
+/* The night (components/night-backdrop.tsx): its CSS gradient is the sky, behind the stars and the land. The home hero's live one reaches up behind the header. */
 .night-hero {
   top: calc(-1 * var(--header-h, 4rem));
   bottom: 0;
@@ -157,10 +156,16 @@
 .night-root {
   background: linear-gradient(to bottom, #020b10, #061a20 55%, #0b252c 64%, #071a1e);
 }
+/* The home hero has its own night, with the aurora: the layout's steps aside there, so the
+   illustration is only drawn once. */
+body:has([data-hero="full"]) > .bb-root {
+  display: none;
+}
 
-/* The backdrop's parallax: each .bb-par layer slides down by --d of the scroll over the hero, so far
-   layers seem to move slower than near ones. Scroll-driven, so no script; browsers without
-   scroll timelines, and people who ask for less motion, get the still scene. */
+/* The illustration's parallax (components/night-land.tsx): each .bb-par layer slides down by --d
+   of the scroll over the first screen, so far layers seem to move slower than near ones.
+   Scroll-driven, so no script; browsers without scroll timelines, and people who ask for less
+   motion, get the still scene. */
 @supports (animation-timeline: scroll(root)) {
   @media (prefers-reduced-motion: no-preference) {
     .bb-par {

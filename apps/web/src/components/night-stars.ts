@@ -3,8 +3,9 @@
  * autumn evening, so the Plough (the seven stars of the mark) hangs low in the north and Capella
  * rises in the north-east. The brightest stars come from a small catalogue (position, magnitude,
  * colour index); fainter ones, down to the naked-eye limit near 6.3, are scattered with the real
- * counts per magnitude and crowd toward the Milky Way. The sky turns with sidereal time on the
- * shared sky clock, about a degree every four minutes.
+ * counts per magnitude and crowd toward the Milky Way. They are part of the illustration, drawn
+ * as they stand at the start of the night; the Milky Way behind the aurora turns with sidereal
+ * time on the sky clock.
  */
 
 /** Right ascension (hours), declination (degrees), V magnitude, B−V colour index. */
@@ -52,14 +53,14 @@ export type Star = {
   ra: number; // radians
   dec: number; // radians
   flux: number; // relative to a 6.2 magnitude star
-  tint: string;
+  tint: [number, number, number]; // linear-ish 0 to 1
   phase: number;
   speed: number;
   speed2: number;
 };
 
 /** A star's colour to the eye from its B−V index; faint stars read white (only the cones see colour). */
-function tint(bv: number, mag: number) {
+function tint(bv: number, mag: number): [number, number, number] {
   const stops: [number, [number, number, number]][] = [
     [-0.3, [170, 191, 255]], [0, [202, 215, 255]], [0.3, [248, 247, 255]], [0.6, [255, 244, 234]],
     [0.9, [255, 228, 196]], [1.2, [255, 210, 161]], [1.6, [255, 190, 130]],
@@ -75,8 +76,7 @@ function tint(bv: number, mag: number) {
     }
   }
   const sat = Math.min(1, Math.max(0, (3.5 - mag) / 3)); // colour fades with brightness
-  const [r, g, b] = c.map((v) => Math.round(255 - (255 - v) * sat));
-  return `rgb(${r},${g},${b})`;
+  return c.map((v) => (255 - (255 - v) * sat) / 255) as [number, number, number];
 }
 
 /** Equatorial unit vector. */
@@ -137,52 +137,42 @@ export function galaxy(t: number) {
   return { pole: horizontal(GAL_POLE[0], GAL_POLE[1], lst), centre: horizontal(GAL_CENTRE[0], GAL_CENTRE[1], lst) };
 }
 
-export type Lens = { f: number; pitch: number; cx: number; cy: number };
-
 /**
- * Draw the stars: w, h the canvas; the lens in the same pixels. Extinction dims them low down
- * (0.2 mag per air mass) and scintillation makes them twinkle more the lower they are.
+ * The stars as the land's SVG draws them (components/night-land.tsx), so they are on the page from
+ * its first paint: every star above the horizon at the start of the night, through a lens pitched
+ * 10° up with the horizon at `horizonY`, dimmed by extinction low down (0.2 mag per air mass).
+ * Grouped by brightness (and the few warm giants apart) into one path each.
  */
-export function drawStars(ctx: CanvasRenderingContext2D, stars: Star[], w: number, h: number, lens: Lens, dpr: number, skyT: number, now: number) {
-  ctx.clearRect(0, 0, w, h);
-  const lst = siderealAngle(skyT);
-  const cp = Math.cos(lens.pitch);
-  const sp = Math.sin(lens.pitch);
-  const unit = Math.sqrt(dpr);
-  for (const s of stars) {
+export function starField(width: number, height: number, horizonY: number): { opacity: number; warm: boolean; d: string }[] {
+  const pitch = 10 * RAD;
+  const f = (horizonY - height / 2) / Math.tan(pitch);
+  const cp = Math.cos(pitch);
+  const sp = Math.sin(pitch);
+  const lst = siderealAngle(0);
+  const r1 = (n: number) => Math.round(n * 10) / 10;
+  const groups = new Map<string, { opacity: number; warm: boolean; d: string }>();
+  for (const s of catalog()) {
     const [x, y, z] = horizontal(s.ra, s.dec, lst);
-    if (y < -0.01) continue;
-    // World to camera: undo the pitch.
-    const v = y * cp - z * sp;
     const depth = y * sp + z * cp;
-    if (depth <= 0.05) continue;
-    const px = lens.cx + (lens.f * x) / depth;
-    const py = lens.cy - (lens.f * v) / depth;
-    if (px < -3 || px > w + 3 || py < -3 || py > h + 3) continue;
-    const el = Math.asin(Math.max(y, 0.001));
+    if (y < 0.02 || depth <= 0.05) continue;
+    const px = width / 2 + (f * x) / depth;
+    const py = height / 2 - (f * (y * cp - z * sp)) / depth;
+    if (px < -20 || px > width + 20 || py < -4 || py > horizonY) continue;
+    const el = Math.asin(y);
     const X = 1 / (Math.sin(el) + 0.50572 * Math.pow(el / RAD + 6.07995, -1.6364));
-    const sigma = Math.min(0.05 * Math.pow(X, 1.75), 0.55);
-    const twinkle = 1 + sigma * (0.65 * Math.sin(now * s.speed + s.phase) + 0.35 * Math.sin(now * s.speed2 + 2.1 * s.phase));
-    const flux = s.flux * Math.pow(10, -0.08 * X) * twinkle;
+    const flux = s.flux * Math.pow(10, -0.08 * X);
     const a = Math.min(1, 0.075 * flux);
-    if (a < 0.04) continue;
-    ctx.globalAlpha = a;
-    ctx.fillStyle = s.tint;
-    const r = Math.min((0.42 + 0.17 * Math.sqrt(flux)) * unit, 1.9 * dpr);
-    if (r < 0.9) {
-      ctx.fillRect(px - r, py - r, 2 * r, 2 * r);
-    } else {
-      ctx.beginPath();
-      ctx.arc(px, py, r, 0, Math.PI * 2);
-      ctx.fill();
-      // The brightest get a faint halo, as the eye's own scatter gives them.
-      if (flux > 40) {
-        ctx.globalAlpha = Math.min(0.18, flux / 2000);
-        ctx.beginPath();
-        ctx.arc(px, py, r * 3, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
+    if (a < 0.06) continue;
+    const opacity = a < 0.14 ? 0.14 : a < 0.26 ? 0.26 : a < 0.45 ? 0.45 : a < 0.7 ? 0.7 : 1;
+    const warm = s.tint[2] < 0.8;
+    const key = `${opacity}${warm}`;
+    const group = groups.get(key) ?? { opacity, warm, d: "" };
+    const r = Math.min(0.42 + 0.17 * Math.sqrt(flux), 2.4) / 1.4;
+    group.d +=
+      r < 0.55
+        ? `M${r1(px - r)},${r1(py - r)}h${r1(2 * r)}v${r1(2 * r)}h${r1(-2 * r)}z`
+        : `M${r1(px - r)},${r1(py)}a${r1(r)},${r1(r)} 0 1,0 ${r1(2 * r)},0a${r1(r)},${r1(r)} 0 1,0 ${r1(-2 * r)},0z`;
+    groups.set(key, group);
   }
-  ctx.globalAlpha = 1;
+  return [...groups.values()];
 }

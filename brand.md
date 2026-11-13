@@ -136,7 +136,7 @@ Plain and direct. Say what happens, who decides and when money moves.
 
 - **Hand-built SVG only.** No generated images, no stock photos of people, no 3D renders.
 - The world is the north: daylight or night sky over ridges and rows of spruce. Flat fills from the palette, a few tones each.
-- **The aurora only appears at night**, as it does in the real sky. On the site it is rendered from the physics (`components/aurora-sky.tsx`): oxygen green dominates, read through night vision as teal where faint and yellow-green where bright; red tops and a violet hem appear only as faintly as they do to the eye. No painted violet, purple or blue bands. In flat illustrations (films, the X banner) it stays teal and green (`#5ac6bd`, `#2aa39b`, `#1fb8a6`, mint).
+- **The aurora only appears at night**, as it does in the real sky. On the site it is rendered from the physics (`components/aurora-sky.tsx`) in the colours a camera records: oxygen green dominates, as emerald, paling toward mint where brightest; a pink hem under the hardest arcs and crimson tops on a strong night appear only where the physics puts them. No painted violet, purple or blue bands. In flat illustrations (films, the X banner) it stays teal and green (`#5ac6bd`, `#2aa39b`, `#1fb8a6`, mint).
 - Faces and figures stay abstract; show the work, not people's identities.
 - The share image (`opengraph-image.tsx`) and the X banner are the reference scenes.
 

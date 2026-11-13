@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { OPENING_TIME, skyState } from "./aurora-activity";
+import { OPENING_TIME, skyDrift, skyState } from "./aurora-activity";
 
 const scalars = (t: number) => {
   const s = skyState(t);
@@ -51,5 +51,22 @@ describe("the aurora's substorm cycle", () => {
     const s = skyState(OPENING_TIME);
     expect(s.phase).toBe("expansion");
     expect(s.rays).toBeGreaterThan(0.6);
+  });
+
+  it("sums the drift of rays and folds the same way whatever was asked before, without jumps", () => {
+    const a = skyDrift(4321.7);
+    skyDrift(12);
+    skyDrift(90000.3);
+    expect(skyDrift(4321.7)).toEqual(a);
+    let prev = skyDrift(0);
+    for (let t = 0.25; t < 3000; t += 0.25) {
+      const now = skyDrift(t);
+      // Rays drift 1.2 to 3.4 km/s, so a quarter of a second moves them under a kilometre.
+      expect(now.rayKm - prev.rayKm).toBeGreaterThan(0.25);
+      expect(now.rayKm - prev.rayKm).toBeLessThan(0.9);
+      expect(now.foldT - prev.foldT).toBeGreaterThanOrEqual(0);
+      expect(now.foldT - prev.foldT).toBeLessThan(0.26);
+      prev = now;
+    }
   });
 });

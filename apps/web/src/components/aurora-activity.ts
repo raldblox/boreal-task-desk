@@ -178,6 +178,34 @@ export function skyState(t: number): SkyState {
   return { arcZ, arcI, rays, folds, surgeX, surge, hard, red, pulse, diffuse, light, phase };
 }
 
+/*
+ * How far the moving parts have travelled by a moment of sky time: rays drift along the arcs faster
+ * the more rayed the display is, and folds travel faster the more folded it is. A speed that
+ * changes has to be summed, not multiplied by the clock (speed × t makes everything race whenever
+ * the speed changes, worse the longer the clock has run). Summed on a fixed grid, so the answer
+ * depends only on t.
+ */
+const DRIFT_STEP = 2;
+const driftSums: [number, number][] = [[0, 0]];
+const raySpeed = (rays: number) => 1.2 + 2.2 * rays;
+
+export function skyDrift(t: number): { rayKm: number; raySpeed: number; foldT: number } {
+  const at = Math.max(0, t);
+  const n = Math.floor(at / DRIFT_STEP);
+  for (let i = driftSums.length; i <= n; i++) {
+    const s = skyState((i - 0.5) * DRIFT_STEP);
+    const p = driftSums[i - 1];
+    driftSums.push([p[0] + raySpeed(s.rays) * DRIFT_STEP, p[1] + s.folds * DRIFT_STEP]);
+  }
+  const rem = at - n * DRIFT_STEP;
+  const mid = skyState(n * DRIFT_STEP + rem / 2);
+  return {
+    rayKm: driftSums[n][0] + raySpeed(mid.rays) * rem,
+    raySpeed: raySpeed(skyState(at).rays),
+    foldT: driftSums[n][1] + mid.folds * rem,
+  };
+}
+
 /**
  * Where a first visit opens: 40 seconds into the breakup of the first strong substorm, so the
  * sky is at its most alive and then settles. Coming back later resumes the shared clock instead.
