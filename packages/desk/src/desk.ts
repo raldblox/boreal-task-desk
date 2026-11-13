@@ -96,7 +96,7 @@ export interface DeskOptions {
    * Concordium ID is off, so a PayPal-only deployment isn't stuck at the caps). Defaults to
    * Concordium ID only.
    */
-  verification?: { concordiumId: boolean; paypal: boolean };
+  verification?: { concordiumId: boolean; paypal: boolean; zkPassport?: boolean };
 }
 
 /**
@@ -117,6 +117,18 @@ export interface ConcordiumIdentity {
   pseudonym: string;
   provenAttributes: Record<string, string>;
   /** One person across documents (see VerifiedWorker.personRef); absent on older proofs. */
+  personRef?: string;
+}
+
+/**
+ * A ZKPassport identity read from verified proofs: `ref` is `zkp:` plus a keyed hash of the unique
+ * identifier ZKPassport proves for one passport or ID card on boreal.work.
+ */
+export interface PassportIdentity {
+  ref: string;
+  /** What the proof showed: `age_over_18`, and `nationality` as an ISO 3166 alpha-3 code. */
+  provenAttributes: Record<string, string>;
+  /** The same person code as Concordium ID's (`ccdp:`), when the proof disclosed name and birth date. */
   personRef?: string;
 }
 
@@ -285,20 +297,38 @@ export function createDesk({
     }
   }
 
-  /** One worker per Concordium identity; its proven attributes are refreshed from the latest proof. */
-  /** Another open account that already belongs to this person, other than `workerId`'s. */
-  async function samePerson(personRef: string | undefined, notWorker?: string, notConcordiumRef?: string) {
+  /**
+   * Another open account that already belongs to this person, other than `notWorker`'s and other
+   * than the one holding this very document (`same`), which is a sign-in, not a second account.
+   */
+  async function samePerson(
+    personRef: string | undefined,
+    notWorker?: string,
+    same?: { kind: "concordium" | "passport"; ref: string },
+  ) {
     if (!personRef) return null;
     const [other] = await db
-      .select({ id: workers.id, concordiumRef: workers.concordiumRef })
+      .select({ id: workers.id, concordiumRef: workers.concordiumRef, passportRef: workers.passportRef })
       .from(workers)
       .where(and(eq(workers.personRef, personRef), isNull(workers.closedAt)));
-    if (!other || other.id === notWorker || (notConcordiumRef && other.concordiumRef === notConcordiumRef)) return null;
+    if (!other || other.id === notWorker) return null;
+    if (same && (same.kind === "concordium" ? other.concordiumRef : other.passportRef) === same.ref) return null;
     return other;
   }
 
+  const PASSPORT_REF = /^zkp:[0-9a-f]{64}$/;
+  const PERSON_REF = /^ccdp:[0-9a-f]{64}$/;
+
+  function checkPassportIdentity(identity: PassportIdentity) {
+    if (!PASSPORT_REF.test(identity.ref)) throw new DeskError("invalid", "that ZKPassport identity isn't a keyed hash");
+    if (identity.personRef !== undefined && !PERSON_REF.test(identity.personRef)) throw new DeskError("invalid", "that person code isn't a keyed hash");
+    if (identity.provenAttributes.age_over_18 !== "true") throw new DeskError("forbidden", "the proof doesn't show you are 18 or older");
+  }
+
+  /** One worker per Concordium identity; its proven attributes are refreshed from the latest proof. */
+
   async function signInConcordium(verified: ConcordiumIdentity, payoutAddress?: string) {
-    if (await samePerson(verified.personRef, undefined, verified.pseudonym)) throw new DeskError("conflict", SAME_PERSON);
+    if (await samePerson(verified.personRef, undefined, { kind: "concordium", ref: verified.pseudonym })) throw new DeskError("conflict", SAME_PERSON);
     const at = now();
     const [worker] = await db
       .insert(workers)
@@ -369,19 +399,33 @@ export function createDesk({
    * that both have history are never merged. Returns the account the person ends up in,
    * which is the other one when theirs was the empty one: sign them into it.
    */
+  type IdentityKind = "paypal" | "concordium" | "passport";
+  const IDENTITY_NAME: Record<IdentityKind, string> = { paypal: "PayPal account", concordium: "Concordium ID", passport: "ZKPassport document" };
+  const identityColumn = (kind: IdentityKind) =>
+    kind === "paypal" ? workers.paypalRef : kind === "concordium" ? workers.concordiumRef : workers.passportRef;
+  const identityOf = (w: typeof workers.$inferSelect, kind: IdentityKind) =>
+    kind === "paypal" ? w.paypalRef : kind === "concordium" ? w.concordiumRef : w.passportRef;
+  /** The columns that travel with each identity when an empty account is folded into another. */
+  function identityFields(w: typeof workers.$inferSelect, kind: IdentityKind): Partial<typeof workers.$inferInsert> {
+    if (kind === "paypal") return { paypalRef: w.paypalRef, paypalEmail: w.paypalEmail, paypalVerified: w.paypalVerified };
+    if (kind === "concordium") return { concordiumRef: w.concordiumRef, provenAttributes: w.provenAttributes };
+    return { passportRef: w.passportRef };
+  }
+
   async function linkIdentity(
     workerId: string,
-    kind: "paypal" | "concordium",
+    kind: IdentityKind,
     ref: string,
-    set: Partial<typeof workers.$inferInsert>,
+    set: Partial<typeof workers.$inferInsert> | ((worker: typeof workers.$inferSelect) => Partial<typeof workers.$inferInsert>),
   ) {
-    const name = kind === "paypal" ? "PayPal account" : "Concordium ID";
-    const column = kind === "paypal" ? workers.paypalRef : workers.concordiumRef;
+    const name = IDENTITY_NAME[kind];
+    const column = identityColumn(kind);
+    const fields = (w: typeof workers.$inferSelect) => (typeof set === "function" ? set(w) : set);
     return db.transaction(async (tx) => {
       const [worker] = await tx.select().from(workers).where(eq(workers.id, workerId)).for("update");
       if (!worker) throw new DeskError("not_found", "sign in again");
-      if (worker.testMode) throw new DeskError("forbidden", "tester accounts can't add a PayPal account or Concordium ID");
-      const current = kind === "paypal" ? worker.paypalRef : worker.concordiumRef;
+      if (worker.testMode) throw new DeskError("forbidden", "tester accounts can't add a PayPal account, Concordium ID or a passport");
+      const current = identityOf(worker, kind);
       if (current && current !== ref) {
         throw new DeskError("conflict", `your account already has a different ${name}; boreal.work never swaps one for another`);
       }
@@ -396,23 +440,22 @@ export function createDesk({
         // The identity sits on an empty account (say, an accidental second sign-in): retire it.
         await tx.delete(workers).where(eq(workers.id, other.id));
       } else if (other && !(await hasHistory(tx, worker))) {
-        // Theirs is the empty one: fold it into the account that holds the identity.
-        const bring = kind === "paypal" ? "concordium" : "paypal";
-        const mine = bring === "paypal" ? worker.paypalRef : worker.concordiumRef;
-        const theirs = bring === "paypal" ? other.paypalRef : other.concordiumRef;
-        if (mine && theirs && mine !== theirs) {
-          throw new DeskError("conflict", `that account already has a different ${bring === "paypal" ? "PayPal account" : "Concordium ID"}; boreal.work never merges two of them`);
+        // Theirs is the empty one: fold it into the account that holds the identity, bringing
+        // along each other identity it had that the kept account lacks.
+        let carried: Partial<typeof workers.$inferInsert> = {};
+        for (const bring of (["paypal", "concordium", "passport"] as const).filter((k) => k !== kind)) {
+          const mine = identityOf(worker, bring);
+          const theirs = identityOf(other, bring);
+          if (mine && theirs && mine !== theirs) {
+            throw new DeskError("conflict", `that account already has a different ${IDENTITY_NAME[bring]}; boreal.work never merges two of them`);
+          }
+          if (mine && !theirs) carried = { ...carried, ...identityFields(worker, bring) };
         }
+        if (worker.personRef && !other.personRef) carried.personRef = worker.personRef;
         await tx.delete(workers).where(eq(workers.id, worker.id));
-        const carried: Partial<typeof workers.$inferInsert> =
-          !mine || theirs
-            ? {}
-            : bring === "paypal"
-              ? { paypalRef: worker.paypalRef, paypalEmail: worker.paypalEmail, paypalVerified: worker.paypalVerified }
-              : { concordiumRef: worker.concordiumRef, provenAttributes: worker.provenAttributes };
         const [merged] = await tx
           .update(workers)
-          .set({ ...set, ...carried, updatedAt: at })
+          .set({ ...fields(other), ...carried, updatedAt: at })
           .where(eq(workers.id, other.id))
           .returning();
         return merged!;
@@ -424,7 +467,7 @@ export function createDesk({
       }
       const [updated] = await tx
         .update(workers)
-        .set({ ...set, updatedAt: at })
+        .set({ ...fields(worker), updatedAt: at })
         .where(eq(workers.id, workerId))
         .returning();
       return updated!;
@@ -443,13 +486,13 @@ export function createDesk({
     if (agent.kind !== "personal" && agent.badgeVerifiedAt !== null) return true;
     if (agent.kind !== "personal" && !verification.paypal) return false;
     const [person] = await q
-      .select({ concordium: workers.concordiumRef, paypalVerified: workers.paypalVerified, paypalRef: workers.paypalRef })
+      .select({ concordium: workers.concordiumRef, passport: workers.passportRef, paypalVerified: workers.paypalVerified, paypalRef: workers.paypalRef })
       .from(owners)
       .innerJoin(workers, eq(workers.pseudonym, owners.verifiedRef))
       .where(eq(owners.id, agent.ownerId));
     if (!person) return false;
     const byPayPal = verification.paypal && person.paypalVerified && person.paypalRef !== null;
-    return agent.kind === "personal" ? person.concordium !== null || byPayPal : byPayPal;
+    return agent.kind === "personal" ? person.concordium !== null || person.passport !== null || byPayPal : byPayPal;
   }
 
   /** A requester's limits in force: its owner's, capped until it's verified (see requesterVerified). */
@@ -859,9 +902,10 @@ export function createDesk({
           if (task.test !== worker.testMode && !(task.test && mine)) {
             throw new DeskError("forbidden", task.test ? "this is a test task" : "test workers can only claim test tasks");
           }
-          // Testers keep their invite's attributes; every other person proves them with Concordium ID.
-          // (An agent proved its NEAR account instead, and only takes tasks with no attributes.)
-          if (worker.kind === "person" && !worker.testMode && !worker.concordiumRef) {
+          // Testers keep their invite's attributes; every other person proves them with Concordium ID
+          // or ZKPassport. (An agent proved its NEAR account instead, and only takes tasks with no
+          // attributes.)
+          if (worker.kind === "person" && !worker.testMode && !worker.concordiumRef && !worker.passportRef) {
             if (task.requiredAttributes.length > 0) {
               throw new DeskError(
                 "forbidden",
@@ -872,11 +916,16 @@ export function createDesk({
             }
             // A Concordium account counts: the chain only opens accounts on an identity a
             // regulated identity provider has checked.
+            // (A ZKPassport proof skipped this block: the chip's signature checks the document.)
             if (requireVerifiedPayPal && !worker.paypalVerified && !worker.concordiumWalletRef) {
+              const others = [
+                ...(verification.concordiumId ? ["add Concordium ID on My account (free)"] : []),
+                ...(verification.zkPassport ? ["prove your passport with ZKPassport on My account (free)"] : []),
+              ];
               throw new DeskError(
                 "forbidden",
-                verification.concordiumId
-                  ? "only verified people can work here: verify your PayPal account with PayPal and log in again, or add Concordium ID on My account (free)"
+                others.length
+                  ? `only verified people can work here: verify your PayPal account with PayPal and log in again, or ${others.join(", or ")}`
                   : "only verified people can work here: verify your PayPal account with PayPal, then log in with PayPal again",
               );
             }
@@ -1408,7 +1457,7 @@ export function createDesk({
     async linkVerifiedConcordium(caller: Caller, verified: ConcordiumIdentity, walletRef?: string) {
       requireRole(caller, "worker");
       checkWalletRef(walletRef);
-      if (await samePerson(verified.personRef, caller.workerId, verified.pseudonym)) throw new DeskError("conflict", SAME_PERSON);
+      if (await samePerson(verified.personRef, caller.workerId, { kind: "concordium", ref: verified.pseudonym })) throw new DeskError("conflict", SAME_PERSON);
       const kept = await linkIdentity(caller.workerId, "concordium", verified.pseudonym, {
         concordiumRef: verified.pseudonym,
         provenAttributes: verified.provenAttributes,
@@ -1416,6 +1465,54 @@ export function createDesk({
       });
       if (walletRef) await rememberWallet(kept.id, walletRef);
       return kept;
+    },
+
+    /**
+     * Signs in with a ZKPassport proof: one worker per passport or ID card, and one per person
+     * when the proof carried a person code. A new worker counts as verified at once: the chip's
+     * signature proves the document and the proof shows 18 or older.
+     */
+    async signInWithPassport(identity: PassportIdentity) {
+      checkPassportIdentity(identity);
+      if (await samePerson(identity.personRef, undefined, { kind: "passport", ref: identity.ref })) throw new DeskError("conflict", SAME_PERSON);
+      const at = now();
+      const [worker] = await db
+        .insert(workers)
+        .values({
+          pseudonym: identity.ref,
+          passportRef: identity.ref,
+          provenAttributes: identity.provenAttributes,
+          personRef: identity.personRef ?? null,
+          createdAt: at,
+          updatedAt: at,
+        })
+        .onConflictDoUpdate({
+          target: workers.passportRef,
+          // Attributes already on the account (Concordium ID's among them) win over the passport's.
+          set: {
+            provenAttributes: sql`${JSON.stringify(identity.provenAttributes)}::jsonb || ${workers.provenAttributes}`,
+            ...(identity.personRef ? { personRef: sql`coalesce(${workers.personRef}, ${identity.personRef})` } : {}),
+            updatedAt: at,
+          },
+        })
+        .returning();
+      return worker!;
+    },
+
+    /**
+     * Adds a ZKPassport proof to the signed-in worker: verified, with its attributes added to
+     * those the worker already proved (the ones already there win where both say something).
+     */
+    async linkPassport(caller: Caller, identity: PassportIdentity) {
+      requireRole(caller, "worker");
+      checkPassportIdentity(identity);
+      if (await samePerson(identity.personRef, caller.workerId, { kind: "passport", ref: identity.ref })) throw new DeskError("conflict", SAME_PERSON);
+      return linkIdentity(caller.workerId, "passport", identity.ref, (worker) => ({
+        passportRef: identity.ref,
+        provenAttributes: { ...identity.provenAttributes, ...worker.provenAttributes },
+        // An account keeps the person code it has; a passport only fills one in.
+        ...(identity.personRef && !worker.personRef ? { personRef: identity.personRef } : {}),
+      }));
     },
 
     /** Sends due anchors, payouts, refunds, captures and releases. Run by the monitor loop. */
@@ -1547,6 +1644,7 @@ export function createDesk({
           paypalVerified: workers.paypalVerified,
           hasConcordium: sql<boolean>`${workers.concordiumRef} is not null`,
           hasConcordiumAccount: sql<boolean>`${workers.concordiumWalletRef} is not null`,
+          hasPassport: sql<boolean>`${workers.passportRef} is not null`,
           kind: workers.kind,
           createdAt: workers.createdAt,
         })

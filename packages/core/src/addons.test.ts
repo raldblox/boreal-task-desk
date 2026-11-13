@@ -52,7 +52,7 @@ describe("add-ons", () => {
     expect(addonEnv({ ...PAYPAL }).PAYMENT_RAILS).toBe("paypal");
     // No PayPal either: no rail at all, spelled so the older loaders don't read it as unset.
     expect(addonEnv({}).PAYMENT_RAILS).toBe("none");
-    expect(deskVerification(readAddons({}))).toEqual({ concordiumId: false, paypal: true });
+    expect(deskVerification(readAddons({}))).toEqual({ concordiumId: false, paypal: true, zkPassport: false });
   });
 
   it("refuses an unknown add-on name", () => {
@@ -80,7 +80,7 @@ describe("add-ons", () => {
     // CCD in the anchor account can't be read from settings: it's flagged, not assumed.
     expect(state(env, "concordium", "anchors").requirements.some((r) => r.met === null && /CCD/.test(r.label))).toBe(true);
     expect(addonEnv(env).PAYMENT_RAILS).toBe("paypal,concordium");
-    expect(deskVerification(addons)).toEqual({ concordiumId: true, paypal: false });
+    expect(deskVerification(addons)).toEqual({ concordiumId: true, paypal: false, zkPassport: false });
   });
 
   it("blocks Concordium ID without an anchor account, naming what's missing", () => {
@@ -90,7 +90,7 @@ describe("add-ons", () => {
     expect(id.reason).toMatch(/anchor account/);
     expect(id.reason).toMatch(/CCD/);
     // Blocked Concordium ID: PayPal verification takes over, and attributes stay off.
-    expect(deskVerification(readAddons({ BOREAL_ADDONS: "concordium", ...rest }))).toEqual({ concordiumId: false, paypal: true });
+    expect(deskVerification(readAddons({ BOREAL_ADDONS: "concordium", ...rest }))).toEqual({ concordiumId: false, paypal: true, zkPassport: false });
   });
 
   it("blocks the token rail without escrow, and keeps it out of PAYMENT_RAILS when the operator leaves it out", () => {
@@ -123,6 +123,21 @@ describe("add-ons", () => {
     expect(addonEnv(env).PAYMENT_RAILS).toBe("paypal,near");
     // NEAR on leaves Concordium settings out.
     expect(addonEnv({ ...env, CONCORDIUM_MODE: "testnet" }).CONCORDIUM_MODE).toBeUndefined();
+  });
+
+  it("switches ZKPassport on by BOREAL_ADDONS alone, needing only the pseudonym secret", () => {
+    expect(readAddons({ ...PAYPAL, BOREAL_PSEUDONYM_SECRET: "s".repeat(32) }).zkpassport.enabled).toBe(false);
+    const on = readAddons({ BOREAL_ADDONS: "zkpassport", ...PAYPAL, BOREAL_PSEUDONYM_SECRET: "s".repeat(32) });
+    expect(on.ready("zkpassport", "passport")).toBe(true);
+    expect(on.paypalOnly).toBe(false);
+    expect(deskVerification(on)).toEqual({ concordiumId: false, paypal: true, zkPassport: true });
+    expect(readAddons({ BOREAL_ADDONS: "zkpassport" }).zkpassport.parts[0]!.reason).toMatch(/pseudonym secret/);
+    // Mock passports never on mainnet.
+    const mock = { BOREAL_ADDONS: "zkpassport", BOREAL_PSEUDONYM_SECRET: "s".repeat(32), ZKPASSPORT_DEV_MODE: "1" };
+    expect(readAddons(mock).ready("zkpassport", "passport")).toBe(true);
+    expect(readAddons({ ...mock, BOREAL_NETWORK: "mainnet" }).zkpassport.parts[0]!.state).toBe("blocked");
+    // Off: its settings never reach the loaders.
+    expect(addonEnv({ ...PAYPAL, ZKPASSPORT_DEV_MODE: "1" }).ZKPASSPORT_DEV_MODE).toBeUndefined();
   });
 
   it("states what each add-on needs from a person up front", () => {

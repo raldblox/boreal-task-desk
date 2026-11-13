@@ -38,7 +38,11 @@ export async function POST(request: Request) {
   const desk = getDesk();
   try {
     const pending = await desk.takeVerificationRequest(body.id);
-    const verified = await verifier.finish(pending.request, body.presentation, pending.id);
+    // Wallet for Web answered a fee-free Web3 ID request; the ID App, an anchored one.
+    const web3 = (pending.request as { kind?: unknown } | null)?.kind === "web3id";
+    const verified = web3
+      ? await verifier.finishWallet(pending.request, body.presentation)
+      : await verifier.finish(pending.request, body.presentation, pending.id);
     // A Wallet for Web sign-in signed for its account first: remember it for quick sign-in.
     const wallet = body.wallet === true ? ((await takePendingWallet()) ?? undefined) : undefined;
     if (worker) {

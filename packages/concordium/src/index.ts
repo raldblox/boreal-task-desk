@@ -321,7 +321,18 @@ export function loadConcordium(
   }
   throw new Error(`CONCORDIUM_MODE=${mode} is not supported`);
 }
-export { createIdAppVerifier, type IdAppConfig, idAppConfigFromEnv, IdAppError, type IdAppVerifier, readPresentation } from "./id-app";
+export {
+  createIdAppVerifier,
+  type IdAppConfig,
+  idAppConfigFromEnv,
+  IdAppError,
+  type IdAppVerifier,
+  personRef,
+  readPresentation,
+  readWalletPresentation,
+  walletChallenge,
+  type WalletRequest,
+} from "./id-app";
 export {
   BADGE_EXTENSION_URI,
   badgeCardFields,

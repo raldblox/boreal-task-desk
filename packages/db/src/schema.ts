@@ -143,7 +143,7 @@ export const agentLinks = pgTable(
 
 /**
  * Workers are known only by a pseudonym and the attributes they proved. A worker signs in with
- * PayPal and/or Concordium ID; each identity is a keyed hash, and each belongs to one worker.
+ * PayPal, Concordium ID and/or ZKPassport; each identity is a keyed hash, and each belongs to one worker.
  */
 export const workers = pgTable("workers", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -169,6 +169,12 @@ export const workers = pgTable("workers", {
    * The name and date themselves are never stored.
    */
   personRef: text("person_ref").unique(),
+  /**
+   * ZKPassport identity (`zkp:<hmac>`): a keyed hash of the unique identifier ZKPassport proves
+   * for one passport or ID card on boreal.work. Set means the worker proved an NFC passport or ID
+   * card; the identifier itself is never stored.
+   */
+  passportRef: text("passport_ref").unique(),
   maxActiveClaims: integer("max_active_claims").notNull().default(1),
   /** Concordium account that payouts go to. */
   payoutAddress: text("payout_address"),

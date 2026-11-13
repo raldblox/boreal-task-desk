@@ -36,6 +36,18 @@ export async function startProof(connectionId: string): Promise<{ id: string; re
   return { id: body.id, request: body.request };
 }
 
+/** A fee-free Web3 ID request for Concordium Wallet for Web: no anchor, nothing paid. */
+export async function startWalletProof(): Promise<{ id: string; challenge: string; statements: unknown }> {
+  const res = await fetch("/api/worker/verification/start", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ wallet: true }),
+  });
+  const body = (await res.json().catch(() => ({}))) as { id?: string; challenge?: string; statements?: unknown; message?: string };
+  if (!res.ok || !body.id || !body.challenge) throw new Error(body.message ?? "Couldn't start the proof request.");
+  return { id: body.id, challenge: body.challenge, statements: body.statements };
+}
+
 export async function finishProof(id: string | null, presentation: unknown, link = false, wallet = false): Promise<void> {
   const res = await fetch("/api/worker/verification/finish", {
     method: "POST",

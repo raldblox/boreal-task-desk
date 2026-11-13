@@ -36,7 +36,7 @@ export function pseudonymSecret(): string | null {
  * Refuses an add-on's endpoint when that part isn't on here: 404 when the add-on is off (it
  * doesn't exist on this site), 503 with the reason when it's on but missing what it needs.
  */
-export function addonRefusal(id: "concordium" | "near" | "evm", part: string): Response | null {
+export function addonRefusal(id: "concordium" | "near" | "evm" | "zkpassport", part: string): Response | null {
   const status = getAddons()[id];
   const found = status.parts.find((p) => p.id === part);
   if (found?.state === "ready") return null;
@@ -56,7 +56,7 @@ export function addonFlags(): { concordium: boolean; near: boolean; evm: boolean
 }
 
 /** Throws a desk refusal unless this add-on part is ready, naming why (for server actions). */
-export function requireAddonPart(id: "concordium" | "near" | "evm", part: string): void {
+export function requireAddonPart(id: "concordium" | "near" | "evm" | "zkpassport", part: string): void {
   const status = getAddons()[id];
   const found = status.parts.find((p) => p.id === part);
   if (found?.state === "ready") return;

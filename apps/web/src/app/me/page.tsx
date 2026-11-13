@@ -17,6 +17,8 @@ import { type AccountTab, AccountTabs, accountTab } from "@/components/account-t
 import { BlockHeading, Container, Cta, EmptyState, LinkTile, MoreLink, PageHero } from "@/components/page";
 import { ConcordiumSignIn } from "@/components/concordium-sign-in";
 import { ConcordiumWalletSignIn } from "@/components/concordium-wallet-sign-in";
+import { ZkPassportSignIn } from "@/components/zkpassport-sign-in";
+import { passportReady } from "@/server/zkpassport";
 import { TaskCard } from "@/components/task-card";
 import { TxLink } from "@/components/tx-link";
 import { DevWallet } from "@/components/worker-forms";
@@ -81,7 +83,8 @@ async function Identity() {
   const since = new Intl.DateTimeFormat("en-PH", { dateStyle: "medium", timeZone: "Asia/Manila" }).format(profile.createdAt);
   const paypalLogin = paypalLoginEnabled();
   // On live money, a worker with only PayPal claims once PayPal has verified their account.
-  const needsVerifiedPayPal = NETWORK === "mainnet" && !profile.hasConcordium && !profile.paypalVerified;
+  const needsVerifiedPayPal = NETWORK === "mainnet" && !profile.hasConcordium && !profile.hasPassport && !profile.paypalVerified;
+  const passport = passportReady();
   const concordiumId = getAddons().on("concordium");
   return (
     <section className="flex flex-col gap-6 rounded-2xl border bg-card p-6 md:p-8">
@@ -154,6 +157,23 @@ async function Identity() {
               )}
             </div>
           )}
+          {(profile.hasPassport || passport) && (
+            <div className="flex flex-col gap-3 p-5">
+              <div className="flex flex-wrap items-center gap-4">
+                <ShieldCheck className="size-5 shrink-0 text-primary" />
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium">Passport (ZKPassport)</p>
+                  <p className="text-sm text-muted-foreground">
+                    {profile.hasPassport
+                      ? "Signs you in, and proves you're 18 or older and one person."
+                      : "Free. Your phone reads your passport's chip and proves you're 18 or older and one person; boreal.work never sees the passport. Needs a passport or ID card with a chip, and a phone with NFC that passes the ZKPassport app's check."}
+                  </p>
+                </div>
+                {profile.hasPassport && <Badge variant="outline">Verified</Badge>}
+              </div>
+              {!profile.hasPassport && <ZkPassportSignIn next="/me?passport=added" link />}
+            </div>
+          )}
           {profile.hasConcordium && (
             <div className="flex flex-col gap-3 p-5">
               <div className="flex flex-wrap items-center gap-4">
@@ -182,7 +202,13 @@ async function Identity() {
       {needsVerifiedPayPal && (
         <Alert>
           <AlertDescription>
-            To claim tasks, verify your account with PayPal and log in again{concordiumId && getAddons().ready("concordium", "id") ? ", or add Concordium ID under Integrations" : ""}.
+            Only verified people can claim tasks:{" "}
+            {[
+              "verify your account with PayPal, then use Log in with PayPal again",
+              ...(passport ? ["add your passport with ZKPassport above (free)"] : []),
+              ...(concordiumId && getAddons().ready("concordium", "id") ? ["add Concordium ID under Integrations (free)"] : []),
+            ].join(", or ")}
+            .
           </AlertDescription>
         </Alert>
       )}
@@ -193,7 +219,7 @@ async function Identity() {
         <p className="text-xs text-muted-foreground">
           {profile.testMode
             ? "Test workers see and do only test tasks."
-            : `A one-way code made from the identity you first signed in with. It never changes, and it can't be turned back into who you are. Each PayPal account${concordiumId ? " and Concordium ID" : ""} belongs to one boreal.work account, and accounts are never merged.`}
+            : `A one-way code made from the identity you first signed in with. It never changes, and it can't be turned back into who you are. Each PayPal account${concordiumId ? ", Concordium ID" : ""}${passport ? ", passport" : ""} belongs to one boreal.work account, and accounts are never merged.`}
         </p>
       </div>
     </section>
@@ -788,7 +814,7 @@ const OWNER_ACTION: Record<string, string> = {
 
 /** Where an agent's payment into escrow stands, from its task. */
 function paymentState(status: string): string {
-  if (status === "final_pass") return "charged";
+  if (status === "final_pass") return "paid";
   if (["final_fail", "refused", "expired", "cancelled"].includes(status)) return "released";
   return "held";
 }
@@ -891,12 +917,14 @@ const PAYPAL_NOTICES: Record<string, string> = {
   "not-yours": "That agent isn't yours.",
 };
 
-async function PayPalNotice({ searchParams }: { searchParams: Promise<{ paypal?: string; concordium?: string }> }) {
+async function PayPalNotice({ searchParams }: { searchParams: Promise<{ paypal?: string; concordium?: string; passport?: string }> }) {
   const params = await searchParams;
   const notice =
     params.concordium === "added"
       ? "Concordium ID added. You carry the Verified by Concordium badge and can claim tasks that need what you proved."
-      : PAYPAL_NOTICES[params.paypal ?? ""];
+      : params.passport === "added"
+        ? "Passport added. You're verified and can claim tasks."
+        : PAYPAL_NOTICES[params.paypal ?? ""];
   if (!notice) return null;
   return (
     <Alert>
@@ -905,7 +933,7 @@ async function PayPalNotice({ searchParams }: { searchParams: Promise<{ paypal?:
   );
 }
 
-type SearchParams = Promise<{ tab?: string; paypal?: string; concordium?: string }>;
+type SearchParams = Promise<{ tab?: string; paypal?: string; concordium?: string; passport?: string }>;
 
 /** The tab bar, with a count on the tabs where something waits for this person. */
 async function Tabs({ active }: { active: AccountTab }) {

@@ -1,17 +1,18 @@
 // Add-ons. boreal runs on PayPal: Log in with PayPal, Orders v2 escrow (authorize, capture on
-// pass, void on fail), the Vault for agent funding and Payouts for workers. NEAR and Concordium
-// are optional add-ons, switched on per deployment with BOREAL_ADDONS and each stating up front
+// pass, void on fail), the Vault for agent funding and Payouts for workers. NEAR, Concordium,
+// EVM and ZKPassport (passport proofs for workers) are optional add-ons, switched on per deployment with BOREAL_ADDONS and each stating up front
 // what it needs. Pure: reads an env record, never the network.
 
 type Env = Record<string, string | undefined>;
 
-export const ADDON_IDS = ["concordium", "near", "evm"] as const;
+export const ADDON_IDS = ["concordium", "near", "evm", "zkpassport"] as const;
 export type AddonId = (typeof ADDON_IDS)[number];
 
 export type ConcordiumPart = "id" | "anchors" | "rail" | "registry";
 export type NearPart = "rail" | "agentWorkers" | "market" | "privateReview";
 export type EvmPart = "rail";
-export type AddonPartId = ConcordiumPart | NearPart | EvmPart;
+export type ZkPassportPart = "passport";
+export type AddonPartId = ConcordiumPart | NearPart | EvmPart | ZkPassportPart;
 
 /** One thing a part needs. `met: null` means it can only be checked live (a balance, say). */
 export interface Requirement {
@@ -51,12 +52,14 @@ export interface Addons {
   concordium: AddonStatus;
   near: AddonStatus;
   evm: AddonStatus;
+  zkpassport: AddonStatus;
   /** The add-on is switched on for this deployment. */
   on(id: AddonId): boolean;
   /** The add-on is on and this part has everything it needs. */
   ready(id: "concordium", part: ConcordiumPart): boolean;
   ready(id: "near", part: NearPart): boolean;
   ready(id: "evm", part: EvmPart): boolean;
+  ready(id: "zkpassport", part: ZkPassportPart): boolean;
   /** Nothing on: PayPal only. */
   paypalOnly: boolean;
 }
@@ -247,12 +250,33 @@ export function readAddons(env: Env = process.env): Addons {
     ],
   };
 
-  const byId = { concordium, near: nearAddon, evm: evmAddon };
+  const zk = ids.has("zkpassport");
+  const zkDev = env.ZKPASSPORT_DEV_MODE === "1";
+  const zkAddon: AddonStatus = {
+    id: "zkpassport",
+    name: "ZKPassport",
+    enabled: zk,
+    summary: "Workers prove they are 18 or older, their nationality and that they are one person, from the chip in their passport or ID card, with zero-knowledge proofs checked on boreal.work's server.",
+    personNeeds: [
+      "A passport or ID card with an NFC chip (an ePassport has the chip symbol on its cover; the PhilSys card doesn't work)",
+      "A phone with NFC and the free ZKPassport app (about 400 MB), which must pass the app's device check",
+    ],
+    parts: [
+      part(zk, "passport", "Passport proofs", "Workers verify with their passport's chip instead of PayPal or Concordium ID, free for them and for boreal.work. One passport makes one account.", [
+        { label: "A pseudonym secret of 32+ characters", setting: "BOREAL_PSEUDONYM_SECRET", met: (pseudonymSecretFrom(env) ?? "").length >= 32 },
+        // Mock passports prove anything; only a site that moves no real money may accept them.
+        ...(zkDev ? [{ label: "Mock passports (ZKPASSPORT_DEV_MODE=1) only off mainnet", setting: "ZKPASSPORT_DEV_MODE, BOREAL_NETWORK", met: (env.BOREAL_NETWORK || env.CONCORDIUM_NETWORK) !== "mainnet" }] : []),
+      ]),
+    ],
+  };
+
+  const byId = { concordium, near: nearAddon, evm: evmAddon, zkpassport: zkAddon };
   return {
     source,
     concordium,
     near: nearAddon,
     evm: evmAddon,
+    zkpassport: zkAddon,
     on: (id) => byId[id].enabled,
     ready: (id: AddonId, p: AddonPartId) => byId[id].parts.find((x) => x.id === p)?.state === "ready",
     paypalOnly: ids.size === 0,
@@ -284,6 +308,9 @@ export function addonEnv(env: Env = process.env): Env {
   if (!addons.on("evm")) {
     for (const key of Object.keys(out)) if (key.startsWith("EVM_")) delete out[key];
   }
+  if (!addons.on("zkpassport")) {
+    for (const key of Object.keys(out)) if (key.startsWith("ZKPASSPORT_")) delete out[key];
+  }
   const rails: string[] = [];
   const wantedPayPal = env.PAYMENT_RAILS ? listed(env.PAYMENT_RAILS).includes("paypal") : has(env, "PAYPAL_CLIENT_ID") || env.PAYMENTS_RAIL === "paypal";
   if (wantedPayPal) rails.push("paypal");
@@ -302,8 +329,9 @@ export function addonEnv(env: Env = process.env): Env {
 /**
  * How people verify on this deployment, for the desk: Concordium ID when its part is ready,
  * otherwise a PayPal account PayPal has verified (so PayPal alone isn't stuck at the caps).
+ * `zkPassport`: workers can also verify with a passport's chip (the ZKPassport add-on).
  */
-export function deskVerification(addons: Addons): { concordiumId: boolean; paypal: boolean } {
+export function deskVerification(addons: Addons): { concordiumId: boolean; paypal: boolean; zkPassport: boolean } {
   const concordiumId = addons.ready("concordium", "id");
-  return { concordiumId, paypal: !concordiumId };
+  return { concordiumId, paypal: !concordiumId, zkPassport: addons.ready("zkpassport", "passport") };
 }

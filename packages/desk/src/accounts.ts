@@ -162,6 +162,7 @@ export function accountCommands(db: Database, now: () => Date) {
             concordiumRef: null,
             concordiumWalletRef: null,
             personRef: null,
+            passportRef: null,
             provenAttributes: {},
             payoutAddress: null,
             nearAccount: null,

@@ -213,7 +213,9 @@ Seeded on 2026-11-12. The Hermes catalog review (NousResearch/hermes-agent#15309
 
 **Done (2026-11-13):** the Concordium proof also gives a keyed person code (name and date of birth, hashed at once and discarded), so a second document or identity provider finds the first account and is refused. A payout destination can pay one account only. `/admin/workers` lists softer signs (shared payout details, a worker passed again and again by one owner) and can block an account from claiming. Closing an account releases all of these.
 
-**Status:** done for Concordium ID and payout destinations; PayPal-only workers still need a document check to be unique (owner decision)
+**Done (2026-11-13), ZKPassport:** a third way to verify, from a passport's chip (the `zkpassport` add-on). One passport makes one account (`workers.passport_ref`, a keyed hash of ZKPassport's salted identifier), and its proof gives the same person code as Concordium ID's, so one person can't hold one of each. The Concordium Wallet for Web proof is now the fee-free Web3 ID request. See `docs/verified-people.md`.
+
+**Status:** done for Concordium ID, ZKPassport and payout destinations; PayPal-only workers still need a document check to be unique (owner decision). Still to do: one real-passport round trip on testnet, and one real Wallet for Web proof on testnet, before relying on either in production.
 
 ### RS-29 · wrong design · workers, business · S2 — The dispute "panel" is one admin
 

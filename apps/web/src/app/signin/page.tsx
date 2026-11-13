@@ -7,6 +7,8 @@ import { signIn } from "@/app/actions";
 import { Eyebrow } from "@/components/brand";
 import { ConcordiumSignIn } from "@/components/concordium-sign-in";
 import { ConcordiumWalletSignIn } from "@/components/concordium-wallet-sign-in";
+import { ZkPassportSignIn } from "@/components/zkpassport-sign-in";
+import { passportReady } from "@/server/zkpassport";
 import { DevWallet } from "@/components/worker-forms";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
@@ -51,6 +53,10 @@ function PayPalSignIn({ next }: { next: string }) {
       >
         Log in with PayPal
       </a>
+      <p className="text-sm text-muted-foreground">
+        Free. To claim tasks, PayPal must have verified your account (in PayPal&apos;s settings, also free); otherwise verify with
+        one of the ways below.
+      </p>
       <p className="text-xs text-muted-foreground">
         boreal.work keeps a one-way code for your PayPal account, your PayPal email for payouts, and whether PayPal has verified
         the account. Never your password.
@@ -86,7 +92,7 @@ async function ConcordiumReturn({ next, open }: { next: string; open: boolean })
             </a>
             .
           </li>
-          <li>Verify once in the app with your passport or national ID and a selfie. An identity provider checks them; boreal.work never sees them.</li>
+          <li>Verify once in the app with your passport or national ID and a selfie (free). An identity provider checks them; boreal.work never sees them.</li>
           <li>Scan the code below with the app and approve.</li>
         </ol>
         <p className="text-muted-foreground">
@@ -94,8 +100,9 @@ async function ConcordiumReturn({ next, open }: { next: string; open: boolean })
         </p>
         <ConcordiumSignIn projectId={gatedEnv().NEXT_PUBLIC_REOWN_PROJECT_ID!} network={network} next={next} />
         <p className="mt-2 text-muted-foreground">
-          Already have a Concordium account in Concordium Wallet for Web? Sign in by signing a message. Opening an account is
-          free, and the chain only opens one on an identity a provider has checked.
+          Already have a Concordium account in Concordium Wallet for Web (Chrome)? Sign in by signing a message. It&apos;s free
+          for you and for boreal.work: nothing is recorded on chain, and the chain only opens an account on an identity a provider
+          has checked.
         </p>
         <ConcordiumWalletSignIn next={next} />
       </>
@@ -117,6 +124,46 @@ async function ConcordiumReturn({ next, open }: { next: string; open: boolean })
         No PayPal, or PayPal hasn&apos;t verified you? Sign in with Concordium ID
       </summary>
       <div className="mt-4 flex flex-col gap-3">{body}</div>
+    </details>
+  );
+}
+
+/**
+ * A third way in for verified people: the passport's chip, proven on the phone with ZKPassport.
+ * Free for the person and for boreal.work; nothing goes on any chain.
+ */
+function PassportSignIn({ next, open }: { next: string; open: boolean }) {
+  if (!passportReady()) return null;
+  return (
+    <details open={open} className="group rounded-2xl border bg-card px-6 py-4 text-sm">
+      <summary className="cursor-pointer text-muted-foreground marker:text-muted-foreground">
+        Have a passport with a chip? Sign in with ZKPassport
+      </summary>
+      <div className="mt-4 flex flex-col gap-3">
+        <p className="text-muted-foreground">
+          Your phone reads the chip in your passport and proves you&apos;re 18 or older, your nationality, and that you&apos;re one
+          person. boreal.work checks the proof; it never sees your passport or photo.
+        </p>
+        <ol className="flex list-decimal flex-col gap-1.5 pl-5 text-muted-foreground">
+          <li>
+            Get the free ZKPassport app (about 400 MB) from{" "}
+            <a href="https://zkpassport.id" target="_blank" rel="noreferrer" className="text-primary underline-offset-4 hover:underline">
+              zkpassport.id
+            </a>
+            . Your phone needs NFC and must pass the app&apos;s device check; some rooted or older phones don&apos;t.
+          </li>
+          <li>
+            You need a passport or ID card with a chip: an ePassport has the chip symbol on its cover. Philippine ePassports
+            work; the PhilSys ID card doesn&apos;t.
+          </li>
+          <li>Scan the code below with the app, hold your passport to the phone, and take a quick selfie for the face check.</li>
+        </ol>
+        <p className="text-muted-foreground">
+          It costs nothing, for you or for boreal.work. Your name and birth date are turned into a one-way code at once, so one
+          person keeps one account, and are never stored.
+        </p>
+        <ZkPassportSignIn next={next} />
+      </div>
     </details>
   );
 }
@@ -149,6 +196,7 @@ async function SignInOptions({ searchParams }: { searchParams: Promise<{ next?: 
           </AlertDescription>
         </Alert>
       )}
+      <PassportSignIn next={next} open={!paypal} />
       {getAddons().on("concordium") && <ConcordiumReturn next={next} open={!paypal} />}
     </div>
   );

@@ -19,6 +19,9 @@ export default function PrivacyPage() {
   const addons = getAddons();
   const usdc = paymentRails().some((r) => r !== "paypal");
   const concordiumId = addons.ready("concordium", "id");
+  const passport = addons.ready("zkpassport", "passport");
+  const personCode = concordiumId || passport;
+  const personProof = [concordiumId ? "Concordium ID" : null, passport ? "ZKPassport" : null].filter(Boolean).join(" or ");
   return (
     <LegalPage eyebrow="Privacy" title="Privacy policy" updated="November 13, 2026">
       <p className="leading-relaxed">
@@ -33,7 +36,12 @@ export default function PrivacyPage() {
             <strong className="font-medium text-foreground">A pseudonym.</strong> A one-way code made from the identity you
             sign in with: <code className="font-mono text-sm">pp:</code> plus a keyed hash of your PayPal account ID, or, with
             the Concordium integration, <code className="font-mono text-sm">ccdid:</code> plus a keyed hash of your identity
-            document from Concordium ID. On its own it can&apos;t be turned back into who you are. We also keep your PayPal email (below), which does identify you, so the two together are personal data and we treat them that way.
+            document from Concordium ID{passport ? (
+              <>
+                , or <code className="font-mono text-sm">zkp:</code> plus a keyed hash of the identifier ZKPassport proves for your
+                passport on boreal.work
+              </>
+            ) : null}. On its own it can&apos;t be turned back into who you are. We also keep your PayPal email (below), which does identify you, so the two together are personal data and we treat them that way.
           </li>
           {concordiumId && (
             <li>
@@ -41,10 +49,17 @@ export default function PrivacyPage() {
               and your country of residence, and nothing else from your document.
             </li>
           )}
-          {concordiumId && (
+          {passport && (
+            <li>
+              <strong className="font-medium text-foreground">From ZKPassport:</strong> that you&apos;re 18 or older and your nationality.
+              Your phone reads your passport&apos;s chip and checks your face against its photo itself; boreal.work receives only
+              zero-knowledge proofs, never the passport, its photo or your selfie, and checks them on its own server.
+            </li>
+          )}
+          {personCode && (
             <li>
               <strong className="font-medium text-foreground">A one-way person code.</strong> boreal.work allows one account per person. When
-              you prove yourself with Concordium ID, the proof shows us your name and date of birth for a moment; we turn them into a keyed
+              you prove yourself with {personProof}, the proof shows us your name and date of birth for a moment; we turn them into a keyed
               one-way code (<code className="font-mono text-sm">ccdp:</code>…) and discard them. The code lets us see that a second
               document belongs to someone who already has an account, and can&apos;t be turned back into your name.
             </li>
@@ -78,7 +93,7 @@ export default function PrivacyPage() {
 
       <LegalSection title="What we never keep">
         <ul>
-          <li>Your name or date of birth (with Concordium ID, they&apos;re hashed at once and discarded).</li>
+          <li>Your name or date of birth{personCode ? ` (with ${personProof}, they're hashed at once and discarded)` : ""}.</li>
           <li>Photos of your documents, or your document number (it&apos;s hashed at once and discarded).</li>
           <li>Your raw PayPal account ID, or your PayPal password.</li>
           <li>Your IP address: rate limits use a salted hash of it.</li>
@@ -98,6 +113,12 @@ export default function PrivacyPage() {
         <ul>
           <li>PayPal, to sign you in with PayPal, hold task money and pay you.</li>
           {concordiumId && <li>Concordium&apos;s ID App or Wallet, on your device, to make the proofs you approve.</li>}
+          {passport && (
+            <li>
+              ZKPassport&apos;s app, on your phone, to make the proofs you approve. The request and the proofs pass through
+              ZKPassport&apos;s relay encrypted for boreal.work; checking a proof reads public certificate data from Ethereum.
+            </li>
+          )}
           {addons.ready("near", "privateReview") ? (
             <li>
               NEAR AI Cloud, which screens tasks and reviews submissions for boreal.work, privately inside a TEE that no one

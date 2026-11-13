@@ -5,14 +5,15 @@ import { useState } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { finishProof, startProof, walletSignIn } from "@/lib/concordium-proof";
+import { finishProof, startWalletProof, walletSignIn } from "@/lib/concordium-proof";
 
 export const STORE_URL = "https://chromewebstore.google.com/detail/concordium-wallet/mnnkpffndmickbiakofclnpoiajlegmg";
 
 /** The part of the Concordium Wallet for Web's injected API boreal uses. */
 export type WalletApi = {
   connect(): Promise<string | undefined>;
-  requestVerifiablePresentationV1(request: unknown): Promise<unknown>;
+  /** The Web3 ID request: free, since its challenge is a recent block's hash and nothing is anchored. */
+  requestVerifiablePresentation(challenge: string, statements: unknown): Promise<unknown>;
   signMessage(accountAddress: string, message: string): Promise<unknown>;
 };
 
@@ -58,8 +59,9 @@ const LABEL: Record<Status, string> = {
 };
 
 /**
- * Sign-in with the Concordium Wallet for Web browser extension. It answers the same anchored
- * proof request as the ID App, so the server side and the worker's pseudonym are the same.
+ * Sign-in with the Concordium Wallet for Web browser extension. It proves the same identity
+ * attributes as the ID App, so the worker's pseudonym is the same, but answers a Web3 ID request
+ * whose challenge is a recent block's hash: nothing is anchored, so the proof is free for everyone.
  */
 export function ConcordiumWalletSignIn({ next = "/tasks", link = false }: { next?: string; link?: boolean }) {
   const router = useRouter();
@@ -83,13 +85,14 @@ export function ConcordiumWalletSignIn({ next = "/tasks", link = false }: { next
         return;
       }
       setStatus("preparing");
-      // The request's context names a connection; this one is the browser tab.
-      const connectionId = Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
-      const { id, request } = await startProof(connectionId);
+      const { id, challenge, statements } = await startWalletProof();
       setStatus("proving");
-      const presentation = await oncePromptCloses(() => wallet.requestVerifiablePresentationV1(request));
+      const presentation = await oncePromptCloses(() => wallet.requestVerifiablePresentation(challenge, statements));
       setStatus("verifying");
-      await finishProof(id, presentation, link, true);
+      // The wallet returns a VerifiablePresentation, whose own toString() is the JSON the server reads.
+      const own = (presentation as { toString?: () => string } | null)?.toString;
+      const json = own && own !== Object.prototype.toString ? own.call(presentation) : JSON.stringify(presentation);
+      await finishProof(id, json, link, true);
       router.push(next);
       router.refresh();
     } catch (e) {

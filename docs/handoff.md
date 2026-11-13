@@ -24,6 +24,13 @@ Notes from the model doing deep technical work, for a cheaper model to carry out
 - **What's wrong:** the same thing has two or three names across pages; the terms, privacy policy and FAQ say a few things the code doesn't do (when pay arrives, one dispute per task, "accounts are never merged", "approve it once"); and nothing yet tells an owner what saving a PayPal account lets an agent do.
 - **Done looks like:** its Progress list ticked, with the owner's seven legal answers written in once they exist.
 
+### 14. ZKPassport on /signin and My account: the working minimum, to be designed
+
+- **Where:** `apps/web/src/components/zkpassport-sign-in.tsx` (`ZkPassportSignIn`), `PassportSignIn` in `apps/web/src/app/signin/page.tsx`, and the "Passport (ZKPassport)" row in `Identity` in `apps/web/src/app/me/page.tsx`.
+- **What's wrong:** it works but is plain. The QR code is a bare image in a box; the steps are a text list; the progress is only the button's label (waiting for the app, approve and scan, phone building the proof, checking); there's no ZKPassport mark; and on a phone the "Open in the ZKPassport app" link should be the main action, with the QR code secondary. `/signin` now has PayPal plus two collapsed `<details>` blocks (ZKPassport, Concordium ID) and reads as a list of alternatives rather than a choice.
+- **Done looks like:** `/signin` shows the three ways to verify as a clear choice, with what each needs and costs (ZKPassport: free; an NFC passport or ID card, not PhilSys; a phone with NFC that passes the app's device check; about 400 MB; a selfie for the face check). The ZKPassport flow shows a step indicator matching the states above, a phone-first layout, and a retry that starts a fresh request. A ZKPassport-verified worker sees a "Verified with passport" state on My account, with their nationality as an attribute badge (`attributeLabel` in `apps/web/src/lib/format.ts` has no label for `nationality` yet).
+- **Must not change:** the request is built only by `passportQuery()`; the proofs go to `/api/worker/passport/finish` and nowhere else; no ZKPassport logo is redrawn (use their published mark or none). Always write "boreal.work".
+
 ## Done
 
 - 1. Tell the worker who is reviewing, and by when (RS-11): 8dd3302

@@ -212,7 +212,7 @@ Legal facts the copy session must not make up. Each has a recommendation; write 
 
 Tick with the commit hash. Add what you found under the last heading.
 
-- [x] Words: the list reconciled with the house style (d6b3429), and every page in this brief follows it. Swept on 2026-11-13: `/post`, `/tasks`, `/rules`, `/status` and the status labels. Still to sweep: `/signin` and My account's tabs, which the ZKPassport session is editing (My account still says "log in again" to verify, and labels a finished payment "charged")
+- [x] Words: the list reconciled with the house style (d6b3429), and every page in this brief follows it. Swept on 2026-11-13: `/post`, `/tasks`, `/rules`, `/status` and the status labels. `/signin` and My account swept with the ZKPassport change (2026-11-13): each way to verify says what it costs and needs, and a finished payment reads "paid"
 - [x] 1. Terms: a27f8d9 (owner items 1, 5, 6 and 7 still open: no legal name, liability, governing law, notice period or account closing written)
 - [x] 2. Privacy: a27f8d9 (owner item 3, how long things are kept, still open)
 - [x] 3. FAQ: 0aad9b2
