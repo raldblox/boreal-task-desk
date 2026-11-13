@@ -19,9 +19,14 @@ export interface ProofRequest {
 }
 
 export interface VerifiedWorker {
-  /** Stable per-service pseudonym, used to enforce one account per person. */
+  /** Stable per identity document: one document, one account. */
   pseudonym: string;
   provenAttributes: Record<string, string>;
+  /**
+   * Stable per person across documents and identity providers: a keyed hash of the name and date
+   * of birth, so a second document finds the first account. Only the hash is ever kept.
+   */
+  personRef?: string;
 }
 
 /** Concordium ID + Verify and Access: workers prove attributes without sharing personal data. */

@@ -86,13 +86,33 @@ export function readPresentation(presentation: VerifiablePresentationV1.Type, ps
   if (!adult) throw new IdAppError("the proof doesn't show you are 18 or older");
   if (!revealed.idDocNo || !revealed.idDocIssuer) throw new IdAppError("the proof is missing the ID document details");
 
-  // Stable per person and identity provider, and meaningless without the secret.
+  // Stable per document and identity provider, and meaningless without the secret.
   const pseudonym = `ccdid:${createHmac("sha256", pseudonymSecret)
     .update(`${credential.issuer}|${revealed.idDocIssuer}|${revealed.idDocNo}`)
     .digest("hex")}`;
   const attributes: Record<string, string> = { age_over_18: "true" };
   if (revealed.countryOfResidence) attributes.residency = revealed.countryOfResidence;
-  return { pseudonym, provenAttributes: attributes };
+  return { pseudonym, provenAttributes: attributes, personRef: personRef(revealed, pseudonymSecret) };
+}
+
+/** Letters only, lower case, accents dropped: "José  Dela-Cruz" and "jose delacruz" match. */
+const normalizeName = (name: string) =>
+  name
+    .normalize("NFKD")
+    .toLowerCase()
+    // Accents become separate marks under NFKD; keeping letters a-z drops them with everything else.
+    .replace(/[^a-z]/g, "");
+
+/**
+ * One person across documents and identity providers: a keyed hash of name and date of birth.
+ * The values are read here and never stored; without the secret the hash means nothing.
+ */
+export function personRef(revealed: Record<string, string>, pseudonymSecret: string): string | undefined {
+  const first = normalizeName(revealed.firstName ?? "");
+  const last = normalizeName(revealed.lastName ?? "");
+  const dob = (revealed.dob ?? "").replace(/\D/g, "");
+  if (!first || !last || dob.length !== 8) return undefined;
+  return `ccdp:${createHmac("sha256", pseudonymSecret).update(`person|${first}|${last}|${dob}`).digest("hex")}`;
 }
 
 export function createIdAppVerifier(config: IdAppConfig, grpc?: ConcordiumGRPCClient): IdAppVerifier {
@@ -111,7 +131,15 @@ export function createIdAppVerifier(config: IdAppConfig, grpc?: ConcordiumGRPCCl
     async start(connectionId) {
       const claims = VerificationRequestV1.claimsBuilder()
         .addIdentityClaims(await issuers(), (b) =>
-          b.addMinimumAge(18).revealAttribute("countryOfResidence").revealAttribute("idDocNo").revealAttribute("idDocIssuer"),
+          // Name and birth date only become a one-way person code (personRef), never stored.
+          b
+            .addMinimumAge(18)
+            .revealAttribute("countryOfResidence")
+            .revealAttribute("idDocNo")
+            .revealAttribute("idDocIssuer")
+            .revealAttribute("firstName")
+            .revealAttribute("lastName")
+            .revealAttribute("dob"),
         )
         .getClaims();
       const context = VerificationRequestV1.createSimpleContext(randomBytes(32), connectionId, RESOURCE, CONTEXT);

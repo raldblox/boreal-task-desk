@@ -163,6 +163,12 @@ export const workers = pgTable("workers", {
    * new proof (and its on-chain anchor). Never the account address itself.
    */
   concordiumWalletRef: text("concordium_wallet_ref").unique(),
+  /**
+   * `ccdp:` plus a keyed hash of the person's name and date of birth from their Concordium ID
+   * proof: one person, one account, whichever document or identity provider they prove with.
+   * The name and date themselves are never stored.
+   */
+  personRef: text("person_ref").unique(),
   maxActiveClaims: integer("max_active_claims").notNull().default(1),
   /** Concordium account that payouts go to. */
   payoutAddress: text("payout_address"),

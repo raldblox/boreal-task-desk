@@ -116,7 +116,13 @@ export interface PayPalIdentity {
 export interface ConcordiumIdentity {
   pseudonym: string;
   provenAttributes: Record<string, string>;
+  /** One person across documents (see VerifiedWorker.personRef); absent on older proofs. */
+  personRef?: string;
 }
+
+/** Refused when a person who already has an account proves themselves again with another document. */
+const SAME_PERSON =
+  "this person already has a boreal.work account (one account per person). Sign in with that account instead, with PayPal or the document you used before";
 
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 /** NEAR account ids: named (`you.near`) or implicit (64 hex characters), 2–64 characters. */
@@ -280,7 +286,19 @@ export function createDesk({
   }
 
   /** One worker per Concordium identity; its proven attributes are refreshed from the latest proof. */
+  /** Another open account that already belongs to this person, other than `workerId`'s. */
+  async function samePerson(personRef: string | undefined, notWorker?: string, notConcordiumRef?: string) {
+    if (!personRef) return null;
+    const [other] = await db
+      .select({ id: workers.id, concordiumRef: workers.concordiumRef })
+      .from(workers)
+      .where(and(eq(workers.personRef, personRef), isNull(workers.closedAt)));
+    if (!other || other.id === notWorker || (notConcordiumRef && other.concordiumRef === notConcordiumRef)) return null;
+    return other;
+  }
+
   async function signInConcordium(verified: ConcordiumIdentity, payoutAddress?: string) {
+    if (await samePerson(verified.personRef, undefined, verified.pseudonym)) throw new DeskError("conflict", SAME_PERSON);
     const at = now();
     const [worker] = await db
       .insert(workers)
@@ -288,6 +306,7 @@ export function createDesk({
         pseudonym: verified.pseudonym,
         concordiumRef: verified.pseudonym,
         provenAttributes: verified.provenAttributes,
+        personRef: verified.personRef ?? null,
         payoutAddress: payoutAddress ?? null,
         createdAt: at,
         updatedAt: at,
@@ -296,6 +315,7 @@ export function createDesk({
         target: workers.concordiumRef,
         set: {
           provenAttributes: verified.provenAttributes,
+          ...(verified.personRef ? { personRef: verified.personRef } : {}),
           ...(payoutAddress ? { payoutAddress } : {}),
           updatedAt: at,
         },
@@ -876,6 +896,10 @@ export function createDesk({
           if (task.paymentRail === "near" && !worker.nearAccount) {
             throw new DeskError("forbidden", "this task pays in USDC on NEAR: add your NEAR account on My account first");
           }
+          // An operator blocked this account (one person working through two): no new claims.
+          if (worker.maxActiveClaims === 0) {
+            throw new DeskError("forbidden", "boreal.work has stopped this account claiming tasks (one account per person). Contact us if you think that's a mistake");
+          }
           const [active] = await tx
             .select({ n: sql<number>`count(*)::int` })
             .from(tasks)
@@ -1384,9 +1408,11 @@ export function createDesk({
     async linkVerifiedConcordium(caller: Caller, verified: ConcordiumIdentity, walletRef?: string) {
       requireRole(caller, "worker");
       checkWalletRef(walletRef);
+      if (await samePerson(verified.personRef, caller.workerId, verified.pseudonym)) throw new DeskError("conflict", SAME_PERSON);
       const kept = await linkIdentity(caller.workerId, "concordium", verified.pseudonym, {
         concordiumRef: verified.pseudonym,
         provenAttributes: verified.provenAttributes,
+        ...(verified.personRef ? { personRef: verified.personRef } : {}),
       });
       if (walletRef) await rememberWallet(kept.id, walletRef);
       return kept;
@@ -1445,9 +1471,20 @@ export function createDesk({
       if (rail === "evm" && !/^0x[0-9a-fA-F]{40}$/.test(value)) throw new DeskError("invalid", "that isn't an EVM address");
       if (value.length < 3 || value.length > 254 || /\s/.test(value)) throw new DeskError("invalid", "that payout address doesn't look right");
       const column = rail === "paypal" ? { paypalEmail: value } : rail === "near" ? { nearAccount: value } : rail === "evm" ? { evmAddress: value } : { payoutAddress: value };
+      const field = rail === "paypal" ? workers.paypalEmail : rail === "near" ? workers.nearAccount : rail === "evm" ? workers.evmAddress : workers.payoutAddress;
       await db.transaction(async (tx) => {
         const [before] = await tx.select().from(workers).where(eq(workers.id, caller.workerId)).for("update");
         if (!before) throw new DeskError("not_found", "worker not found");
+        // One person, one account: a payout destination pays one worker. (A closed account
+        // releases its own, so someone coming back can connect the same wallet again.)
+        const [taken] = await tx
+          .select({ id: workers.id })
+          .from(workers)
+          .where(and(rail === "evm" ? sql`lower(${field}) = lower(${value})` : eq(field, value), ne(workers.id, caller.workerId), isNull(workers.closedAt)))
+          .limit(1);
+        if (taken) {
+          throw new DeskError("conflict", "that payout account is already connected to another boreal.work account. One account per person: sign in with that account instead");
+        }
         const at = now();
         await tx.update(workers).set({ ...column, updatedAt: at }).where(eq(workers.id, caller.workerId));
         const first = rail === "near" ? !before.nearAccount : rail === "concordium" ? !before.payoutAddress : false;

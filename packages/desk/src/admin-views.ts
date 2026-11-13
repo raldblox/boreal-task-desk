@@ -327,6 +327,59 @@ export function adminViews(db: Database, now: () => Date) {
     },
 
     /** Workers as the desk knows them: pseudonym, identities and proven attributes, plus their task record. */
+    /**
+     * Signs that two accounts may be one person, for an operator to look at. Nothing here blocks
+     * anyone (the hard rules are in the desk: one Concordium person, one payout destination per
+     * account); and what is shared is named, never shown.
+     */
+    async adminSamePersonSignals(days = 30) {
+      const signals: { kind: string; detail: string; workers: { id: string; pseudonym: string; blocked: boolean }[] }[] = [];
+      type W = { id: string; pseudonym: string; blocked: boolean };
+      const shared = [
+        { label: "PayPal payout email", column: sql`${workers.paypalEmail}` },
+        { label: "NEAR payout account", column: sql`${workers.nearAccount}` },
+        { label: "EVM payout address", column: sql`lower(${workers.evmAddress})` },
+        { label: "Concordium payout account", column: sql`${workers.payoutAddress}` },
+      ];
+      for (const { label, column } of shared) {
+        const rows = await db
+          .select({
+            people: sql<W[]>`json_agg(json_build_object('id', ${workers.id}, 'pseudonym', ${workers.pseudonym}, 'blocked', ${workers.maxActiveClaims} = 0) order by ${workers.createdAt})`,
+          })
+          .from(workers)
+          .where(and(sql`${column} is not null`, isNull(workers.closedAt)))
+          .groupBy(column)
+          .having(sql`count(*) > 1`);
+        for (const r of rows) signals.push({ kind: "shared payout", detail: `Share one ${label}`, workers: r.people });
+      }
+      // The same worker passed again and again by one owner's agents: collusion looks like this,
+      // above all when the owner reviews the work themselves.
+      const since = new Date(now().getTime() - days * 24 * 3_600_000);
+      const pairs = await db
+        .select({
+          id: workers.id,
+          pseudonym: workers.pseudonym,
+          blocked: sql<boolean>`${workers.maxActiveClaims} = 0`,
+          ownerId: agents.ownerId,
+          passes: sql<number>`count(*)::int`,
+          selfReviewed: sql<number>`count(*) filter (where ${tasks.reviewMode} = 'requester')::int`,
+        })
+        .from(tasks)
+        .innerJoin(agents, eq(agents.id, tasks.agentId))
+        .innerJoin(workers, eq(workers.id, tasks.claimedBy))
+        .where(and(eq(tasks.status, "final_pass"), gte(tasks.updatedAt, since)))
+        .groupBy(workers.id, workers.pseudonym, workers.maxActiveClaims, agents.ownerId)
+        .having(sql`count(*) >= 3`);
+      for (const p of pairs) {
+        signals.push({
+          kind: "repeat pair",
+          detail: `Passed ${p.passes} times in ${days} days by the agents of owner ${p.ownerId.slice(0, 8)}${p.selfReviewed ? `, ${p.selfReviewed} of them reviewed by the owner's own agent` : ""}`,
+          workers: [{ id: p.id, pseudonym: p.pseudonym, blocked: p.blocked }],
+        });
+      }
+      return signals;
+    },
+
     async adminWorkers() {
       const rows = await db
         .select({

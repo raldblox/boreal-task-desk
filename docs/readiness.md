@@ -211,7 +211,9 @@ Seeded on 2026-11-12. The Hermes catalog review (NousResearch/hermes-agent#15309
 
 **Still open:** "verified" is not "unique". One person with two verified PayPal accounts, or two Concordium accounts on one identity, can work as two. Recommendation: key Concordium workers on the identity (the proof's credential ID) rather than the account, and flag workers who share a payout email in `/admin`.
 
-**Status:** fixed except uniqueness
+**Done (2026-11-13):** the Concordium proof also gives a keyed person code (name and date of birth, hashed at once and discarded), so a second document or identity provider finds the first account and is refused. A payout destination can pay one account only. `/admin/workers` lists softer signs (shared payout details, a worker passed again and again by one owner) and can block an account from claiming. Closing an account releases all of these.
+
+**Status:** done for Concordium ID and payout destinations; PayPal-only workers still need a document check to be unique (owner decision)
 
 ### RS-29 · wrong design · workers, business · S2 — The dispute "panel" is one admin
 
@@ -219,7 +221,7 @@ Seeded on 2026-11-12. The Hermes catalog review (NousResearch/hermes-agent#15309
 
 **Fix:** either record a real panel (two or three deciders, a majority, the human member named in the trail) or change R6.3 and the copy to "a person at boreal.work decides". Owner decision; recommendation: change the words now, add a second decider once there are two admins.
 
-**Status:** open
+**Status:** done (6262573): the panel is the AI reviewer and a person; the AI votes, the person decides and wins when they disagree; rulebook 2.2
 
 ### RS-30 · wrong design · business · S3 — "Escrow" on PayPal is a hold on the payer's own account
 
@@ -227,7 +229,7 @@ Seeded on 2026-11-12. The Hermes catalog review (NousResearch/hermes-agent#15309
 
 **Fix:** say "held until the work passes" everywhere a PayPal task is described, and keep "escrow" for the add-on rails where boreal.work's escrow account holds the money.
 
-**Status:** open
+**Status:** done (8bc36c2)
 
 ## Needs the owner
 

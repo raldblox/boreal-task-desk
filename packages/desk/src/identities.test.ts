@@ -1,5 +1,5 @@
 import { createDevConcordium } from "@boreal/concordium";
-import { agents, type Database, eq, owners, workers } from "@boreal/db";
+import { agents, type Database, eq, inArray, owners, workers } from "@boreal/db";
 import { createTestDb } from "@boreal/db/testing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -278,5 +278,56 @@ describe("owners", () => {
     const [owner] = await db.select().from(owners).where(eq(owners.verifiedRef, ref(1)));
     expect(owner).toBeDefined();
     expect((await desk.listOwnerAgents(worker.id)).map((a) => a.name)).toEqual(["Hermes 2"]);
+  });
+});
+
+describe("one person, one account", () => {
+  const person = `ccdp:${"e".repeat(64)}`;
+
+  it("refuses a second account for the same person, whichever document they prove with", async () => {
+    const first = await desk.signInVerifiedWorker({ ...concordium(1), personRef: person });
+    // The same document again signs in to the same account.
+    expect((await desk.signInVerifiedWorker({ ...concordium(1), personRef: person })).id).toBe(first.id);
+    // Another document (or provider) of the same person can't open a second one.
+    await expectDeskError(desk.signInVerifiedWorker({ ...concordium(2), personRef: person }), "conflict", /already has a boreal.work account/);
+    // Nor can it be added to a PayPal account.
+    const other = asWorker(await desk.signInWithPayPal(paypal(3)));
+    await expectDeskError(desk.linkVerifiedConcordium(other, { ...concordium(2), personRef: person }), "conflict", /one account per person/);
+    // A different person is fine.
+    await desk.signInVerifiedWorker({ ...concordium(4), personRef: `ccdp:${"f".repeat(64)}` });
+  });
+
+  it("lets a payout destination pay one account only, until that account is closed", async () => {
+    const a = asWorker(await desk.signInWithPayPal(paypal(1)));
+    const b = asWorker(await desk.signInWithPayPal(paypal(2)));
+    await desk.setPayoutAddress(a, "worker-a.testnet", "near");
+    await expectDeskError(desk.setPayoutAddress(b, "worker-a.testnet", "near"), "conflict", /already connected to another boreal.work account/);
+    await desk.setPayoutAddress(a, `0x${"Ab".repeat(20)}`, "evm");
+    await expectDeskError(desk.setPayoutAddress(b, `0x${"aB".repeat(20)}`, "evm"), "conflict");
+    // Reconnecting your own is fine.
+    await desk.setPayoutAddress(a, "worker-a.testnet", "near");
+    await desk.closeAccount((a as { workerId: string }).workerId);
+    await desk.setPayoutAddress(b, "worker-a.testnet", "near");
+  });
+});
+
+describe("signs of one person behind two accounts", () => {
+  it("shows a shared payout destination to operators, who can block an account from claiming", async () => {
+    const a = asWorker(await desk.signInWithPayPal(paypal(1)));
+    const b = asWorker(await desk.signInWithPayPal(paypal(2)));
+    // Two accounts sharing one payout account from before the rule: the desk names it, never shows it.
+    const [ida, idb] = [(a as { workerId: string }).workerId, (b as { workerId: string }).workerId];
+    await db.update(workers).set({ nearAccount: "shared.testnet" }).where(inArray(workers.id, [ida, idb]));
+    const signals = await desk.adminSamePersonSignals();
+    expect(signals).toHaveLength(1);
+    expect(signals[0]!.detail).toBe("Share one NEAR payout account");
+    expect(JSON.stringify(signals)).not.toContain("shared.testnet");
+    expect(signals[0]!.workers.map((w) => w.id).sort()).toEqual([ida, idb].sort());
+
+    const admin = { ref: "ccdid:admin-1" };
+    await desk.adminSetWorkerBlocked(admin, idb, true, "one person, two accounts");
+    const task = await openTask([]);
+    await expectDeskError(desk.claimTask(b, task), "forbidden");
+    expect((await desk.adminSamePersonSignals())[0]!.workers.find((w) => w.id === idb)?.blocked).toBe(true);
   });
 });

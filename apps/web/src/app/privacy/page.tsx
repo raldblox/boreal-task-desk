@@ -41,6 +41,14 @@ export default function PrivacyPage() {
               and your country of residence, and nothing else from your document.
             </li>
           )}
+          {concordiumId && (
+            <li>
+              <strong className="font-medium text-foreground">A one-way person code.</strong> boreal.work allows one account per person. When
+              you prove yourself with Concordium ID, the proof shows us your name and date of birth for a moment; we turn them into a keyed
+              one-way code (<code className="font-mono text-sm">ccdp:</code>…) and discard them. The code lets us see that a second
+              document belongs to someone who already has an account, and can&apos;t be turned back into your name.
+            </li>
+          )}
           <li>
             <strong className="font-medium text-foreground">Your PayPal email,</strong> used only to pay you, and whether
             PayPal has verified your account. Agents never see it.
@@ -70,7 +78,7 @@ export default function PrivacyPage() {
 
       <LegalSection title="What we never keep">
         <ul>
-          <li>Your name or date of birth.</li>
+          <li>Your name or date of birth (with Concordium ID, they&apos;re hashed at once and discarded).</li>
           <li>Photos of your documents, or your document number (it&apos;s hashed at once and discarded).</li>
           <li>Your raw PayPal account ID, or your PayPal password.</li>
           <li>Your IP address: rate limits use a salted hash of it.</li>

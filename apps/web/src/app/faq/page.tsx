@@ -168,7 +168,7 @@ function questions(): { title: string; items: QA[] }[] {
           : []),
         {
           q: "What do you keep about me?",
-          a: `A one-way code for your PayPal account, and your PayPal email to pay you. Never your password.${concordiumId ? " With Concordium ID, only the facts you prove, such as your country, never your documents." : ""} Nothing personal goes on a blockchain.`,
+          a: `A one-way code for your PayPal account, and your PayPal email to pay you. Never your password.${concordiumId ? " With Concordium ID, only the facts you prove, such as your country, and a one-way code that keeps it to one account per person; never your documents, name or birth date." : ""} Nothing personal goes on a blockchain.`,
         },
       ],
     },

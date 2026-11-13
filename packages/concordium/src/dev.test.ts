@@ -107,6 +107,24 @@ describe("Concordium ID App presentations", () => {
     expect(readPresentation(identity(full), "q".repeat(32)).pseudonym).not.toBe(base);
   });
 
+  it("finds the same person across documents and providers, keeping only a one-way code", () => {
+    const named = (doc: string, first = "José", last = "Dela Cruz") => [
+      ...full.map((st) => (st.attributeTag === "idDocNo" ? { ...st, attributeValue: doc } : st)),
+      { type: "AttributeValue", attributeTag: "firstName", attributeValue: first },
+      { type: "AttributeValue", attributeTag: "lastName", attributeValue: last },
+      { type: "AttributeValue", attributeTag: "dob", attributeValue: "19950314" },
+    ];
+    const passport = readPresentation(identity(named("P1234567")), secret);
+    const nationalId = readPresentation(identity(named("1234-5678-9012", "jose", "DELACRUZ"), "did:ccd:testnet:idp:3"), secret);
+    expect(passport.pseudonym).not.toBe(nationalId.pseudonym);
+    expect(passport.personRef).toMatch(/^ccdp:[0-9a-f]{64}$/);
+    expect(nationalId.personRef).toBe(passport.personRef);
+    expect(readPresentation(identity(named("P1234567", "Maria")), secret).personRef).not.toBe(passport.personRef);
+    expect(JSON.stringify(passport)).not.toMatch(/Jos|Cruz|1995/i);
+    // An older proof without the name has no person code; the document still keeps one account.
+    expect(readPresentation(identity(full), secret).personRef).toBeUndefined();
+  });
+
   it("rejects a proof without the age statement or document details, or an account credential", () => {
     expect(() => readPresentation(identity(full.slice(1)), secret)).toThrow(/18 or older/);
     expect(() => readPresentation(identity(full.slice(0, 2)), secret)).toThrow(/document/);

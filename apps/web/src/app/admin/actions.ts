@@ -72,6 +72,14 @@ export async function setAgentStatus(agentId: string, _prev: AdminActionState, f
   });
 }
 
+export async function setWorkerBlocked(workerId: string, _prev: AdminActionState, form: FormData): Promise<AdminActionState> {
+  return asAdmin(form, async (admin, reason) => {
+    const blocked = text(form, "blocked") === "yes";
+    const worker = await getDesk().adminSetWorkerBlocked(admin, workerId, blocked, reason);
+    return blocked ? `${worker.pseudonym} can no longer claim tasks.` : `${worker.pseudonym} can claim tasks again.`;
+  });
+}
+
 export async function retryOutbox(outboxId: number, _prev: AdminActionState, form: FormData): Promise<AdminActionState> {
   return asAdmin(form, async (admin, reason) => {
     await getDesk().adminRetryOutbox(admin, outboxId, reason);

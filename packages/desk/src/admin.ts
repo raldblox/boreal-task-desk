@@ -134,6 +134,22 @@ export function adminCommands(db: Database, now: () => Date, review: ReviewComma
     },
 
     /**
+     * Stops a worker claiming tasks (their claim limit goes to 0), or lets them again. For one
+     * person working through two accounts: work already claimed or submitted runs its course.
+     */
+    async adminSetWorkerBlocked(admin: Admin, workerId: string, blocked: boolean, reason: string) {
+      const why = requireReason(reason);
+      return db.transaction(async (tx) => {
+        const [worker] = await tx.select().from(workers).where(eq(workers.id, workerId)).for("update");
+        if (!worker) throw new DeskError("not_found", "worker not found");
+        if ((worker.maxActiveClaims === 0) === blocked) throw new DeskError("conflict", blocked ? "already blocked" : "not blocked");
+        await tx.update(workers).set({ maxActiveClaims: blocked ? 0 : 1, updatedAt: now() }).where(eq(workers.id, workerId));
+        await record(tx, admin, { action: blocked ? "block_worker" : "unblock_worker", target: `worker:${workerId}`, reason: why, detail: { pseudonym: worker.pseudonym } }, "ok");
+        return { pseudonym: worker.pseudonym, blocked };
+      });
+    },
+
+    /**
      * Makes a failing outbox row due now instead of after its backoff. Nothing else changes:
      * payouts stay journaled and keyed, so a retry never pays twice.
      */

@@ -161,6 +161,7 @@ export function accountCommands(db: Database, now: () => Date) {
             paypalVerified: false,
             concordiumRef: null,
             concordiumWalletRef: null,
+            personRef: null,
             provenAttributes: {},
             payoutAddress: null,
             nearAccount: null,
