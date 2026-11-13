@@ -4,7 +4,7 @@ import { useEffect } from "react";
 
 /**
  * Lets the sky answer the pointer: writes its position as --px and --py (0 to 1) on <html>, at
- * most once a frame, for the backdrop's aurora and light (globals.css: .bb-pointer, .bb-light).
+ * most once a frame, for the backdrops' pointer parallax (globals.css: .depth-layer).
  * Mouse and pen only, and nothing at all for people who ask for less motion.
  */
 export function BackdropPointer() {

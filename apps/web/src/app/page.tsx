@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
 
 import { HeadMark } from "@/components/brand";
+import { NightBackdrop } from "@/components/night-backdrop";
 import { ClosingBand } from "@/components/closing-band";
 import { CopyBlock } from "@/components/copy-block";
 import { HeroTasks } from "@/components/hero-tasks";
@@ -156,7 +157,8 @@ export default function Home() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
 
       {/* Hero */}
-      <section data-hero="full" className="flex min-h-[calc(100svh-var(--header-h))] items-center">
+      <section data-hero="full" className="dark relative isolate flex min-h-[calc(100svh-var(--header-h))] items-center text-foreground">
+        <NightBackdrop />
         <Container className="grid w-full items-center gap-14 py-16 md:py-20 lg:grid-cols-[1.2fr_1fr]">
           <div className="flex flex-col gap-7">
             <Kicker>Paid when the work passes</Kicker>

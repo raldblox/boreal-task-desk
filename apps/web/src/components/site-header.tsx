@@ -59,7 +59,7 @@ function TestnetBanner() {
 
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/70">
+    <header data-site-header className="sticky top-0 z-40 border-b bg-background/80 text-foreground backdrop-blur-md supports-[backdrop-filter]:bg-background/70">
       <Container className="flex h-16 items-center justify-between gap-4">
         <div className="flex items-center gap-8">
           <BorealLogo />

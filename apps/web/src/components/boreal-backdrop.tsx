@@ -3,8 +3,8 @@ import { BackdropPointer } from "@/components/backdrop-pointer";
 // The site's top backdrop: a boreal forest under a daylight sky with a soft aurora, drawn as SVG.
 // Purely decorative, rendered once on the server; it fades out into the page background.
 
-const W = 1600;
-const H = 640;
+export const W = 1600;
+export const H = 640;
 
 /** A small seeded random, so the forest is the same on every render (and server and client agree). */
 function seeded(seed: number) {
@@ -54,9 +54,14 @@ export function forest(seed: number, { base, hMin, hMax, gap, x0 = -40, x1 = W +
   return d;
 }
 
-const FAR = forest(7, { base: 520, hMin: 26, hMax: 58, gap: 13 });
-const MID = forest(19, { base: 580, hMin: 48, hMax: 110, gap: 22 });
-const NEAR = forest(31, { base: 650, hMin: 150, hMax: 290, gap: 38, keepOut: [90, 1120] });
+/** The two mountain ridges and the snow on the far one (also drawn at night by the home hero). */
+export const RIDGE_FAR = "M0 400 L60 425 L140 415 L230 445 L360 380 L470 420 L560 400 L700 330 L790 370 L880 350 L990 300 L1080 345 L1180 320 L1300 360 L1420 330 L1520 370 L1600 350 L1600 640 L0 640 Z";
+export const SNOW_CAPS = "M990 300 L1030 322 L1012 324 L1050 338 L1080 345 L1040 333 Z M700 330 L735 350 L718 352 L760 362 Z";
+export const RIDGE_NEAR = "M0 470 L90 492 L170 468 L300 485 L420 450 L560 470 L700 440 L860 465 L1000 430 L1140 460 L1280 440 L1440 470 L1600 450 L1600 640 L0 640 Z";
+
+export const FAR = forest(7, { base: 520, hMin: 26, hMax: 58, gap: 13 });
+export const MID = forest(19, { base: 580, hMin: 48, hMax: 110, gap: 22 });
+export const NEAR = forest(31, { base: 650, hMin: 150, hMax: 290, gap: 38, keepOut: [90, 1120] });
 
 export function BorealBackdrop() {
   return (
@@ -75,12 +80,6 @@ export function BorealBackdrop() {
             <stop offset="0" stopColor="#fffaf0" stopOpacity="0.95" />
             <stop offset="1" stopColor="#fffaf0" stopOpacity="0" />
           </radialGradient>
-          <linearGradient id="bb-aurora" x1="0" y1="1" x2="0" y2="0">
-            <stop offset="0" stopColor="#22d38c" stopOpacity="1" />
-            <stop offset="0.3" stopColor="#1fb8a6" stopOpacity="0.75" />
-            <stop offset="0.75" stopColor="#5ac6bd" stopOpacity="0.25" />
-            <stop offset="1" stopColor="#5ac6bd" stopOpacity="0" />
-          </linearGradient>
           <linearGradient id="bb-mist" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor="#f4f9f8" stopOpacity="0" />
             <stop offset="0.6" stopColor="#f4f9f8" stopOpacity="0.85" />
@@ -99,16 +98,8 @@ export function BorealBackdrop() {
           <mask id="bb-wash-mask" maskContentUnits="userSpaceOnUse">
             <rect width={W} height={H} fill="url(#bb-wash-fade)" />
           </mask>
-          <linearGradient id="bb-aurora-high" x1="0" y1="1" x2="0" y2="0">
-            <stop offset="0" stopColor="#4fdcb8" stopOpacity="0.85" />
-            <stop offset="0.5" stopColor="#2aa39b" stopOpacity="0.4" />
-            <stop offset="1" stopColor="#5ac6bd" stopOpacity="0" />
-          </linearGradient>
           <filter id="bb-soft" filterUnits="userSpaceOnUse" x="-300" y="-300" width={W + 600} height={H + 600}>
             <feGaussianBlur stdDeviation="22" />
-          </filter>
-          <filter id="bb-haze" filterUnits="userSpaceOnUse" x="-300" y="-300" width={W + 600} height={H + 600}>
-            <feGaussianBlur stdDeviation="8" />
           </filter>
         </defs>
 
@@ -117,58 +108,39 @@ export function BorealBackdrop() {
 
       </svg>
 
-      {/* Aurora: soft curtains, faint as it would be by day. Each sits on its own layer and drifts
-          slowly (globals.css: .bb-aurora-*), moved by the compositor so the blur isn't redrawn. */}
+      {/* No aurora by day: it can't be seen in a sunlit sky (the home page's night has it).
+          The pointer moves the viewer's head instead: nearer layers shift further (.depth-layer). */}
       <BackdropPointer />
-      {/* A soft teal light under the pointer (mouse and pen only). */}
-      <div className="bb-light absolute inset-0" />
-      <div className="bb-par absolute inset-0 [--d:0.55]">
-      <div className="bb-pointer absolute inset-0">
-      <div className="bb-aurora bb-aurora-a absolute inset-y-0 -inset-x-[6%]">
-        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" className="size-full">
-          <path d="M-60 300 C 200 380, 430 250, 700 330 S 1150 240, 1380 320 S 1620 260, 1700 280 L 1700 -40 L -60 -40 Z" fill="url(#bb-aurora)" filter="url(#bb-soft)" />
-          <path d="M-60 170 C 260 250, 520 140, 820 200 S 1200 270, 1700 170 L 1700 -40 L -60 -40 Z" fill="url(#bb-aurora-high)" filter="url(#bb-soft)" opacity="0.75" />
-        </svg>
-      </div>
-      <div className="bb-aurora bb-aurora-b absolute inset-y-0 -inset-x-[6%]">
-        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" className="size-full">
-          <path d="M380 280 C 640 200, 900 300, 1140 230 S 1460 190, 1700 250 L 1700 20 L 380 20 Z" fill="url(#bb-aurora)" filter="url(#bb-soft)" opacity="0.8" />
-          {/* The curtain's rays, across the whole sky. */}
-          <g opacity="0.6" filter="url(#bb-haze)" stroke="#3fd9a4" strokeWidth="6" fill="none">
-            {Array.from({ length: 44 }, (_, i) => {
-              const x = -20 + i * 38;
-              const hem = 300 + Math.sin(i * 0.45) * 45;
-              return <path key={i} d={`M${x + 24} ${hem - 190 - Math.cos(i * 1.3) * 30} L${x} ${hem}`} />;
-            })}
-          </g>
-        </svg>
-      </div>
-      </div>
-      </div>
 
       {/* Parallax: each layer below slides at its own rate as the page scrolls (globals.css: .bb-par),
           far layers slowest, so the scene has depth. */}
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" className="bb-par absolute inset-0 size-full [--d:0.45]">
+        <g className="depth-layer [--k:2]">
         {/* Clouds */}
         <g fill="#ffffff" filter="url(#bb-soft)" opacity="0.8">
           <ellipse cx="260" cy="120" rx="220" ry="34" />
           <ellipse cx="1180" cy="90" rx="260" ry="30" />
           <ellipse cx="760" cy="60" rx="180" ry="22" />
         </g>
+        </g>
       </svg>
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" className="bb-par absolute inset-0 size-full [--d:0.32]">
+        <g className="depth-layer [--k:5]">
         {/* Mountains */}
-        <path d="M0 400 L60 425 L140 415 L230 445 L360 380 L470 420 L560 400 L700 330 L790 370 L880 350 L990 300 L1080 345 L1180 320 L1300 360 L1420 330 L1520 370 L1600 350 L1600 640 L0 640 Z" fill="#c2d8de" />
-        <path d="M990 300 L1030 322 L1012 324 L1050 338 L1080 345 L1040 333 Z M700 330 L735 350 L718 352 L760 362 Z" fill="#eef5f6" />
-        <path d="M0 470 L90 492 L170 468 L300 485 L420 450 L560 470 L700 440 L860 465 L1000 430 L1140 460 L1280 440 L1440 470 L1600 450 L1600 640 L0 640 Z" fill="#b2cdd2" />
+        <path d={RIDGE_FAR} fill="#c2d8de" />
+        <path d={SNOW_CAPS} fill="#eef5f6" />
+        <path d={RIDGE_NEAR} fill="#b2cdd2" />
 
         <rect y="400" width={W} height="160" fill="url(#bb-mist)" />
+        </g>
       </svg>
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" className="bb-par absolute inset-0 size-full [--d:0.16]">
+        <g className="depth-layer [--k:12]">
         <path d={FAR} fill="#93b8b8" />
         <rect y="470" width={W} height="140" fill="url(#bb-mist)" opacity="0.8" />
         <path d={MID} fill="#6e9c9a" />
         <rect y="540" width={W} height="120" fill="url(#bb-mist)" opacity="0.6" />
+        </g>
       </svg>
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" className="absolute inset-0 size-full">
         {/* Keep the left, where the headline and text sit, calm and readable. */}

@@ -91,7 +91,9 @@
   --sidebar-ring: oklch(0.470 0.085 195.0);
 }
 
-.dark {
+/* Dark tokens: dark mode, the home page's night hero, and the header while it sits over that night. */
+.dark,
+:root:has([data-hero="full"]):not([data-past-hero]) [data-site-header] {
   /* Dark mode: Aurora Teal (see brand.md) */
   --background: oklch(0.155 0.016 215.0);
   --foreground: oklch(0.960 0.008 200.0);
@@ -140,30 +142,6 @@
     @apply font-sans;
   }
 }
-/* The backdrop's aurora (components/boreal-backdrop.tsx): a slow, faint drift. Transform and
-   opacity only, so it runs on the compositor; still for people who ask for less motion. */
-.bb-aurora {
-  transform-origin: 50% 0;
-  will-change: transform, opacity;
-}
-.bb-aurora-a {
-  animation: bb-aurora-a 26s ease-in-out infinite;
-}
-.bb-aurora-b {
-  animation: bb-aurora-b 34s ease-in-out -9s infinite;
-}
-@keyframes bb-aurora-a {
-  0%, 100% { transform: translate3d(-1.5%, 0, 0) scaleY(0.97); opacity: 0.8; }
-  50% { transform: translate3d(1.5%, -1%, 0) scaleY(1.05); opacity: 1; }
-}
-@keyframes bb-aurora-b {
-  0%, 100% { transform: translate3d(1.2%, 0, 0) scaleY(1.03); opacity: 1; }
-  50% { transform: translate3d(-1.8%, 0.6%, 0) scaleY(0.95); opacity: 0.65; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .bb-aurora { animation: none; }
-}
-
 /* The backdrop's size: the top of most pages; the whole first screen on the home page. */
 .bb-root {
   height: 560px;
@@ -172,9 +150,25 @@
 @media (min-width: 768px) {
   .bb-root { height: 640px; }
 }
+/* The home page has its own night sky (components/night-backdrop.tsx) instead. */
 body:has([data-hero="full"]) .bb-root {
-  height: max(100svh, 640px);
-  mask-image: linear-gradient(to bottom, black 82%, transparent);
+  display: none;
+}
+
+/* The night hero's backdrop reaches up behind the header; its CSS gradient is the sky until the
+   shader draws, and stays where WebGL isn't available. */
+.night-root {
+  top: calc(-1 * var(--header-h, 4rem));
+  background: linear-gradient(to bottom, #020b10, #061a20 55%, #0b252c 64%, #071a1e);
+}
+/* The viewer's head follows the pointer, day or night: nearer layers shift further (--k px at
+   the screen's edge); the sky and anything in it stay put, as real parallax does. */
+.depth-layer {
+  transform: translate3d(calc((0.5 - var(--px, 0.5)) * var(--k, 0) * 1px), calc((0.5 - var(--py, 0.5)) * var(--k, 0) * 0.3px), 0);
+  transition: transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .depth-layer { transform: none; transition: none; }
 }
 
 /* The backdrop's parallax: each .bb-par layer slides down by --d of the scroll over the hero, so far
@@ -235,22 +229,6 @@ body:has([data-hero="full"]) .bb-root {
   .mobile-menu-in { animation: none; }
 }
 
-/* The backdrop answers the pointer (components/backdrop-pointer.tsx sets --px and --py): the
-   aurora leans a little toward it, and a soft teal light follows it. Off without a fine pointer
-   and for reduced motion, where --px and --py are never set. */
-.bb-pointer {
-  transform: translate3d(calc((var(--px, 0.5) - 0.5) * 36px), calc((var(--py, 0.3) - 0.3) * 18px), 0);
-  transition: transform 900ms cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: transform;
-}
-.bb-light {
-  opacity: 0;
-  background: radial-gradient(520px circle at calc(var(--px, 0.5) * 100%) calc(var(--py, 0.3) * 100%), rgb(90 198 189 / 0.22), transparent 60%);
-  transition: opacity 600ms ease-out;
-}
-:root[data-pointer="on"] .bb-light {
-  opacity: 1;
-}
 
 /* The eyebrow's ribbon (components/brand.tsx, RibbonMark): the logo's first chevron unrolls from
    its notched end when the label arrives, once. */
