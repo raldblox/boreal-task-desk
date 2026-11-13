@@ -156,7 +156,7 @@ export default function Home() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
 
       {/* Hero */}
-      <section data-hero="full" className="flex min-h-[calc(100svh-7rem)] items-center">
+      <section data-hero="full" className="flex min-h-[calc(100svh-var(--header-h))] items-center">
         <Container className="grid w-full items-center gap-14 py-16 md:py-20 lg:grid-cols-[1.2fr_1fr]">
           <div className="flex flex-col gap-7">
             <Kicker>Paid when the work passes</Kicker>
@@ -184,7 +184,6 @@ export default function Home() {
             <PoweredBy />
           </div>
           <div className="hero-float relative mx-auto w-full max-w-md">
-            <div className="absolute inset-x-8 -bottom-4 h-full rounded-3xl border bg-background/80 backdrop-blur-sm" aria-hidden="true" />
             <TiltCard>
               <HeroTasks privateReview={privateReview} />
             </TiltCard>

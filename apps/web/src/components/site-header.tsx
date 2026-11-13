@@ -6,6 +6,7 @@ import { AccountMenu } from "@/components/account-menu";
 import { BorealLogo } from "@/components/brand";
 import { Container } from "@/components/page";
 import { buttonVariants } from "@/components/ui/button";
+import { MobileMenu } from "@/components/mobile-menu";
 import { NavLinks } from "@/components/nav-links";
 import { GUIDE_FACTS, LIVE_SITE, NETWORK, SITE } from "@/content/agent-guide";
 import { workerHandle } from "@/lib/format";
@@ -41,7 +42,7 @@ function TestnetBanner() {
   if (!demoMoney()) return null;
   const rails = `the PayPal sandbox${GUIDE_FACTS.concordiumRail ? " and Concordium testnet tokens" : ""}${GUIDE_FACTS.nearRail ? " and USDC on NEAR testnet" : ""}`;
   return (
-    <p className="border-t border-border/70 bg-primary-soft/60 px-4 py-1.5 text-center text-xs font-medium text-primary-soft-foreground">
+    <p data-testnet-banner className="h-7 truncate border-t border-border/70 bg-primary-soft/60 px-4 py-1.5 text-center text-xs leading-4 font-medium text-primary-soft-foreground">
       <span className="sm:hidden">Testnet: never real money.</span>
       <span className="hidden sm:inline">Testnet: payments here use {rails}, never real money.</span>
       {SITE !== LIVE_SITE && (
@@ -66,14 +67,13 @@ export function SiteHeader() {
             <NavLinks />
           </nav>
         </div>
-        <Suspense fallback={<div className="h-10 w-24" />}>
-          <Account />
-        </Suspense>
+        <div className="flex items-center gap-2">
+          <Suspense fallback={<div className="h-10 w-24" />}>
+            <Account />
+          </Suspense>
+          <MobileMenu />
+        </div>
       </Container>
-      {/* On phones the links get their own row, so tasks are one tap away on every page. */}
-      <nav aria-label="Main" className="flex gap-1 overflow-x-auto border-t px-3 py-1.5 text-sm whitespace-nowrap md:hidden">
-        <NavLinks />
-      </nav>
       <TestnetBanner />
     </header>
   );

@@ -6,7 +6,7 @@ import { Suspense } from "react";
 
 import { cn } from "@/lib/utils";
 
-const NAV = [
+export const NAV = [
   { href: "/tasks", label: "Find tasks" },
   { href: "/post", label: "Post a task" },
   { href: "/agents", label: "For agents" },

@@ -1,3 +1,5 @@
+import { BackdropPointer } from "@/components/backdrop-pointer";
+
 // The site's top backdrop: a boreal forest under a daylight sky with a soft aurora, drawn as SVG.
 // Purely decorative, rendered once on the server; it fades out into the page background.
 
@@ -117,7 +119,11 @@ export function BorealBackdrop() {
 
       {/* Aurora: soft curtains, faint as it would be by day. Each sits on its own layer and drifts
           slowly (globals.css: .bb-aurora-*), moved by the compositor so the blur isn't redrawn. */}
+      <BackdropPointer />
+      {/* A soft teal light under the pointer (mouse and pen only). */}
+      <div className="bb-light absolute inset-0" />
       <div className="bb-par absolute inset-0 [--d:0.55]">
+      <div className="bb-pointer absolute inset-0">
       <div className="bb-aurora bb-aurora-a absolute inset-y-0 -inset-x-[6%]">
         <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" className="size-full">
           <path d="M-60 300 C 200 380, 430 250, 700 330 S 1150 240, 1380 320 S 1620 260, 1700 280 L 1700 -40 L -60 -40 Z" fill="url(#bb-aurora)" filter="url(#bb-soft)" />
@@ -136,6 +142,7 @@ export function BorealBackdrop() {
             })}
           </g>
         </svg>
+      </div>
       </div>
       </div>
 

@@ -29,18 +29,21 @@ export function BorealMark({ className = "size-6" }: { className?: string }) {
 }
 
 /**
- * The person band of the mark on its own (tail, load, round head), as a small marker in front of an
- * eyebrow: the work, carried forward. Same paths as the mark, cropped to the band, so it is never
- * redrawn by eye. Decorative: screen readers skip it.
+ * The eyebrow mark: the person's round head flying forward, a tapering trail behind it. The head
+ * is the mark's own path; the trail is its motion. On arrival the trail draws in and the head
+ * settles (globals.css: .trail-mark), once; still for people who ask for less motion.
  */
-export function BandMark({ className = "h-2.5 w-auto" }: { className?: string }) {
+export function TrailMark({ className = "h-2.5 w-auto" }: { className?: string }) {
   return (
-    <svg viewBox="3.29 16.875 25.42 11.625" className={className} aria-hidden="true">
-      <g className="fill-current">
-        <path d={MARK_PATHS.botTail} opacity={0.45} />
-        <path d={MARK_PATHS.botLoad} opacity={0.45} />
-        <path d={MARK_PATHS.botHead} />
-      </g>
+    <svg viewBox="0 0 26 11.625" className={`trail-mark ${className}`} aria-hidden="true">
+      <defs>
+        <linearGradient id="trail-fade" x1="0" x2="1" y1="0" y2="0">
+          <stop offset="0" stopColor="currentColor" stopOpacity="0" />
+          <stop offset="1" stopColor="currentColor" stopOpacity="0.45" />
+        </linearGradient>
+      </defs>
+      <path className="trail-mark-trail" d="M0 5.8125 L19.29 0 V11.625 Z" fill="url(#trail-fade)" />
+      <path className="trail-mark-head" d="M20.19 0A5.81 5.81 0 0 1 20.19 11.625Z" fill="currentColor" />
     </svg>
   );
 }
@@ -67,7 +70,7 @@ export function BorealLogo() {
 export function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
     <p className="flex items-center gap-2.5 font-mono text-xs font-medium tracking-[0.18em] text-primary uppercase">
-      <BandMark />
+      <TrailMark />
       {children}
     </p>
   );

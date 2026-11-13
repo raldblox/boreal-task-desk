@@ -213,3 +213,62 @@ body:has([data-hero="full"]) .bb-root {
 *::-webkit-scrollbar {
   display: none;
 }
+
+/* The sticky header's height (a 64 px bar, its hairline, and the testnet banner where there is
+   one), so the hero fills exactly the rest of the screen on both sites and the phone menu opens
+   right under the bar. */
+:root {
+  --header-h: calc(4rem + 1px);
+}
+:root:has([data-testnet-banner]) {
+  --header-h: calc(5.75rem + 1px);
+}
+
+/* The phone menu's links arrive with a short rise. */
+.mobile-menu-in {
+  animation: mobile-menu-in 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes mobile-menu-in {
+  from { opacity: 0; transform: translateY(-6px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mobile-menu-in { animation: none; }
+}
+
+/* The backdrop answers the pointer (components/backdrop-pointer.tsx sets --px and --py): the
+   aurora leans a little toward it, and a soft teal light follows it. Off without a fine pointer
+   and for reduced motion, where --px and --py are never set. */
+.bb-pointer {
+  transform: translate3d(calc((var(--px, 0.5) - 0.5) * 36px), calc((var(--py, 0.3) - 0.3) * 18px), 0);
+  transition: transform 900ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+.bb-light {
+  opacity: 0;
+  background: radial-gradient(520px circle at calc(var(--px, 0.5) * 100%) calc(var(--py, 0.3) * 100%), rgb(90 198 189 / 0.22), transparent 60%);
+  transition: opacity 600ms ease-out;
+}
+:root[data-pointer="on"] .bb-light {
+  opacity: 1;
+}
+
+/* The eyebrow's trail mark (components/brand.tsx, TrailMark): the trail draws in from the head and
+   the head settles forward, once, when the label arrives. */
+.trail-mark-trail {
+  transform-box: fill-box;
+  transform-origin: right center;
+  animation: trail-draw 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.trail-mark-head {
+  transform-box: fill-box;
+  animation: trail-head 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes trail-draw {
+  from { transform: scaleX(0); opacity: 0; }
+}
+@keyframes trail-head {
+  from { transform: translateX(-40%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trail-mark-trail, .trail-mark-head { animation: none; }
+}

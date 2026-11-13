@@ -88,7 +88,7 @@ export function HeroTasks({ privateReview }: { privateReview: boolean }) {
   const s = SAMPLES[i]!;
   return (
     <div
-      className="relative flex flex-col gap-5 rounded-3xl border bg-card/90 p-7 shadow-[0_30px_60px_-30px] shadow-foreground/25 backdrop-blur-md"
+      className="relative flex flex-col gap-5 rounded-2xl border bg-card p-7"
       onPointerEnter={() => setPaused(true)}
       onPointerLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}
