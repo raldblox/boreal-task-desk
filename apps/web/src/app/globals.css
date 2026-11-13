@@ -156,11 +156,9 @@
 .night-root {
   background: linear-gradient(to bottom, #020b10, #061a20 55%, #0b252c 64%, #071a1e);
 }
-/* The home hero has its own night, with the aurora: the layout's steps aside there, so the
-   illustration is only drawn once. */
-body:has([data-hero="full"]) > .bb-root {
-  display: none;
-}
+/* No rule may hide .bb-root by looking for the home hero (body:has([data-hero])): after a client
+   navigation Next keeps the home page mounted but hidden, so such a rule would still match and
+   every other page would lose its sky. The hero's live night simply draws over this one. */
 
 /* The illustration's parallax (components/night-land.tsx): each .bb-par layer slides down by --d
    of the scroll over the first screen, so far layers seem to move slower than near ones.

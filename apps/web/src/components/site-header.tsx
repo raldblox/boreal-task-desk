@@ -42,7 +42,7 @@ function TestnetBanner() {
   if (!demoMoney()) return null;
   const rails = `the PayPal sandbox${GUIDE_FACTS.concordiumRail ? " and Concordium testnet tokens" : ""}${GUIDE_FACTS.nearRail ? " and USDC on NEAR testnet" : ""}`;
   return (
-    <p data-testnet-banner className="h-7 truncate border-t border-border/70 bg-primary/12 px-4 py-1.5 text-center text-xs leading-4 font-medium text-primary">
+    <p data-testnet-banner className="h-7 truncate border-t border-white/6 bg-primary/8 px-4 py-1.5 text-center text-xs leading-4 font-medium text-primary">
       <span className="sm:hidden">Testnet: never real money.</span>
       <span className="hidden sm:inline">Testnet: payments here use {rails}, never real money.</span>
       {SITE !== LIVE_SITE && (
@@ -59,7 +59,7 @@ function TestnetBanner() {
 
 export function SiteHeader() {
   return (
-    <header data-site-header className="sticky top-0 z-40 border-b bg-background/80 text-foreground backdrop-blur-md supports-[backdrop-filter]:bg-background/70">
+    <header data-site-header className="sticky top-0 z-40 border-b border-white/8 bg-background/55 text-foreground backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-background/30">
       <Container className="flex h-16 items-center justify-between gap-4">
         <div className="flex items-center gap-8">
           <BorealLogo />
