@@ -13,7 +13,8 @@ import { disconnectAgentPayPal, revokeAgentKey, setAgentLimits, setAgentPaused }
 import { PayPalLoginButton } from "@/components/paypal-brand";
 import { LimitFields, OwnerActionForm } from "@/components/owner-agent-controls";
 import { ConcordiumLogo, NearLogo } from "@/components/chain-logos";
-import { ConnectConcordiumAccount, ConnectNear, FundAgentWallet } from "@/components/connect-wallet";
+import { EVM_CHAIN_NAMES, evmConnectMessage } from "@boreal/evm";
+import { ConnectConcordiumAccount, ConnectEvm, ConnectNear, FundAgentWallet } from "@/components/connect-wallet";
 import { type AccountTab, AccountTabs, accountTab } from "@/components/account-tabs";
 import { BlockHeading, Container, Cta, EmptyState, LinkTile, MoreLink, PageHero } from "@/components/page";
 import { ConcordiumSignIn } from "@/components/concordium-sign-in";
@@ -489,10 +490,13 @@ async function Integrations() {
   const concordiumOn = addons.on("concordium");
   const tokenPayouts = concordiumOn && rails.includes("concordium");
   const nearOn = addons.ready("near", "rail");
+  const evmOn = addons.ready("evm", "rail");
+  const evmChainId = Number(gatedEnv().EVM_CHAIN_ID);
+  const evmChain = EVM_CHAIN_NAMES[evmChainId] ?? `chain ${evmChainId}`;
   const privateReview = addons.ready("near", "privateReview");
   const proven = Object.entries(profile.provenAttributes);
 
-  if (!concordiumOn && !nearOn) {
+  if (!concordiumOn && !nearOn && !evmOn) {
     return <p className="text-sm text-muted-foreground">This site runs on PayPal alone.</p>;
   }
 
@@ -552,6 +556,32 @@ async function Integrations() {
             message={CONNECT_MESSAGE}
             label={profile.nearAccount ? "Change" : "Connect NEAR"}
             quiet={Boolean(profile.nearAccount)}
+          />
+        </FeatureCard>
+      )}
+
+      {evmOn && (
+        <FeatureCard
+          logo={<Wallet className="size-5" />}
+          title="USDC payouts"
+          by={`on ${evmChain}`}
+          connected={Boolean(profile.evmAddress)}
+          status="Connected"
+          gives={[`Get paid in USDC on ${evmChain}, straight to your own wallet`, "Take tasks that pay there"]}
+          account={
+            profile.evmAddress ? (
+              <span className="font-mono text-xs" title={profile.evmAddress}>
+                {profile.evmAddress.slice(0, 6)}…{profile.evmAddress.slice(-4)}
+              </span>
+            ) : null
+          }
+          hint={<>Free to connect: your wallet signs a message, and nothing moves.</>}
+        >
+          <ConnectEvm
+            template={evmConnectMessage(new URL(SITE).host, "{issuedAt}")}
+            chain={evmChain}
+            label={profile.evmAddress ? "Change" : "Connect wallet"}
+            quiet={Boolean(profile.evmAddress)}
           />
         </FeatureCard>
       )}

@@ -10,12 +10,6 @@ Notes from the model doing deep technical work, for a cheaper model to carry out
 
 ## Open
 
-### 10b. My account → Integrations: an EVM payout card (only once the EVM add-on is on)
-
-- **Where:** `apps/web/src/app/me/page.tsx`, beside the NEAR "USDC payouts" card.
-- **What's missing:** the button exists (`ConnectEvm` in `apps/web/src/components/connect-wallet.tsx`; pass `template={evmConnectMessage(host, "{issuedAt}")}` and the chain's name from `EVM_CHAIN_NAMES[EVM_CHAIN_ID]`), and the guided setup on a task uses it. My account doesn't show it yet, because another session was editing that page.
-- **Done looks like:** a card like NEAR's, shown only when `getAddons().ready("evm", "rail")`, with the connected address shortened, and Change when one is set.
-
 ### 13. The copy pass: words, facts, terms and privacy
 
 - **Status:** pages 1-8 done (see the brief's Progress). Open: the owner's seven legal answers, and the pages the brief didn't cover.
@@ -45,3 +39,4 @@ Notes from the model doing deep technical work, for a cheaper model to carry out
 - 7. My account → Agents: the owner's controls (RS-1, RS-2): 238253f
 - 8. The page where an owner approves a payment (RS-1): 238253f
 - 12. Say when pay really arrives (RS-16): 311b080
+- 10b. My account → Integrations: an EVM payout card (only once the EVM add-on is on): (this commit)

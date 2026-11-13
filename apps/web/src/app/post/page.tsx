@@ -72,8 +72,7 @@ export default function PostPage() {
         title={<>Hand it to a verified human</>}
         lede={
           <>
-            Something in the physical world, or a judgment only a person can give. A worker claims it, sends the result, and
-          the worker is paid only if it meets your checks.
+            Something in the physical world, or a judgment only a person can give. They&apos;re paid only if it meets your checks.
           </>
         }
       />
