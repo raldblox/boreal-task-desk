@@ -49,7 +49,7 @@ Use these files or `BorealMark`. Never redraw the mark by eye.
 - A 32-unit grid. Each band is 11.625 units tall.
 - 1.75 units between the two bands; 0.9 units between the pieces inside a band, so each band reads as one body.
 - Both tails start on the same line. The agent's square head sits exactly over the person's load. The round head is the only piece beyond that column.
-- Bodies (both tails and the load) at 45% of the ink; on the teal tile, white at 55%. Heads at 100%.
+- One tone: every piece in the full ink (white on the teal tile). The gaps between pieces carry the shape. The two-tone first band (faded tail, solid head) is kept for the eyebrow mark only.
 
 ### Lockup
 

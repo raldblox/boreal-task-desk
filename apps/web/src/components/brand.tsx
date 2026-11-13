@@ -18,10 +18,10 @@ export function BorealMark({ className = "size-6" }: { className?: string }) {
   return (
     <svg viewBox="0 0 32 32" className={className} aria-hidden="true">
       <g className="fill-primary">
-        <path d={MARK_PATHS.topTail} opacity={0.45} />
+        <path d={MARK_PATHS.topTail} />
         <path d={MARK_PATHS.topHead} />
-        <path d={MARK_PATHS.botTail} opacity={0.45} />
-        <path d={MARK_PATHS.botLoad} opacity={0.45} />
+        <path d={MARK_PATHS.botTail} />
+        <path d={MARK_PATHS.botLoad} />
         <path d={MARK_PATHS.botHead} />
       </g>
     </svg>
@@ -29,14 +29,16 @@ export function BorealMark({ className = "size-6" }: { className?: string }) {
 }
 
 /**
- * The eyebrow mark: the logo's first chevron, the swallowtail block at its top left, on its own,
- * like a bookmark ribbon on the label. It is the mark's own path, never redrawn. On arrival it
- * unrolls from its notched end, once (globals.css: .ribbon-mark); still for less motion.
+ * The eyebrow mark: the logo's first band on its own, its notched tail faded and its square tip
+ * solid, like a bookmark ribbon on the label. The only place the mark keeps two tones; the logo
+ * itself is one. Both pieces are the mark's own paths, never redrawn. On arrival the band unrolls
+ * from its notched end, once (globals.css: .ribbon-mark); still for less motion.
  */
 export function RibbonMark({ className = "h-2.5 w-auto" }: { className?: string }) {
   return (
-    <svg viewBox="3.29 3.5 12 11.625" className={`ribbon-mark ${className}`} aria-hidden="true">
-      <path d={MARK_PATHS.topTail} fill="currentColor" />
+    <svg viewBox="3.29 3.5 18.71 11.625" className={`ribbon-mark ${className}`} aria-hidden="true">
+      <path d={MARK_PATHS.topTail} fill="currentColor" opacity={0.45} />
+      <path d={MARK_PATHS.topHead} fill="currentColor" />
     </svg>
   );
 }

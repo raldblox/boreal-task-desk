@@ -13,13 +13,13 @@ const NIGHT = "#0b2326";
 const NIGHT_DEEP = "#061416";
 const SNOW = "#f3fbfa";
 
-/** The site's mark (apps/web/src/components/brand.tsx, MARK_PATHS): two rockets in step, light bodies and solid heads. */
-const Mark = ({ color = SNOW, light = 0.55 }: { color?: string; light?: number }) => (
+/** The site's mark (apps/web/src/components/brand.tsx, MARK_PATHS): two rockets in step, one tone. */
+const Mark = ({ color = SNOW }: { color?: string }) => (
   <g fill={color}>
-    <path d="M3.29 3.5H15.29V15.125H3.29L9.1 9.31Z" fillOpacity={light} />
+    <path d="M3.29 3.5H15.29V15.125H3.29L9.1 9.31Z" />
     <path d="M16.19 3.5H22V15.125H16.19Z" />
-    <path d="M3.29 16.875H15.29V28.5H3.29L9.1 22.69Z" fillOpacity={light} />
-    <path d="M16.19 16.875H22V28.5H16.19Z" fillOpacity={light} />
+    <path d="M3.29 16.875H15.29V28.5H3.29L9.1 22.69Z" />
+    <path d="M16.19 16.875H22V28.5H16.19Z" />
     <path d="M22.9 16.875A5.81 5.81 0 0 1 22.9 28.5Z" />
   </g>
 );
@@ -117,7 +117,7 @@ export const XBanner = () => (
     >
       <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
         <svg viewBox="0 0 32 32" width={80} height={80}>
-          <Mark color={TEAL_LIGHT} light={0.5} />
+          <Mark color={TEAL_LIGHT} />
         </svg>
         <span style={{ fontSize: 76, fontWeight: 700, letterSpacing: -2.5 }}>boreal.work</span>
       </div>
