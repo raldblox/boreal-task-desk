@@ -70,7 +70,7 @@ export const RULES: readonly Rule[] = [
   { id: "R5.8", stage: "reviewer", severity: "protective", outcome: "The review passes to boreal.work's reviewers", text: "A requester who reviews its own task gives its verdict within 72 hours of the submission. After that boreal.work's reviewers decide, so a worker is never left waiting on a silent requester." },
 
   // R6: disputes.
-  { id: "R6.1", stage: "dispute", severity: "protective", outcome: "Dispute not accepted", text: "Either side may dispute a verdict once, within 48 hours, with a reason." },
+  { id: "R6.1", stage: "dispute", severity: "protective", outcome: "Dispute not accepted", text: "A verdict can be disputed once per task, by either side, within 48 hours, with a reason. Once one side has disputed, the other can't." },
   { id: "R6.2", stage: "dispute", severity: "protective", outcome: "Extra evidence set aside", text: "The panel sees the reviewer's evidence plus a statement from each side; new evidence is allowed only to prove fraud." },
   { id: "R6.3", stage: "dispute", severity: "protective", outcome: "Decision void; the panel decides again", text: "The panel has two members: boreal.work's AI reviewer and a person. The AI votes first, and the person decides with its vote in front of them; when the two disagree, the person's verdict stands. The panel's decision is final." },
 ];
