@@ -252,25 +252,17 @@ body:has([data-hero="full"]) .bb-root {
   opacity: 1;
 }
 
-/* The eyebrow's trail mark (components/brand.tsx, TrailMark): the trail draws in from the head and
-   the head settles forward, once, when the label arrives. */
-.trail-mark-trail {
-  transform-box: fill-box;
-  transform-origin: right center;
-  animation: trail-draw 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
+/* The eyebrow's ribbon (components/brand.tsx, RibbonMark): the logo's first chevron unrolls from
+   its notched end when the label arrives, once. */
+.ribbon-mark {
+  animation: ribbon-in 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
-.trail-mark-head {
-  transform-box: fill-box;
-  animation: trail-head 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-@keyframes trail-draw {
-  from { transform: scaleX(0); opacity: 0; }
-}
-@keyframes trail-head {
-  from { transform: translateX(-40%); }
+@keyframes ribbon-in {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .trail-mark-trail, .trail-mark-head { animation: none; }
+  .ribbon-mark { animation: none; }
 }
 
 /* The brand's card (task cards and other lists you can open): on hover the mark's round head slides

@@ -1,7 +1,7 @@
 import { ArrowRight, ChevronRight } from "lucide-react";
 import Link from "next/link";
 
-import { TrailMark } from "@/components/brand";
+import { RibbonMark } from "@/components/brand";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -18,7 +18,7 @@ export function Container({ className, children }: { className?: string; childre
 export function Kicker({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <p className={cn("flex items-center gap-2.5 font-mono text-xs font-medium tracking-[0.18em] text-primary uppercase", className)}>
-      <TrailMark />
+      <RibbonMark />
       {children}
     </p>
   );

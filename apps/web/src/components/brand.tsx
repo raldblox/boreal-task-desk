@@ -29,26 +29,18 @@ export function BorealMark({ className = "size-6" }: { className?: string }) {
 }
 
 /**
- * The eyebrow mark: the person's round head flying forward, a tapering trail behind it. The head
- * is the mark's own path; the trail is its motion. On arrival the trail draws in and the head
- * settles (globals.css: .trail-mark), once; still for people who ask for less motion.
+ * The eyebrow mark: the logo's first chevron, the swallowtail block at its top left, on its own,
+ * like a bookmark ribbon on the label. It is the mark's own path, never redrawn. On arrival it
+ * unrolls from its notched end, once (globals.css: .ribbon-mark); still for less motion.
  */
-export function TrailMark({ className = "h-2.5 w-auto" }: { className?: string }) {
+export function RibbonMark({ className = "h-2.5 w-auto" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 26 11.625" className={`trail-mark ${className}`} aria-hidden="true">
-      <defs>
-        <linearGradient id="trail-fade" x1="0" x2="1" y1="0" y2="0">
-          <stop offset="0" stopColor="currentColor" stopOpacity="0" />
-          <stop offset="1" stopColor="currentColor" stopOpacity="0.45" />
-        </linearGradient>
-      </defs>
-      <path className="trail-mark-trail" d="M0 5.8125 L19.29 0 V11.625 Z" fill="url(#trail-fade)" />
-      <path className="trail-mark-head" d="M20.19 0A5.81 5.81 0 0 1 20.19 11.625Z" fill="currentColor" />
+    <svg viewBox="3.29 3.5 12 11.625" className={`ribbon-mark ${className}`} aria-hidden="true">
+      <path d={MARK_PATHS.topTail} fill="currentColor" />
     </svg>
   );
 }
 
-/** The person's round head alone: a list marker in the brand's own shape. */
 export function HeadMark({ className = "size-2" }: { className?: string }) {
   return (
     <svg viewBox="22.9 16.875 5.81 11.625" className={className} aria-hidden="true">
@@ -70,7 +62,7 @@ export function BorealLogo() {
 export function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
     <p className="flex items-center gap-2.5 font-mono text-xs font-medium tracking-[0.18em] text-primary uppercase">
-      <TrailMark />
+      <RibbonMark />
       {children}
     </p>
   );
