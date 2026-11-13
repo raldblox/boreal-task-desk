@@ -8,7 +8,7 @@ import { EVM_CHAIN_NAMES, evmConnectMessage } from "@boreal/evm";
 import { CONNECT_MESSAGE } from "@boreal/near";
 
 import { Eyebrow } from "@/components/brand";
-import { Container } from "@/components/page";
+import { Container, PAGE_TOP } from "@/components/page";
 import { ConnectConcordiumAccount, ConnectEvm, ConnectNear } from "@/components/connect-wallet";
 import { PayPalLoginButton } from "@/components/paypal-brand";
 import { buttonVariants } from "@/components/ui/button";
@@ -155,7 +155,7 @@ async function Setup({ params }: { params: Promise<{ id: string }> }) {
 export default function PayoutSetupPage({ params }: PageProps<"/tasks/[id]/payout">) {
   return (
     <main className="flex-1">
-      <Container className="flex flex-col gap-8 py-10 md:py-14 [&>*]:max-w-[860px]">
+      <Container className={`flex flex-col gap-8 ${PAGE_TOP} pb-10 md:pb-14 [&>*]:max-w-[860px]`}>
       <Link href="/tasks" className="group flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
         <ArrowLeft className="size-4 transition-transform group-hover:-translate-x-0.5" /> Open tasks
       </Link>

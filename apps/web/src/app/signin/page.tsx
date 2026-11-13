@@ -187,7 +187,7 @@ async function SignInOptions({ searchParams }: { searchParams: Promise<{ next?: 
 
 export default function SignInPage({ searchParams }: { searchParams: Promise<{ next?: string; paypal?: string }> }) {
   return (
-    <main className="mx-auto grid w-full max-w-[1280px] flex-1 grid-cols-1 items-start gap-12 px-5 py-14 sm:px-8 md:grid-cols-[1.1fr_1fr] md:py-24 lg:gap-20 lg:px-12">
+    <main className="mx-auto grid w-full max-w-[1280px] flex-1 grid-cols-1 items-start gap-12 px-5 pt-12 pb-14 sm:px-8 md:grid-cols-[1.1fr_1fr] md:pt-16 md:pb-24 lg:gap-20 lg:px-12">
       <div className="flex flex-col gap-6">
         <Eyebrow>Sign in</Eyebrow>
         <h1 className="text-4xl font-light tracking-[-0.035em] text-balance sm:text-5xl">Your PayPal is your account.</h1>

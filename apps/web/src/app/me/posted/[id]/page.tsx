@@ -13,7 +13,7 @@ import { PayWithNear } from "@/components/connect-wallet";
 import { PrivateReviewNote } from "@/components/private-review";
 import { TxLink } from "@/components/tx-link";
 import { Eyebrow } from "@/components/brand";
-import { Container } from "@/components/page";
+import { Container, PAGE_TOP } from "@/components/page";
 import { ReviewForm } from "@/components/poster-forms";
 import { ActionButton, DisputeForm } from "@/components/worker-forms";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -372,7 +372,7 @@ async function PostedTask({ params, searchParams }: Props) {
 export default function PostedTaskPage(props: Props) {
   return (
     <main className="flex-1">
-      <Container className="flex flex-col gap-8 py-10 md:py-14">
+      <Container className={`flex flex-col gap-8 ${PAGE_TOP} pb-10 md:pb-14`}>
       <Link href="/me?tab=posted" className="group flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
         <ArrowLeft className="size-4 transition-transform group-hover:-translate-x-0.5" /> Tasks you posted
       </Link>

@@ -12,7 +12,7 @@ import { RelatedQuestions } from "@/components/related-questions";
 import { PrivateReviewNote } from "@/components/private-review";
 import { TxLink } from "@/components/tx-link";
 import { TaskProgress } from "@/components/task-progress";
-import { Container, Fold } from "@/components/page";
+import { Container, Fold, PAGE_TOP } from "@/components/page";
 import { ActionButton, DisputeForm, SubmitForm } from "@/components/worker-forms";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -414,7 +414,7 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
 export default function TaskPage({ params }: PageProps<"/tasks/[id]">) {
   return (
     <main className="flex-1">
-      <Container className="flex flex-col gap-8 py-10 md:py-14">
+      <Container className={`flex flex-col gap-8 ${PAGE_TOP} pb-10 md:pb-14`}>
       <Link href="/tasks" className="group flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
         <ArrowLeft className="size-4 transition-transform group-hover:-translate-x-0.5" /> Open tasks
       </Link>

@@ -9,6 +9,12 @@ import { cn } from "@/lib/utils";
 // for everything you can press. Navigation is a whole tile or a "Title ›" row; an action is a
 // solid button with an arrow chip. Status is only ever a small pill, never shaped like either.
 
+/**
+ * Where every page's content starts below the header, so the first line (an eyebrow, a back link)
+ * sits at the same height on every page. The home hero is the one exception: it centres itself.
+ */
+export const PAGE_TOP = "pt-12 md:pt-16";
+
 /** The site's width: wide enough for dashboards, with generous gutters. */
 export function Container({ className, children }: { className?: string; children: React.ReactNode }) {
   return <div className={cn("mx-auto w-full max-w-[1280px] px-5 sm:px-8 lg:px-12", className)}>{children}</div>;
@@ -49,7 +55,7 @@ export function PageHero({
 }) {
   return (
     <section>
-      <Container className={cn("flex flex-col gap-8", size === "display" ? "py-16 md:py-28" : "pt-12 pb-10 md:pt-16 md:pb-12", children && "pb-0 md:pb-0")}>
+      <Container className={cn("flex flex-col gap-8", PAGE_TOP, size === "display" ? "pb-16 md:pb-24" : "pb-10 md:pb-12", children && "pb-0 md:pb-0")}>
         <div className="grid items-end gap-8 lg:grid-cols-[minmax(0,1fr)_auto]">
           <div className="flex max-w-3xl flex-col gap-5">
             {kicker && <Kicker>{kicker}</Kicker>}

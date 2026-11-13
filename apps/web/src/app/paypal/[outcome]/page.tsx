@@ -7,7 +7,7 @@ import { after } from "next/server";
 import { Suspense } from "react";
 
 import { Eyebrow } from "@/components/brand";
-import { Container } from "@/components/page";
+import { Container, PAGE_TOP } from "@/components/page";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
 import { CHECKOUT_COOKIE, readCheckout } from "@/lib/checkout";
@@ -128,7 +128,7 @@ async function Outcome({ params, searchParams }: Props) {
 export default function PayPalReturnPage(props: Props) {
   return (
     <main className="flex-1">
-      <Container className="flex flex-col gap-8 py-10 md:py-14 [&>*]:max-w-[860px]">
+      <Container className={`flex flex-col gap-8 ${PAGE_TOP} pb-10 md:pb-14 [&>*]:max-w-[860px]`}>
       <Eyebrow>Task payment</Eyebrow>
       <Suspense fallback={<div className="h-44 animate-pulse rounded-2xl bg-muted" />}>
         <Outcome {...props} />

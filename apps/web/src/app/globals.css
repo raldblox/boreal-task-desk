@@ -143,12 +143,10 @@
   }
 }
 /* The backdrop's size: the top of most pages; the whole first screen on the home page. */
+/* The still sky: the first screen, framed exactly as the home hero's live one, fading into the page. */
 .bb-root {
-  height: 560px;
-  mask-image: linear-gradient(to bottom, black 55%, transparent);
-}
-@media (min-width: 768px) {
-  .bb-root { height: 640px; }
+  height: 100svh;
+  mask-image: linear-gradient(to bottom, black 45%, transparent 95%);
 }
 /* The night (components/night-backdrop.tsx): its CSS gradient is the sky until the shader draws,
    and stays where WebGL isn't available. The home hero's live one reaches up behind the header. */
@@ -158,15 +156,6 @@
 }
 .night-root {
   background: linear-gradient(to bottom, #020b10, #061a20 55%, #0b252c 64%, #071a1e);
-}
-/* The viewer's head follows the pointer, day or night: nearer layers shift further (--k px at
-   the screen's edge); the sky and anything in it stay put, as real parallax does. */
-.depth-layer {
-  transform: translate3d(calc((0.5 - var(--px, 0.5)) * var(--k, 0) * 1px), calc((0.5 - var(--py, 0.5)) * var(--k, 0) * 0.3px), 0);
-  transition: transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-@media (prefers-reduced-motion: reduce) {
-  .depth-layer { transform: none; transition: none; }
 }
 
 /* The backdrop's parallax: each .bb-par layer slides down by --d of the scroll over the hero, so far
