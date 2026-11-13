@@ -1,7 +1,6 @@
-import { POLICY, quoteFees } from "@boreal/core";
+import { FEE_POLICY, POLICY, quoteFees } from "@boreal/core";
 import type { Metadata } from "next";
-import Link from "next/link";
-import { ArrowRight, ArrowUpRight, ChevronRight } from "lucide-react";
+import { ArrowRight, ArrowUpRight } from "lucide-react";
 
 import { HeadMark } from "@/components/brand";
 import { ClosingBand } from "@/components/closing-band";
@@ -9,18 +8,19 @@ import { CopyBlock } from "@/components/copy-block";
 import { HeroTasks } from "@/components/hero-tasks";
 import { Container, Cta, Kicker, MoreLink, Section } from "@/components/page";
 import { PoweredBy } from "@/components/powered-by";
+import { RelatedQuestions } from "@/components/related-questions";
+import { RuleRef } from "@/components/rule-refs";
 import { TiltCard } from "@/components/tilt-card";
 import { CONTACT } from "@/content/contact";
-import { A2A_URL, GUIDE_FACTS, MCP_URL, SITE } from "@/content/agent-guide";
+import { A2A_URL, MCP_URL, SITE } from "@/content/agent-guide";
 import { SERVICE_FEE, SERVICE_FEE_COVERS, SERVICE_FEE_SELF_REVIEW } from "@/content/fees";
 import { getAddons } from "@/server/addons";
-import { getRails } from "@/server/desk";
 
 export const metadata: Metadata = { alternates: { canonical: "/" } };
 
-// The home page is the inventory as much as the pitch: boreal.work is new, so it says plainly who
-// it serves, what exists today (and only what's on here), what it costs, where you depend on boreal.work,
-// and what is not built yet. Every number comes from POLICY or the fee rules, never typed in.
+// The home page is the pitch, kept short: who it serves, what it costs and why the AI review is
+// worth it. The full inventory is /features, the questions /faq, what isn't built yet /roadmap.
+// Every number comes from POLICY or the fee rules, never typed in.
 
 const JSON_LD = {
   "@context": "https://schema.org",
@@ -37,8 +37,8 @@ const JSON_LD = {
 };
 
 const usd = (cents: number) => `$${(cents / 100).toFixed(2)}`;
-const whole = (cents: number) => (cents % 100 === 0 ? `$${cents / 100}` : usd(cents));
 const HOURS = (ms: number) => ms / 3_600_000;
+const pct = (rate: number) => `${Math.round(rate * 100)}%`;
 
 /* ---------------------------------------------------------------- who it's for */
 
@@ -143,116 +143,6 @@ const STEPS = [
   },
 ];
 
-/* ---------------------------------------------------------------- the inventory */
-
-type Group = { title: string; who: string; items: { name: string; body: string; href?: string; tag?: string }[] };
-
-function inventory(f: {
-  concordiumId: boolean;
-  anchors: boolean;
-  nearRail: boolean;
-  concordiumRail: boolean;
-  privateReview: boolean;
-  registry: boolean;
-}): Group[] {
-  const add = <T,>(on: boolean, item: T) => (on ? [item] : []);
-  return [
-    {
-      title: "For the person doing the work",
-      who: "Freelancers",
-      items: [
-        { name: "Log in with PayPal", body: "One sign-in, which is also where you're paid. No new account to make.", href: "/signin" },
-        { name: "Money held first", body: "You only ever see tasks whose money is already held." },
-        { name: "Full pay", body: "The requester pays the fee. You receive the task's pay in full." },
-        { name: "Paid on a pass", body: `At once when the requester passes or accepts it. Otherwise when the ${HOURS(POLICY.objectionWindowMs)} hours to dispute end, sometimes up to a day later.` },
-        { name: "One dispute", body: "A verdict can be disputed once per task, by you or the requester, and a panel with a person on it decides." },
-        { name: "A pseudonym", body: "boreal.work keeps a one-way code for your sign-in, never your password or your name on a public record." },
-        ...add(f.concordiumId, { name: "Proven attributes", body: "Prove your age or country with Concordium ID, without handing over documents.", tag: "Concordium" }),
-        ...add(f.nearRail, { name: "Paid in USDC", body: "Tasks funded in USDC pay to your NEAR wallet, with no gas.", tag: "NEAR" }),
-      ],
-    },
-    {
-      title: "For the agent",
-      who: "AI agents and their builders",
-      items: [
-        { name: "MCP server", body: "Streamable HTTP, every operation as a tool. One command adds it to Claude Code.", href: "/agents" },
-        { name: "REST and A2A", body: "Every tool is also a REST route, and an A2A v1.0 JSON-RPC action." },
-        { name: "Self-onboarding", body: "The agent asks for a link, its owner approves, and the agent collects its own key." },
-        { name: "Written for agents", body: "agents.md, skill.md and llms.txt: the whole guide, served where agents look.", href: "/agents.md" },
-        { name: "Hermes plugin", body: "Native tools, a spend guard that asks before every payment, and /borealwork." },
-        { name: "Agent Card", body: "A2A v1.0 and ERC-8004, with the SHA-256 of its exact bytes in a header." },
-        { name: "Batch funding", body: "Up to 10 tasks on one approval, each still held and charged on its own." },
-        { name: "Balance and ledger", body: "Where every cent is: held, waiting out a verdict, settling, paid or refunded." },
-        ...add(f.registry, { name: "Agent Registry", body: "boreal.work is listed in Concordium's Agent Registry, and agents can show their badge.", tag: "Concordium" }),
-      ],
-    },
-    {
-      title: "For the owner",
-      who: "Business owners and enterprises",
-      items: [
-        { name: "Post from the web", body: "Post a task yourself, no agent needed.", href: "/post" },
-        { name: "Limits per agent", body: "You approve your agent once and set what it may spend per task and per day." },
-        { name: "Ask me each time, or pay on its own", body: `A new agent asks: you approve each payment from a link, which waits ${HOURS(POLICY.fundingApprovalMs)} hours. Or let it pay on its own within its limits.` },
-        { name: "Pause, change, revoke", body: "Pause an agent, change its limits or take its key back at any time." },
-        { name: "Your saved PayPal account", body: "Save it once, and your agents pay from it within their limits and mode, without a PayPal checkout each time." },
-        { name: "Review it yourself", body: `Judge your own results and the fee drops to ${SERVICE_FEE_SELF_REVIEW}. Miss the ${HOURS(POLICY.requesterReviewMs)} hours and boreal.work's reviewers decide.` },
-        { name: "Insights", body: "Your own tasks and money in one report: what was spent, held, paid and refunded.", href: "/me/insights" },
-      ],
-    },
-    {
-      title: "For the money and the record",
-      who: "Everyone, and their auditors",
-      items: [
-        { name: "Held, then captured or voided", body: "On PayPal the money is a hold on the payer's account, captured on a pass and voided otherwise." },
-        { name: "Double-entry ledger", body: "Every movement is an entry with an idempotency key, written before any money moves." },
-        { name: "Hash-chained trail", body: "Every step of every task is an event chained to the last, so an edit shows." },
-        { name: "Public rulebook", body: "The screener and the reviewer may cite only these rules. So may you, in a dispute.", href: "/rules" },
-        { name: "A person behind the AI", body: "Anything the AI reviewer isn't sure of goes to a person. The AI never moves money." },
-        { name: "Status page", body: "Live checks on the desk and the services it depends on, in public.", href: "/status" },
-        ...add(f.anchors, { name: "Anchored on-chain", body: "Salted hashes of the trail are anchored on Concordium. Nothing personal goes on-chain.", tag: "Concordium" }),
-        ...add(f.privateReview, { name: "Private review", body: "Screening and review run inside a TEE, with a signed proof for every verdict.", tag: "NEAR AI" }),
-        ...add(f.nearRail || f.concordiumRail, {
-          name: "Stablecoin rails",
-          body: [f.nearRail && "USDC on NEAR", f.concordiumRail && "x402 tokens on Concordium"].filter(Boolean).join(" and ") + ", held in an escrow account apart from boreal.work's own money.",
-          tag: [f.nearRail && "NEAR", f.concordiumRail && "Concordium"].filter(Boolean).join(" · "),
-        }),
-      ],
-    },
-  ];
-}
-
-/* ---------------------------------------------------------------- stated plainly */
-
-const PLAIN = [
-  {
-    title: "The money is held before the task is seen.",
-    body: "Refused, expired or cancelled before a claim, and the hold is released in full.",
-  },
-  {
-    title: "The reviewer decides, not the requester.",
-    body: "A requester can accept a pass early, never overrule one. An unclear check is read the worker's way.",
-  },
-  {
-    title: "Today you depend on PayPal and on boreal.work.",
-    body: "PayPal holds the money and pays the worker. boreal.work runs the ledger and the review.",
-  },
-  {
-    title: "Nobody is notified yet.",
-    body: "No email or push. Open the task, or My account, to see what changed.",
-  },
-];
-
-/* ---------------------------------------------------------------- not built yet */
-
-const ROADMAP = [
-  { title: "Limits as a document", body: "An agent's approved limits, signed, to show who it deals with." },
-  { title: "Portable attestations", body: "A passed result as a record anyone can verify." },
-  { title: "Standing orders", body: "Check this shelf price every Monday." },
-  { title: "Corroboration", body: "Two workers, paid when their answers agree." },
-  { title: "Worker standing", body: "A pseudonymous record of passed work." },
-  { title: "Notifications and webhooks", body: "An email when a verdict lands, a webhook when a task moves." },
-];
-
 /* ---------------------------------------------------------------- page */
 
 const FEE_ROWS = [300, 500, 1_000, 2_500, POLICY.maxTaskBudget];
@@ -260,8 +150,6 @@ const FEE_ROWS = [300, 500, 1_000, 2_500, POLICY.maxTaskBudget];
 export default function Home() {
   const addons = getAddons();
   const privateReview = addons.ready("near", "privateReview");
-  const paypal = Boolean(getRails().paypal);
-  const groups = inventory(GUIDE_FACTS);
 
   return (
     <main className="flex-1">
@@ -427,65 +315,55 @@ export default function Home() {
         </div>
       </Section>
 
-      {/* The inventory */}
+      {/* The AI reviewer: what the review part of the fee buys, and why it's fair. */}
       <Section
         band
-        kicker="What exists today"
-        title="The inventory, not the pitch."
-        description="Everything boreal.work does today, all live on this site."
+        kicker="The AI reviewer"
+        title="A reviewer that shows its working."
+        description={`It adds ${pct(FEE_POLICY.reviewRate)} of the pay to the fee. Here is what that buys, and what keeps it honest.`}
       >
-        <div className="grid gap-x-12 gap-y-10 lg:grid-cols-2">
-          {groups.map((g) => (
-            <div key={g.title} className="flex flex-col gap-4">
-              <div className="flex items-baseline justify-between gap-4 border-b pb-3">
-                <h3 className="text-xl font-normal tracking-tight">{g.title}</h3>
-                <span className="text-xs text-muted-foreground">{g.who}</span>
-              </div>
-              <ul className="flex flex-wrap gap-2">
-                {g.items.map(({ name, href, tag }) => (
-                  <li key={name}>
-                    {href ? (
-                      <a href={href} className="inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1.5 text-sm transition-colors hover:border-primary/50 hover:text-primary">
-                        {name}
-                        <ChevronRight className="size-3.5 text-muted-foreground" aria-hidden />
-                      </a>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1.5 text-sm">
-                        {name}
-                        {tag && <span className="text-xs text-muted-foreground">· {tag}</span>}
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-              <details className="text-sm">
-                <summary className="w-fit cursor-pointer text-muted-foreground marker:text-primary hover:text-foreground">What each one does</summary>
-                <dl className="mt-3 flex flex-col gap-3">
-                  {g.items.map(({ name, body }) => (
-                    <div key={name}>
-                      <dt className="font-medium">{name}</dt>
-                      <dd className="leading-relaxed text-muted-foreground">{body}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </details>
-            </div>
-          ))}
+        <div className="grid gap-x-16 gap-y-12 lg:grid-cols-2">
+          <div className="flex flex-col gap-4">
+            <h3 className="text-xl font-normal tracking-tight">How it runs</h3>
+            <ol className="flex flex-col divide-y border-y">
+              {[
+                ["Screens", "Every funded task, before any worker sees it: unsafe or unclear tasks are refused, citing the rule."],
+                ["Judges", "Each result against the task's own checks, one at a time. A fail names the rule and the check missed."],
+                ["Hands over", "When it isn't sure, it says so and a person at boreal.work decides. It never moves money."],
+              ].map(([verb, body]) => (
+                <li key={verb} className="grid gap-1 py-4 sm:grid-cols-[7rem_1fr] sm:gap-6">
+                  <span className="font-medium text-primary">{verb}</span>
+                  <span className="leading-relaxed text-muted-foreground">{body}</span>
+                </li>
+              ))}
+            </ol>
+            {privateReview && (
+              <p className="text-sm text-muted-foreground">On this site it runs privately inside a TEE, and every verdict comes with a signed proof.</p>
+            )}
+          </div>
+          <div className="flex flex-col gap-4">
+            <h3 className="text-xl font-normal tracking-tight">Fair by rule, not by promise</h3>
+            <ul className="flex flex-col divide-y border-y">
+              {[
+                { rule: "R5.1", body: "Only the checks as they stood when the task was funded." },
+                { rule: "R5.2", body: "An unclear check is read the worker's way." },
+                { rule: "R5.6", body: "Same evidence, same verdict, whoever the worker is or however they write." },
+                { rule: "R6.3", body: "In a dispute it is one of two votes. The person decides." },
+              ].map(({ rule, body }) => (
+                <li key={rule} className="grid gap-1 py-4 sm:grid-cols-[7rem_1fr] sm:gap-6">
+                  <span className="font-mono text-sm">
+                    <RuleRef id={rule} />
+                  </span>
+                  <span className="leading-relaxed text-muted-foreground">{body}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="text-sm text-muted-foreground">
+              Rather do it yourself? Review results on your own and the fee drops to {SERVICE_FEE_SELF_REVIEW}.
+            </p>
+          </div>
         </div>
-        {!paypal && <p className="text-xs text-muted-foreground">PayPal isn&apos;t switched on for this deployment; its payment features above apply where it is.</p>}
-      </Section>
-
-      {/* Stated plainly */}
-      <Section kicker="Stated plainly" title="Questions worth asking first.">
-        <div className="grid gap-x-12 gap-y-10 md:grid-cols-2">
-          {PLAIN.map(({ title, body }) => (
-            <div key={title} className="flex flex-col gap-2 border-t pt-5">
-              <h3 className="text-lg font-medium tracking-tight">{title}</h3>
-              <p className="leading-relaxed text-muted-foreground">{body}</p>
-            </div>
-          ))}
-        </div>
-        <MoreLink href="/faq">Every question, in the FAQ</MoreLink>
+        <RelatedQuestions ids={["ai-cost", "ai-fair", "ai-unsure", "ai-instructions"]} className="max-w-2xl" />
       </Section>
 
       {/* For agent builders */}
@@ -520,20 +398,26 @@ export default function Home() {
         </div>
       </Section>
 
-      {/* Roadmap */}
-      <Section kicker="Roadmap, not built" title="What comes next." description="None of this exists yet.">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {ROADMAP.map(({ title, body }) => (
-            <div key={title} className="flex flex-col gap-2 rounded-2xl border border-dashed p-6">
-              <h3 className="font-medium">{title}</h3>
-              <p className="text-sm leading-relaxed text-muted-foreground">{body}</p>
-            </div>
+      {/* Everything else has its own page. */}
+      <Section kicker="More" title="Read the details.">
+        <ul className="grid border-t sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { href: "/features", title: "Features", body: "Everything that exists today." },
+            { href: "/rules", title: "Rulebook", body: "The rules every verdict cites." },
+            { href: "/faq", title: "FAQ", body: "Money, review, privacy and agents." },
+            { href: "/roadmap", title: "Roadmap", body: "What comes next, not built yet." },
+          ].map(({ href, title, body }) => (
+            <li key={href} className="border-b sm:[&:nth-child(odd)]:border-r lg:border-r lg:last:border-r-0">
+              <a href={href} className="group flex h-full flex-col gap-1 p-5">
+                <span className="flex items-center gap-1 text-lg font-light tracking-[-0.015em] group-hover:text-primary">
+                  {title}
+                  <ArrowRight className="size-4 transition-transform duration-300 ease-out group-hover:translate-x-1" aria-hidden />
+                </span>
+                <span className="text-sm text-muted-foreground">{body}</span>
+              </a>
+            </li>
           ))}
-        </div>
-        <a href={CONTACT.url} target="_blank" rel="noreferrer" className="group inline-flex w-fit items-center gap-1 text-sm font-medium text-primary">
-          Say what you need first: {CONTACT.handle} on X
-          <ArrowUpRight className="size-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden />
-        </a>
+        </ul>
       </Section>
 
       <section>

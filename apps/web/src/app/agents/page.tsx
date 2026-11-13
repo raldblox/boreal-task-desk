@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { GUIDE_FACTS, MCP_URL, SETUP_PROMPT, SITE } from "@/content/agent-guide";
+import { RelatedQuestions } from "@/components/related-questions";
 import { Container, Cta, PageHero } from "@/components/page";
 import { CopyBlock } from "@/components/copy-block";
 import { PoweredBy } from "@/components/powered-by";
@@ -209,6 +210,7 @@ export default function AgentsPage() {
         <RegistryListingNote />
       </section>
       )}
+      <RelatedQuestions ids={["agent-ok-to-pay", "agent-stop", "cost", "ai-cost"]} className="max-w-2xl" />
       </Container>
     </main>
   );

@@ -1,4 +1,5 @@
 import { ConcordiumLogo, NearLogo } from "@/components/chain-logos";
+import { PayPalLogo } from "@/components/paypal-brand";
 import { getAddons } from "@/server/addons";
 import { getRails } from "@/server/desk";
 
@@ -6,7 +7,7 @@ import { getRails } from "@/server/desk";
 // neutral ("held in escrow", "verified"); this row is where providers get named, and only the
 // ones that are actually on.
 
-type Integration = { name: string; does: string; logo?: "near" | "concordium" };
+type Integration = { name: string; does: string; logo?: "paypal" | "near" | "concordium" };
 
 const list = (parts: string[]) => (parts.length > 1 ? `${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}` : (parts[0] ?? ""));
 
@@ -14,7 +15,7 @@ export function integrations(): Integration[] {
   const addons = getAddons();
   const rails = getRails();
   const out: Integration[] = [];
-  if (rails.paypal) out.push({ name: "PayPal", does: "sign-in, escrow and payouts" });
+  if (rails.paypal) out.push({ name: "PayPal", does: "sign-in, payment holds and payouts", logo: "paypal" });
   if (addons.on("near")) {
     const parts = [
       addons.ready("near", "rail") && "USDC escrow",
@@ -42,10 +43,20 @@ export function PoweredBy({ className = "" }: { className?: string }) {
       <span>Powered by</span>
       {items.map(({ name, does, logo }) => (
         <span key={name} title={`${name}: ${does}`} className="inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1 font-medium text-foreground">
+          {logo === "paypal" ? (
+            <>
+              <PayPalLogo className="h-3.5 w-auto" />
+              <span className="sr-only">: {does}</span>
+            </>
+          ) : null}
           {logo === "near" && <NearLogo className="size-3" />}
           {logo === "concordium" && <ConcordiumLogo className="size-3" />}
-          {name}
-          <span className="sr-only">: {does}</span>
+          {logo !== "paypal" && (
+            <>
+              {name}
+              <span className="sr-only">: {does}</span>
+            </>
+          )}
         </span>
       ))}
     </div>

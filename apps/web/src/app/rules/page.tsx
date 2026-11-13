@@ -2,6 +2,7 @@ import { PRECEDENCE, REVIEW_STEPS, type Rule, RULEBOOK_VERSION, RULES, SCREENING
 import { Gavel, ScanSearch, Scale, ShieldCheck } from "lucide-react";
 import type { Metadata } from "next";
 
+import { RelatedQuestions } from "@/components/related-questions";
 import { Container, PageHero } from "@/components/page";
 
 export const metadata: Metadata = {
@@ -109,6 +110,7 @@ export default function RulesPage() {
             </ol>
           </section>
         ))}
+        <RelatedQuestions ids={["ai-fair", "ai-unsure", "result-fails", "who-decides"]} className="max-w-2xl" />
       </Container>
     </main>
   );

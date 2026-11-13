@@ -10,6 +10,7 @@ import { CONNECT_MESSAGE } from "@boreal/near";
 import { Eyebrow } from "@/components/brand";
 import { Container } from "@/components/page";
 import { ConnectConcordiumAccount, ConnectEvm, ConnectNear } from "@/components/connect-wallet";
+import { PayPalLoginButton } from "@/components/paypal-brand";
 import { buttonVariants } from "@/components/ui/button";
 import { SITE } from "@/content/agent-guide";
 import { gatedEnv } from "@/server/addons";
@@ -58,9 +59,7 @@ async function Setup({ params }: { params: Promise<{ id: string }> }) {
         <h1 className="text-4xl font-light tracking-[-0.035em]">Get paid via PayPal</h1>
         <p className="text-muted-foreground">This task pays {usd(task.budget)} via PayPal. Log in with PayPal once and you&apos;re paid there once it passes.</p>
         {/* A route handler that redirects to PayPal, so a full navigation, not <Link>. */}
-        <a href={`/paypal/login?next=${encodeURIComponent(`/tasks/${id}`)}`} className={buttonVariants({ className: "w-fit" })}>
-          Log in with PayPal
-        </a>
+        <PayPalLoginButton next={`/tasks/${id}`} className="w-fit" />
       </div>
     );
   }

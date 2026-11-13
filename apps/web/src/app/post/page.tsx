@@ -3,7 +3,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
-import { Container, MoreLink, PageHero } from "@/components/page";
+import { RelatedQuestions } from "@/components/related-questions";
+import { Container, PageHero } from "@/components/page";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
 import { verification } from "@/server/addons";
@@ -90,7 +91,7 @@ export default function PostPage() {
               ["Checked", "boreal.work reads your task for anything unsafe or unclear before anyone sees it."],
               ["Done", "A worker claims it and sends the result you asked for."],
               ["Reviewed", "Against your checks and the rulebook, never anything else."],
-              ["Paid or released", `A pass you give, or a pass you accept, pays the worker at once. Otherwise it pays once the ${POLICY.objectionWindowMs / 3_600_000} hours to dispute are over, at boreal.work's next check: on a quiet day, up to a day later. A fail releases your money, less the review part of the service fee when boreal.work reviewed it.`],
+              ["Paid or released", `Your pass pays the worker at once; otherwise after ${POLICY.objectionWindowMs / 3_600_000} hours to dispute. A fail releases your money, less the review part of the fee if boreal.work reviewed it.`],
             ].map(([title, body], i) => (
               <li key={title} className="flex gap-3">
                 <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary-soft text-[11px] font-semibold text-primary-soft-foreground tabular-nums">
@@ -103,7 +104,7 @@ export default function PostPage() {
               </li>
             ))}
           </ol>
-          <MoreLink href="/terms">Read the rules</MoreLink>
+          <RelatedQuestions ids={["cost", "when-charged", "ai-cost", "how-long-open", "cancel"]} />
         </aside>
       </Container>
     </main>

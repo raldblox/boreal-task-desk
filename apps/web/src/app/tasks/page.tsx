@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
+import { RelatedQuestions } from "@/components/related-questions";
 import { Container, Cta, EmptyState, PageHero } from "@/components/page";
 import { TaskCard } from "@/components/task-card";
 import { canBePaidOn } from "@/lib/rails";
@@ -92,6 +93,7 @@ export default function TasksPage({ searchParams }: PageProps<"/tasks">) {
       <Suspense fallback={<div className="h-40 animate-pulse rounded-2xl bg-muted" />}>
         <OpenTasks searchParams={searchParams as Promise<{ payable?: string }>} />
       </Suspense>
+      <RelatedQuestions ids={["who-can-take-tasks", "when-paid", "result-fails", "how-paid"]} className="max-w-2xl" />
       </Container>
     </main>
   );

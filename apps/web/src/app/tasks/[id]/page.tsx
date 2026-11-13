@@ -7,6 +7,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { claimTask, disputeVerdict, releaseTask, submitResult } from "@/app/actions";
+import { RelatedQuestions } from "@/components/related-questions";
 import { PrivateReviewNote } from "@/components/private-review";
 import { TxLink } from "@/components/tx-link";
 import { TaskProgress } from "@/components/task-progress";
@@ -418,6 +419,7 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
             {submission.text && <p className="whitespace-pre-wrap">{submission.text}</p>}
           </section>
         )}
+        <RelatedQuestions ids={["when-paid", "result-fails", "who-decides", "payout-returned"]} />
       </div>
     </div>
   );

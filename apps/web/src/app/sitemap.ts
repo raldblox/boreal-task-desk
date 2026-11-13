@@ -10,6 +10,8 @@ const PAGES: { path: string; priority: number; changeFrequency: "daily" | "weekl
   { path: "/post", priority: 0.8, changeFrequency: "monthly" },
   { path: "/faq", priority: 0.7, changeFrequency: "monthly" },
   { path: "/rules", priority: 0.6, changeFrequency: "monthly" },
+  { path: "/features", priority: 0.7, changeFrequency: "monthly" },
+  { path: "/roadmap", priority: 0.4, changeFrequency: "monthly" },
   { path: "/agents.md", priority: 0.6, changeFrequency: "weekly" },
   { path: "/llms.txt", priority: 0.5, changeFrequency: "weekly" },
   { path: "/status", priority: 0.3, changeFrequency: "daily" },

@@ -10,6 +10,7 @@ import { Suspense } from "react";
 
 import { linkConcordium } from "@/app/actions";
 import { disconnectAgentPayPal, revokeAgentKey, setAgentLimits, setAgentPaused } from "@/app/owner/actions";
+import { PayPalLoginButton } from "@/components/paypal-brand";
 import { LimitFields, OwnerActionForm } from "@/components/owner-agent-controls";
 import { ConcordiumLogo, NearLogo } from "@/components/chain-logos";
 import { ConnectConcordiumAccount, ConnectNear, FundAgentWallet } from "@/components/connect-wallet";
@@ -128,12 +129,7 @@ async function Identity() {
               </Badge>
             ) : (
               paypalLogin && (
-                // A route handler that redirects to PayPal, so a full navigation, not <Link>.
-                // eslint-disable-next-line @next/next/no-html-link-for-pages
-                <a href="/paypal/login" className={buttonVariants({ className: "group gap-2" })}>
-                  Add PayPal
-                  <ChevronRight className="size-4 transition-transform group-hover:translate-x-0.5" />
-                </a>
+                <PayPalLoginButton label="Add PayPal" />
               )
             )}
           </div>
@@ -377,12 +373,7 @@ async function Payouts() {
             )}
             {/* Log in with PayPal sets the payout, and a worker has one PayPal account: no "Change". */}
             {paypalLogin && !profile.hasPayPal && (
-              // A route handler that redirects to PayPal, so a full navigation, not <Link>.
-              // eslint-disable-next-line @next/next/no-html-link-for-pages
-              <a href="/paypal/login" className={buttonVariants({ className: "group gap-2" })}>
-                Connect PayPal
-                <ChevronRight className="size-4 transition-transform group-hover:translate-x-0.5" />
-              </a>
+              <PayPalLoginButton label="Connect PayPal" />
             )}
           </div>
         )}

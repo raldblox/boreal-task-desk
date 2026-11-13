@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
-import { Check, EyeOff, Wallet } from "lucide-react";
+import { Check, EyeOff} from "lucide-react";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { signIn } from "@/app/actions";
+import { RelatedQuestions } from "@/components/related-questions";
+import { PayPalLoginButton } from "@/components/paypal-brand";
 import { Eyebrow } from "@/components/brand";
 import { ConcordiumSignIn } from "@/components/concordium-sign-in";
 import { ConcordiumWalletSignIn } from "@/components/concordium-wallet-sign-in";
@@ -11,7 +13,6 @@ import { ZkPassportSignIn } from "@/components/zkpassport-sign-in";
 import { passportReady } from "@/server/zkpassport";
 import { DevWallet } from "@/components/worker-forms";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { buttonVariants } from "@/components/ui/button";
 import { gatedEnv, getAddons } from "@/server/addons";
 import { demoMoney, getConcordium, getDesk } from "@/server/desk";
 import { getIdAppVerifier } from "@/server/id-app";
@@ -36,23 +37,10 @@ const PAYPAL_NOTICES: Record<string, string> = {
 function PayPalSignIn({ next }: { next: string }) {
   return (
     <div className="flex flex-col gap-5 rounded-2xl border bg-card p-6 shadow-sm">
-      <div className="flex items-center gap-3">
-        <span className="grid size-9 place-items-center rounded-xl bg-primary-soft text-primary-soft-foreground">
-          <Wallet className="size-5" />
-        </span>
-        <div>
-          <p className="font-semibold">Log in with PayPal</p>
-          <p className="text-sm text-muted-foreground">
-            {demoMoney() ? "PayPal sandbox accounts only, on testnet" : "Get paid to the PayPal account you sign in with"}
-          </p>
-        </div>
-      </div>
-      <a
-        href={`/paypal/login?next=${encodeURIComponent(next)}`}
-        className={buttonVariants({ size: "lg", className: "h-auto min-h-11 w-full text-base" })}
-      >
-        Log in with PayPal
-      </a>
+      <p className="text-sm text-muted-foreground">
+        {demoMoney() ? "PayPal sandbox accounts only, on testnet." : "You're paid to the PayPal account you log in with."}
+      </p>
+      <PayPalLoginButton next={next} className="w-full" />
       <p className="text-sm text-muted-foreground">
         Free. To claim tasks, PayPal must have verified your account (in PayPal&apos;s settings, also free); otherwise verify with
         one of the ways below.
@@ -241,6 +229,7 @@ export default function SignInPage({ searchParams }: { searchParams: Promise<{ n
       <Suspense fallback={<div className="h-64 animate-pulse rounded-2xl border bg-card" />}>
         <SignInOptions searchParams={searchParams} />
       </Suspense>
+      <RelatedQuestions ids={["who-can-take-tasks", "what-you-keep", "no-concordium-id", "contact"]} className="max-w-2xl md:col-span-2" />
     </main>
   );
 }

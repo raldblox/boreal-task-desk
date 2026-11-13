@@ -153,6 +153,12 @@ Plain and direct. Say what happens, who decides and when money moves.
 - Separate surfaces with `border` hairlines and `card` fills, not heavy shadows. No coloured left-border accent cards.
 - Components are shadcn (base-nova style on Base UI). Links styled as buttons use `buttonVariants()`.
 
+## Other companies' marks
+
+- **PayPal** is shown only with PayPal's own files, loaded from PayPal and never redrawn, recoloured or self-hosted (`apps/web/src/components/paypal-brand.tsx`). "Log in with PayPal" follows PayPal's button guide: a pill in PayPal's light grey `#EEEEEE`, black text, PayPal's colour monogram on the left, at least 13 pt. It is the one place boreal.work shows another company's colours.
+- NEAR and Concordium appear as their own logos (`chain-logos.tsx`) in the "Powered by" row, and only where that integration is on.
+- Never put another company's mark inside the boreal.work mark or lockup.
+
 ## Social
 
 <img src="docs/brand/x-avatar.png" width="96" alt="X avatar"> <img src="docs/brand/x-banner.png" width="288" alt="X banner">
