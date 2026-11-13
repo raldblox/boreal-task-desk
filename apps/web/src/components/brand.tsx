@@ -28,6 +28,32 @@ export function BorealMark({ className = "size-6" }: { className?: string }) {
   );
 }
 
+/**
+ * The person band of the mark on its own (tail, load, round head), as a small marker in front of an
+ * eyebrow: the work, carried forward. Same paths as the mark, cropped to the band, so it is never
+ * redrawn by eye. Decorative: screen readers skip it.
+ */
+export function BandMark({ className = "h-2.5 w-auto" }: { className?: string }) {
+  return (
+    <svg viewBox="3.29 16.875 25.42 11.625" className={className} aria-hidden="true">
+      <g className="fill-current">
+        <path d={MARK_PATHS.botTail} opacity={0.45} />
+        <path d={MARK_PATHS.botLoad} opacity={0.45} />
+        <path d={MARK_PATHS.botHead} />
+      </g>
+    </svg>
+  );
+}
+
+/** The person's round head alone: a list marker in the brand's own shape. */
+export function HeadMark({ className = "size-2" }: { className?: string }) {
+  return (
+    <svg viewBox="22.9 16.875 5.81 11.625" className={className} aria-hidden="true">
+      <path d={MARK_PATHS.botHead} className="fill-current" />
+    </svg>
+  );
+}
+
 export function BorealLogo() {
   return (
     <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight" aria-label="boreal.work home">
@@ -40,8 +66,8 @@ export function BorealLogo() {
 /** A small uppercase label above a heading. */
 export function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <p className="flex items-center gap-3 text-xs font-medium tracking-[0.18em] text-primary uppercase">
-      <span aria-hidden className="h-px w-6 bg-primary/60" />
+    <p className="flex items-center gap-2.5 font-mono text-xs font-medium tracking-[0.18em] text-primary uppercase">
+      <BandMark />
       {children}
     </p>
   );

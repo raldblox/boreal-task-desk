@@ -76,8 +76,8 @@ export function BorealBackdrop() {
           <linearGradient id="bb-aurora" x1="0" y1="1" x2="0" y2="0">
             <stop offset="0" stopColor="#22d38c" stopOpacity="1" />
             <stop offset="0.3" stopColor="#1fb8a6" stopOpacity="0.75" />
-            <stop offset="0.75" stopColor="#6a9cf0" stopOpacity="0.25" />
-            <stop offset="1" stopColor="#6a9cf0" stopOpacity="0" />
+            <stop offset="0.75" stopColor="#5ac6bd" stopOpacity="0.25" />
+            <stop offset="1" stopColor="#5ac6bd" stopOpacity="0" />
           </linearGradient>
           <linearGradient id="bb-mist" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor="#f4f9f8" stopOpacity="0" />
@@ -97,10 +97,10 @@ export function BorealBackdrop() {
           <mask id="bb-wash-mask" maskContentUnits="userSpaceOnUse">
             <rect width={W} height={H} fill="url(#bb-wash-fade)" />
           </mask>
-          <linearGradient id="bb-aurora-violet" x1="0" y1="1" x2="0" y2="0">
+          <linearGradient id="bb-aurora-high" x1="0" y1="1" x2="0" y2="0">
             <stop offset="0" stopColor="#4fdcb8" stopOpacity="0.85" />
-            <stop offset="0.5" stopColor="#8f7cf0" stopOpacity="0.45" />
-            <stop offset="1" stopColor="#9b8cf0" stopOpacity="0" />
+            <stop offset="0.5" stopColor="#2aa39b" stopOpacity="0.4" />
+            <stop offset="1" stopColor="#5ac6bd" stopOpacity="0" />
           </linearGradient>
           <filter id="bb-soft" filterUnits="userSpaceOnUse" x="-300" y="-300" width={W + 600} height={H + 600}>
             <feGaussianBlur stdDeviation="22" />
@@ -121,7 +121,7 @@ export function BorealBackdrop() {
       <div className="bb-aurora bb-aurora-a absolute inset-y-0 -inset-x-[6%]">
         <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" className="size-full">
           <path d="M-60 300 C 200 380, 430 250, 700 330 S 1150 240, 1380 320 S 1620 260, 1700 280 L 1700 -40 L -60 -40 Z" fill="url(#bb-aurora)" filter="url(#bb-soft)" />
-          <path d="M-60 170 C 260 250, 520 140, 820 200 S 1200 270, 1700 170 L 1700 -40 L -60 -40 Z" fill="url(#bb-aurora-violet)" filter="url(#bb-soft)" opacity="0.75" />
+          <path d="M-60 170 C 260 250, 520 140, 820 200 S 1200 270, 1700 170 L 1700 -40 L -60 -40 Z" fill="url(#bb-aurora-high)" filter="url(#bb-soft)" opacity="0.75" />
         </svg>
       </div>
       <div className="bb-aurora bb-aurora-b absolute inset-y-0 -inset-x-[6%]">

@@ -94,7 +94,7 @@ export function HeroTasks({ privateReview }: { privateReview: boolean }) {
       onFocus={() => setPaused(true)}
       onBlur={() => setPaused(false)}
     >
-      <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Sample task</p>
+      <p className="font-mono text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">Sample task</p>
       <div key={i} className={`flex flex-col gap-5 ${swapped ? "animate-in duration-500 fade-in slide-in-from-bottom-2" : ""}`} aria-live="polite">
         <div className="flex items-start justify-between gap-6">
           <p className="min-h-[4.5rem] text-lg leading-snug">{s.task}</p>
@@ -124,7 +124,7 @@ export function HeroTasks({ privateReview }: { privateReview: boolean }) {
           </p>
         ) : (
           <p className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            <RotateCcw className="size-4" aria-hidden /> Not paid; the budget goes back to the agent
+            <RotateCcw className="size-4" aria-hidden /> Not paid; the money is released to the agent
           </p>
         )}
       </div>

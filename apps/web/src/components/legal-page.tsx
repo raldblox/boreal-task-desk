@@ -13,8 +13,9 @@ export function LegalPage({ eyebrow, title, updated, children }: { eyebrow: stri
           </>
         }
       />
-      <Container className="flex flex-col gap-10 py-10 md:py-14 [&>*]:max-w-[880px]">
-      <div className="flex flex-col gap-8">{children}</div>
+      <Container className="flex flex-col gap-10 py-10 md:py-14">
+        {/* A reading measure (about 68 characters), sections set apart by a hairline. */}
+        <div className="flex max-w-[68ch] flex-col gap-10 [&>section+section]:border-t [&>section+section]:pt-10">{children}</div>
       </Container>
     </main>
   );
@@ -24,7 +25,7 @@ export function LegalSection({ title, children }: { title: string; children: Rea
   return (
     <section className="flex flex-col gap-3">
       <h2 className="text-2xl font-light tracking-[-0.025em]">{title}</h2>
-      <div className="flex flex-col gap-3 leading-relaxed text-muted-foreground [&_li]:ml-5 [&_li]:list-disc [&_ul]:flex [&_ul]:flex-col [&_ul]:gap-2">
+      <div className="flex flex-col gap-4 leading-7 text-foreground/85 [&_li]:ml-5 [&_li]:list-disc [&_li]:marker:text-primary [&_ul]:flex [&_ul]:flex-col [&_ul]:gap-2.5">
         {children}
       </div>
     </section>

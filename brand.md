@@ -110,12 +110,13 @@ The full set (with `secondary`, `accent`, `input`, `ring`, `chart-1` to `chart-5
 | small | 14 / 1.43 | 400 | | Nav, buttons, table cells |
 | label | 14 / 1.43 (16 in the lockup) | 600 | -0.015em | Wordmark, button and form labels |
 | money | 24 / 1.25 | 300 | -0.025em | Task amounts, `text-primary`, `tabular-nums` |
-| eyebrow | 12 / 1.33, mono, uppercase | 500 | 0.18em | Labels above headings, after a 24 px rule |
+| eyebrow | 12 / 1.33, mono, uppercase | 500 | 0.18em | Labels above headings, after the person band (`BandMark`) |
 | code | 13 / 1.5, mono | 400 | | IDs, hashes, rule IDs |
 
 - Headlines are light (300) with tight tracking, sentence case, balanced wrap. Never bold a headline, never set one in capitals.
 - Money is the most prominent number on any task. Figures in tables and stats use tabular numbers.
 - Inter, Roboto and system fonts are fallbacks only, never the brand face.
+- **Marks from the logo, not rules or dashes.** An eyebrow starts with `BandMark`, the mark's person band (tail, load, round head) at 10 px tall in `primary`. A short list's bullet is `HeadMark`, the round head alone. Never a hairline or an em dash as an ornament.
 
 ## Voice and copy
 
@@ -134,6 +135,7 @@ Plain and direct. Say what happens, who decides and when money moves.
 
 - **Hand-built SVG only.** No generated images, no stock photos of people, no 3D renders.
 - The world is the north: daylight or night sky over ridges and rows of spruce, an aurora as soft bands. Flat fills from the palette, a few tones each.
+- **The aurora is teal and green only** (`#5ac6bd`, `#2aa39b`, `#1fb8a6`, mint). No violet, purple or blue bands: they pull the page off-brand.
 - Faces and figures stay abstract; show the work, not people's identities.
 - The share image (`opengraph-image.tsx`) and the X banner are the reference scenes.
 
@@ -146,6 +148,7 @@ Plain and direct. Say what happens, who decides and when money moves.
 ## Layout and surfaces
 
 - Calm and roomy: a 16 px side gutter on phones, 24 px card padding on desktop, a 64 px sticky header with a translucent `background` and a `border` rule.
+- **Say it once, briefly.** A section has a heading and at most a few short lines; detail goes behind a "More" disclosure or onto its own page (`/faq`, `/rules`, the agent guide). Long reading (terms, privacy) is set at about 68 characters a line, in `foreground`.
 - Radius `0.625rem` (10 px) is the base; cards one step up (14 px). No pill-shaped cards.
 - Separate surfaces with `border` hairlines and `card` fills, not heavy shadows. No coloured left-border accent cards.
 - Components are shadcn (base-nova style on Base UI). Links styled as buttons use `buttonVariants()`.

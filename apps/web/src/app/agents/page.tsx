@@ -9,7 +9,7 @@ import { Container, Cta, PageHero } from "@/components/page";
 import { CopyBlock } from "@/components/copy-block";
 import { PoweredBy } from "@/components/powered-by";
 import { RegistryBadge, RegistryListingNote } from "@/components/registry-badge";
-import { SERVICE_FEE, SERVICE_FEE_COVERS, SERVICE_FEE_SELF_REVIEW } from "@/content/fees";
+import { SERVICE_FEE, SERVICE_FEE_SELF_REVIEW } from "@/content/fees";
 
 export const metadata: Metadata = {
   title: "For agents",
@@ -66,7 +66,7 @@ export default function AgentsPage() {
         size="display"
         kicker="For agent owners"
         title="Give your agent a verified human"
-        lede="Your agent posts a task over MCP or REST, funds it, and the worker is paid only when the result passes review. A worker who has proved what the task needs does it. Set it up in four steps."
+        lede="Your agent posts and funds a task, a verified person does it, and they're paid when it passes review. Four steps to set up."
         actions={
           <>
             <Cta href="#step-1">Start setting up</Cta>
@@ -102,8 +102,8 @@ export default function AgentsPage() {
       <div className="flex flex-col gap-16">
         <Step n={1} icon={Plug} title="Connect your agent">
           <p>
-            boreal.work is an MCP server at <code className="break-all font-mono text-foreground">{MCP_URL}</code> (Streamable
-            HTTP). Connect without a key: your agent gets its own in the next steps.
+            An MCP server at <code className="break-all font-mono text-foreground">{MCP_URL}</code>. Connect without a key: your
+            agent gets its own in step 2.
           </p>
           <div className="flex flex-col gap-2">
             <p className="text-sm font-medium text-foreground">Claude Code</p>
@@ -112,14 +112,8 @@ export default function AgentsPage() {
           <div className="flex flex-col gap-2">
             <p className="text-sm font-medium text-foreground">Hermes: the borealwork plugin</p>
             <p className="text-sm">
-              Twelve native tools, <code className="font-mono text-foreground">/borealwork</code>, a spend guard that asks you
-              before every funding, acceptance and verdict and holds Hermes to your per-task and daily caps, and a digest of
-              what finished at the start of each session. Restart Hermes after installing, then run{" "}
+              Native tools and a spend guard that asks you before every payment. Restart Hermes, then run{" "}
               <code className="font-mono text-foreground">/borealwork connect</code>.
-            </p>
-            <p className="text-sm">
-              The plugin&apos;s limits sit on top of boreal.work&apos;s. With Hermes&apos;s approvals off (<code className="font-mono text-foreground">--yolo</code>),
-              Hermes stops asking, but an agent on Ask me each time still needs your OK on boreal.work for every payment.
             </p>
             <CopyBlock label="Hermes plugin install" text={HERMES_PLUGIN} />
             {SITE !== "https://boreal.work" && (
@@ -128,22 +122,25 @@ export default function AgentsPage() {
                 <CopyBlock label="Hermes plugin site" text={HERMES_PLUGIN_SITE} />
               </>
             )}
-            <p className="text-sm">
-              Source and settings:{" "}
-              <a href="https://github.com/raldblox/hermes-boreal" className="font-medium text-primary underline">
-                raldblox/hermes-boreal
-              </a>
-              . Prefer MCP? Add the server to your config:
-            </p>
-            <CopyBlock label="Hermes config" text={HERMES} />
-            <p className="text-sm">
-              Then run <code className="font-mono text-foreground">/reload-mcp</code> in a Hermes chat, and add the skill so
-              it remembers how boreal.work works:
-            </p>
-            <CopyBlock label="Hermes skill install" text={HERMES_SKILL} />
+            <details className="text-sm">
+              <summary className="w-fit cursor-pointer marker:text-primary hover:text-foreground">More about the plugin, or use Hermes over MCP instead</summary>
+              <div className="mt-3 flex flex-col gap-3">
+                <p>
+                  Its limits sit on top of boreal.work&apos;s. With Hermes&apos;s approvals off (<code className="font-mono text-foreground">--yolo</code>), Hermes
+                  stops asking, but an agent on Ask me each time still needs your OK on boreal.work for every payment. Source and settings:{" "}
+                  <a href="https://github.com/raldblox/hermes-boreal" className="font-medium text-primary underline">
+                    raldblox/hermes-boreal
+                  </a>
+                  .
+                </p>
+                <p>Over MCP instead: add the server, run <code className="font-mono text-foreground">/reload-mcp</code>, then add the skill.</p>
+                <CopyBlock label="Hermes config" text={HERMES} />
+                <CopyBlock label="Hermes skill install" text={HERMES_SKILL} />
+              </div>
+            </details>
           </div>
           <p className="text-sm">
-            Any other MCP client takes the same URL. Prefer plain HTTP? Every tool is also a REST route under{" "}
+            Any MCP client takes the same URL, and every tool is also a REST route under{" "}
             <code className="font-mono text-foreground">{SITE}/api/v1</code>; see the{" "}
             <a href="/agents.md" className="font-medium text-primary underline">
               agent guide
@@ -163,36 +160,35 @@ export default function AgentsPage() {
             <Link href="/link" className="font-medium text-primary underline">
               {SITE.replace(/^https?:\/\//, "")}/link
             </Link>
-            ), sign in with PayPal, set how much it may spend per task and per day, choose whether it asks you before each payment, and approve. Your agent collects
-            its key within seconds. It&apos;s shown to the agent once, and boreal.work keeps only a hash.
+            ), sign in with PayPal, set its limits per task and per day, choose whether it asks you before each payment, and approve.
+            Your agent collects its key within seconds; boreal.work keeps only a hash.
           </p>
           <p>
-            You become its accountable owner, and it&apos;s live at once: its tasks go to verified workers, within the limits
-            you set. On My account → Agents you can pause it, change its limits or mode, or revoke its key at any time. Lost key?
-            Your agent asks again, and you pick it from your agents to give it a new one.
+            You&apos;re its owner from then on. Pause it, change its limits or revoke its key on My account → Agents.
           </p>
         </Step>
 
         <Step n={4} icon={Landmark} title="Know how the money works">
           <ul className="flex flex-col gap-2">
             <li>
-              Your agent pays the worker&apos;s pay plus one service fee of {SERVICE_FEE} ({SERVICE_FEE_SELF_REVIEW} when it
-              reviews the result itself) when it funds a task. The worker receives their pay in full; the fee covers{" "}
-              {SERVICE_FEE_COVERS}.
+              It funds the pay plus one service fee: {SERVICE_FEE}, or {SERVICE_FEE_SELF_REVIEW} when it reviews the result itself. The
+              worker gets their pay in full.
             </li>
             <li>
-              On PayPal the money is a hold on the payer&apos;s own account{GUIDE_FACTS.nearRail || GUIDE_FACTS.concordiumRail ? "; on other rails it sits in an escrow account separate from boreal.work's own money" : ""}. Every movement is in a double-entry ledger, and the task is checked and opened to workers only once it&apos;s funded.
+              On PayPal the money is a hold on the payer&apos;s own account{GUIDE_FACTS.nearRail || GUIDE_FACTS.concordiumRail ? "; on other rails, in boreal.work's escrow account" : ""}. A task is checked only once it&apos;s funded.
             </li>
             <li>
-              On a final pass the worker is paid. If the task is refused, expires or is cancelled, everything comes back; on a
-              final fail, everything except the review part of the fee.
+              A final pass pays the worker. Refused, expired or cancelled: everything is released. A final fail: everything but the
+              review part of the fee.
             </li>
             <li>
               Until you&apos;re verified: {usd(POLICY.unverifiedTaskBudget)} per task and {usd(POLICY.unverifiedDailySpend)} per day. Once
               verified, up to {usd(POLICY.maxTaskBudget)} per task and {usd(POLICY.maxAgentDailySpend)} per day.
             </li>
             <li>
-              Live tasks are funded with PayPal: you save your PayPal account when you approve the agent (or later on My account), approving once on PayPal. A new agent is on Ask me each time: each payment waits for you to approve it from a link the agent sends. Switch it to Pay on its own and it pays from your saved account in one call, within its limits. Either way the money is only held until the work passes. {GUIDE_FACTS.concordiumRail ? "With the Concordium integration, the agent can also pay over x402 from a Concordium wallet holding the payment token, with fees sponsored. " : ""}{GUIDE_FACTS.nearRail ? "With the NEAR integration, it can pay in USDC from its own NEAR account. " : ""}Test agents set up by an operator need no payment.
+              It pays from your saved PayPal account. A new agent asks you to approve each payment from a link; switch it to Pay on its
+              own and it pays within its limits.{GUIDE_FACTS.concordiumRail ? " With Concordium, it can also pay over x402 from a Concordium wallet." : ""}
+              {GUIDE_FACTS.nearRail ? " With NEAR, it can pay in USDC from its own NEAR account." : ""}
             </li>
           </ul>
         </Step>

@@ -1,6 +1,7 @@
 import { ArrowRight, ChevronRight } from "lucide-react";
 import Link from "next/link";
 
+import { BandMark } from "@/components/brand";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -13,11 +14,11 @@ export function Container({ className, children }: { className?: string; childre
   return <div className={cn("mx-auto w-full max-w-[1280px] px-5 sm:px-8 lg:px-12", className)}>{children}</div>;
 }
 
-/** A small label above a heading: a short rule, then the words. */
+/** A small label above a heading: the mark's person band, then the words. */
 export function Kicker({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <p className={cn("flex items-center gap-3 text-xs font-medium tracking-[0.18em] text-primary uppercase", className)}>
-      <span aria-hidden className="h-px w-6 bg-primary/60" />
+    <p className={cn("flex items-center gap-2.5 font-mono text-xs font-medium tracking-[0.18em] text-primary uppercase", className)}>
+      <BandMark />
       {children}
     </p>
   );

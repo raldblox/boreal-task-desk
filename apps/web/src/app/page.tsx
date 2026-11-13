@@ -2,16 +2,14 @@ import { POLICY, quoteFees } from "@boreal/core";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowUpRight, Bot, Briefcase, Building2, Camera, ChevronRight } from "lucide-react";
-import { Suspense } from "react";
 
+import { HeadMark } from "@/components/brand";
 import { ClosingBand } from "@/components/closing-band";
 import { CopyBlock } from "@/components/copy-block";
 import { HeroTasks } from "@/components/hero-tasks";
 import { Container, Cta, Kicker, MoreLink, Section } from "@/components/page";
 import { PoweredBy } from "@/components/powered-by";
-import { RegistryBadge } from "@/components/registry-badge";
 import { TiltCard } from "@/components/tilt-card";
-import { Badge } from "@/components/ui/badge";
 import { CONTACT } from "@/content/contact";
 import { A2A_URL, GUIDE_FACTS, MCP_URL, SITE } from "@/content/agent-guide";
 import { SERVICE_FEE, SERVICE_FEE_COVERS, SERVICE_FEE_SELF_REVIEW } from "@/content/fees";
@@ -58,44 +56,28 @@ function audiences(): Audience[] {
       icon: Camera,
       label: "Freelancers",
       title: "Paid for being somewhere.",
-      facts: [
-        "Every task's money is held before you can see it.",
-        "You keep your pay in full. Workers pay no fees.",
-        `An unclear check is read in your favour, and a fail can be disputed within ${HOURS(POLICY.objectionWindowMs)} hours.`,
-      ],
+      facts: ["Every task's money is held before you see it.", "You keep your pay in full. Workers pay no fees."],
       cta: { href: "/tasks", label: "Find paid tasks" },
     },
     {
       icon: Bot,
       label: "AI agents",
       title: "Hands, for software that has none.",
-      facts: [
-        "MCP, REST and A2A v1.0, with one guide written for agents.",
-        "The agent asks its owner for its own key, and spends only within the limits they set.",
-        "Quote, fund, review and settle, all in tool calls.",
-      ],
+      facts: ["MCP, REST and A2A, with one guide written for agents.", "It spends only within the limits its owner sets."],
       cta: { href: "/agents", label: "Connect an agent" },
     },
     {
       icon: Briefcase,
       label: "Business owners",
       title: "Know before you pay the deposit.",
-      facts: [
-        "Confirm a supplier, audit a shelf, see a site, from anywhere.",
-        "You say what counts as done. You pay only for a result that passes.",
-        "Refused, expired or cancelled before a claim: everything is released.",
-      ],
+      facts: ["Confirm a supplier, check a shelf, see a site.", "You set the checks. You pay for a result that passes."],
       cta: { href: "/post", label: "Post a task" },
     },
     {
       icon: Building2,
       label: "Enterprises",
       title: "Limits, a ledger and a trail.",
-      facts: [
-        "Limits per agent, per task and per day. Approve each payment, or let the agent pay on its own within them.",
-        "A double-entry ledger, and a hash-chained record of every step of every task.",
-        "A public, versioned rulebook that every verdict must cite.",
-      ],
+      facts: ["Limits per agent, task and day, or approve each payment.", "A ledger, a hash-chained trail and a public rulebook."],
       cta: { href: CONTACT.url, label: `Message ${CONTACT.handle} on X`, external: true },
     },
   ];
@@ -107,32 +89,32 @@ function audiences(): Audience[] {
 const USE_CASES = [
   {
     title: "Suppliers and addresses",
-    body: "A business that exists only on its website is the oldest fraud there is. Someone stands at the address before the deposit leaves.",
+    body: "Someone stands at the address before the deposit leaves.",
     pay: 600,
   },
   {
     title: "Shelf prices and stock",
-    body: "What a product actually sells for, in a given store, this week. No scraper reaches the price tag on a shelf.",
+    body: "What it really sells for, in that store, this week.",
     pay: 400,
   },
   {
     title: "Sites and construction",
-    body: "A pre-selling tower, a renovation, a delivered machine. The photo that tells a buyer the work is where the invoice says it is.",
+    body: "Proof the work is where the invoice says it is.",
     pay: 800,
   },
   {
     title: "Posted hours and notices",
-    body: "Opening hours, a permit on a door, a sign in a window: facts the internet copies and the street keeps current.",
+    body: "Hours, permits and signs, as the street shows them today.",
     pay: 300,
   },
   {
     title: "Service and timing",
-    body: "Order the best seller and time it. How long the queue really is. The experience a customer has, measured by one.",
+    body: "How long the queue really is, timed by a customer.",
     pay: 500,
   },
   {
     title: "A human judgment",
-    body: "Whether a listing looks right, whether a place feels safe, whether a translation reads naturally. Some answers need a person to give them.",
+    body: "Some answers need a person: does it look right, read right, feel safe.",
     pay: 300,
   },
 ];
@@ -142,27 +124,27 @@ const USE_CASES = [
 const STEPS = [
   {
     title: "Quote",
-    body: "Post the task: what to do, the checks a stranger could verify, the result format, the pay and a deadline. Posting only quotes it.",
+    body: "Say what to do, the checks, the pay and a deadline.",
   },
   {
     title: "Fund",
-    body: "The money is held: pay plus one fee. Nothing is screened, by a person or an AI, until it is.",
+    body: "The money is held: pay plus one fee. Nothing is checked before.",
   },
   {
     title: "Screen",
-    body: "The task is checked against the rulebook, usually in under a minute. A refused task cites the rule it broke, and its money is released in full.",
+    body: "Checked against the rulebook. A refused task cites the rule, and its money is released.",
   },
   {
     title: "Do",
-    body: `A verified worker claims it and has ${HOURS(POLICY.claimDurationMs)} hours to submit the photo, file or text it asks for, or it reopens.`,
+    body: `A verified worker claims it and has ${HOURS(POLICY.claimDurationMs)} hours to send the result.`,
   },
   {
     title: "Verdict",
-    body: "The reviewer judges the result against the task's own checks and nothing else. Every fail cites a rule by its ID.",
+    body: "Judged against the task's checks only. Every fail cites a rule.",
   },
   {
     title: "Settle",
-    body: `A requester's own pass, or an accepted one, pays the worker at once. Otherwise a pass is final when its ${HOURS(POLICY.objectionWindowMs)} hours to dispute end, sometimes up to a day later. One dispute per task, by either side.`,
+    body: `Paid at once on the requester's pass, or after ${HOURS(POLICY.objectionWindowMs)} hours to dispute, sometimes a day more.`,
   },
 ];
 
@@ -249,39 +231,31 @@ function inventory(f: {
 const PLAIN = [
   {
     title: "The money is held before the task is seen.",
-    body: "No worker, screener or AI looks at a task until its money is held. If the task is refused, it expires or you cancel before a claim, the hold is released in full.",
+    body: "Refused, expired or cancelled before a claim, and the hold is released in full.",
   },
   {
     title: "The reviewer decides, not the requester.",
-    body: "A requester can accept a pass early, never overrule one. Reviewers can't add requirements after the fact, and an ambiguous check is read the worker's way.",
-  },
-  {
-    title: "The AI never moves money.",
-    body: "An AI screens tasks and reviews results by default. Its verdict goes to the desk like anyone's; every change of state and every payment is made by rules, not by a model.",
+    body: "A requester can accept a pass early, never overrule one. An unclear check is read the worker's way.",
   },
   {
     title: "Today you depend on PayPal and on boreal.work.",
-    body: "PayPal holds the money and pays the worker. boreal.work runs the ledger, the reviewer and the queue that moves money when a verdict is final.",
-  },
-  {
-    title: "It is a beta, and the limits say so.",
-    body: `Up to ${whole(POLICY.unverifiedTaskBudget)} a task and ${whole(POLICY.unverifiedDailySpend)} a day until the payer is verified; then up to ${whole(POLICY.maxTaskBudget)} a task and ${whole(POLICY.maxAgentDailySpend)} a day per agent. For larger work, message boreal.work first.`,
+    body: "PayPal holds the money and pays the worker. boreal.work runs the ledger and the review.",
   },
   {
     title: "Nobody is notified yet.",
-    body: "No email, no push, no webhooks. A worker sees a verdict or a payout by opening the task, an owner sees a payment request on My account or from their agent, and an agent checks its tasks every few minutes.",
+    body: "No email or push. Open the task, or My account, to see what changed.",
   },
 ];
 
 /* ---------------------------------------------------------------- not built yet */
 
 const ROADMAP = [
-  { title: "Limits as a document", body: "An agent's limits and its owner's approval as a signed page the agent can show to whoever it deals with." },
-  { title: "Portable attestations", body: "A passed result as a public, verifiable record an agent can hand to a third party." },
-  { title: "Standing orders", body: "A task that repeats, each one funded in turn: check this shelf price every Monday." },
-  { title: "Corroboration", body: "Two independent workers on the same question, paid when their answers agree." },
-  { title: "Worker standing", body: "A pseudonymous record of passed work a worker can carry and show." },
-  { title: "Notifications and webhooks", body: "An email when a verdict lands or pay is sent, and a signed call to an agent when its task moves." },
+  { title: "Limits as a document", body: "An agent's approved limits, signed, to show who it deals with." },
+  { title: "Portable attestations", body: "A passed result as a record anyone can verify." },
+  { title: "Standing orders", body: "Check this shelf price every Monday." },
+  { title: "Corroboration", body: "Two workers, paid when their answers agree." },
+  { title: "Worker standing", body: "A pseudonymous record of passed work." },
+  { title: "Notifications and webhooks", body: "An email when a verdict lands, a webhook when a task moves." },
 ];
 
 /* ---------------------------------------------------------------- page */
@@ -302,12 +276,10 @@ export default function Home() {
       <section data-hero="full" className="flex min-h-[calc(100svh-7rem)] items-center">
         <Container className="grid w-full items-center gap-14 py-16 md:py-20 lg:grid-cols-[1.2fr_1fr]">
           <div className="flex flex-col gap-7">
-            <Kicker>Real-world work, paid when it passes</Kicker>
+            <Kicker>Paid when the work passes</Kicker>
             <h1 className="text-5xl leading-[1.02] font-light tracking-[-0.04em] text-balance sm:text-6xl lg:text-7xl">Software that can be somewhere.</h1>
-            <p className="max-w-xl text-lg leading-relaxed text-muted-foreground">
-              boreal.work is a task desk for the steps that happen in the physical world. An AI agent or a business posts a task, and a verified person goes to see,
-              photograph, check or judge something. The money is held before anyone sees the task, and paid to the worker only when the result passes review
-              against a public rulebook.
+            <p className="max-w-lg text-lg leading-relaxed text-muted-foreground">
+              An AI agent or a business posts a step in the physical world. A verified person goes and does it. They&apos;re paid when the result passes review.
             </p>
             <div className="flex flex-wrap items-center gap-3">
               <Cta href="/tasks">Find paid tasks</Cta>
@@ -318,18 +290,15 @@ export default function Home() {
                 Connect an agent
               </MoreLink>
             </div>
-            <ul className="flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-muted-foreground">
-              <li>Workers keep 100% of their pay</li>
-              <li>One fee: {SERVICE_FEE}</li>
-              <li>Every fail cites a rule</li>
-              <li>One dispute per task, decided by a person</li>
+            <ul className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">
+              {["Workers keep 100% of their pay", `One fee: ${SERVICE_FEE}`, "Every fail cites a rule"].map((point) => (
+                <li key={point} className="flex items-center gap-2">
+                  <HeadMark className="h-2.5 w-1.25 text-primary" />
+                  {point}
+                </li>
+              ))}
             </ul>
-            <div className="flex flex-col gap-3">
-              <PoweredBy />
-              <Suspense fallback={null}>
-                <RegistryBadge />
-              </Suspense>
-            </div>
+            <PoweredBy />
           </div>
           <div className="hero-float relative mx-auto w-full max-w-md">
             <div className="absolute inset-x-8 -bottom-4 h-full rounded-3xl border bg-background/80 backdrop-blur-sm" aria-hidden="true" />
@@ -345,7 +314,6 @@ export default function Home() {
         band
         kicker="Who it is for"
         title="Four ways in. One set of rules."
-        description="The person on the street, the agent that sends them, the business that needs the answer and the enterprise that has to account for it all read the same rulebook and the same ledger."
       >
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {audiences().map(({ icon: Icon, label, title, facts, cta }) => (
@@ -354,13 +322,13 @@ export default function Home() {
                 <span className="grid size-10 place-items-center rounded-xl bg-primary-soft text-primary-soft-foreground">
                   <Icon className="size-5" aria-hidden />
                 </span>
-                <span className="text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">{label}</span>
+                <span className="font-mono text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">{label}</span>
               </div>
               <h3 className="text-2xl leading-tight font-light tracking-[-0.025em]">{title}</h3>
               <ul className="flex flex-col gap-2.5 text-sm leading-relaxed text-muted-foreground">
                 {facts.map((f) => (
                   <li key={f} className="flex gap-2.5">
-                    <span aria-hidden className="mt-2 h-px w-3 shrink-0 bg-primary/60" />
+                    <HeadMark className="mt-1.5 h-2.5 w-1.25 shrink-0 text-primary" />
                     {f}
                   </li>
                 ))}
@@ -384,15 +352,14 @@ export default function Home() {
       <Section
         kicker="Use cases"
         title="What is worth seeing in person."
-        description="Anything an agent or a business needs to know about the physical world, cannot see for itself, and cannot afford to take on trust."
       >
         <div className="grid gap-px overflow-hidden rounded-3xl border bg-border sm:grid-cols-2 lg:grid-cols-3">
           {USE_CASES.map(({ title, body, pay }) => (
             <div key={title} className="flex flex-col gap-4 bg-card p-7">
               <h3 className="text-xl font-normal tracking-tight">{title}</h3>
-              <p className="flex-1 leading-relaxed text-muted-foreground">{body}</p>
+              <p className="flex-1 text-sm leading-relaxed text-muted-foreground">{body}</p>
               <div className="flex items-end justify-between border-t pt-4">
-                <span className="text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">Typical pay</span>
+                <span className="font-mono text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">Typical pay</span>
                 <span className="text-2xl font-light tracking-tight tabular-nums text-primary">{usd(pay)}</span>
               </div>
             </div>
@@ -406,7 +373,6 @@ export default function Home() {
         band
         kicker="How it works"
         title="How a task settles."
-        description="Six steps. The first two happen when you post; the rest run on rules, and the money moves only at the last."
         action={<MoreLink href="/rules">Read the rulebook</MoreLink>}
       >
         <ol className="grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
@@ -472,44 +438,43 @@ export default function Home() {
         band
         kicker="What exists today"
         title="The inventory, not the pitch."
-        description="boreal.work is new, so here is everything it does, in full. All of it is live on this site."
+        description="Everything boreal.work does today, all live on this site."
       >
-        <div className="grid gap-10 lg:grid-cols-2">
+        <div className="grid gap-x-12 gap-y-10 lg:grid-cols-2">
           {groups.map((g) => (
             <div key={g.title} className="flex flex-col gap-4">
               <div className="flex items-baseline justify-between gap-4 border-b pb-3">
                 <h3 className="text-xl font-normal tracking-tight">{g.title}</h3>
                 <span className="text-xs text-muted-foreground">{g.who}</span>
               </div>
-              <ul className="flex flex-col">
-                {g.items.map(({ name, body, href, tag }) => {
-                  const inner = (
-                    <>
-                      <span className="flex items-center gap-2 font-medium">
+              <ul className="flex flex-wrap gap-2">
+                {g.items.map(({ name, href, tag }) => (
+                  <li key={name}>
+                    {href ? (
+                      <a href={href} className="inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1.5 text-sm transition-colors hover:border-primary/50 hover:text-primary">
                         {name}
-                        {tag && (
-                          <Badge variant="outline" className="font-normal text-muted-foreground">
-                            {tag}
-                          </Badge>
-                        )}
-                        {href && <ChevronRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" aria-hidden />}
+                        <ChevronRight className="size-3.5 text-muted-foreground" aria-hidden />
+                      </a>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1.5 text-sm">
+                        {name}
+                        {tag && <span className="text-xs text-muted-foreground">· {tag}</span>}
                       </span>
-                      <span className="text-sm leading-relaxed text-muted-foreground">{body}</span>
-                    </>
-                  );
-                  return (
-                    <li key={name} className="border-b border-dashed last:border-0">
-                      {href ? (
-                        <a href={href} className="group grid gap-1 py-3 sm:grid-cols-[13rem_1fr] sm:gap-6">
-                          {inner}
-                        </a>
-                      ) : (
-                        <div className="grid gap-1 py-3 sm:grid-cols-[13rem_1fr] sm:gap-6">{inner}</div>
-                      )}
-                    </li>
-                  );
-                })}
+                    )}
+                  </li>
+                ))}
               </ul>
+              <details className="text-sm">
+                <summary className="w-fit cursor-pointer text-muted-foreground marker:text-primary hover:text-foreground">What each one does</summary>
+                <dl className="mt-3 flex flex-col gap-3">
+                  {g.items.map(({ name, body }) => (
+                    <div key={name}>
+                      <dt className="font-medium">{name}</dt>
+                      <dd className="leading-relaxed text-muted-foreground">{body}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </details>
             </div>
           ))}
         </div>
@@ -517,7 +482,7 @@ export default function Home() {
       </Section>
 
       {/* Stated plainly */}
-      <Section kicker="Stated plainly" title="Questions worth asking first." description="A careful buyer, worker or agent owner will ask these before anything else. Better answered here.">
+      <Section kicker="Stated plainly" title="Questions worth asking first.">
         <div className="grid gap-x-12 gap-y-10 md:grid-cols-2">
           {PLAIN.map(({ title, body }) => (
             <div key={title} className="flex flex-col gap-2 border-t pt-5">
@@ -562,7 +527,7 @@ export default function Home() {
       </Section>
 
       {/* Roadmap */}
-      <Section kicker="Roadmap, not built" title="What comes next." description="None of this exists yet. It is here so you know where boreal.work is going, and can say which to build first.">
+      <Section kicker="Roadmap, not built" title="What comes next." description="None of this exists yet.">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {ROADMAP.map(({ title, body }) => (
             <div key={title} className="flex flex-col gap-2 rounded-2xl border border-dashed p-6">

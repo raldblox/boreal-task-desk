@@ -58,7 +58,7 @@ export function ClosingBand() {
           <linearGradient id="cb-aurora-b" x1="0" y1="0" x2="1" y2="0">
             <stop offset="0" stopColor="#67e8f9" stopOpacity="0" />
             <stop offset="0.5" stopColor="#67e8f9" stopOpacity="0.35" />
-            <stop offset="1" stopColor="#a78bfa" stopOpacity="0" />
+            <stop offset="1" stopColor="#5ac6bd" stopOpacity="0" />
           </linearGradient>
           <filter id="cb-blur" x="-200" y="-200" width={W + 400} height={H + 400} filterUnits="userSpaceOnUse">
             <feGaussianBlur stdDeviation="28" />
