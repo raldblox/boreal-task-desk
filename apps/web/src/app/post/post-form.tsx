@@ -119,7 +119,7 @@ export function PostForm({
           <p className="text-sm text-muted-foreground">
             {attributes
               ? "Optional. Either one limits the task to workers who proved it with Concordium ID, so it may take longer to fill."
-              : "Any verified worker who logs in with PayPal can take it."}
+              : "Any verified worker can claim it: verified by PayPal or with Concordium ID, one account per person."}
           </p>
         </div>
         <fieldset className="flex flex-col gap-2">
@@ -202,8 +202,8 @@ export function PostForm({
             <span className="flex flex-col gap-0.5">
               <span className="font-medium">I&apos;ll review it myself</span>
               <span className="text-sm text-muted-foreground">
-                No review fee. Your pass is final at once and pays the worker. A fail must cite a rule, and the worker can
-                dispute it once to a human panel. You have {POLICY.requesterReviewMs / 3_600_000} hours from the submission; after that boreal.work&apos;s
+                A lower service fee, with no review part. Your pass is final at once and pays the worker. A fail must cite a rule, and the
+                worker can dispute it once; the dispute panel decides. You have {POLICY.requesterReviewMs / 3_600_000} hours from the result; after that boreal.work&apos;s
                 reviewers decide (<a href="/rules#R5.8" className="font-mono underline decoration-dotted underline-offset-4">R5.8</a>).
               </span>
             </span>
@@ -243,7 +243,7 @@ export function PostForm({
         </dl>
         <p className="text-xs text-muted-foreground">
           You pay with PayPal next. PayPal only holds the money: boreal.work then checks the task against its rulebook, and
-          it&apos;s charged only when the work passes. If the task is refused, fails, expires or you cancel before anyone claims
+          it&apos;s taken only when the work passes. If the task is refused, fails, expires or you cancel before anyone claims
           it, the hold is released{reviewer === "boreal" ? " (a fail still pays the review part of the fee)" : ""}. The service fee
           covers {SERVICE_FEE_COVERS}; the worker receives their pay in full.
         </p>

@@ -15,11 +15,11 @@ export const metadata: Metadata = {
 
 const GROUPS: { prefix: string; stage: Rule["stage"]; icon: typeof Gavel; title: string; who: string }[] = [
   { prefix: "R1", stage: "screening", icon: ScanSearch, title: "R1 · Task quality", who: "Checked on every task once it's funded, before any worker sees it. A task that breaks one goes back to its requester with the fix." },
-  { prefix: "R2", stage: "screening", icon: ScanSearch, title: "R2 · Safety and legality", who: "Checked at screening too. A task that breaks one is refused, and its money is returned in full." },
+  { prefix: "R2", stage: "screening", icon: ScanSearch, title: "R2 · Safety and legality", who: "Checked at screening too. A task that breaks one is refused, and everything paid for it is released." },
   { prefix: "R3", stage: "review", icon: ShieldCheck, title: "R3 · Integrity", who: "Checked first on every result. Evidence that isn't genuine fails the result whatever else it shows." },
-  { prefix: "R4", stage: "review", icon: ShieldCheck, title: "R4 · Completeness and accuracy", who: "Checked on every result, one acceptance criterion at a time." },
+  { prefix: "R4", stage: "review", icon: ShieldCheck, title: "R4 · Completeness and accuracy", who: "Checked on every result, one check at a time." },
   { prefix: "R5", stage: "reviewer", icon: Scale, title: "R5 · The reviewer's own rules", who: "Rules the reviewer must follow, whether it's boreal.work's AI or the person who posted the task. Breaking one voids or overturns the verdict." },
-  { prefix: "R6", stage: "dispute", icon: Gavel, title: "R6 · Disputes", who: "When either side disagrees with a verdict. A panel with a person on it decides." },
+  { prefix: "R6", stage: "dispute", icon: Gavel, title: "R6 · Disputes", who: "When either side disagrees with a verdict. A panel of two decides: boreal.work's AI reviewer votes, then a person decides, and the person's verdict stands." },
 ];
 
 const SEVERITY: Record<Severity, { label: string; tone: string; meaning: string }> = {
@@ -64,7 +64,7 @@ export default function RulesPage() {
           </div>
           <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr]">
             <p className="rounded-2xl border bg-card p-5 text-sm leading-relaxed text-muted-foreground">
-              <span className="font-medium text-foreground">When rules meet:</span> {PRECEDENCE} Reviewers can&apos;t add requirements of their own (R5.1).
+              <span className="font-medium text-foreground">When rules meet:</span> {PRECEDENCE} Reviewers can&apos;t add checks of their own (R5.1).
             </p>
             <dl className="grid gap-2 rounded-2xl border bg-card p-5 text-sm sm:grid-cols-2">
               {(Object.keys(SEVERITY) as Severity[]).map((s) => (

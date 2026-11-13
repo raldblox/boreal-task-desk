@@ -90,7 +90,7 @@ export default function PostPage() {
               ["Checked", "boreal.work reads your task for anything unsafe or unclear before anyone sees it."],
               ["Done", "A worker claims it and sends the result you asked for."],
               ["Reviewed", "Against your checks and the rulebook, never anything else."],
-              ["Paid or returned", `It pays out once final (${POLICY.objectionWindowMs / 3_600_000} hours after a pass, or sooner if you accept). A fail returns it, less any review fee.`],
+              ["Paid or released", `A pass you give, or a pass you accept, pays the worker at once. Otherwise it pays once the ${POLICY.objectionWindowMs / 3_600_000} hours to dispute are over, at boreal.work's next check: on a quiet day, up to a day later. A fail releases your money, less the review part of the service fee when boreal.work reviewed it.`],
             ].map(([title, body], i) => (
               <li key={title} className="flex gap-3">
                 <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary-soft text-[11px] font-semibold text-primary-soft-foreground tabular-nums">

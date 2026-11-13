@@ -82,7 +82,7 @@ Each line is what the product does today and where it is enforced. "Not live" me
 3. A requester can cancel until a worker claims the task: before funding, while it is being checked, or while it is open. Not after a claim. (`TRANSITIONS.cancel`)
 4. A claim lasts up to 4 hours, or until the deadline if that is sooner, and a worker holds one claim at a time. Nothing raises that number yet, so "a new worker" is wrong: it is every worker. (`claimTask`, `workers.max_active_claims`)
 5. Nobody can claim a task they or their own agent posted.
-6. On the live site a worker needs a PayPal account PayPal has verified, or the Verified by Concordium badge, to claim. (`requireVerifiedPayPal`)
+6. On every network a worker needs to be verified to claim: a PayPal account PayPal has verified, Concordium ID, or a Concordium account. One account per person: a second document of the same person, or a payout account already connected elsewhere, is refused. (`claimTask`, `samePerson`, `setPayoutAddress`; f0f3bf4, 24e284c)
 7. A result gets one verdict. There is no resubmitting.
 
 ### Review and disputes
@@ -92,8 +92,8 @@ Each line is what the product does today and where it is enforced. "Not live" me
 10. A requester who reviews their own task has 72 hours from the result (R5.8). After that boreal.work's reviewers decide. (`POLICY.requesterReviewMs`, `escalateSilentReviews`)
 11. A requester's own pass is final at once and pays the worker. A requester can accept boreal.work's pass early, and can never overrule a pass.
 12. **One dispute per task, not one per side.** Either the worker or the requester may dispute, within 48 hours of the verdict; once one has, the other can't. (`disputeUsed`)
-13. A panel with a person on it decides a dispute. There is no time limit on the panel in code; 72 hours is the target, and overdue disputes are reported to operators. Don't promise "within 72 hours".
-14. The panel's decision is final in code. The rulebook's R6.3 says it can be appealed for a procedural error or new evidence of fraud, and nothing implements an appeal. Until the owner decides (below), the terms say "final" and no page offers an appeal.
+13. A panel of two decides a dispute: boreal.work's AI reviewer votes first, then a person decides with that vote in front of them, and the person's verdict stands when they disagree (R6.3, rulebook 2.2). There is no time limit on the panel in code; 72 hours is the target, and overdue disputes are reported to operators. Don't promise "within 72 hours".
+14. The panel's decision is final, in code and in R6.3 (rulebook 2.2). There is no appeal.
 
 ### Money
 
@@ -212,7 +212,7 @@ Legal facts the copy session must not make up. Each has a recommendation; write 
 
 Tick with the commit hash. Add what you found under the last heading.
 
-- [x] Words: the list reconciled with the house style (d6b3429), and every page in this brief follows it. Not swept: `/post`, `/tasks`, `/rules`, `/status`, `/signin` and My account's other tabs ("logs in" still appears there, for one)
+- [x] Words: the list reconciled with the house style (d6b3429), and every page in this brief follows it. Swept on 2026-11-13: `/post`, `/tasks`, `/rules`, `/status` and the status labels. Still to sweep: `/signin` and My account's tabs, which the ZKPassport session is editing (My account still says "log in again" to verify, and labels a finished payment "charged")
 - [x] 1. Terms: a27f8d9 (owner items 1, 5, 6 and 7 still open: no legal name, liability, governing law, notice period or account closing written)
 - [x] 2. Privacy: a27f8d9 (owner item 3, how long things are kept, still open)
 - [x] 3. FAQ: 0aad9b2

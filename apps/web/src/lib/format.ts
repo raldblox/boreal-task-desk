@@ -56,7 +56,7 @@ export function posterStatus(task: { status: TaskStatus; reviewMode: "boreal" | 
     case "open":
       return { label: "Open to workers", tone: "secondary" };
     case "expired":
-      return { label: "Expired, refunded", tone: "outline" };
+      return { label: "Expired, money released", tone: "outline" };
     case "claimed":
       return { label: "A worker is on it", tone: "secondary" };
     case "submitted":
@@ -70,7 +70,7 @@ export function posterStatus(task: { status: TaskStatus; reviewMode: "boreal" | 
     case "final_pass":
       return { label: "Done, worker paid", tone: "outline" };
     case "final_fail":
-      return { label: "Not paid, refunded", tone: "outline" };
+      return { label: "Failed, final", tone: "outline" };
   }
 }
 
