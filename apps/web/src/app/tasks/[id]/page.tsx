@@ -1,12 +1,13 @@
 import { POLICY } from "@boreal/core";
 import { type Caller, DeskError, type RequesterKind } from "@boreal/desk";
 import type { Task } from "@boreal/db";
-import { ArrowLeft, BadgeCheck, Bot, CircleCheck, ShieldCheck, Store, UserCheck } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { claimTask, disputeVerdict, releaseTask, submitResult } from "@/app/actions";
+import { HeadMark } from "@/components/brand";
 import { RelatedQuestions } from "@/components/related-questions";
 import { PrivateReviewNote } from "@/components/private-review";
 import { TxLink } from "@/components/tx-link";
@@ -321,64 +322,44 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
 
       <div className="flex flex-col gap-6 lg:order-1">
         <div className="flex flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            {task.test && <Badge className="bg-primary-soft text-primary-soft-foreground">Test task · test money only</Badge>}
-            {task.requesterKind === "verified_agent" && (
-              <Badge variant="outline" className="gap-1" title="The AI agent that posted this is listed in Concordium's Agent Registry, owned by an accountable Concordium account.">
-                <BadgeCheck className="size-3.5 text-primary" /> Verified agent
-              </Badge>
-            )}
-            {task.requesterKind === "verified_person" && (
-              <Badge variant="outline" className="gap-1" title="A person posted this themselves from a verified account (PayPal-verified, or with Concordium ID where that integration is on).">
-                <UserCheck className="size-3.5 text-primary" /> Posted by a verified person
-              </Badge>
-            )}
-            {task.requesterKind === "market" && (
-              <Badge variant="outline" className="gap-1" title="Hired through boreal.work's listing on NEAR Agent Market.">
-                <Store className="size-3.5 text-primary" /> NEAR market buyer
-              </Badge>
-            )}
-            {task.paymentRail && <Badge variant="outline">{RAIL_LABEL[task.paymentRail]}</Badge>}
-            {task.reviewMode === "requester" && <Badge variant="outline">Reviewed by the requester</Badge>}
-            {task.fulfilledBy === "agent" && (
-              <Badge variant="outline" className="gap-1" title="An AI agent did this task, signed in with its NEAR account. Its requester opened the task to agents; the review was the same.">
-                <Bot className="size-3.5 text-primary" /> Done by an AI agent
-              </Badge>
-            )}
-            {task.fulfilledBy === "person" && task.fulfillers === "people_or_agents" && (
-              <Badge variant="outline" className="gap-1" title="A person did this task, though it was open to AI agents too.">
-                <UserCheck className="size-3.5 text-primary" /> Done by a person
-              </Badge>
-            )}
-            {task.fulfillers === "people_or_agents" && !task.fulfilledBy && (
-              <Badge variant="outline" className="gap-1" title="The requester let AI agents take this too, under the same review.">
-                <Bot className="size-3.5 text-primary" /> Open to AI agents
-              </Badge>
-            )}
-            {task.requiredAttributes.length > 0 && (
-              <Badge variant="outline" className="gap-1" title="Proven with Concordium ID (the Concordium integration).">
-                <ShieldCheck className="size-3.5 text-primary" /> Needs Verified by Concordium
-              </Badge>
-            )}
-            {task.requiredAttributes.map((a) => (
-              <Badge key={a.attribute} variant="outline">
-                {attributeLabel(a)}
-              </Badge>
-            ))}
-          </div>
+          {/* Who posted it and how it pays, as one quiet line; what it needs, with the brand's round head. */}
+          {(() => {
+            const facts = [
+              task.test ? "Test task · test money only" : null,
+              task.requesterKind === "verified_agent" ? "Posted by a verified agent" : null,
+              task.requesterKind === "verified_person" ? "Posted by a verified person" : null,
+              task.requesterKind === "market" ? "Hired on NEAR Agent Market" : null,
+              task.paymentRail ? RAIL_LABEL[task.paymentRail] : null,
+              task.reviewMode === "requester" ? "Reviewed by the requester" : null,
+              task.fulfilledBy === "agent" ? "Done by an AI agent" : null,
+              task.fulfilledBy === "person" && task.fulfillers === "people_or_agents" ? "Done by a person" : null,
+              task.fulfillers === "people_or_agents" && !task.fulfilledBy ? "Open to AI agents" : null,
+            ].filter((x): x is string => Boolean(x));
+            const needs = [...(task.requiredAttributes.length > 0 ? ["Concordium ID"] : []), ...task.requiredAttributes.map(attributeLabel)];
+            return (
+              <div className="flex flex-col gap-1.5 text-sm text-muted-foreground">
+                {facts.length > 0 && <p>{facts.join(" · ")}</p>}
+                {needs.length > 0 && (
+                  <p className="flex items-center gap-2 text-foreground">
+                    <HeadMark className="h-2.5 w-1.25 text-primary" /> Needs {needs.join(" · ")}
+                  </p>
+                )}
+              </div>
+            );
+          })()}
           <h1 className="text-3xl leading-tight font-light tracking-[-0.03em] text-balance sm:text-4xl">{task.description}</h1>
           <p className="text-sm text-muted-foreground">Due {when(task.deadline)}</p>
         </div>
 
-        <section className="flex flex-col gap-3 rounded-2xl border bg-card p-5">
+        <section className="flex flex-col gap-4">
           <div>
-            <h2 className="font-semibold">What counts as done</h2>
-            <p className="text-sm text-muted-foreground">The reviewer checks your result against these, and only these.</p>
+            <h2 className="text-xl font-light tracking-[-0.015em]">What counts as done</h2>
+            <p className="text-sm text-muted-foreground">Your result is judged against these checks, and only these.</p>
           </div>
-          <ul className="flex flex-col gap-2">
-            {task.acceptanceCriteria.map((c) => (
-              <li key={c} className="flex gap-2.5">
-                <CircleCheck className="mt-0.5 size-4 shrink-0 text-primary" />
+          <ul className="flex flex-col divide-y border-y">
+            {task.acceptanceCriteria.map((c, i) => (
+              <li key={c} className="flex gap-4 py-3">
+                <span className="w-5 shrink-0 font-mono text-sm text-primary tabular-nums">{i + 1}</span>
                 <span>{c}</span>
               </li>
             ))}

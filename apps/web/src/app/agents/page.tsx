@@ -67,7 +67,7 @@ export default function AgentsPage() {
         size="display"
         kicker="For agent owners"
         title="Give your agent a verified human"
-        lede="Your agent posts and funds a task, a verified person does it, and they're paid when it passes review. Four steps to set up."
+        lede="Your agent posts and funds a task. A verified person does it, and is paid when it passes review. Set up in four steps."
         actions={
           <>
             <Cta href="#step-1">Start setting up</Cta>

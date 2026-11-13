@@ -38,7 +38,9 @@ export function ZkPassportSignIn({ next = "/tasks", link = false }: { next?: str
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
   const [url, setUrl] = useState<string | null>(null);
-  const [qr, setQr] = useState<string | null>(null);
+  // The QR drawn for a request URL; one for an older URL is ignored, so no reset is needed.
+  const [drawn, setDrawn] = useState<{ url: string; data: string } | null>(null);
+  const qr = url && drawn?.url === url ? drawn.data : null;
   const cancelled = useRef(false);
 
   useEffect(() => {
@@ -49,12 +51,12 @@ export function ZkPassportSignIn({ next = "/tasks", link = false }: { next?: str
   }, []);
 
   useEffect(() => {
-    if (!url) return setQr(null);
+    if (!url) return;
     let live = true;
     import("qrcode")
       .then((QR) => QR.toDataURL(url, { margin: 1, width: 240 }))
-      .then((data) => live && setQr(data))
-      .catch(() => live && setQr(null));
+      .then((data) => live && setDrawn({ url, data }))
+      .catch(() => undefined);
     return () => {
       live = false;
     };

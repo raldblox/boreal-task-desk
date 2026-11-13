@@ -1,8 +1,9 @@
 import type { Task } from "@boreal/db";
 import type { RequesterKind } from "@boreal/desk";
-import { BadgeCheck, Bot, Camera, ChevronRight, Clock, FileText, PenLine, ShieldCheck, Store, UserCheck } from "lucide-react";
+import { ArrowRight, BadgeCheck, Camera, Clock, FileText, PenLine, Store, UserCheck } from "lucide-react";
 import Link from "next/link";
 
+import { HeadMark } from "@/components/brand";
 import { Badge } from "@/components/ui/badge";
 import { attributeLabel, usd, when, WORKER_STATUS } from "@/lib/format";
 import { RAIL_LABEL } from "@/lib/rails";
@@ -13,7 +14,17 @@ const FORMAT = {
   text: { icon: PenLine, label: "Written answer" },
 } as const;
 
-/** A task, plus who's behind it: a Verified by Concordium agent, a verified person, a NEAR market buyer, or none (from the desk). */
+const POSTED_BY: Partial<Record<RequesterKind, { icon: typeof BadgeCheck; label: string }>> = {
+  verified_agent: { icon: BadgeCheck, label: "Verified agent" },
+  verified_person: { icon: UserCheck, label: "Verified person" },
+  market: { icon: Store, label: "NEAR market buyer" },
+};
+
+/**
+ * A task as a worker scans it: what to do and the pay first, then the format and deadline, then
+ * one quiet line for what it needs and how it pays. The whole card is the link; on hover the
+ * brand's round head slides in at its edge (globals.css: .brand-card).
+ */
 export function TaskCard({
   task,
   showStatus = false,
@@ -21,76 +32,64 @@ export function TaskCard({
   task: Task & { requesterKind?: RequesterKind; fulfilledBy?: "person" | "agent" | null };
   showStatus?: boolean;
 }) {
-  const shown = task.requesterKind === "verified_agent" || task.requesterKind === "verified_person" || task.requesterKind === "market";
   const status = WORKER_STATUS[task.status];
   const format = FORMAT[task.resultFormat];
+  const postedBy = task.requesterKind ? POSTED_BY[task.requesterKind] : undefined;
+  const needs = [
+    ...(task.requiredAttributes.length > 0 ? ["Concordium ID"] : []),
+    ...task.requiredAttributes.map(attributeLabel),
+  ];
+  const fine = [
+    task.paymentRail ? RAIL_LABEL[task.paymentRail] : null,
+    task.fulfillers === "people_or_agents" && !task.fulfilledBy ? "Open to AI agents" : null,
+    task.fulfilledBy === "agent" ? "Done by an AI agent" : null,
+  ].filter((x): x is string => Boolean(x));
+
   return (
     <Link
       href={`/tasks/${task.id}`}
-      className="group flex flex-col gap-4 rounded-2xl border bg-card p-6 transition-all hover:-translate-y-px hover:border-primary/50 hover:shadow-[0_8px_30px_-12px] hover:shadow-primary/25 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/40"
+      className="brand-card group flex flex-col gap-5 rounded-2xl border bg-card p-6 transition-colors hover:border-primary/40 focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:outline-none"
     >
       <div className="flex items-start justify-between gap-6">
-        <p className="text-lg leading-snug">{task.description}</p>
-        <p className="shrink-0 text-3xl font-light tracking-tight tabular-nums text-primary">{usd(task.budget)}</p>
+        <p className="line-clamp-3 text-lg leading-snug text-balance">{task.description}</p>
+        <p className="shrink-0 text-3xl font-light tracking-[-0.03em] tabular-nums text-primary">{usd(task.budget)}</p>
       </div>
+
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
         <span className="flex items-center gap-1.5">
-          <format.icon className="size-4" /> {format.label}
+          <format.icon className="size-4" aria-hidden /> {format.label}
         </span>
         <span className="flex items-center gap-1.5">
-          <Clock className="size-4" /> Due {when(task.deadline)}
+          <Clock className="size-4" aria-hidden /> Due {when(task.deadline)}
         </span>
+        {postedBy && (
+          <span className="flex items-center gap-1.5">
+            <postedBy.icon className="size-4 text-primary" aria-hidden /> {postedBy.label}
+          </span>
+        )}
       </div>
-      {(showStatus || task.test || task.paymentRail || shown || task.requiredAttributes.length > 0 || task.fulfillers === "people_or_agents") && (
-        <div className="flex flex-wrap gap-2">
-          {showStatus && <Badge variant={status.tone}>{status.label}</Badge>}
-          {task.test && <Badge className="bg-primary-soft text-primary-soft-foreground">Test money</Badge>}
-          {task.requesterKind === "verified_agent" && (
-            // The posting agent's owner is an accountable Concordium account (Agent Registry badge).
-            <Badge variant="outline" className="gap-1">
-              <BadgeCheck className="size-3.5 text-primary" /> Verified agent
-            </Badge>
+
+      <div className="mt-auto flex items-end justify-between gap-4 border-t pt-4">
+        <div className="flex min-w-0 flex-col gap-1.5 text-xs text-muted-foreground">
+          {(showStatus || task.test) && (
+            <div className="flex flex-wrap gap-2">
+              {showStatus && <Badge variant={status.tone}>{status.label}</Badge>}
+              {task.test && <Badge className="bg-primary-soft text-primary-soft-foreground">Test money</Badge>}
+            </div>
           )}
-          {task.requesterKind === "verified_person" && (
-            // A person posted it themselves, and has Concordium ID on their account.
-            <Badge variant="outline" className="gap-1">
-              <UserCheck className="size-3.5 text-primary" /> Verified person
-            </Badge>
+          {needs.length > 0 && (
+            <span className="flex items-center gap-2 text-foreground">
+              <HeadMark className="h-2.5 w-1.25 shrink-0 text-primary" />
+              Needs {needs.join(" · ")}
+            </span>
           )}
-          {task.requesterKind === "market" && (
-            // Hired through boreal's listing on NEAR Agent Market.
-            <Badge variant="outline" className="gap-1">
-              <Store className="size-3.5 text-primary" /> NEAR market buyer
-            </Badge>
-          )}
-          {task.paymentRail && <Badge variant="outline">{RAIL_LABEL[task.paymentRail]}</Badge>}
-          {task.fulfillers === "people_or_agents" && !task.fulfilledBy && (
-            // The requester let AI agents take it too, under the same review.
-            <Badge variant="outline" className="gap-1">
-              <Bot className="size-3.5 text-primary" /> Open to AI agents
-            </Badge>
-          )}
-          {task.fulfilledBy === "agent" && (
-            <Badge variant="outline" className="gap-1">
-              <Bot className="size-3.5 text-primary" /> Done by an AI agent
-            </Badge>
-          )}
-          {task.requiredAttributes.length > 0 && (
-            // Required attributes are proven with Concordium ID, so the task needs its badge.
-            <Badge variant="outline" className="gap-1">
-              <ShieldCheck className="size-3.5 text-primary" /> Needs Verified by Concordium
-            </Badge>
-          )}
-          {task.requiredAttributes.map((a) => (
-            <Badge key={a.attribute} variant="outline">
-              {attributeLabel(a)}
-            </Badge>
-          ))}
+          {fine.length > 0 && <span>{fine.join(" · ")}</span>}
         </div>
-      )}
-      <span className="mt-auto flex items-center gap-1 pt-1 text-sm font-medium text-primary">
-        Open task <ChevronRight className="size-4 transition-transform group-hover:translate-x-1" />
-      </span>
+        <ArrowRight
+          className="size-5 shrink-0 text-muted-foreground transition-all duration-300 ease-out group-hover:translate-x-1 group-hover:text-primary"
+          aria-hidden
+        />
+      </div>
     </Link>
   );
 }

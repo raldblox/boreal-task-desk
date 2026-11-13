@@ -194,7 +194,7 @@ export function LinkTile({
   className?: string;
 }) {
   const classes = cn(
-    "group flex items-start gap-4 rounded-2xl border bg-card p-6 transition-all hover:-translate-y-px hover:border-primary/50 hover:shadow-[0_8px_30px_-12px] hover:shadow-primary/25 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+    "brand-card group flex items-start gap-4 rounded-2xl border bg-card p-6 transition-colors hover:border-primary/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
     className,
   );
   const inner = (

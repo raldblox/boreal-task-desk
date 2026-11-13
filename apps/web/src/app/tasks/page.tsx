@@ -21,8 +21,8 @@ async function OpenTasks({ searchParams }: { searchParams: Promise<{ payable?: s
   const worker = await workerFromSession();
   if (!worker) {
     return (
-      <EmptyState title="Sign in to see tasks" action={<Cta href="/signin?next=/tasks">Log in with PayPal</Cta>}>
-        Log in with PayPal to see open tasks, and get paid there when your work passes.
+      <EmptyState title="Sign in to see paid tasks" action={<Cta href="/signin?next=/tasks">Sign in</Cta>}>
+        Every task here is funded already. Sign in to claim one, and get paid when your work passes.
       </EmptyState>
     );
   }
@@ -40,7 +40,7 @@ async function OpenTasks({ searchParams }: { searchParams: Promise<{ payable?: s
           key={option.href}
           href={option.href}
           aria-current={option.on ? "true" : undefined}
-          className={`rounded-md px-3.5 py-2 transition-colors ${option.on ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
+          className={`rounded-md px-3.5 py-2 transition-colors ${option.on ? "bg-primary-soft font-medium text-primary-soft-foreground" : "text-muted-foreground hover:text-foreground"}`}
         >
           {option.label}
         </Link>
@@ -64,7 +64,7 @@ async function OpenTasks({ searchParams }: { searchParams: Promise<{ payable?: s
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         {filter}
-        <p className="text-sm text-muted-foreground">
+        <p className="rounded-full border bg-card px-3 py-1 text-sm text-muted-foreground tabular-nums">
           {tasks.length} open {tasks.length === 1 ? "task" : "tasks"} for you
         </p>
       </div>

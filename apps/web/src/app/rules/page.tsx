@@ -52,7 +52,7 @@ export default function RulesPage() {
       <PageHero
         kicker={`Rulebook v${RULEBOOK_VERSION}`}
         title="The rules every verdict follows"
-        lede="Every refusal and every fail cites one of these rules by its ID, so anyone can see why, and dispute it."
+        lede="Every refusal and every fail cites a rule by its ID. Anyone can see why, and dispute it."
       />
       <Container className="flex flex-col gap-14 pb-16 md:pb-24">
         <section aria-labelledby="how" className="flex flex-col gap-5">

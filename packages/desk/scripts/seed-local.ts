@@ -6,7 +6,7 @@ import { join } from "node:path";
 
 import { loadConcordium, signDevPayment } from "@boreal/concordium";
 import { readAddons } from "@boreal/core";
-import { agents, createDb, owners } from "@boreal/db";
+import { agents, createDb, eq, owners } from "@boreal/db";
 
 import { type Caller, createDesk } from "../src/desk";
 import { issueAgentKey } from "../src/keys";
@@ -19,18 +19,25 @@ const db = createDb();
 const desk = createDesk({ db, concordium });
 const secret = process.env.DEV_CONCORDIUM_SECRET!;
 
-const [owner] = await db.insert(owners).values({ kind: "individual", verifiedRef: "dev-owner" }).returning();
-const [agent] = await db
-  .insert(agents)
-  .values({
-    ownerId: owner!.id,
-    registryId: "dev-hermes",
-    name: "dev-hermes",
-    maxTaskBudget: 5_000,
-    maxDailySpend: 50_000,
-    refundAddress: "dev-acct-hermes",
-  })
-  .returning();
+// Safe to run again: the owner and agent are reused, and each run adds three more tasks.
+const [owner] =
+  (await db.select().from(owners).where(eq(owners.verifiedRef, "dev-owner"))).length > 0
+    ? await db.select().from(owners).where(eq(owners.verifiedRef, "dev-owner"))
+    : await db.insert(owners).values({ kind: "individual", verifiedRef: "dev-owner" }).returning();
+const [existingAgent] = await db.select().from(agents).where(eq(agents.registryId, "dev-hermes"));
+const [agent] = existingAgent
+  ? [existingAgent]
+  : await db
+      .insert(agents)
+      .values({
+        ownerId: owner!.id,
+        registryId: "dev-hermes",
+        name: "dev-hermes",
+        maxTaskBudget: 5_000,
+        maxDailySpend: 50_000,
+        refundAddress: "dev-acct-hermes",
+      })
+      .returning();
 const hermes: Caller = { role: "requester", agentId: agent!.id };
 const reviewer: Caller = { role: "reviewer", reviewerRef: "boreal-ai-reviewer" };
 
@@ -68,11 +75,12 @@ const concordiumOn = readAddons(process.env).on("concordium");
 const paypal = process.env.PAYMENTS_RAIL === "paypal" || !concordiumOn;
 for (const input of tasks) {
   const { task, quote } = await desk.postTask(hermes, concordiumOn ? input : { ...input, requiredAttributes: [] });
-  await desk.screenTask(reviewer, task.id, { outcome: "ok" });
+  // Funded before it is screened: nothing is checked until its money is held.
   if (paypal) continue;
   const requirement = await payments.createPaymentRequest(task.id, quote.total);
   const payment = { requirement, signature: signDevPayment(secret, requirement) };
   await desk.fundTask(hermes, task.id, { confirm: () => payments.confirmPayment(task.id, payment) });
+  await desk.screenTask(reviewer, task.id, { outcome: "ok" });
 }
 
 const key = await issueAgentKey(db, agent!.id);

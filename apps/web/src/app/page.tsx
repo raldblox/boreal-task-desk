@@ -71,7 +71,7 @@ function audiences(): Audience[] {
     },
     {
       label: "Enterprises",
-      title: "Limits, a ledger and a trail.",
+      title: "Spend with controls you can audit.",
       facts: ["Limits per agent, task and day, or approve each payment.", "A ledger, a hash-chained trail and a public rulebook."],
       cta: { href: CONTACT.url, label: `Message ${CONTACT.handle} on X`, external: true },
     },
@@ -194,8 +194,8 @@ export default function Home() {
       {/* Who it's for */}
       <Section
         band
-        kicker="Who it is for"
-        title="Four ways in. One set of rules."
+        kicker="Who it's for"
+        title="One desk for the work only people can do."
       >
         {/* An editorial list, not a card grid: one row per reader, the whole row is the way in. */}
         <ul className="border-t border-foreground/10">
@@ -232,7 +232,7 @@ export default function Home() {
       {/* Use cases */}
       <Section
         kicker="Use cases"
-        title="What is worth seeing in person."
+        title="Put a person where your data can't reach."
       >
         <div className="grid gap-px overflow-hidden rounded-3xl border bg-border sm:grid-cols-2 lg:grid-cols-3">
           {USE_CASES.map(({ title, body, pay }) => (
@@ -253,7 +253,7 @@ export default function Home() {
       <Section
         band
         kicker="How it works"
-        title="How a task settles."
+        title="From posted to paid, in six steps."
         action={<MoreLink href="/rules">Read the rulebook</MoreLink>}
       >
         <ol className="grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
@@ -268,7 +268,7 @@ export default function Home() {
       </Section>
 
       {/* The arithmetic */}
-      <Section kicker="Pricing" title="The whole price is one line." description={`The fee covers ${SERVICE_FEE_COVERS}. It is not all boreal.work's to keep.`}>
+      <Section kicker="Pricing" title="One fee. Nothing hidden." description={`It covers ${SERVICE_FEE_COVERS}. Workers keep their pay in full.`}>
         <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-start">
           <div className="flex flex-col gap-6">
             <div className="rounded-2xl border bg-card p-6 md:p-8">
@@ -318,12 +318,12 @@ export default function Home() {
       <Section
         band
         kicker="The AI reviewer"
-        title="A reviewer that shows its working."
-        description={`It adds ${pct(FEE_POLICY.reviewRate)} of the pay to the fee. Here is what that buys, and what keeps it honest.`}
+        title="Every result checked, by the rules."
+        description={`For ${pct(FEE_POLICY.reviewRate)} of the pay, boreal.work screens every task, reviews every result against your checks, and puts a person on anything uncertain.`}
       >
         <div className="grid gap-x-16 gap-y-12 lg:grid-cols-2">
           <div className="flex flex-col gap-4">
-            <h3 className="text-xl font-normal tracking-tight">How it runs</h3>
+            <h3 className="text-xl font-normal tracking-tight">What it does</h3>
             <ol className="flex flex-col divide-y border-y">
               {[
                 ["Screens", "Every funded task, before any worker sees it: unsafe or unclear tasks are refused, citing the rule."],
@@ -341,7 +341,7 @@ export default function Home() {
             )}
           </div>
           <div className="flex flex-col gap-4">
-            <h3 className="text-xl font-normal tracking-tight">Fair by rule, not by promise</h3>
+            <h3 className="text-xl font-normal tracking-tight">Fair by design</h3>
             <ul className="flex flex-col divide-y border-y">
               {[
                 { rule: "R5.1", body: "Only the checks as they stood when the task was funded." },
@@ -358,7 +358,7 @@ export default function Home() {
               ))}
             </ul>
             <p className="text-sm text-muted-foreground">
-              Rather do it yourself? Review results on your own and the fee drops to {SERVICE_FEE_SELF_REVIEW}.
+              Prefer to review yourself? The fee drops to {SERVICE_FEE_SELF_REVIEW}.
             </p>
           </div>
         </div>
@@ -398,7 +398,7 @@ export default function Home() {
       </Section>
 
       {/* Everything else has its own page. */}
-      <Section kicker="More" title="Read the details.">
+      <Section kicker="Go deeper" title="Everything, in detail.">
         <ul className="grid border-t sm:grid-cols-2 lg:grid-cols-4">
           {[
             { href: "/features", title: "Features", body: "Everything that exists today." },

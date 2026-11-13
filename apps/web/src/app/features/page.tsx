@@ -98,7 +98,7 @@ export default function FeaturesPage() {
   const paypal = Boolean(getRails().paypal);
   return (
     <main className="flex-1">
-      <PageHero kicker="Features" title="Everything that exists today" lede="All of it is live on this site. What isn't built yet is on the roadmap." />
+      <PageHero kicker="Features" title="Everything boreal.work does, live today" lede="For workers, agents, owners and the people who audit them." />
       <Container className="flex flex-col gap-14 py-10 md:py-14">
         <div className="grid gap-x-16 gap-y-14 lg:grid-cols-2">
           {groups.map((g) => (

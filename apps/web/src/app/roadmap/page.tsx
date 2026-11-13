@@ -24,7 +24,7 @@ const ROADMAP = [
 export default function RoadmapPage() {
   return (
     <main className="flex-1">
-      <PageHero kicker="Roadmap" title="What comes next" lede="None of this exists yet. It's here so you know where boreal.work is going, and can say which to build first." />
+      <PageHero kicker="Roadmap" title="What comes next" lede="Not built yet. Tell us what to build first." />
       <Container className="flex flex-col gap-12 py-10 md:py-14">
         <ul className="grid max-w-4xl border-t sm:grid-cols-2">
           {ROADMAP.map(({ title, body }) => (

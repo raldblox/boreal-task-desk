@@ -71,7 +71,10 @@ export function SiteHeader() {
           <Suspense fallback={<div className="h-10 w-24" />}>
             <Account />
           </Suspense>
-          <MobileMenu />
+          {/* It reads the path to mark the current page, which is only known at request time. */}
+          <Suspense fallback={<div className="size-10 md:hidden" />}>
+            <MobileMenu />
+          </Suspense>
         </div>
       </Container>
       <TestnetBanner />

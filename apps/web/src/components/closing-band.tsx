@@ -29,7 +29,7 @@ const PATHS = [
     icon: Briefcase,
     label: "Hire",
     title: "Post a task",
-    body: "For you or your agent. Say what counts as done; a verified person does it, and a reviewer checks it.",
+    body: "For you or your agent. Set the checks; a verified person does the work, and every result is held to them.",
   },
 ];
 
