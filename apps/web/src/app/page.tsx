@@ -1,7 +1,7 @@
 import { POLICY, quoteFees } from "@boreal/core";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowUpRight, Bot, Briefcase, Building2, Camera, ChevronRight } from "lucide-react";
+import { ArrowRight, ArrowUpRight, ChevronRight } from "lucide-react";
 
 import { HeadMark } from "@/components/brand";
 import { ClosingBand } from "@/components/closing-band";
@@ -43,7 +43,6 @@ const HOURS = (ms: number) => ms / 3_600_000;
 /* ---------------------------------------------------------------- who it's for */
 
 type Audience = {
-  icon: typeof Camera;
   label: string;
   title: string;
   facts: string[];
@@ -53,28 +52,24 @@ type Audience = {
 function audiences(): Audience[] {
   return [
     {
-      icon: Camera,
       label: "Freelancers",
       title: "Paid for being somewhere.",
       facts: ["Every task's money is held before you see it.", "You keep your pay in full. Workers pay no fees."],
       cta: { href: "/tasks", label: "Find paid tasks" },
     },
     {
-      icon: Bot,
       label: "AI agents",
       title: "Hands, for software that has none.",
       facts: ["MCP, REST and A2A, with one guide written for agents.", "It spends only within the limits its owner sets."],
       cta: { href: "/agents", label: "Connect an agent" },
     },
     {
-      icon: Briefcase,
       label: "Business owners",
       title: "Know before you pay the deposit.",
       facts: ["Confirm a supplier, check a shelf, see a site.", "You set the checks. You pay for a result that passes."],
       cta: { href: "/post", label: "Post a task" },
     },
     {
-      icon: Building2,
       label: "Enterprises",
       title: "Limits, a ledger and a trail.",
       facts: ["Limits per agent, task and day, or approve each payment.", "A ledger, a hash-chained trail and a public rulebook."],
@@ -315,37 +310,36 @@ export default function Home() {
         kicker="Who it is for"
         title="Four ways in. One set of rules."
       >
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {audiences().map(({ icon: Icon, label, title, facts, cta }) => (
-            <div key={label} className="flex flex-col gap-5 rounded-2xl border bg-background p-6">
-              <div className="flex items-center justify-between">
-                <span className="grid size-10 place-items-center rounded-xl bg-primary-soft text-primary-soft-foreground">
-                  <Icon className="size-5" aria-hidden />
-                </span>
-                <span className="font-mono text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">{label}</span>
-              </div>
-              <h3 className="text-2xl leading-tight font-light tracking-[-0.025em]">{title}</h3>
-              <ul className="flex flex-col gap-2.5 text-sm leading-relaxed text-muted-foreground">
-                {facts.map((f) => (
-                  <li key={f} className="flex gap-2.5">
-                    <HeadMark className="mt-1.5 h-2.5 w-1.25 shrink-0 text-primary" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-auto pt-1">
-                {cta.external ? (
-                  <a href={cta.href} target="_blank" rel="noreferrer" className="group inline-flex items-center gap-1 text-sm font-medium text-primary">
+        {/* An editorial list, not a card grid: one row per reader, the whole row is the way in. */}
+        <ul className="border-t border-foreground/10">
+          {audiences().map(({ label, title, facts, cta }) => {
+            const Arrow = cta.external ? ArrowUpRight : ArrowRight;
+            return (
+              <li key={label} className="border-b border-foreground/10">
+                <a
+                  href={cta.href}
+                  {...(cta.external ? { target: "_blank", rel: "noreferrer" } : {})}
+                  className="group grid gap-3 py-8 outline-none focus-visible:bg-primary-soft/30 md:grid-cols-[11rem_minmax(0,1fr)_auto] md:items-baseline md:gap-10 md:py-10"
+                >
+                  <span className="text-sm text-muted-foreground">{label}</span>
+                  <span className="flex flex-col gap-2">
+                    <span className="text-3xl leading-tight font-light tracking-[-0.03em] text-balance transition-colors group-hover:text-primary md:text-4xl">
+                      {title}
+                    </span>
+                    <span className="max-w-[60ch] leading-relaxed text-muted-foreground">{facts.join(" ")}</span>
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 text-sm font-medium text-primary">
                     {cta.label}
-                    <ArrowUpRight className="size-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden />
-                  </a>
-                ) : (
-                  <MoreLink href={cta.href}>{cta.label}</MoreLink>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+                    <Arrow
+                      className={`size-4 transition-transform duration-300 ease-out ${cta.external ? "group-hover:-translate-y-0.5 group-hover:translate-x-0.5" : "group-hover:translate-x-1"}`}
+                      aria-hidden
+                    />
+                  </span>
+                </a>
+              </li>
+            );
+          })}
+        </ul>
       </Section>
 
       {/* Use cases */}
