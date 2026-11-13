@@ -266,11 +266,11 @@ function drawStars(ctx: CanvasRenderingContext2D, stars: Star[], w: number, h: n
 }
 
 /**
- * The sky and stars of the night hero. Runs at up to 30 frames a second while it's on screen
- * and the tab is visible; one still frame for people who ask for less motion; the CSS night
- * gradient behind it stays when WebGL isn't available.
+ * The night sky and its stars. Live (the home hero): up to 30 frames a second while it's on screen
+ * and the tab is visible. Still (every other page), and for people who ask for less motion: one
+ * frame. The CSS night gradient behind it stays when WebGL isn't available.
  */
-export function AuroraSky({ className = "" }: { className?: string }) {
+export function AuroraSky({ live = false, className = "" }: { live?: boolean; className?: string }) {
   const glRef = useRef<HTMLCanvasElement>(null);
   const starRef = useRef<HTMLCanvasElement>(null);
 
@@ -278,7 +278,7 @@ export function AuroraSky({ className = "" }: { className?: string }) {
     const canvas = glRef.current;
     const starCanvas = starRef.current;
     if (!canvas || !starCanvas) return;
-    const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const calm = !live || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const gl = canvas.getContext("webgl", { antialias: false, alpha: false, powerPreference: "low-power" });
     const ctx = starCanvas.getContext("2d");
     const stars = catalog();
@@ -335,7 +335,8 @@ export function AuroraSky({ className = "" }: { className?: string }) {
 
     const start = 840 + Math.random() * 300;
     const draw = (now: number) => {
-      const t = calm ? 900 : start + now / 1000;
+      // The still frame: a moment with a full arc across the upper sky.
+      const t = calm ? 525 : start + now / 1000;
       if (gl && program) {
         gl.viewport(0, 0, canvas.width, canvas.height);
         gl.uniform2f(uni.uRes, canvas.width, canvas.height);
@@ -358,29 +359,7 @@ export function AuroraSky({ className = "" }: { className?: string }) {
     });
     ro.observe(canvas);
 
-    // The header is dark while the night is behind it, and light again once the hero has
-    // scrolled up past it (globals.css: the dark tokens' [data-past-hero] selector).
-    const root = document.documentElement;
-    const headerH = document.querySelector<HTMLElement>("[data-site-header]")?.offsetHeight ?? 64;
-    const behindHeader = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) delete root.dataset.pastHero;
-        else root.dataset.pastHero = "";
-      },
-      { rootMargin: `-${headerH + 1}px 0px 0px 0px` },
-    );
-    behindHeader.observe(canvas);
-    const stopWatching = () => {
-      behindHeader.disconnect();
-      delete root.dataset.pastHero;
-    };
-
-    if (calm) {
-      return () => {
-        ro.disconnect();
-        stopWatching();
-      };
-    }
+    if (calm) return () => ro.disconnect();
 
     let visible = true;
     const io = new IntersectionObserver(([entry]) => {
@@ -400,9 +379,8 @@ export function AuroraSky({ className = "" }: { className?: string }) {
       cancelAnimationFrame(raf);
       io.disconnect();
       ro.disconnect();
-      stopWatching();
     };
-  }, []);
+  }, [live]);
 
   return (
     <div className={className}>

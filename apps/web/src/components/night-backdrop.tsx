@@ -1,15 +1,18 @@
 import { AuroraSky } from "@/components/aurora-sky";
+import { BackdropPointer } from "@/components/backdrop-pointer";
 import { FAR, H, MID, NEAR, RIDGE_FAR, RIDGE_NEAR, SNOW_CAPS, W } from "@/components/boreal-backdrop";
 
 /*
- * The home hero's night: the rendered sky (components/aurora-sky.tsx) behind the same ridges and
- * spruce rows as the daylight backdrop, now in silhouette. Farther layers sit closer to the sky's
- * own colour (the air between scatters a little airglow), and the snow on the far ridge catches a
- * trace of the aurora's green. It reaches up behind the header, which goes dark over it.
+ * The site's night: the rendered sky (components/aurora-sky.tsx) behind ridges and spruce rows in
+ * silhouette. Farther layers sit closer to the sky's own colour (the air between scatters a little
+ * airglow), and the snow on the far ridge catches a trace of the aurora's green.
  *
- * Moving the pointer moves the viewer's head a little: near trees shift the most, the ridges
- * barely, the sky and stars not at all, as real parallax does (globals.css: .depth-layer). The
- * scroll parallax is the daylight backdrop's (.bb-par).
+ * Two uses:
+ *   - live, in the home hero: the sky moves, and the pointer moves the viewer's head a little
+ *     (near trees shift the most, the ridges barely, the sky not at all, as real parallax does;
+ *     globals.css: .depth-layer), and the layers drift apart as the page scrolls (.bb-par);
+ *   - still, at the top of every other page (from the layout): one frame of the same sky, no
+ *     motion, fading into the page.
  */
 
 const LAYERS = [
@@ -20,23 +23,34 @@ const LAYERS = [
   { d: NEAR, fill: "#020a0c", depth: 34, scroll: 0, extra: <rect x={-200} y={608} width={W + 400} height={40} fill="#020a0c" /> },
 ];
 
-export function NightBackdrop() {
+export function NightBackdrop({ live = false, className = "" }: { live?: boolean; className?: string }) {
   return (
-    <div
-      aria-hidden
-      className="night-root pointer-events-none absolute inset-x-0 bottom-0 -z-10 overflow-hidden"
-    >
-      <AuroraSky className="absolute inset-0" />
-      {LAYERS.map((layer) => (
-        <div key={layer.depth} className="bb-par absolute inset-x-0 top-0 h-[min(100%,100svh)]" style={{ "--d": layer.scroll } as React.CSSProperties}>
-          <div className="depth-layer absolute -inset-x-10 inset-y-0" style={{ "--k": layer.depth } as React.CSSProperties}>
-            <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" className="size-full">
-              <path d={layer.d} fill={layer.fill} />
-              {layer.extra}
-            </svg>
+    <div aria-hidden className={`night-root pointer-events-none absolute inset-x-0 -z-10 overflow-hidden ${className}`}>
+      <AuroraSky live={live} className="absolute inset-0" />
+      {live && <BackdropPointer />}
+      {LAYERS.map((layer) => {
+        const land = (
+          <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" className="size-full">
+            <path d={layer.d} fill={layer.fill} />
+            {layer.extra}
+          </svg>
+        );
+        return (
+          <div
+            key={layer.depth}
+            className={`absolute inset-x-0 top-0 h-[min(100%,100svh)] ${live ? "bb-par" : ""}`}
+            style={live ? ({ "--d": layer.scroll } as React.CSSProperties) : undefined}
+          >
+            {live ? (
+              <div className="depth-layer absolute -inset-x-10 inset-y-0" style={{ "--k": layer.depth } as React.CSSProperties}>
+                {land}
+              </div>
+            ) : (
+              <div className="absolute -inset-x-10 inset-y-0">{land}</div>
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
       {/* The land fills the first screen, as the camera does; a taller hero (phones) stands on the
           ground below it, drawn over the far layers as they slide down with the scroll. */}
       <div className="absolute inset-x-0 top-[min(100%,100svh)] bottom-0 bg-[#020a0c]" />

@@ -91,9 +91,9 @@
   --sidebar-ring: oklch(0.470 0.085 195.0);
 }
 
-/* Dark tokens: dark mode, the home page's night hero, and the header while it sits over that night. */
-.dark,
-:root:has([data-hero="full"]):not([data-past-hero]) [data-site-header] {
+/* The site is dark throughout (layout.tsx puts .dark on <html>): night, easy on the eyes. */
+.dark {
+  color-scheme: dark;
   /* Dark mode: Aurora Teal (see brand.md) */
   --background: oklch(0.155 0.016 215.0);
   --foreground: oklch(0.960 0.008 200.0);
@@ -150,15 +150,13 @@
 @media (min-width: 768px) {
   .bb-root { height: 640px; }
 }
-/* The home page has its own night sky (components/night-backdrop.tsx) instead. */
-body:has([data-hero="full"]) .bb-root {
-  display: none;
-}
-
-/* The night hero's backdrop reaches up behind the header; its CSS gradient is the sky until the
-   shader draws, and stays where WebGL isn't available. */
-.night-root {
+/* The night (components/night-backdrop.tsx): its CSS gradient is the sky until the shader draws,
+   and stays where WebGL isn't available. The home hero's live one reaches up behind the header. */
+.night-hero {
   top: calc(-1 * var(--header-h, 4rem));
+  bottom: 0;
+}
+.night-root {
   background: linear-gradient(to bottom, #020b10, #061a20 55%, #0b252c 64%, #071a1e);
 }
 /* The viewer's head follows the pointer, day or night: nearer layers shift further (--k px at

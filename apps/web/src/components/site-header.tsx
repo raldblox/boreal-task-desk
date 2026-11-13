@@ -42,7 +42,7 @@ function TestnetBanner() {
   if (!demoMoney()) return null;
   const rails = `the PayPal sandbox${GUIDE_FACTS.concordiumRail ? " and Concordium testnet tokens" : ""}${GUIDE_FACTS.nearRail ? " and USDC on NEAR testnet" : ""}`;
   return (
-    <p data-testnet-banner className="h-7 truncate border-t border-border/70 bg-primary-soft/60 px-4 py-1.5 text-center text-xs leading-4 font-medium text-primary-soft-foreground">
+    <p data-testnet-banner className="h-7 truncate border-t border-border/70 bg-primary/12 px-4 py-1.5 text-center text-xs leading-4 font-medium text-primary">
       <span className="sm:hidden">Testnet: never real money.</span>
       <span className="hidden sm:inline">Testnet: payments here use {rails}, never real money.</span>
       {SITE !== LIVE_SITE && (

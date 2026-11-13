@@ -42,7 +42,12 @@ export function PoweredBy({ className = "" }: { className?: string }) {
     <div className={`flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground ${className}`}>
       <span>Powered by</span>
       {items.map(({ name, does, logo }) => (
-        <span key={name} title={`${name}: ${does}`} className="inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1 font-medium text-foreground">
+        <span
+          key={name}
+          title={`${name}: ${does}`}
+          // PayPal's colour logo is made for light grounds: its pill uses PayPal's own button grey.
+          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 font-medium ${logo === "paypal" ? "border-transparent bg-[#eeeeee]" : "bg-card text-foreground"}`}
+        >
           {logo === "paypal" ? (
             <>
               <PayPalLogo className="h-3.5 w-auto" />

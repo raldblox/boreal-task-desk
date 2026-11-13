@@ -158,7 +158,7 @@ export default function Home() {
 
       {/* Hero */}
       <section data-hero="full" className="dark relative isolate flex min-h-[calc(100svh-var(--header-h))] items-center text-foreground">
-        <NightBackdrop />
+        <NightBackdrop live className="night-hero" />
         <Container className="grid w-full items-center gap-14 py-16 md:py-20 lg:grid-cols-[1.2fr_1fr]">
           <div className="flex flex-col gap-7">
             <Kicker>Paid when the work passes</Kicker>

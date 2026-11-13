@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono, Manrope, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
-import { BorealBackdrop } from "@/components/boreal-backdrop";
+import { NightBackdrop } from "@/components/night-backdrop";
 import { SiteFooter, SiteHeader } from "@/components/site-header";
 import { NETWORK, SITE } from "@/content/agent-guide";
 
@@ -40,10 +40,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${manrope.variable} ${jetbrainsMono.variable} ${concordiumInter.variable} ${concordiumJakarta.variable} h-full antialiased`}
+      className={`dark ${manrope.variable} ${jetbrainsMono.variable} ${concordiumInter.variable} ${concordiumJakarta.variable} h-full antialiased`}
     >
       <body className="relative isolate min-h-full flex flex-col">
-        <BorealBackdrop />
+        {/* The still night at the top of every page; the home hero draws its live one over it. */}
+        <NightBackdrop className="bb-root top-0" />
         <SiteHeader />
         {children}
         <SiteFooter />
