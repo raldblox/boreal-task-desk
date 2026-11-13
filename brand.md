@@ -4,7 +4,7 @@
 
 boreal.work is a verified human task desk for AI agents. Agents post the real-world steps they can't do alone, verified people (many of them in the Philippines, on phones) do them, and the money is held in escrow until the result passes review against a public rulebook. Everything here serves one feeling: **calm, trustworthy, human, northern.** Never crypto-flashy.
 
-Status: active · palette chosen 2026-11-01 · logo chosen 2026-11-12
+Status: active · palette chosen 2026-11-01 · logo chosen 2026-11-13
 
 **These rules are strict.** Every page, deck, film, post and agent-written screen follows them. When this book and a habit disagree, this book wins. When it is silent, choose the quieter option. This file is the source of truth; the brand kit (logo files, tokens, social images) is in [`docs/brand/`](docs/brand/).
 
@@ -29,7 +29,7 @@ Status: active · palette chosen 2026-11-01 · logo chosen 2026-11-12
 
 ### The idea
 
-Two rockets moving forward in step. The **top band is the AI agent**: a notched tail and a **square head**. The **bottom band is the person**: the same tail, a rectangular **load**, and a **round head** that flies out ahead. The agent sets the work going; the person carries it over the line. Bodies are in the light tone and heads are solid. The short top over the longer, rounded bottom also reads as a **b**.
+Seven compass needles: the seven stars of the Plough, the Great Bear's tail that travellers follow to find north. Every needle points north, the way the work moves: forward. Grouped, they stand like a ridge of **spruce**, the boreal forest. Their feet stand on a smooth **w** and their points repeat it higher up, so the whole mark hangs like an **aurora** curtain, and spells the w of boreal.work. North, trees and the northern lights in one shape.
 
 ### Files
 
@@ -46,10 +46,11 @@ Use these files or `BorealMark`. Never redraw the mark by eye.
 
 ### Construction
 
-- A 32-unit grid. Each band is 11.625 units tall.
-- 1.75 units between the two bands; 0.9 units between the pieces inside a band, so each band reads as one body.
-- Both tails start on the same line. The agent's square head sits exactly over the person's load. The round head is the only piece beyond that column.
-- One tone: every piece in the full ink (white on the teal tile). The gaps between pieces carry the shape. The two-tone first band (faded tail, solid head) is kept for the eyebrow mark only.
+- A 32-unit grid. Seven needles, evenly spaced, 3.93 units apart, centre to centre.
+- Each needle is a long lozenge, sharp at both ends: 17.5 units long, 3 units wide at its widest, which is 7 units (40%) below its north point. All seven are the same length.
+- The feet sit on one smooth w (two valleys, a shallower middle peak); the points repeat that w 17.5 units higher.
+- Rebalanced for the optical centre: the mark is placed so the midpoint of its box centre and its mass centre falls on the grid centre, since the needles are heaviest high up.
+- One tone: every needle in the full ink (white on the teal tile). No gradient, outline or second tone. On the app tile the mark is scaled to 84%.
 
 ### Lockup
 
@@ -57,16 +58,16 @@ Mark, then **boreal.work** in Manrope semibold. In the header the mark is 24 px 
 
 ### Clear space and size
 
-- Clear space on every side: at least one head width (about a fifth of the mark's width). Nothing (text, edges, other logos) inside it.
+- Clear space on every side: at least one needle spacing (about a seventh of the mark's width). Nothing (text, edges, other logos) inside it.
 - Minimum: 20 px freestanding, 16 px as the app icon.
 
 ### Never
 
-- Rotate, flip, skew, stretch or animate the pieces apart.
-- Change the order: the agent stays on top; the person's round head always leads.
-- Close the gaps, make them uneven, or join the pieces into one shape.
+- Rotate, flip, skew, stretch or animate the needles apart.
+- Change the count, the spacing or the lengths; seven needles, always the same length.
+- Round the points, join the needles, or draw the w as a line.
 - Add gradients, outlines, shadows, glows or textures.
-- Recolour heads and bodies in different hues, or use any colour but the files' inks and white.
+- Use any colour but the files' inks and white.
 - Put the mark inside any container except the teal app tile.
 - Set the wordmark in another face, in capitals, or without ".work".
 - Make a rounded-box "B": another company already uses one in teal.
@@ -110,13 +111,13 @@ The full set (with `secondary`, `accent`, `input`, `ring`, `chart-1` to `chart-5
 | small | 14 / 1.43 | 400 | | Nav, buttons, table cells |
 | label | 14 / 1.43 (16 in the lockup) | 600 | -0.015em | Wordmark, button and form labels |
 | money | 24 / 1.25 | 300 | -0.025em | Task amounts, `text-primary`, `tabular-nums` |
-| eyebrow | 12 / 1.33, mono, uppercase | 500 | 0.18em | Labels above headings, after the person band (`BandMark`) |
+| eyebrow | 12 / 1.33, mono, uppercase | 500 | 0.18em | Labels above headings, after one needle (`NeedleMark`) |
 | code | 13 / 1.5, mono | 400 | | IDs, hashes, rule IDs |
 
 - Headlines are light (300) with tight tracking, sentence case, balanced wrap. Never bold a headline, never set one in capitals.
 - Money is the most prominent number on any task. Figures in tables and stats use tabular numbers.
 - Inter, Roboto and system fonts are fallbacks only, never the brand face.
-- **Marks from the logo, not rules or dashes.** An eyebrow starts with `BandMark`, the mark's person band (tail, load, round head) at 10 px tall in `primary`. A short list's bullet is `HeadMark`, the round head alone. Never a hairline or an em dash as an ornament.
+- **Marks from the logo, not rules or dashes.** An eyebrow starts with `NeedleMark`, one of the mark's needles laid on its side, pointing at the label, 20 px long in `primary`. A short list's bullet is `PointMark`, the needle's north point alone. Never a hairline or an em dash as an ornament.
 
 ## Voice and copy
 

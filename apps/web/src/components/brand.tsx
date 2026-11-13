@@ -1,52 +1,51 @@
 import Link from "next/link";
 
 /**
- * The boreal.work mark: two rockets moving forward in step. The top band is the AI agent (square head),
- * the bottom band is the person (a load and a round head, flying out ahead). Bodies light, heads solid.
- * Gaps: 0.9 units within a band, 1.75 between the bands (32 grid); see brand.md, "Logo". Also in icon.svg, opengraph-image.tsx
- * and apps/film/src/XProfile.tsx: keep the paths in sync.
+ * The boreal.work mark: seven compass needles, the seven stars of the Plough that point travellers
+ * north. Each needle is sharp at both ends, widest 40% below its north point, all the same length
+ * (17.5 units). Their feet stand on a smooth w and their points repeat it higher up: grouped they
+ * stand like spruce, and they hang like an aurora curtain. One tone. Rebalanced on the 32 grid so
+ * it sits in the optical centre (box centre and mass centre averaged). See brand.md, "Logo".
+ * Also in icon.svg, opengraph-image.tsx and apps/film/src/XProfile.tsx: keep the paths in sync.
  */
 export const MARK_PATHS = {
-  topTail: "M3.29 3.5H15.29V15.125H3.29L9.1 9.31Z",
-  topHead: "M16.19 3.5H22V15.125H16.19Z",
-  botTail: "M3.29 16.875H15.29V28.5H3.29L9.1 22.69Z",
-  botLoad: "M16.19 16.875H22V28.5H16.19Z",
-  botHead: "M22.9 16.875A5.81 5.81 0 0 1 22.9 28.5Z",
+  needles: [
+    "M4.2 22.83L2.7 12.33L4.2 5.33L5.7 12.33Z",
+    "M8.13 27.52L6.63 17.02L8.13 10.02L9.63 17.02Z",
+    "M12.07 26.69L10.57 16.19L12.07 9.19L13.57 16.19Z",
+    "M16 22.27L14.5 11.77L16 4.77L17.5 11.77Z",
+    "M19.93 26.69L18.43 16.19L19.93 9.19L21.43 16.19Z",
+    "M23.87 27.52L22.37 17.02L23.87 10.02L25.37 17.02Z",
+    "M27.8 22.83L26.3 12.33L27.8 5.33L29.3 12.33Z",
+  ],
 } as const;
 
 export function BorealMark({ className = "size-6" }: { className?: string }) {
   return (
     <svg viewBox="0 0 32 32" className={className} aria-hidden="true">
-      <g className="fill-primary">
-        <path d={MARK_PATHS.topTail} />
-        <path d={MARK_PATHS.topHead} />
-        <path d={MARK_PATHS.botTail} />
-        <path d={MARK_PATHS.botLoad} />
-        <path d={MARK_PATHS.botHead} />
-      </g>
+      <path className="fill-primary" d={MARK_PATHS.needles.join("")} />
     </svg>
   );
 }
 
 /**
- * The eyebrow mark: the logo's first band on its own, its notched tail faded and its square tip
- * solid, like a bookmark ribbon on the label. The only place the mark keeps two tones; the logo
- * itself is one. Both pieces are the mark's own paths, never redrawn. On arrival the band unrolls
- * from its notched end, once (globals.css: .ribbon-mark); still for less motion.
+ * The eyebrow mark: one needle from the logo, laid on its side so it points at the label, the way
+ * the work moves. Same proportions as the mark's needles (17.5 long, 3 wide, widest 7 from the point).
+ * On arrival it slides out from its tail, once (globals.css: .needle-mark); still for less motion.
  */
-export function RibbonMark({ className = "h-2.5 w-auto" }: { className?: string }) {
+export function NeedleMark({ className = "h-auto w-5" }: { className?: string }) {
   return (
-    <svg viewBox="3.29 3.5 18.71 11.625" className={`ribbon-mark ${className}`} aria-hidden="true">
-      <path d={MARK_PATHS.topTail} fill="currentColor" opacity={0.45} />
-      <path d={MARK_PATHS.topHead} fill="currentColor" />
+    <svg viewBox="0 0 17.5 3" className={`needle-mark ${className}`} aria-hidden="true">
+      <path d="M0 1.5L10.5 0L17.5 1.5L10.5 3Z" fill="currentColor" />
     </svg>
   );
 }
 
-export function HeadMark({ className = "size-2" }: { className?: string }) {
+/** A bullet: the needle's north point alone, a short compass diamond. */
+export function PointMark({ className = "h-2.5 w-1.25" }: { className?: string }) {
   return (
-    <svg viewBox="22.9 16.875 5.81 11.625" className={className} aria-hidden="true">
-      <path d={MARK_PATHS.botHead} className="fill-current" />
+    <svg viewBox="0 0 4 8" className={className} aria-hidden="true">
+      <path d="M2 8L0 3.2L2 0L4 3.2Z" className="fill-current" />
     </svg>
   );
 }
@@ -64,7 +63,7 @@ export function BorealLogo() {
 export function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
     <p className="flex items-center gap-2.5 font-mono text-xs font-medium tracking-[0.18em] text-primary uppercase">
-      <RibbonMark />
+      <NeedleMark />
       {children}
     </p>
   );

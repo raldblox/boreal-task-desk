@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 
-import { HeadMark } from "@/components/brand";
+import { PointMark } from "@/components/brand";
 import { NAV } from "@/components/nav-links";
 import { cn } from "@/lib/utils";
 
@@ -79,7 +79,7 @@ export function MobileMenu() {
                 )}
               >
                 {item.label}
-                {current && <HeadMark className="h-3 w-1.5 text-primary" />}
+                {current && <PointMark className="h-3 w-1.5 text-primary" />}
               </Link>
             );
           })}

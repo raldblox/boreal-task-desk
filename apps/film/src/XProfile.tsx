@@ -13,14 +13,16 @@ const NIGHT = "#0b2326";
 const NIGHT_DEEP = "#061416";
 const SNOW = "#f3fbfa";
 
-/** The site's mark (apps/web/src/components/brand.tsx, MARK_PATHS): two rockets in step, one tone. */
+/** The site's mark (apps/web/src/components/brand.tsx, MARK_PATHS): seven compass needles, one tone. */
 const Mark = ({ color = SNOW }: { color?: string }) => (
   <g fill={color}>
-    <path d="M3.29 3.5H15.29V15.125H3.29L9.1 9.31Z" />
-    <path d="M16.19 3.5H22V15.125H16.19Z" />
-    <path d="M3.29 16.875H15.29V28.5H3.29L9.1 22.69Z" />
-    <path d="M16.19 16.875H22V28.5H16.19Z" />
-    <path d="M22.9 16.875A5.81 5.81 0 0 1 22.9 28.5Z" />
+    <path d="M4.2 22.83L2.7 12.33L4.2 5.33L5.7 12.33Z" />
+    <path d="M8.13 27.52L6.63 17.02L8.13 10.02L9.63 17.02Z" />
+    <path d="M12.07 26.69L10.57 16.19L12.07 9.19L13.57 16.19Z" />
+    <path d="M16 22.27L14.5 11.77L16 4.77L17.5 11.77Z" />
+    <path d="M19.93 26.69L18.43 16.19L19.93 9.19L21.43 16.19Z" />
+    <path d="M23.87 27.52L22.37 17.02L23.87 10.02L25.37 17.02Z" />
+    <path d="M27.8 22.83L26.3 12.33L27.8 5.33L29.3 12.33Z" />
   </g>
 );
 
@@ -29,7 +31,7 @@ export const XAvatar = () => (
     <svg viewBox="0 0 400 400" width={400} height={400}>
       {/* Flat Aurora Teal; X crops to a circle, so the mark sits centred with room to breathe. */}
       <rect width="400" height="400" fill={TEAL} />
-      <g transform="translate(200 200) scale(6.6) translate(-16 -16)">
+      <g transform="translate(200 200) scale(7.4) translate(-16 -16)">
         <Mark />
       </g>
     </svg>

@@ -2,7 +2,7 @@ import { FEE_POLICY, POLICY, quoteFees } from "@boreal/core";
 import type { Metadata } from "next";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
 
-import { HeadMark } from "@/components/brand";
+import { PointMark } from "@/components/brand";
 import { NightBackdrop } from "@/components/night-backdrop";
 import { ClosingBand } from "@/components/closing-band";
 import { CopyBlock } from "@/components/copy-block";
@@ -182,7 +182,7 @@ export default function Home() {
             <ul className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-foreground/75">
               {["Workers keep 100% of their pay", `One fee: ${SERVICE_FEE}`, "Every fail cites a rule"].map((point) => (
                 <li key={point} className="flex items-center gap-2">
-                  <HeadMark className="h-2.5 w-1.25 text-primary" />
+                  <PointMark className="h-2.5 w-1.25 text-primary" />
                   {point}
                 </li>
               ))}

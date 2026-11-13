@@ -1,7 +1,7 @@
 import { ArrowRight, ChevronDown, ChevronRight } from "lucide-react";
 import Link from "next/link";
 
-import { RibbonMark } from "@/components/brand";
+import { NeedleMark } from "@/components/brand";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -14,11 +14,11 @@ export function Container({ className, children }: { className?: string; childre
   return <div className={cn("mx-auto w-full max-w-[1280px] px-5 sm:px-8 lg:px-12", className)}>{children}</div>;
 }
 
-/** A small label above a heading: the trail mark (the person's head, flying forward), then the words. */
+/** A small label above a heading: one needle from the logo, pointing at the words, then the words. */
 export function Kicker({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <p className={cn("flex items-center gap-2.5 font-mono text-xs font-medium tracking-[0.18em] text-primary uppercase", className)}>
-      <RibbonMark />
+      <NeedleMark />
       {children}
     </p>
   );

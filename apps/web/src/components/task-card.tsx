@@ -3,7 +3,7 @@ import type { RequesterKind } from "@boreal/desk";
 import { ArrowRight, BadgeCheck, Camera, Clock, FileText, PenLine, Store, UserCheck } from "lucide-react";
 import Link from "next/link";
 
-import { HeadMark } from "@/components/brand";
+import { PointMark } from "@/components/brand";
 import { Badge } from "@/components/ui/badge";
 import { attributeLabel, usd, when, WORKER_STATUS } from "@/lib/format";
 import { RAIL_LABEL } from "@/lib/rails";
@@ -22,8 +22,8 @@ const POSTED_BY: Partial<Record<RequesterKind, { icon: typeof BadgeCheck; label:
 
 /**
  * A task as a worker scans it: what to do and the pay first, then the format and deadline, then
- * one quiet line for what it needs and how it pays. The whole card is the link; on hover the
- * brand's round head slides in at its edge (globals.css: .brand-card).
+ * one quiet line for what it needs and how it pays. The whole card is the link; on hover
+ * a needle from the mark slides in at its edge (globals.css: .brand-card).
  */
 export function TaskCard({
   task,
@@ -79,7 +79,7 @@ export function TaskCard({
           )}
           {needs.length > 0 && (
             <span className="flex items-center gap-2 text-foreground">
-              <HeadMark className="h-2.5 w-1.25 shrink-0 text-primary" />
+              <PointMark className="h-2.5 w-1.25 shrink-0 text-primary" />
               Needs {needs.join(" · ")}
             </span>
           )}

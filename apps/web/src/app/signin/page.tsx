@@ -6,7 +6,7 @@ import { Suspense } from "react";
 import { signIn } from "@/app/actions";
 import { RelatedQuestions } from "@/components/related-questions";
 import { PayPalLoginButton } from "@/components/paypal-brand";
-import { Eyebrow, HeadMark } from "@/components/brand";
+import { Eyebrow, PointMark } from "@/components/brand";
 import { ConcordiumSignIn } from "@/components/concordium-sign-in";
 import { ConcordiumWalletSignIn } from "@/components/concordium-wallet-sign-in";
 import { ZkPassportSignIn } from "@/components/zkpassport-sign-in";
@@ -200,7 +200,7 @@ export default function SignInPage({ searchParams }: { searchParams: Promise<{ n
             <ul className="flex flex-col gap-2 text-sm text-muted-foreground">
               {["A one-way code for your account", "Your PayPal email, only to pay you", "Whether PayPal has verified you"].map((item) => (
                 <li key={item} className="flex gap-2.5">
-                  <HeadMark className="mt-1.5 h-2.5 w-1.25 shrink-0 text-primary" /> {item}
+                  <PointMark className="mt-1.5 h-2.5 w-1.25 shrink-0 text-primary" /> {item}
                 </li>
               ))}
             </ul>

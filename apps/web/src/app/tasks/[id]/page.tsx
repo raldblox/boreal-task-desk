@@ -7,7 +7,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { claimTask, disputeVerdict, releaseTask, submitResult } from "@/app/actions";
-import { HeadMark } from "@/components/brand";
+import { PointMark } from "@/components/brand";
 import { RelatedQuestions } from "@/components/related-questions";
 import { PrivateReviewNote } from "@/components/private-review";
 import { TxLink } from "@/components/tx-link";
@@ -323,7 +323,7 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
       <div className="flex flex-col gap-6 lg:order-1">
         <div className="flex flex-col gap-3">
           <h1 className="text-3xl leading-tight font-light tracking-[-0.03em] text-balance sm:text-4xl">{task.description}</h1>
-          {/* Then when it's due and the quiet facts on one line, and what it needs with the brand's round head. */}
+          {/* Then when it's due and the quiet facts on one line, and what it needs with the needle's point. */}
           {(() => {
             const facts = [
               `Due ${when(task.deadline)}`,
@@ -343,7 +343,7 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
                 <p>{facts.join(" · ")}</p>
                 {needs.length > 0 && (
                   <p className="flex items-center gap-2 text-foreground">
-                    <HeadMark className="h-2.5 w-1.25 text-primary" /> Needs {needs.join(" · ")}
+                    <PointMark className="h-2.5 w-1.25 text-primary" /> Needs {needs.join(" · ")}
                   </p>
                 )}
               </div>
