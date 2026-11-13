@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono, Manrope, Plus_Jakarta_Sans } from "next/font/goo
 import "./globals.css";
 
 import { NightBackdrop } from "@/components/night-backdrop";
+import { PressFx } from "@/components/press-fx";
 import { SiteFooter, SiteHeader } from "@/components/site-header";
 import { NETWORK, SITE } from "@/content/agent-guide";
 
@@ -48,6 +49,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <SiteHeader />
         {children}
         <SiteFooter />
+        <PressFx />
       </body>
     </html>
   );

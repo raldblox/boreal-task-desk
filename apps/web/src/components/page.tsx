@@ -1,4 +1,4 @@
-import { ArrowRight, ChevronRight } from "lucide-react";
+import { ArrowRight, ChevronDown, ChevronRight } from "lucide-react";
 import Link from "next/link";
 
 import { RibbonMark } from "@/components/brand";
@@ -129,14 +129,15 @@ export function Cta({
   external?: boolean;
   className?: string;
 }) {
-  const classes = cn(buttonVariants({ variant, size: "lg" }), "group gap-3 pr-2", className);
+  // The outline variant is secondary, but still an action: it gets the same win on press.
+  const classes = cn(buttonVariants({ variant, size: "lg" }), "group gap-3 pr-2", variant === "outline" && "cta-win", className);
   const inner = (
     <>
       {children}
       <span
         aria-hidden
         className={cn(
-          "grid size-8 place-items-center rounded-md transition-transform group-hover:translate-x-0.5",
+          "cta-arrow grid size-8 place-items-center rounded-md transition-transform group-hover:translate-x-0.5",
           variant === "default" ? "bg-primary-foreground/15" : "bg-muted",
         )}
       >
@@ -152,6 +153,37 @@ export function Cta({
     <Link href={href} className={classes}>
       {inner}
     </Link>
+  );
+}
+
+/**
+ * Secondary detail, closed until asked for: a row whose chevron sits right before its label and
+ * turns as it opens (globals.css: .fold). Native <details>, so it works without script, stays
+ * findable with find-in-page, and the keyboard opens it.
+ */
+export function Fold({
+  summary,
+  hint,
+  open = false,
+  className,
+  children,
+}: {
+  summary: React.ReactNode;
+  /** A short note on the right: a count, "4 rules". */
+  hint?: React.ReactNode;
+  open?: boolean;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <details open={open} className={cn("fold group border-b", className)}>
+      <summary className="flex items-center gap-2.5 py-4 text-sm font-medium transition-colors hover:text-primary focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
+        <ChevronDown className="size-4 shrink-0 -rotate-90 text-primary transition-transform duration-300 group-open:rotate-0" aria-hidden />
+        <span className="flex-1">{summary}</span>
+        {hint && <span className="text-xs font-normal text-muted-foreground">{hint}</span>}
+      </summary>
+      <div className="pb-6 pl-6.5">{children}</div>
+    </details>
   );
 }
 

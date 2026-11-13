@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { RelatedQuestions } from "@/components/related-questions";
-import { Container, PageHero } from "@/components/page";
+import { Container, Fold, PageHero } from "@/components/page";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
 import { verification } from "@/server/addons";
@@ -103,7 +103,11 @@ export default function PostPage() {
               </li>
             ))}
           </ol>
-          <RelatedQuestions ids={["cost", "when-charged", "ai-cost", "how-long-open", "cancel"]} />
+          <div className="border-t">
+            <Fold summary="Questions about paying" hint="5">
+              <RelatedQuestions ids={["cost", "when-charged", "ai-cost", "how-long-open", "cancel"]} bare />
+            </Fold>
+          </div>
         </aside>
       </Container>
     </main>

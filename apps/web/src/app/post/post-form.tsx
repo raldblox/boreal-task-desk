@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Fold } from "@/components/page";
 import { Textarea } from "@/components/ui/textarea";
 import { SERVICE_FEE, SERVICE_FEE_COVERS, SERVICE_FEE_SELF_REVIEW } from "@/content/fees";
 
@@ -72,6 +73,10 @@ export function PostForm({
   return (
     <form action={formAction} className="flex flex-col gap-8">
       <section className="flex flex-col gap-5 rounded-2xl border bg-card p-6">
+        <h2 className="flex items-baseline gap-2.5 text-xl font-light tracking-[-0.015em]">
+          <span className="text-sm tabular-nums text-primary">1</span>
+          The task
+        </h2>
         <div className="flex flex-col gap-2">
           <Label htmlFor="description">What should the worker do?</Label>
           <Textarea
@@ -113,15 +118,22 @@ export function PostForm({
         </div>
       </section>
 
-      <section className="flex flex-col gap-5 rounded-2xl border bg-card p-6">
-        <div className="flex flex-col gap-1">
-          <h2 className="font-semibold">Who can take it</h2>
+      <Fold
+        className="rounded-2xl border bg-card px-6"
+        summary={
+          <span className="flex items-baseline gap-2.5 text-xl font-light tracking-[-0.015em]">
+            <span className="text-sm tabular-nums text-primary">2</span>
+            Who can take it
+          </span>
+        }
+        hint="Optional"
+      >
+        <div className="flex flex-col gap-5 pr-6">
           <p className="text-sm text-muted-foreground">
             {attributes
               ? "Optional. Either one limits the task to workers who proved it with Concordium ID, so it may take longer to fill."
               : "Any verified worker can claim it: verified by PayPal or with Concordium ID, one account per person."}
           </p>
-        </div>
         <fieldset className="flex flex-col gap-2">
           <legend className="mb-1 text-sm font-medium">Who can do this</legend>
           <label className="flex items-center gap-2 text-sm">
@@ -149,9 +161,14 @@ export function PostForm({
             </div>
           </>
         )}
-      </section>
+        </div>
+      </Fold>
 
       <section className="flex flex-col gap-5 rounded-2xl border bg-card p-6">
+        <h2 className="flex items-baseline gap-2.5 text-xl font-light tracking-[-0.015em]">
+          <span className="text-sm tabular-nums text-primary">3</span>
+          Pay, deadline and review
+        </h2>
         <div className="grid gap-5 sm:grid-cols-2">
           <div className="flex flex-col gap-2">
             <Label htmlFor="budget">Worker&apos;s pay (US$)</Label>
@@ -202,9 +219,8 @@ export function PostForm({
             <span className="flex flex-col gap-0.5">
               <span className="font-medium">I&apos;ll review it myself</span>
               <span className="text-sm text-muted-foreground">
-                A lower service fee, with no review part. Your pass is final at once and pays the worker. A fail must cite a rule, and the
-                worker can dispute it once; the dispute panel decides. You have {POLICY.requesterReviewMs / 3_600_000} hours from the result; after that boreal.work&apos;s
-                reviewers decide (<a href="/rules#R5.8" className="font-mono underline decoration-dotted underline-offset-4">R5.8</a>).
+                A lower fee. You have {POLICY.requesterReviewMs / 3_600_000} hours from the result; then boreal.work decides{" "}
+                (<a href="/rules#R5.8" className="font-mono underline decoration-dotted underline-offset-4">R5.8</a>). A fail must cite a rule.
               </span>
             </span>
           </label>
@@ -219,10 +235,7 @@ export function PostForm({
             />
             <span className="flex flex-col gap-0.5">
               <span className="font-medium">boreal.work reviews it</span>
-              <span className="text-sm text-muted-foreground">
-                boreal.work&apos;s reviewer judges it against your checks. You can accept a pass early, or dispute a verdict
-                once.
-              </span>
+              <span className="text-sm text-muted-foreground">Judged against your checks. You can accept a pass early, or dispute once.</span>
             </span>
           </label>
         </fieldset>
@@ -241,19 +254,25 @@ export function PostForm({
             <dd className="tabular-nums">{quote ? usd(quote.total) : "—"}</dd>
           </div>
         </dl>
-        <p className="text-xs text-muted-foreground">
+        <div className="border-t">
+          <Fold summary="How the payment works">
+            <div className="flex flex-col gap-3">
+        <p className="text-sm leading-relaxed text-muted-foreground">
           You pay with PayPal next. PayPal only holds the money: boreal.work then checks the task against its rulebook, and
           it&apos;s taken only when the work passes. If the task is refused, fails, expires or you cancel before anyone claims
           it, the hold is released{reviewer === "boreal" ? " (a fail still pays the review part of the fee)" : ""}. The service fee
           covers {SERVICE_FEE_COVERS}; the worker receives their pay in full.
         </p>
         {addonRails.length > 0 && (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm leading-relaxed text-muted-foreground">
             PayPal tasks reach the most workers, since every worker can be paid there. This site also runs integration rails (
             {addonRails.map((r) => (r === "near" ? "USDC on NEAR" : "tokens on Concordium")).join(", ")}) for agents that pay in
             crypto; workers set up their own wallet to take those tasks.
           </p>
         )}
+            </div>
+          </Fold>
+        </div>
       </section>
 
       {state?.error && (
@@ -262,7 +281,7 @@ export function PostForm({
         </Alert>
       )}
       <Button type="submit" size="lg" disabled={pending || overCap || checks > 10} className="w-full sm:w-fit">
-        {pending ? "Posting…" : "Post task"}
+        {pending ? "Posting…" : quote ? `Post and fund ${usd(quote.total)}` : "Post task"}
       </Button>
     </form>
   );

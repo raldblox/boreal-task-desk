@@ -27,6 +27,8 @@ export function NightBackdrop({ live = false, className = "" }: { live?: boolean
   return (
     <div aria-hidden className={`night-root pointer-events-none absolute inset-x-0 -z-10 overflow-hidden ${className}`}>
       <AuroraSky live={live} className="absolute inset-0" />
+      {/* Between the sky and the words, so text stays readable over the brightest aurora. */}
+      <div className={`absolute inset-0 ${live ? "sky-scrim-hero" : "sky-scrim-page"}`} />
       {live && <BackdropPointer />}
       {LAYERS.map((layer) => {
         const land = (

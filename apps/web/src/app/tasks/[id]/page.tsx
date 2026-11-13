@@ -12,7 +12,7 @@ import { RelatedQuestions } from "@/components/related-questions";
 import { PrivateReviewNote } from "@/components/private-review";
 import { TxLink } from "@/components/tx-link";
 import { TaskProgress } from "@/components/task-progress";
-import { Container } from "@/components/page";
+import { Container, Fold } from "@/components/page";
 import { ActionButton, DisputeForm, SubmitForm } from "@/components/worker-forms";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -322,9 +322,11 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
 
       <div className="flex flex-col gap-6 lg:order-1">
         <div className="flex flex-col gap-3">
-          {/* Who posted it and how it pays, as one quiet line; what it needs, with the brand's round head. */}
+          <h1 className="text-3xl leading-tight font-light tracking-[-0.03em] text-balance sm:text-4xl">{task.description}</h1>
+          {/* Then when it's due and the quiet facts on one line, and what it needs with the brand's round head. */}
           {(() => {
             const facts = [
+              `Due ${when(task.deadline)}`,
               task.test ? "Test task · test money only" : null,
               task.requesterKind === "verified_agent" ? "Posted by a verified agent" : null,
               task.requesterKind === "verified_person" ? "Posted by a verified person" : null,
@@ -338,7 +340,7 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
             const needs = [...(task.requiredAttributes.length > 0 ? ["Concordium ID"] : []), ...task.requiredAttributes.map(attributeLabel)];
             return (
               <div className="flex flex-col gap-1.5 text-sm text-muted-foreground">
-                {facts.length > 0 && <p>{facts.join(" · ")}</p>}
+                <p>{facts.join(" · ")}</p>
                 {needs.length > 0 && (
                   <p className="flex items-center gap-2 text-foreground">
                     <HeadMark className="h-2.5 w-1.25 text-primary" /> Needs {needs.join(" · ")}
@@ -347,9 +349,22 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
               </div>
             );
           })()}
-          <h1 className="text-3xl leading-tight font-light tracking-[-0.03em] text-balance sm:text-4xl">{task.description}</h1>
-          <p className="text-sm text-muted-foreground">Due {when(task.deadline)}</p>
         </div>
+
+        {verdict && (
+          <section
+            className={`flex flex-col gap-2 rounded-2xl border p-5 ${verdict.outcome === "pass" ? "border-primary/30 bg-primary-soft/40" : "border-destructive/30 bg-destructive/5"}`}
+          >
+            <h2 className="font-semibold">
+              {verdictTitle}: {verdict.outcome === "pass" ? "passed" : "failed"}
+            </h2>
+            <p>{verdict.reasoning}</p>
+            <p className="font-mono text-xs text-muted-foreground">
+              <RuleRefs ids={verdict.ruleIds} /> · {when(verdict.at)}
+            </p>
+            <PrivateReviewNote review={verdict.privateReview} proof={proof} />
+          </section>
+        )}
 
         <section className="flex flex-col gap-4">
           <div>
@@ -366,20 +381,6 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
           </ul>
         </section>
 
-        {verdict && (
-          <section
-            className={`flex flex-col gap-2 rounded-2xl border p-5 ${verdict.outcome === "pass" ? "border-primary/30 bg-primary-soft/40" : "border-destructive/30 bg-destructive/5"}`}
-          >
-            <h2 className="font-semibold">
-              {verdictTitle}: {verdict.outcome === "pass" ? "passed" : "failed"}
-            </h2>
-            <p>{verdict.reasoning}</p>
-            <p className="font-mono text-xs text-muted-foreground">
-              <RuleRefs ids={verdict.ruleIds} /> · {when(verdict.at)}
-            </p>
-            <PrivateReviewNote review={verdict.privateReview} proof={proof} />
-          </section>
-        )}
 
         {submission && (
           <section className="flex flex-col gap-3 rounded-2xl border bg-card p-5">
@@ -400,7 +401,11 @@ async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
             {submission.text && <p className="whitespace-pre-wrap">{submission.text}</p>}
           </section>
         )}
-        <RelatedQuestions ids={["when-paid", "result-fails", "who-decides", "payout-returned"]} />
+        <div className="border-t">
+          <Fold summary="Questions about getting paid" hint="4">
+            <RelatedQuestions ids={["when-paid", "result-fails", "who-decides", "payout-returned"]} bare />
+          </Fold>
+        </div>
       </div>
     </div>
   );
