@@ -39,4 +39,4 @@ Notes from the model doing deep technical work, for a cheaper model to carry out
 - 7. My account → Agents: the owner's controls (RS-1, RS-2): 238253f
 - 8. The page where an owner approves a payment (RS-1): 238253f
 - 12. Say when pay really arrives (RS-16): 311b080
-- 10b. My account → Integrations: an EVM payout card (only once the EVM add-on is on): (this commit)
+- 10b. My account → Integrations: an EVM payout card (only once the EVM add-on is on): ffced22
