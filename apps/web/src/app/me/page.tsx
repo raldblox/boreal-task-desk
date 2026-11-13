@@ -299,8 +299,8 @@ async function Earnings() {
             </ul>
           )}
           <p className="text-xs text-muted-foreground">
-            {note} A passed task is held for {POLICY.objectionWindowMs / 3_600_000} hours, then paid. It&apos;s paid
-            sooner if the requester accepts early.
+            {note} A pass pays at once when the requester gives or accepts it; otherwise after the{" "}
+            {POLICY.objectionWindowMs / 3_600_000} hours to dispute, sometimes a day more.
           </p>
         </div>
       ))}

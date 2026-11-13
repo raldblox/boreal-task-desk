@@ -165,10 +165,13 @@ async function Checks() {
         ))}
       </ul>
       {setupLine.length > 0 && <p className="text-sm text-muted-foreground">{setupLine.join(". ")}.</p>}
-      <section className="flex flex-col gap-3">
-        <h2 className="text-2xl font-light tracking-[-0.025em]">Integrations</h2>
-        <AddonsPanel addons={[addons.concordium, addons.near, addons.evm, addons.zkpassport]} source={addons.source} />
-      </section>
+      {/* What each integration needs is detail for operators: there, one tap away, not in the way. */}
+      <details className="group rounded-2xl border bg-card p-5">
+        <summary className="cursor-pointer text-lg font-light tracking-[-0.015em] marker:text-primary">Integrations on this site</summary>
+        <div className="mt-4">
+          <AddonsPanel addons={[addons.concordium, addons.near, addons.evm, addons.zkpassport]} source={addons.source} />
+        </div>
+      </details>
     </div>
   );
 }

@@ -51,7 +51,7 @@ export default function RulesPage() {
       <PageHero
         kicker={`Rulebook v${RULEBOOK_VERSION}`}
         title="The rules every verdict follows"
-        lede="boreal.work's screener and reviewer are given exactly these rules and steps, and may cite only these rules. Every refusal and every fail names a rule by its ID, so anyone can see why, and dispute it."
+        lede="Every refusal and every fail cites one of these rules by its ID, so anyone can see why, and dispute it."
       />
       <Container className="flex flex-col gap-14 pb-16 md:pb-24">
         <section aria-labelledby="how" className="flex flex-col gap-5">
@@ -91,7 +91,7 @@ export default function RulesPage() {
                 <li
                   key={rule.id}
                   id={rule.id}
-                  className="grid scroll-mt-40 gap-2 border-l-4 border-l-transparent p-5 transition-colors target:border-l-primary target:bg-primary-soft/50 sm:grid-cols-[5rem_1fr_minmax(0,15rem)] sm:gap-6"
+                  className="grid scroll-mt-40 gap-2 p-5 transition-colors target:bg-primary-soft/50 sm:grid-cols-[5rem_1fr_minmax(0,15rem)] sm:gap-6"
                 >
                   <a href={`#${rule.id}`} className="w-fit font-mono text-sm font-medium text-primary hover:underline">
                     {rule.id}

@@ -80,7 +80,7 @@ export const PRECEDENCE = "The law, then R2 (safety), then R3 (integrity), then 
 
 /** How a task is screened, in order. Shown at /rules and given to the screener. */
 export const SCREENING_STEPS: readonly string[] = [
-  "Safety first: if the task breaks any R2 rule, refuse it and cite every R2 rule it breaks. Its money is returned in full.",
+  "Safety first: if the task breaks any R2 rule, refuse it and cite every R2 rule it breaks. Its money is released in full.",
   "Then quality: if it breaks any R1 rule, send it back with each rule and the exact change that would fix it.",
   "Otherwise it opens to workers. A task that's borderline on R2 goes to a person, never through by default.",
 ];
