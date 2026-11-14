@@ -76,6 +76,6 @@ export function posterStatus(task: { status: TaskStatus; reviewMode: "boreal" | 
 
 /** A worker's pseudonym, short enough to show: the first and last four of its hash. */
 export function workerHandle(pseudonym: string): string {
-  const hash = /^(ccdid|pp):/.test(pseudonym) ? pseudonym.slice(pseudonym.indexOf(":") + 1) : null;
+  const hash = /^(ccdid|pp|cw|zkp):[0-9a-f]{16,}$/.test(pseudonym) ? pseudonym.slice(pseudonym.indexOf(":") + 1) : null;
   return hash ? `${hash.slice(0, 4)}…${hash.slice(-4)}` : pseudonym;
 }

@@ -7,6 +7,12 @@ import { cn } from "@/lib/utils";
 const MARK = "https://www.paypalobjects.com/paypal-ui/logos/svg/paypal-mark-color.svg";
 const LOGO = "https://www.paypalobjects.com/paypal-ui/logos/svg/paypal-color.svg";
 
+/** PayPal's colour monogram, beside a row or option that names PayPal. */
+export function PayPalMark({ className = "h-5 w-auto" }: { className?: string }) {
+  // eslint-disable-next-line @next/next/no-img-element -- PayPal asks that its marks be loaded from PayPal
+  return <img src={MARK} alt="" className={className} />;
+}
+
 /** PayPal's full colour logo, for naming PayPal (the "Powered by" row). */
 export function PayPalLogo({ className = "h-4 w-auto" }: { className?: string }) {
   // eslint-disable-next-line @next/next/no-img-element -- PayPal asks that its marks be loaded from PayPal

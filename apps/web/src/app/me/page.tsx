@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { POLICY } from "@boreal/core";
 import { taskTotal } from "@boreal/desk";
 import { CONNECT_MESSAGE } from "@boreal/near";
-import { BadgeCheck, BarChart3, Bot, CheckCircle2, ChevronRight, CircleAlert, ExternalLink, LockKeyhole, ShieldCheck, Wallet } from "lucide-react";
+import { BadgeCheck, BarChart3, Bot, CheckCircle2, ChevronRight, CircleAlert, ExternalLink, LockKeyhole, Nfc, Wallet } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
@@ -11,13 +11,14 @@ import { Suspense } from "react";
 import { linkConcordium } from "@/app/actions";
 import { disconnectAgentPayPal, revokeAgentKey, setAgentLimits, setAgentPaused } from "@/app/owner/actions";
 import { LoadingPanel } from "@/components/loader";
-import { PayPalLoginButton } from "@/components/paypal-brand";
+import { PayPalLoginButton, PayPalMark } from "@/components/paypal-brand";
+import { CopyBlock } from "@/components/copy-block";
 import { LimitFields, OwnerActionForm } from "@/components/owner-agent-controls";
 import { ConcordiumLogo, NearLogo } from "@/components/chain-logos";
 import { EVM_CHAIN_NAMES, evmConnectMessage } from "@boreal/evm";
 import { ConnectConcordiumAccount, ConnectEvm, ConnectNear, FundAgentWallet } from "@/components/connect-wallet";
 import { type AccountTab, AccountTabs, accountTab } from "@/components/account-tabs";
-import { BlockHeading, Container, Cta, EmptyState, LinkTile, MoreLink, PageHero } from "@/components/page";
+import { BlockHeading, Container, Cta, EmptyState, Fold, LinkTile, MoreLink, PageHero } from "@/components/page";
 import { ConcordiumSignIn } from "@/components/concordium-sign-in";
 import { ConcordiumWalletSignIn } from "@/components/concordium-wallet-sign-in";
 import { ZkPassportSignIn } from "@/components/zkpassport-sign-in";
@@ -85,22 +86,34 @@ async function Identity() {
   if (!profile) redirect("/signin");
   const since = new Intl.DateTimeFormat("en-PH", { dateStyle: "medium", timeZone: "Asia/Manila" }).format(profile.createdAt);
   const paypalLogin = paypalLoginEnabled();
-  // On live money, a worker with only PayPal claims once PayPal has verified their account.
-  const needsVerifiedPayPal = NETWORK === "mainnet" && !profile.hasConcordium && !profile.hasPassport && !profile.paypalVerified;
+  // On live money, a worker claims once verified: a PayPal account PayPal has verified, Concordium
+  // ID, a Concordium account (opened only on a checked identity) or a passport (the desk's rule).
+  const verified = profile.paypalVerified || profile.hasConcordium || profile.hasConcordiumAccount || profile.hasPassport;
+  const needsVerification = NETWORK === "mainnet" && !verified;
   const passport = passportReady();
   const concordiumId = getAddons().on("concordium");
+  const connected = (
+    <Badge variant="outline" className="gap-1">
+      <CheckCircle2 className="size-3.5 text-primary" /> Connected
+    </Badge>
+  );
   return (
     <section className="flex flex-col gap-6 rounded-2xl border bg-card p-6 md:p-8">
-      <div className="flex items-start gap-4">
-        <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary-soft-foreground">
-          <BadgeCheck className="size-6" />
-        </span>
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex min-w-0 flex-col gap-1">
-          <h2 className="text-2xl font-light tracking-[-0.025em]">{profile.testMode ? "Test worker" : "Sign-in and identity"}</h2>
+          <h2 className="text-2xl font-light tracking-[-0.025em]">{profile.testMode ? "Test worker" : "Your sign-ins"}</h2>
           <p className="text-sm text-muted-foreground">
             <span className="font-mono">{workerHandle(profile.pseudonym)}</span> · worker since {since}
           </p>
         </div>
+        {!profile.testMode &&
+          (verified ? (
+            <Badge className="gap-1 bg-primary-soft text-primary-soft-foreground">
+              <BadgeCheck className="size-3.5" /> Verified person
+            </Badge>
+          ) : (
+            <Badge variant="outline">Not verified yet</Badge>
+          ))}
       </div>
 
       {profile.testMode ? (
@@ -112,115 +125,131 @@ async function Identity() {
           ))}
         </div>
       ) : (
-        <div className="flex flex-col divide-y rounded-xl border">
-          <div className="flex flex-wrap items-center gap-4 p-5">
-            <Wallet className="size-5 shrink-0 text-primary" />
-            <div className="min-w-0 flex-1">
-              <p className="font-medium">PayPal</p>
-              <p className="text-sm text-muted-foreground">
-                {profile.hasPayPal
-                  ? profile.paypalVerified
-                    ? "Signs you in. Verified by PayPal."
-                    : "Signs you in. PayPal hasn't verified this account."
-                  : "Sign in with PayPal and get paid there."}
-              </p>
-            </div>
-            {profile.hasPayPal ? (
-              <Badge variant="outline" className="gap-1">
-                <CheckCircle2 className="size-3.5 text-primary" /> Connected
-              </Badge>
-            ) : (
-              paypalLogin && (
-                <PayPalLoginButton label="Add PayPal" />
-              )
-            )}
-          </div>
-          {(profile.nearAccount || getAddons().ready("near", "rail")) && (
-            <div className="flex flex-wrap items-center gap-4 p-5">
-              <NearLogo className="size-5 shrink-0" />
-              <div className="min-w-0 flex-1">
-                <p className="font-medium">NEAR wallet</p>
-                <p className="truncate text-sm text-muted-foreground">
-                  {profile.nearAccount ? <span className="font-mono text-xs">{profile.nearAccount}</span> : "Get paid in USDC to your own wallet."}
-                </p>
-              </div>
-              {profile.nearAccount ? (
-                <Badge variant="outline" className="gap-1">
-                  <CheckCircle2 className="size-3.5 text-primary" /> USDC payouts
-                </Badge>
-              ) : (
-                <Link href="/me?tab=integrations" className={buttonVariants({ variant: "outline" })}>
-                  Connect
-                </Link>
-              )}
-            </div>
-          )}
-          {(profile.hasPassport || passport) && (
-            <div className="flex flex-col gap-3 p-5">
-              <div className="flex flex-wrap items-center gap-4">
-                <ShieldCheck className="size-5 shrink-0 text-primary" />
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium">Passport (ZKPassport)</p>
-                  <p className="text-sm text-muted-foreground">
-                    {profile.hasPassport
-                      ? "Signs you in, and proves you're 18 or older and one person."
-                      : "Free. Your phone reads your passport's chip and proves you're 18 or older and one person; boreal.work never sees the passport. Needs a passport or ID card with a chip, and a phone with NFC that passes the ZKPassport app's check."}
-                  </p>
-                </div>
-                {profile.hasPassport && <Badge variant="outline">Verified</Badge>}
-              </div>
-              {!profile.hasPassport && <ZkPassportSignIn next="/me?passport=added" link />}
-            </div>
+        <ul className="flex flex-col divide-y rounded-xl border">
+          <IdentityRow
+            mark={<PayPalMark className="h-5 w-auto" />}
+            name="PayPal"
+            line={
+              profile.hasPayPal
+                ? profile.paypalVerified
+                  ? "Signs you in and pays you. Verified by PayPal."
+                  : "Signs you in and pays you. PayPal hasn't verified it yet."
+                : "Sign in with PayPal and get paid there."
+            }
+            end={profile.hasPayPal ? connected : paypalLogin && <PayPalLoginButton label="Add PayPal" />}
+          />
+          {profile.hasConcordiumAccount && (
+            <IdentityRow
+              mark={<ConcordiumLogo className="size-5 text-foreground" />}
+              name="Concordium wallet"
+              line="Signs you in. A Concordium account is opened only on a checked identity, so it verifies you."
+              end={connected}
+            />
           )}
           {profile.hasConcordium && (
-            <div className="flex flex-col gap-3 p-5">
-              <div className="flex flex-wrap items-center gap-4">
-                <ShieldCheck className="size-5 shrink-0 text-primary" />
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium">Concordium ID</p>
-                  <p className="text-sm text-muted-foreground">
-                    {concordiumId
-                      ? "Signs you in, and proves what tasks ask for."
-                      : "Added earlier. The Concordium integration is off on this site, so it isn't used here."}
-                  </p>
+            <IdentityRow
+              mark={<ConcordiumLogo className="size-5 text-foreground" />}
+              name="Concordium ID"
+              line={concordiumId ? "Signs you in, and proves what tasks ask for." : "Added earlier. The Concordium integration is off on this site."}
+              end={<Badge variant={concordiumId ? "default" : "outline"}>Verified by Concordium</Badge>}
+            >
+              {Object.keys(profile.provenAttributes).length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(profile.provenAttributes).map(([attribute, value]) => (
+                    <Badge key={attribute} variant="outline">
+                      {attributeLabel({ attribute, value })}
+                    </Badge>
+                  ))}
                 </div>
-                <Badge variant={concordiumId ? "default" : "outline"}>Verified by Concordium</Badge>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {Object.entries(profile.provenAttributes).map(([attribute, value]) => (
-                  <Badge key={attribute} variant="outline">
-                    {attributeLabel({ attribute, value })}
-                  </Badge>
-                ))}
-              </div>
-            </div>
+              )}
+            </IdentityRow>
           )}
-        </div>
+          {(profile.hasPassport || passport) && (
+            <IdentityRow
+              mark={<Nfc className="size-5 text-primary" />}
+              name="Passport"
+              line={profile.hasPassport ? "Signs you in, and proves you're 18 or older and one person." : "Free: your phone reads your passport's chip. boreal.work never sees the passport."}
+              end={profile.hasPassport ? <Badge variant="outline">Verified</Badge> : null}
+            >
+              {!profile.hasPassport && <ZkPassportSignIn next="/me?passport=added" link />}
+            </IdentityRow>
+          )}
+          {(profile.nearAccount || getAddons().ready("near", "rail")) && (
+            <IdentityRow
+              mark={<NearLogo className="size-5" />}
+              name="NEAR wallet"
+              line={profile.nearAccount ? <span className="font-mono text-xs">{profile.nearAccount}</span> : "Get paid in USDC to your own wallet."}
+              end={
+                profile.nearAccount ? (
+                  <Badge variant="outline" className="gap-1">
+                    <CheckCircle2 className="size-3.5 text-primary" /> USDC payouts
+                  </Badge>
+                ) : (
+                  <Link href="/me?tab=integrations" className={buttonVariants({ variant: "outline" })}>
+                    Connect
+                  </Link>
+                )
+              }
+            />
+          )}
+        </ul>
       )}
-      {needsVerifiedPayPal && (
+      {needsVerification && (
         <Alert>
           <AlertDescription>
-            Only verified people can claim tasks:{" "}
+            To claim tasks, verify one of these:{" "}
             {[
-              "verify your account with PayPal, then use Log in with PayPal again",
-              ...(passport ? ["add your passport with ZKPassport above (free)"] : []),
-              ...(concordiumId && getAddons().ready("concordium", "id") ? ["add Concordium ID under Integrations (free)"] : []),
+              "PayPal (verify the account with PayPal, then log in again)",
+              ...(passport ? ["your passport, above"] : []),
+              ...(concordiumId && getAddons().ready("concordium", "id") ? ["Concordium ID, under Integrations"] : []),
             ].join(", or ")}
-            .
+            . Each is free.
           </AlertDescription>
         </Alert>
       )}
 
-      <div className="flex flex-col gap-1">
-        <p className="text-xs font-medium text-muted-foreground">Your worker ID</p>
-        <code className="break-all rounded-lg bg-muted px-3 py-2 font-mono text-xs">{profile.pseudonym}</code>
-        <p className="text-xs text-muted-foreground">
-          {profile.testMode
-            ? "Test workers see and do only test tasks."
-            : `A one-way code made from the identity you first signed in with. It never changes, and it can't be turned back into who you are. Each PayPal account${concordiumId ? ", Concordium ID" : ""}${passport ? ", passport" : ""} belongs to one boreal.work account, and accounts are never merged.`}
-        </p>
+      <div className="border-t">
+        <Fold summary="Your worker ID">
+          <div className="flex flex-col gap-2">
+            <CopyBlock label="your worker ID" text={profile.pseudonym} />
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              {profile.testMode
+                ? "Test workers see and do only test tasks."
+                : "A one-way code made from the identity you first signed in with. It never changes and can't be turned back into who you are. Each sign-in belongs to one boreal.work account, and accounts are never merged."}
+            </p>
+          </div>
+        </Fold>
       </div>
     </section>
+  );
+}
+
+/** One way this worker signs in or is paid: its mark, its name, one line, and a status or action. */
+function IdentityRow({
+  mark,
+  name,
+  line,
+  end,
+  children,
+}: {
+  mark: React.ReactNode;
+  name: string;
+  line: React.ReactNode;
+  end?: React.ReactNode;
+  children?: React.ReactNode;
+}) {
+  return (
+    <li className="flex flex-col gap-3 p-4 sm:p-5">
+      <div className="flex flex-wrap items-center gap-4">
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl border bg-background/60">{mark}</span>
+        <div className="min-w-0 flex-1">
+          <p className="font-medium">{name}</p>
+          <p className="text-sm text-muted-foreground">{line}</p>
+        </div>
+        {end}
+      </div>
+      {children && <div className="sm:pl-14">{children}</div>}
+    </li>
   );
 }
 

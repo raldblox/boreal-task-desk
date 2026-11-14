@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ConcordiumLogo } from "@/components/chain-logos";
 import { Button } from "@/components/ui/button";
 import { finishProof, startProof } from "@/lib/concordium-proof";
 
@@ -25,12 +26,15 @@ export function ConcordiumSignIn({
   network,
   next = "/tasks",
   link = false,
+  pill = false,
 }: {
   projectId: string;
   network: "testnet" | "mainnet";
   next?: string;
   /** Add the Concordium ID to the signed-in worker instead of signing in. */
   link?: boolean;
+  /** /signin's look: an outlined pill with Concordium's mark, beside PayPal's button. */
+  pill?: boolean;
 }) {
   const router = useRouter();
   const [status, setStatus] = useState<Status>("idle");
@@ -128,8 +132,10 @@ export function ConcordiumSignIn({
         onClick={begin}
         disabled={status !== "idle"}
         size="lg"
-        className="h-auto min-h-11 w-full whitespace-normal text-base"
+        variant={pill ? "outline" : "default"}
+        className={pill ? "h-12 w-full gap-3 rounded-full text-base" : "h-auto min-h-11 w-full whitespace-normal text-base"}
       >
+        {pill && <ConcordiumLogo className="size-5" />}
         {link && status === "idle" ? "Connect with the Concordium ID App" : LABEL[status]}
       </Button>
       {status !== "idle" && status !== "verifying" && (

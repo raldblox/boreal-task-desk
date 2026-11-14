@@ -63,7 +63,11 @@ const LABEL: Record<Status, string> = {
  * attributes as the ID App, so the worker's pseudonym is the same, but answers a Web3 ID request
  * whose challenge is a recent block's hash: nothing is anchored, so the proof is free for everyone.
  */
-export function ConcordiumWalletSignIn({ next = "/tasks", link = false }: { next?: string; link?: boolean }) {
+/**
+ * `quiet`: /signin's look, a small text button under the Concordium ID App's, since most people
+ * use the app and the wallet is the desktop alternative.
+ */
+export function ConcordiumWalletSignIn({ next = "/tasks", link = false, quiet = false }: { next?: string; link?: boolean; quiet?: boolean }) {
   const router = useRouter();
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -115,11 +119,15 @@ export function ConcordiumWalletSignIn({ next = "/tasks", link = false }: { next
       <Button
         onClick={begin}
         disabled={busy}
-        variant="outline"
-        size="lg"
-        className="h-auto min-h-11 w-full whitespace-normal text-base"
+        variant={quiet ? "ghost" : "outline"}
+        size={quiet ? "sm" : "lg"}
+        className={quiet ? "h-auto w-full whitespace-normal py-2 text-sm text-muted-foreground" : "h-auto min-h-11 w-full whitespace-normal text-base"}
       >
-        {link && (status === "idle" || status === "missing") ? "Connect Concordium Wallet for Web" : LABEL[status]}
+        {quiet && (status === "idle" || status === "missing")
+          ? "On a computer? Use Concordium Wallet for Web"
+          : link && (status === "idle" || status === "missing")
+            ? "Connect Concordium Wallet for Web"
+            : LABEL[status]}
       </Button>
       {status === "missing" && (
         <Alert>

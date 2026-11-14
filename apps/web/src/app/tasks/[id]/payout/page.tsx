@@ -117,7 +117,7 @@ async function Setup({ params }: { params: Promise<{ id: string }> }) {
           ) : (
             <p>
               Install the Concordium wallet and create an account with the Concordium ID App. The same ID also earns you the Verified by Concordium
-              badge, which unlocks tasks that ask for your age or country. Adding the badge on My account is free for you: boreal.work pays the network fee for its proof.
+              badge, which unlocks tasks that ask for your age or country. Adding the badge on My account is free.
             </p>
           )}
           <a href={near ? NEAR_WALLET : CONCORDIUM_WALLET} target="_blank" rel="noreferrer" className={buttonVariants({ variant: "outline", className: "w-fit gap-1.5" })}>

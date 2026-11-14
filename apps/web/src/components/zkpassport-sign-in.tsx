@@ -7,6 +7,8 @@ import type { PassportRequestStart } from "@boreal/zkpassport/query";
 import { passportQuery } from "@boreal/zkpassport/query";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Nfc } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 
 type Status = "idle" | "starting" | "waiting" | "scanned" | "proving" | "verifying" | "done";
@@ -33,7 +35,8 @@ async function post<T>(url: string, body: unknown): Promise<T> {
  * unique identifier, bound to a one-time nonce from boreal.work. The proofs go to boreal.work's
  * server, which checks them before signing the worker in (or, with `link`, adding the passport).
  */
-export function ZkPassportSignIn({ next = "/tasks", link = false }: { next?: string; link?: boolean }) {
+/** `pill`: /signin's look, an outlined pill with a passport-chip mark, beside PayPal's button. */
+export function ZkPassportSignIn({ next = "/tasks", link = false, pill = false }: { next?: string; link?: boolean; pill?: boolean }) {
   const router = useRouter();
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -113,8 +116,9 @@ export function ZkPassportSignIn({ next = "/tasks", link = false }: { next?: str
   const busy = status !== "idle";
   return (
     <div className="flex flex-col gap-3">
-      <Button onClick={begin} disabled={busy} variant="outline" size="lg" className="h-auto min-h-11 w-full whitespace-normal text-base">
-        {link && status === "idle" ? "Add my passport with ZKPassport" : LABEL[status]}
+      <Button onClick={begin} disabled={busy} variant="outline" size="lg" className={pill ? "h-12 w-full gap-3 rounded-full text-base" : "h-auto min-h-11 w-full whitespace-normal text-base"}>
+        {pill && <Nfc className="size-5 text-primary" />}
+        {pill && status === "idle" ? "Sign in with your passport" : link && status === "idle" ? "Add my passport with ZKPassport" : LABEL[status]}
       </Button>
       {url && (status === "waiting" || status === "scanned") && (
         <div className="flex flex-col items-center gap-2 rounded-xl border bg-background p-4 text-center text-sm text-muted-foreground">
