@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
+import { LoadingPanel } from "@/components/loader";
 import { CloseAccountForm } from "@/components/close-account-form";
 import { Container, MoreLink, PageHero } from "@/components/page";
 import { getDesk } from "@/server/desk";
@@ -94,7 +95,7 @@ export default function CloseAccountPage() {
         lede="Read this first. Closing deletes what identifies you and can't be undone."
       />
       <Container className="max-w-3xl pb-16">
-        <Suspense fallback={<div className="h-80 animate-pulse rounded-2xl bg-muted" />}>
+        <Suspense fallback={<LoadingPanel className="h-80" />}>
           <Closing />
         </Suspense>
       </Container>

@@ -58,19 +58,20 @@ export function PageHero({
       <Container className={cn("flex flex-col gap-8", PAGE_TOP, size === "display" ? "pb-16 md:pb-24" : "pb-10 md:pb-12", children && "pb-0 md:pb-0")}>
         <div className="grid items-end gap-8 lg:grid-cols-[minmax(0,1fr)_auto]">
           <div className="flex max-w-3xl flex-col gap-5">
-            {kicker && <Kicker>{kicker}</Kicker>}
+            {/* A page's heading arrives a beat at a time (globals.css, "motion"). */}
+            {kicker && <Kicker className="rise-in">{kicker}</Kicker>}
             <h1
               className={cn(
-                "font-light tracking-[-0.035em] text-balance",
+                "rise-in font-light tracking-[-0.035em] text-balance [--i:1]",
                 size === "display" ? "text-5xl leading-[1.02] sm:text-6xl lg:text-7xl" : "text-4xl leading-[1.05] sm:text-5xl",
               )}
             >
               {title}
             </h1>
-            {lede && <div className="max-w-2xl text-lg leading-relaxed text-muted-foreground">{lede}</div>}
-            {actions && <div className="flex flex-wrap items-center gap-3 pt-1">{actions}</div>}
+            {lede && <div className="rise-in max-w-2xl text-lg leading-relaxed text-muted-foreground [--i:2]">{lede}</div>}
+            {actions && <div className="rise-in flex flex-wrap items-center gap-3 pt-1 [--i:3]">{actions}</div>}
           </div>
-          {aside && <div className="lg:justify-self-end">{aside}</div>}
+          {aside && <div className="rise-in lg:justify-self-end [--i:2]">{aside}</div>}
         </div>
         {children}
       </Container>
@@ -105,7 +106,8 @@ export function Section({
     <section id={id} className={cn("scroll-mt-20", band && "border-y bg-card")}>
       <Container className={cn("flex flex-col gap-8 py-12 md:py-16", className)}>
         {(title || kicker || action) && (
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          // The heading rises in as it scrolls into view.
+          <div className="reveal flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="flex max-w-2xl flex-col gap-3">
               {kicker && <Kicker>{kicker}</Kicker>}
               {title && <h2 className="text-3xl font-light tracking-[-0.03em] sm:text-4xl">{title}</h2>}
@@ -305,7 +307,7 @@ export function BlockHeading({
 /** An empty state that tells you what to do next, with the button to do it. */
 export function EmptyState({ title, children, action }: { title: React.ReactNode; children?: React.ReactNode; action?: React.ReactNode }) {
   return (
-    <div className="flex flex-col items-start gap-4 rounded-2xl border border-dashed bg-card/60 p-8 md:p-10">
+    <div className="rise-in flex flex-col items-start gap-4 rounded-2xl border border-dashed bg-card/60 p-8 md:p-10 [--i:3]">
       <p className="text-xl font-light tracking-tight">{title}</p>
       {children && <div className="max-w-xl text-sm leading-relaxed text-muted-foreground">{children}</div>}
       {action}

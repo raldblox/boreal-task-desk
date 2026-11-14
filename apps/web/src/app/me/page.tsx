@@ -10,6 +10,7 @@ import { Suspense } from "react";
 
 import { linkConcordium } from "@/app/actions";
 import { disconnectAgentPayPal, revokeAgentKey, setAgentLimits, setAgentPaused } from "@/app/owner/actions";
+import { LoadingPanel } from "@/components/loader";
 import { PayPalLoginButton } from "@/components/paypal-brand";
 import { LimitFields, OwnerActionForm } from "@/components/owner-agent-controls";
 import { ConcordiumLogo, NearLogo } from "@/components/chain-logos";
@@ -974,7 +975,7 @@ async function Tabs({ active }: { active: AccountTab }) {
   );
 }
 
-const SECTION_FALLBACK = <div className="h-40 animate-pulse rounded-2xl bg-muted" />;
+const SECTION_FALLBACK = <LoadingPanel className="h-40" />;
 
 /** One tab's sections. */
 function TabPanel({ tab }: { tab: AccountTab }) {
@@ -983,10 +984,10 @@ function TabPanel({ tab }: { tab: AccountTab }) {
       return (
         <>
           <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
-            <Suspense fallback={<div className="h-80 animate-pulse rounded-2xl bg-muted" />}>
+            <Suspense fallback={<LoadingPanel className="h-80" />}>
               <Identity />
             </Suspense>
-            <Suspense fallback={<div className="h-64 animate-pulse rounded-2xl bg-muted" />}>
+            <Suspense fallback={<LoadingPanel className="h-64" />}>
               <Earnings />
             </Suspense>
           </div>

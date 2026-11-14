@@ -3,6 +3,7 @@
 import { type FormEvent, startTransition, useActionState, useState } from "react";
 
 import type { ActionState } from "@/app/actions";
+import { ButtonLoader } from "@/components/loader";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,7 +37,14 @@ export function ActionButton({
   return (
     <form action={formAction} className="flex flex-col gap-3">
       <Button type="submit" variant={variant} disabled={pending} size={size} className="w-full sm:w-fit">
-        {pending ? "Working…" : children}
+        {pending ? (
+          <>
+            <ButtonLoader />
+            Working…
+          </>
+        ) : (
+          children
+        )}
       </Button>
       <FormError state={state} />
     </form>
@@ -95,6 +103,7 @@ export function SubmitForm({ action, resultFormat }: { action: Action; resultFor
         <Textarea id="text" name="text" rows={resultFormat === "text" ? 6 : 3} required={resultFormat === "text"} />
       </div>
       <Button type="submit" disabled={busy} size="lg" className="w-full sm:w-fit">
+        {busy && <ButtonLoader />}
         {preparing ? "Preparing photo…" : pending ? "Submitting…" : "Submit result"}
       </Button>
       <FormError state={state} />

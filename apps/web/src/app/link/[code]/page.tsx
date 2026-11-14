@@ -10,6 +10,7 @@ import { Suspense } from "react";
 
 import { approveLink, denyLink } from "@/app/link/actions";
 import { ApproveLinkForm } from "@/app/link/approve-form";
+import { LoadingPanel } from "@/components/loader";
 import { FundAgentWallet } from "@/components/connect-wallet";
 import { Container, PageHero } from "@/components/page";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -167,7 +168,7 @@ export default function LinkPage(props: Props) {
         title={<>An agent wants a boreal.work key</>}
       />
       <Container className="flex flex-col gap-8 py-10 md:py-14 [&>*]:max-w-[720px]">
-      <Suspense fallback={<div className="h-64 animate-pulse rounded-2xl bg-muted" />}>
+      <Suspense fallback={<LoadingPanel className="h-64" />}>
         <LinkRequest {...props} />
       </Suspense>
       </Container>

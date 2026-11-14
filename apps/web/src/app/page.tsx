@@ -7,6 +7,7 @@ import { NightBackdrop } from "@/components/night-backdrop";
 import { ClosingBand } from "@/components/closing-band";
 import { CopyBlock } from "@/components/copy-block";
 import { HeroTasks } from "@/components/hero-tasks";
+import { InView } from "@/components/in-view";
 import { Container, Cta, Fold, Kicker, MoreLink, Section } from "@/components/page";
 import { PoweredBy } from "@/components/powered-by";
 import { RelatedQuestions } from "@/components/related-questions";
@@ -168,18 +169,19 @@ export default function Home() {
         <NightBackdrop live className="night-hero" />
         <Container className="grid w-full items-center gap-14 py-16 md:py-20 lg:grid-cols-[1.2fr_1fr]">
           <div className="flex flex-col gap-7">
-            <Kicker>Paid when the work passes</Kicker>
-            <h1 className="text-5xl leading-[1.02] font-light tracking-[-0.04em] text-balance sm:text-6xl lg:text-7xl">Software that can be somewhere.</h1>
-            <p className="max-w-lg text-lg leading-relaxed text-foreground/80">
+            {/* The words arrive a beat apart, while the aurora comes up behind them. */}
+            <Kicker className="rise-in">Paid when the work passes</Kicker>
+            <h1 className="rise-in [--i:1] text-5xl leading-[1.02] font-light tracking-[-0.04em] text-balance sm:text-6xl lg:text-7xl">Software that can be somewhere.</h1>
+            <p className="rise-in [--i:2] max-w-lg text-lg leading-relaxed text-foreground/80">
               An AI agent or a business posts a step in the physical world. A verified person goes and does it. They&apos;re paid when the result passes review.
             </p>
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="rise-in [--i:3] flex flex-wrap items-center gap-3">
               <Cta href="/tasks">Find paid tasks</Cta>
               <Cta href="/post" variant="outline">
                 Post a task
               </Cta>
             </div>
-            <ul className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-foreground/75">
+            <ul className="rise-in [--i:4] flex flex-wrap gap-x-5 gap-y-2 text-sm text-foreground/75">
               {["Workers keep 100% of their pay", `One fee: ${SERVICE_FEE}`, "Every fail cites a rule"].map((point) => (
                 <li key={point} className="flex items-center gap-2">
                   <PointMark className="h-2.5 w-1.25 text-primary" />
@@ -189,10 +191,12 @@ export default function Home() {
             </ul>
             <PoweredBy />
           </div>
-          <div className="hero-float relative mx-auto w-full max-w-md">
-            <TiltCard>
-              <HeroTasks privateReview={privateReview} />
-            </TiltCard>
+          <div className="rise-in [--i:3] relative mx-auto w-full max-w-md">
+            <div className="hero-float">
+              <TiltCard>
+                <HeroTasks privateReview={privateReview} />
+              </TiltCard>
+            </div>
           </div>
         </Container>
       </section>
@@ -241,20 +245,27 @@ export default function Home() {
         title="From posted to paid, in six steps."
         action={<MoreLink href="/rules">Read the rulebook</MoreLink>}
       >
-        <ol className="grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-6">
+        {/* The steps present themselves in order when they come on screen, then a light runs
+            along the line from Quote to Settle (globals.css, "the six steps"). */}
+        <InView as="ol" className="steps grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-6">
           {STEPS.map(({ who, title, body }, i) => (
-            <li key={title} className="relative flex flex-col gap-2 border-t border-primary/25 pt-5">
-              {/* A dot on the line for each step. */}
-              <span aria-hidden className="absolute -top-[5px] left-0 size-2.5 rounded-full bg-primary ring-4 ring-background" />
-              <span className="text-xs font-medium text-primary">{who}</span>
-              <h3 className="flex items-baseline gap-2 text-lg font-normal tracking-tight">
-                <span className="text-sm tabular-nums text-muted-foreground">{i + 1}</span>
-                {title}
-              </h3>
-              <p className="text-sm leading-relaxed text-muted-foreground">{body}</p>
+            <li key={title} className="relative flex flex-col gap-2 pt-5" style={{ "--i": i } as React.CSSProperties}>
+              <span aria-hidden className="step-line absolute inset-x-0 top-0 h-px bg-primary/30" />
+              {/* Each step's marker: a needle's north point, standing on the line. */}
+              <span aria-hidden className="step-mark absolute -top-[7px] left-0 flex h-3.5 w-2 items-center justify-center rounded-[1px] bg-background">
+                <PointMark className="h-3.5 w-1.75 text-primary" />
+              </span>
+              <div className="step-body flex flex-col gap-2">
+                <span className="text-xs font-medium text-primary">{who}</span>
+                <h3 className="flex items-baseline gap-2 text-lg font-normal tracking-tight">
+                  <span className="text-sm tabular-nums text-muted-foreground">{i + 1}</span>
+                  {title}
+                </h3>
+                <p className="text-sm leading-relaxed text-muted-foreground">{body}</p>
+              </div>
             </li>
           ))}
-        </ol>
+        </InView>
       </Section>
 
       {/* The arithmetic */}

@@ -140,6 +140,22 @@ Plain and direct. Say what happens, who decides and when money moves.
 - Faces and figures stay abstract; show the work, not people's identities.
 - The share image (`opengraph-image.tsx`) and the X banner are the reference scenes.
 
+## Motion
+
+Things arrive the way the aurora does: rising a little as they brighten. Never bouncing, spinning or flying in. The CSS is in `apps/web/src/app/globals.css`, under "motion".
+
+- **One curve, short times.** `--ease-north` (a long ease-out), 300–700 ms. Animate transform and opacity only.
+- **Arrival.** A page's heading, then its content, a beat apart (`.rise-in`, stagger by `--i`). Lists stagger their items the same way. Section headings rise in as they scroll into view (`.reveal`).
+- **The mark's motions.**
+  - The eyebrow needle slides out once.
+  - A card's needle slides in on hover.
+  - A primary press sends out a ring of aurora rays.
+  - The loader (`MarkLoader`, `LoadingPanel`, `ButtonLoader` in `components/loader.tsx`) runs light along the seven needles, west to east.
+  - The needles themselves never move, turn or part. Only the light changes.
+- **Presenting a sequence.** The how-it-works steps draw their line, light their markers and raise their words in order when they come on screen. After that, a light runs from Quote to Settle every few seconds.
+- **Loading.** Show `LoadingPanel` (the loader in the section's own space), never a grey pulsing block or bare "Loading…".
+- **Less motion.** Everything holds still for people who ask for less motion, and nothing is hidden when script is off.
+
 ## Iconography
 
 - Lucide icons (`lucide-react`), outline style, 16 px in text and buttons (`size-4`), `currentColor`.

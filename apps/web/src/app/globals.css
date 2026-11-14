@@ -374,3 +374,118 @@
 .sky-scrim-page {
   background: linear-gradient(180deg, rgb(2 10 12 / 0.55) 0%, rgb(2 10 12 / 0.62) 45%, rgb(2 10 12 / 0.2) 85%);
 }
+
+/* ------------------------------------------------------------------ a page fills the first screen
+   However little is on it (no open tasks, a sign-in prompt), the footer starts below the first
+   screen, so the night scene behind the page top is always seen whole. */
+body > main {
+  min-height: calc(100svh - var(--header-h));
+}
+
+/* ------------------------------------------------------------------ motion
+   One language across the site, taken from the north: things arrive the way the aurora does,
+   rising a little as they brighten, never bouncing or spinning. One curve (--ease-north, a long
+   ease-out), short durations, transform and opacity only. Everything holds still for people who
+   ask for less motion, and nothing is hidden without script. */
+:root {
+  --ease-north: cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes rise-in {
+  from { opacity: 0; translate: 0 10px; }
+}
+
+/* Arrival: a page's heading, its first content, a list's items, each a beat after the last
+   (--i, set inline). */
+@media (prefers-reduced-motion: no-preference) {
+  .rise-in {
+    animation: rise-in 700ms var(--ease-north) both;
+    animation-delay: calc(min(var(--i, 0), 8) * 70ms);
+  }
+}
+
+/* Sections rise in as they scroll into view, tied to the scroll itself (no script). Where scroll
+   timelines aren't supported they simply stand. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: rise-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 40%;
+    }
+  }
+}
+
+/* The loader (components/loader.tsx): light runs along the mark's needles, west to east, like
+   brightness along an arc. Only each needle's light changes; the mark never moves. */
+.mark-loader path {
+  opacity: 0.3;
+  animation: needle-light 1.5s ease-in-out infinite;
+  animation-delay: calc(var(--n) * 105ms);
+}
+@keyframes needle-light {
+  0%, 70%, 100% { opacity: 0.3; }
+  25% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mark-loader path { animation: none; opacity: 1; }
+}
+
+/* ------------------------------------------------------------------ the six steps (home, "How it works")
+   When the steps come on screen they present themselves in order, as a task moves: each segment of
+   the line draws out, its marker (a needle's north point) lights, then its words rise. After that,
+   every few seconds a light runs along the line from Quote to Settle, the way money moves from
+   posted to paid, and each marker brightens as it passes. Server-rendered and visible without
+   script (components/in-view.tsx adds [data-inview]). */
+.steps > li {
+  --d: calc(var(--i, 0) * 230ms);
+}
+.step-line {
+  overflow: hidden;
+  transform-origin: left;
+}
+.step-line::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 35%;
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+  translate: -100% 0;
+  opacity: 0;
+}
+@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+  .steps .step-line {
+    scale: 0 1;
+    transition: scale 650ms var(--ease-north) var(--d);
+  }
+  .steps .step-mark {
+    opacity: 0;
+    scale: 0.2;
+    transition: opacity 350ms ease-out calc(var(--d) + 120ms), scale 600ms var(--ease-north) calc(var(--d) + 120ms);
+  }
+  .steps .step-body {
+    opacity: 0;
+    translate: 0 8px;
+    transition: opacity 500ms ease-out calc(var(--d) + 220ms), translate 700ms var(--ease-north) calc(var(--d) + 220ms);
+  }
+  .steps[data-inview] .step-line { scale: 1 1; }
+  .steps[data-inview] .step-mark { opacity: 1; scale: 1; }
+  .steps[data-inview] .step-body { opacity: 1; translate: 0 0; }
+  .steps[data-inview] .step-line::after {
+    animation: step-glint 7s linear infinite;
+    animation-delay: calc(2.4s + var(--i, 0) * 420ms);
+  }
+  .steps[data-inview] .step-mark svg {
+    animation: step-ping 7s var(--ease-north) infinite;
+    animation-delay: calc(2.4s + var(--i, 0) * 420ms);
+  }
+}
+@keyframes step-glint {
+  0% { translate: -100% 0; opacity: 1; }
+  8% { translate: 290% 0; opacity: 1; }
+  8.01%, 100% { translate: 290% 0; opacity: 0; }
+}
+@keyframes step-ping {
+  0% { scale: 1; }
+  3% { scale: 1.6; }
+  12%, 100% { scale: 1; }
+}

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { decideApproval } from "@/app/owner/actions";
+import { LoadingPanel } from "@/components/loader";
 import { OwnerActionForm } from "@/components/owner-agent-controls";
 import { Container, EmptyState, MoreLink, PageHero } from "@/components/page";
 import { Badge } from "@/components/ui/badge";
@@ -146,7 +147,7 @@ export default function ApprovePage(props: Props) {
     <main className="flex-1">
       <PageHero kicker="Payment request" title="Approve a payment" lede="Your agent is on Ask me each time, so it needs your OK before anything is held." />
       <Container className="max-w-2xl pb-16">
-        <Suspense fallback={<div className="h-80 animate-pulse rounded-2xl bg-muted" />}>
+        <Suspense fallback={<LoadingPanel className="h-80" />}>
           <Approval {...props} />
         </Suspense>
       </Container>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
+import { LoadingPanel } from "@/components/loader";
 import { RelatedQuestions } from "@/components/related-questions";
 import { Container, Cta, EmptyState, PageHero } from "@/components/page";
 import { TaskCard } from "@/components/task-card";
@@ -69,8 +70,11 @@ async function OpenTasks({ searchParams }: { searchParams: Promise<{ payable?: s
         </p>
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
-        {tasks.map((task) => (
-          <TaskCard key={task.id} task={task} />
+        {/* The cards arrive one after another. */}
+        {tasks.map((task, i) => (
+          <div key={task.id} className="rise-in" style={{ "--i": i + 2 } as React.CSSProperties}>
+            <TaskCard task={task} />
+          </div>
         ))}
       </div>
     </div>
@@ -90,7 +94,7 @@ export default function TasksPage({ searchParams }: PageProps<"/tasks">) {
         }
       />
       <Container className="flex flex-col gap-8 py-10 md:py-14">
-      <Suspense fallback={<div className="h-40 animate-pulse rounded-2xl bg-muted" />}>
+      <Suspense fallback={<LoadingPanel label="Finding open tasks" />}>
         <OpenTasks searchParams={searchParams as Promise<{ payable?: string }>} />
       </Suspense>
       <RelatedQuestions ids={["who-can-take-tasks", "when-paid", "result-fails", "how-paid"]} className="max-w-2xl" />

@@ -4,6 +4,7 @@ import { POLICY, quoteFees } from "@boreal/core";
 import { useActionState, useState } from "react";
 
 import type { ActionState } from "@/app/actions";
+import { ButtonLoader } from "@/components/loader";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -281,7 +282,12 @@ export function PostForm({
         </Alert>
       )}
       <Button type="submit" size="lg" disabled={pending || overCap || checks > 10} className="w-full sm:w-fit">
-        {pending ? "Posting…" : quote ? `Post and fund ${usd(quote.total)}` : "Post task"}
+        {pending ? (
+          <>
+            <ButtonLoader />
+            Posting…
+          </>
+        ) : quote ? `Post and fund ${usd(quote.total)}` : "Post task"}
       </Button>
     </form>
   );
