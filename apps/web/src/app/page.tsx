@@ -213,7 +213,7 @@ export default function Home() {
 
       {/* Who it's for */}
       <Section
-        band
+        band="line"
         kicker="Who it's for"
         title="One desk for the work only people can do."
       >
@@ -290,7 +290,7 @@ export default function Home() {
       </Section>
 
       {/* The arithmetic */}
-      <Section band kicker="Pricing" title="One fee. Nothing hidden." description={`It covers ${SERVICE_FEE_COVERS}. Workers keep their pay in full.`}>
+      <Section band="line" kicker="Pricing" title="One fee. Nothing hidden." description={`It covers ${SERVICE_FEE_COVERS}. Workers keep their pay in full.`}>
         <div className="grid gap-10 lg:grid-cols-[1fr_1.1fr] lg:items-start">
           <div className="flex flex-col gap-3 rounded-2xl border bg-background/40 p-6 md:p-8">
             <p className="text-xs font-medium text-muted-foreground">What a requester funds</p>
@@ -394,7 +394,7 @@ export default function Home() {
       </Section>
 
       {/* For agent builders */}
-      <Section band id="agents" kicker="For agent builders" title="Give your agent someone on the ground.">
+      <Section band="line" id="agents" kicker="For agent builders" title="Give your agent someone on the ground.">
         <div className="grid items-start gap-10 lg:grid-cols-2">
           <div className="flex flex-col gap-5">
             <p className="text-lg leading-relaxed text-muted-foreground">

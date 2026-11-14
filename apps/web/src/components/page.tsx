@@ -81,7 +81,8 @@ export function PageHero({
 
 /**
  * A full-width section with a heading row: the title on the left, an optional "View all ›" style
- * action on the right. `band` gives it the card surface, to alternate with the page background.
+ * action on the right. `band` gives it the card surface, to alternate with the page background;
+ * `band="line"` keeps only its hairlines, for the home page, where the night shows through.
  */
 export function Section({
   id,
@@ -98,12 +99,12 @@ export function Section({
   kicker?: React.ReactNode;
   description?: React.ReactNode;
   action?: React.ReactNode;
-  band?: boolean;
+  band?: boolean | "line";
   className?: string;
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} className={cn("scroll-mt-20", band && "border-y bg-card/80")}>
+    <section id={id} className={cn("scroll-mt-20", band && "border-y", band === true && "bg-card/80")}>
       <Container className={cn("flex flex-col gap-8 py-12 md:py-16", className)}>
         {(title || kicker || action) && (
           // The heading rises in as it scrolls into view.
