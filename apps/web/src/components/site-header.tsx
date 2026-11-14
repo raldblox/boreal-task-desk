@@ -90,7 +90,7 @@ const FOOTER = [
 
 export function SiteFooter() {
   return (
-    <footer className="mt-auto border-t bg-card">
+    <footer className="site-footer mt-auto border-t bg-card">
       <Container className="grid gap-10 py-14 md:grid-cols-[1.4fr_repeat(3,1fr)]">
         <div className="flex flex-col gap-4">
           <BorealLogo />

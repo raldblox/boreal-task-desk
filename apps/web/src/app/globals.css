@@ -161,6 +161,12 @@
 .night-hero .bb-par {
   animation: none;
 }
+/* The home page's footer: the night shows through it, under a shade dark enough to read on, and
+   the pointer stirs the aurora there as it does over the hero. */
+html[data-night-live] .site-footer {
+  background-color: rgb(2 10 12 / 0.62);
+  border-color: rgb(255 255 255 / 0.08);
+}
 .night-hero .look {
   translate: 0 calc(var(--look, 0px) * var(--k, 1));
   will-change: translate;

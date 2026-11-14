@@ -554,8 +554,8 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
   // The words over the night get a shade once the hero is behind them, lifted a little at the
   // page's end so the aurora shines around the closing band; the hero's own scrim fades as it goes.
   let shaded = -1;
-  const shade = (p: number) => {
-    const read = 0.72 * smooth(0.015, 0.09, p) - 0.3 * smooth(0.72, 0.88, p);
+  const shade = (p: number, reward = 0) => {
+    const read = 0.72 * smooth(0.015, 0.09, p) - 0.3 * smooth(0.72, 0.88, p) - 0.24 * reward;
     if (!root || Math.abs(read - shaded) < 0.004) return;
     shaded = read;
     root.style.setProperty("--read", read.toFixed(3));
@@ -645,6 +645,12 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
     // it; by the page's end there is only the aurora. `look` is the extra pitch (radians); the
     // land follows through --look, the horizon's drop in CSS pixels, so the two never part.
     let look = 0;
+    // The reward for reading to the end: at the very bottom of the page a substorm breaks out right
+    // overhead. The arcs sweep in over the observer and brighten, rays crowd every arc, the tallest
+    // turn red, and the camera keeps tilting up toward the magnetic zenith, where field-aligned
+    // rays meet in a corona. It comes on over a few seconds and lets go slowly on the way back up.
+    // `reward` runs 0 to 1; what is drawn uses its eased value.
+    let reward = 0;
     const lookShift = (a: number) => {
       const c = camera(cssW, screenH);
       return c.f * (Math.tan(c.pitch + a) - Math.tan(c.pitch));
@@ -653,7 +659,22 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
       if (!calm && lastNow >= 0) rise = Math.min(1, rise + Math.min(Math.max(now - lastNow, 0), 0.05) / 4.5);
       lastNow = now;
       const up = rise * rise * (3 - 2 * rise);
-      const state = skyState(t);
+      const r = reward * reward * (3 - 2 * reward);
+      const base = skyState(t);
+      const mix = (a: number, b: number) => a + (b - a) * r;
+      const state =
+        r > 0
+          ? {
+              ...base,
+              arcZ: [mix(base.arcZ[0], 70), mix(base.arcZ[1], 170), mix(base.arcZ[2], 330)] as [number, number, number],
+              arcI: [base.arcI[0] * (1 + 1.4 * r) + 1.1 * r, base.arcI[1] * (1 + 1.2 * r) + 0.9 * r, base.arcI[2] * (1 + r) + 0.6 * r] as [number, number, number],
+              rays: mix(base.rays, 1),
+              folds: mix(base.folds, 0.85),
+              hard: Math.max(base.hard, 0.75 * r),
+              red: Math.max(base.red, 0.9 * r),
+              light: Math.min(1, base.light + 0.5 * r),
+            }
+          : base;
       const drift = skyDrift(t);
       const g = galaxy(t);
       const W = canvas.width;
@@ -780,10 +801,12 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
     io.observe(canvas);
 
     // The aurora answers the pointer: where it moves, the arcs brighten and lean toward the
-    // viewer, then settle over a couple of seconds. Mouse and pen only.
+    // viewer, then settle over a couple of seconds. Mouse and pen only, and only over the hero and
+    // the footer: over the sections in between, where people read, the sky keeps to itself.
     let lastMove = 0;
     const onMove = (e: PointerEvent) => {
       if (e.pointerType === "touch") return;
+      if (!(e.target instanceof Element) || !e.target.closest("[data-hero], .site-footer")) return;
       const rect = canvas.getBoundingClientRect();
       if (e.clientY > rect.bottom || e.clientY < rect.top) return;
       const x = (e.clientX - rect.left) / Math.max(rect.width, 1);
@@ -834,7 +857,13 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
       // The look follows the scroll every frame, eased like a camera on a slow head, so the land
       // moves as smoothly as the page; the aurora redraws for it at its own 30 frames a second.
       const p = scrolled();
-      const want = lookTarget(p, cssW, screenH);
+      // The reward builds over about 3.5 s once the page's end is reached, and fades over 7 s after.
+      const tick = lookAt < 0 ? 0 : Math.min((now - lookAt) / 1000, 0.1);
+      reward = Math.min(1, Math.max(0, reward + (p > 0.965 ? tick / 3.5 : -tick / 7)));
+      const rw = reward * reward * (3 - 2 * reward);
+      const base = lookTarget(p, cssW, screenH);
+      const cam0 = camera(cssW, screenH);
+      const want = base + rw * Math.max(0, Math.min(0.3, (62 * Math.PI) / 180 - cam0.pitch - base));
       const step = lookAt < 0 ? 1 : Math.min(1, (now - lookAt) / 1000 / 0.35);
       lookAt = now;
       look += (want - look) * step;
@@ -844,7 +873,7 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
         lookShown = px;
         root.style.setProperty("--look", `${px}px`);
       }
-      shade(p);
+      shade(p, rw);
       if (last && now - last < 30) return;
       const dt = last ? Math.min((now - last) / 1000, 0.1) : 0;
       last = now;
@@ -903,6 +932,10 @@ export function AuroraSky({ live = false, className = "" }: { live?: boolean; cl
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
+    // While the live night is up, the page says so (globals.css: the footer lets it show through).
+    // An effect, not a :has() rule: a home page Next keeps mounted but hidden runs no effects.
+    const html = document.documentElement;
+    if (live) html.setAttribute("data-night-live", "");
     let stop: (() => void) | null = null;
     const begin = () => {
       if (!stop && canvas.getBoundingClientRect().width > 1) stop = runSky(canvas, live);
@@ -913,6 +946,7 @@ export function AuroraSky({ live = false, className = "" }: { live?: boolean; cl
     return () => {
       shown.disconnect();
       stop?.();
+      if (live) html.removeAttribute("data-night-live");
     };
   }, [live]);
 
