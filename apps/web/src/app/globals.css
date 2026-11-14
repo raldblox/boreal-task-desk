@@ -269,69 +269,14 @@
 }
 
 @layer components {
-/* ------------------------------------------------------------------ the press that feels like a win
-   Every primary action (buttonVariants' default, Cta) carries .cta-win. Pressing it sinks it a
-   little; letting go sends a ring of aurora rays out from its edge and shoots the arrow forward
-   (components/press-fx.tsx marks the moment with [data-won]). Transform and opacity only, and
-   nothing but the press for people who ask for less motion. */
+/* ------------------------------------------------------------------ the press
+   Every primary action (buttonVariants' default, Cta) carries .cta-win: pressing it sinks it a
+   touch, and it comes back as you let go. Nothing else: no rays, rings or flying arrows. */
 .cta-win {
-  position: relative;
-  isolation: isolate;
   transition: scale 160ms cubic-bezier(0.16, 1, 0.3, 1), background-color 160ms ease-out;
 }
 .cta-win:active:not(:disabled) {
-  scale: 0.96;
-}
-.cta-win::before,
-.cta-win::after {
-  content: "";
-  position: absolute;
-  pointer-events: none;
-  opacity: 0;
-}
-/* The rays: thin spokes in the primary colour, only outside the button (its own box is cut out
-   of the mask), fading toward their tips. */
-.cta-win::before {
-  inset: -18px;
-  padding: 18px;
-  background: repeating-conic-gradient(from 8deg, var(--primary) 0 2.5deg, transparent 2.5deg 20deg);
-  mask:
-    radial-gradient(closest-side, #000 55%, transparent 100%),
-    linear-gradient(#000 0 0) content-box;
-  mask-composite: subtract;
-}
-/* The ring: the button's own outline, growing and fading. */
-.cta-win::after {
-  inset: -1px;
-  border-radius: inherit;
-  border: 1.5px solid var(--primary);
-}
-@media (prefers-reduced-motion: no-preference) {
-  .cta-win[data-won]::before {
-    animation: cta-rays 760ms cubic-bezier(0.22, 1, 0.36, 1);
-  }
-  .cta-win[data-won]::after {
-    animation: cta-ring 600ms cubic-bezier(0.22, 1, 0.36, 1);
-  }
-  .cta-win[data-won] .cta-arrow svg {
-    animation: cta-arrow 520ms cubic-bezier(0.16, 1, 0.3, 1);
-  }
-}
-@keyframes cta-rays {
-  0% { opacity: 0; scale: 0.8; rotate: 0deg; }
-  18% { opacity: 1; }
-  55% { opacity: 0.85; }
-  100% { opacity: 0; scale: 1.18; rotate: 10deg; }
-}
-@keyframes cta-ring {
-  0% { opacity: 0.9; scale: 1; }
-  100% { opacity: 0; scale: 1.08 1.35; }
-}
-@keyframes cta-arrow {
-  0% { translate: 0; opacity: 1; }
-  40% { translate: 12px; opacity: 0; }
-  41% { translate: -12px; opacity: 0; }
-  100% { translate: 0; opacity: 1; }
+  scale: 0.98;
 }
 
 /* ------------------------------------------------------------------ folds (components/page.tsx, Fold)
