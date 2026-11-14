@@ -156,7 +156,7 @@ Things arrive the way the aurora does: rising a little as they brighten. Never b
 - **The home page's night.** The scene stays behind the whole page. As the page scrolls, the camera looks up: the land sinks out of frame and the sky fills it, until only the aurora is left behind the closing band.
   - **The finale.** The page ends on a tall last screen. Its top is clear sky; toward the bottom it darkens a little into the footer's shade with no seam, and the closing words sit there, on no box. The aurora shows through the footer too.
   - **The reward at the end.** As the finale comes up the screen, the arcs sweep in overhead and brighten, rays gather, and the camera tilts a little further up. It is green only and calm, builds over a few seconds, and fades slowly as you scroll back.
-  - **The pointer.** The aurora answers it over the hero and the finale only. The sections in between, and the footer, are for reading.
+  - **The pointer.** The aurora answers it over the hero only. Everything below is for reading.
 - **Loading.** Show `LoadingPanel` (the loader in the section's own space), never a grey pulsing block or bare "Loading…".
 - **Less motion.** Everything holds still for people who ask for less motion, and nothing is hidden when script is off.
 

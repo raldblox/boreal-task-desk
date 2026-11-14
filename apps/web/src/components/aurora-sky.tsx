@@ -816,13 +816,12 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
     io.observe(canvas);
 
     // The aurora answers the pointer: where it moves, the arcs brighten and lean toward the
-    // viewer, then settle over a couple of seconds. Mouse and pen only, and only over the hero and
-    // the page's last screen (the finale): over the sections in between, where people read, and
-    // over the footer, the sky keeps to itself.
+    // viewer, then settle over a couple of seconds. Mouse and pen only, and only over the hero:
+    // everywhere below it, where people read, the sky keeps to itself.
     let lastMove = 0;
     const onMove = (e: PointerEvent) => {
       if (e.pointerType === "touch") return;
-      if (!(e.target instanceof Element) || !e.target.closest("[data-hero], [data-finale]")) return;
+      if (!(e.target instanceof Element) || !e.target.closest("[data-hero]")) return;
       const rect = canvas.getBoundingClientRect();
       if (e.clientY > rect.bottom || e.clientY < rect.top) return;
       const x = (e.clientX - rect.left) / Math.max(rect.width, 1);
