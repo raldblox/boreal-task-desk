@@ -25,7 +25,7 @@ const PATHS = [
  */
 export function ClosingBand() {
   return (
-    <div className="grid gap-8 lg:grid-cols-[1fr_1.4fr] lg:items-end lg:gap-12">
+    <div className="grid gap-8 lg:grid-cols-[1fr_1.4fr] lg:items-center lg:gap-12">
       <div className="flex flex-col gap-3">
         <h2 className="text-3xl font-light tracking-[-0.03em] md:text-4xl">Earn, or get it done.</h2>
         <p className="max-w-sm leading-relaxed text-foreground/80">

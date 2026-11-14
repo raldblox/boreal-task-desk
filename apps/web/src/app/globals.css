@@ -162,13 +162,13 @@
   animation: none;
 }
 /* The home page's end (app/page.tsx, the finale): the last screen's top is clear sky; from about
-   its middle it darkens to the night's own ink, and the footer carries on in that same ink, a
-   touch see-through, with no edge between them. */
+   its middle it darkens a little toward the night's own ink, enough to read on, and the footer
+   carries on in that same shade, so the aurora shows through both and there is no edge. */
 .finale-shade {
-  background: linear-gradient(to bottom, transparent 0%, transparent 38%, rgb(2 10 12 / 0.55) 62%, rgb(2 10 12 / 0.86) 88%, rgb(2 10 12 / 0.9) 100%);
+  background: linear-gradient(to bottom, transparent 0%, transparent 35%, rgb(2 10 12 / 0.42) 65%, rgb(2 10 12 / 0.58) 100%);
 }
 html[data-night-live] .site-footer {
-  background-color: rgb(2 10 12 / 0.9);
+  background-color: rgb(2 10 12 / 0.58);
   border-color: transparent;
 }
 .night-hero .look {

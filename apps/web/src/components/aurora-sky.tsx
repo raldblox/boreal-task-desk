@@ -817,12 +817,12 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
 
     // The aurora answers the pointer: where it moves, the arcs brighten and lean toward the
     // viewer, then settle over a couple of seconds. Mouse and pen only, and only over the hero and
-    // the page's last screen (the finale and the footer): over the sections in between, where
-    // people read, the sky keeps to itself.
+    // the page's last screen (the finale): over the sections in between, where people read, and
+    // over the footer, the sky keeps to itself.
     let lastMove = 0;
     const onMove = (e: PointerEvent) => {
       if (e.pointerType === "touch") return;
-      if (!(e.target instanceof Element) || !e.target.closest("[data-hero], [data-finale], .site-footer")) return;
+      if (!(e.target instanceof Element) || !e.target.closest("[data-hero], [data-finale]")) return;
       const rect = canvas.getBoundingClientRect();
       if (e.clientY > rect.bottom || e.clientY < rect.top) return;
       const x = (e.clientX - rect.left) / Math.max(rect.width, 1);
@@ -875,9 +875,10 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
       const p = scrolled();
       // The reward builds over about 3.5 s once the page's end is reached, and fades over 7 s after.
       const tick = lookAt < 0 ? 0 : Math.min((now - lookAt) / 1000, 0.1);
-      // It starts once the finale fills the screen.
+      // It starts as soon as the finale is half way up the screen, so the sky above its words is
+      // already lighting as it comes into view, and it builds over about 3 s.
       const end = finale();
-      reward = Math.min(1, Math.max(0, reward + (end > 0.97 ? tick / 3.5 : -tick / 7)));
+      reward = Math.min(1, Math.max(0, reward + (end > 0.5 ? tick / 3 : -tick / 7)));
       const rw = reward * reward * (3 - 2 * reward);
       const base = lookTarget(p, cssW, screenH);
       const cam0 = camera(cssW, screenH);

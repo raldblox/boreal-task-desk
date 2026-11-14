@@ -448,13 +448,13 @@ export default function Home() {
         </ul>
       </Section>
 
-      {/* The finale: the page's last full screen. Its top is only the sky (the night has looked all
+      {/* The finale: the page's last screen. Its top is only the sky (the night has looked all
           the way up, and at the very end the aurora breaks out overhead); toward the bottom it
-          darkens into the colour of the footer, which carries it on without a seam, and the
+          darkens a little into the footer's shade, which carries it on without a seam, and the
           closing words sit there. The pointer stirs the aurora here again. */}
-      <section data-finale className="relative flex min-h-svh flex-col justify-end">
+      <section data-finale className="relative flex min-h-[80svh] flex-col justify-end">
         <div aria-hidden className="finale-shade pointer-events-none absolute inset-0" />
-        <Container className="relative pb-14 md:pb-20">
+        <Container className="relative pb-12 md:pb-16">
           <ClosingBand />
         </Container>
       </section>
