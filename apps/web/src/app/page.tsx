@@ -1,6 +1,6 @@
 import { FEE_POLICY, POLICY, quoteFees } from "@boreal/core";
 import type { Metadata } from "next";
-import { ArrowRight, ArrowUpRight } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Banknote, Lock, MapPin, PenLine, Scale, ShieldCheck } from "lucide-react";
 
 import { PointMark } from "@/components/brand";
 import { NightBackdrop } from "@/components/night-backdrop";
@@ -118,37 +118,44 @@ const USE_CASES = [
 
 /* ---------------------------------------------------------------- how it settles */
 
-// Each step names who acts, so the page shows the relationships, not just the order.
+// Each step names who acts, so the page shows the relationships, not just the order. The bodies
+// are kept to about the same length, so the six read as one even row.
 const STEPS = [
   {
     who: "You, or your agent",
     title: "Quote",
-    body: "Say what to do, the checks, the pay and a deadline.",
+    icon: PenLine,
+    body: "Say what to do, the checks it must pass, the pay and a deadline.",
   },
   {
     who: "You, or your agent",
     title: "Fund",
+    icon: Lock,
     body: "The money is held: pay plus one fee. Nothing is checked before.",
   },
   {
     who: "boreal.work",
     title: "Screen",
-    body: "Checked against the rulebook. A refused task cites the rule, and its money is released.",
+    icon: ShieldCheck,
+    body: "Checked against the rulebook. A refused task is refunded in full.",
   },
   {
     who: "A verified person",
     title: "Do",
-    body: `A verified worker claims it and has ${HOURS(POLICY.claimDurationMs)} hours to send the result.`,
+    icon: MapPin,
+    body: `A verified person claims it and has ${HOURS(POLICY.claimDurationMs)} hours to send the result.`,
   },
   {
     who: "The reviewer",
     title: "Verdict",
+    icon: Scale,
     body: "Judged against the task's checks only. Every fail cites a rule.",
   },
   {
     who: "Paid out",
     title: "Settle",
-    body: `Paid at once on the requester's pass, or after ${HOURS(POLICY.objectionWindowMs)} hours to dispute, sometimes a day more.`,
+    icon: Banknote,
+    body: `Paid at once on the requester's pass, or after ${HOURS(POLICY.objectionWindowMs)} hours to dispute.`,
   },
 ];
 
@@ -164,9 +171,12 @@ export default function Home() {
     <main className="flex-1">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
 
+      {/* The night behind the whole page: fixed to the screen, under every section and the
+          footer, looking further up as the page scrolls (components/night-backdrop.tsx). */}
+      <NightBackdrop live className="night-hero" />
+
       {/* Hero */}
       <section data-hero="full" className="dark relative isolate flex min-h-[calc(100svh-var(--header-h))] items-center text-foreground">
-        <NightBackdrop live className="night-hero" />
         <Container className="grid w-full items-center gap-14 py-16 md:py-20 lg:grid-cols-[1.2fr_1fr]">
           <div className="flex flex-col gap-7">
             {/* The words arrive a beat apart, while the aurora comes up behind them. */}
@@ -245,26 +255,37 @@ export default function Home() {
         title="From posted to paid, in six steps."
         action={<MoreLink href="/rules">Read the rulebook</MoreLink>}
       >
-        {/* The steps present themselves in order when they come on screen, then a light runs
-            along the line from Quote to Settle (globals.css, "the six steps"). */}
-        <InView as="ol" className="steps grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-6">
-          {STEPS.map(({ who, title, body }, i) => (
-            <li key={title} className="relative flex flex-col gap-2 pt-5" style={{ "--i": i } as React.CSSProperties}>
-              <span aria-hidden className="step-line absolute inset-x-0 top-0 h-px bg-primary/30" />
-              {/* Each step's marker: a needle's north point, standing on the line. */}
-              <span aria-hidden className="step-mark absolute -top-[7px] left-0 flex h-3.5 w-2 items-center justify-center rounded-[1px] bg-background">
-                <PointMark className="h-3.5 w-1.75 text-primary" />
-              </span>
-              <div className="step-body flex flex-col gap-2">
-                <span className="text-xs font-medium text-primary">{who}</span>
-                <h3 className="flex items-baseline gap-2 text-lg font-normal tracking-tight">
-                  <span className="text-sm tabular-nums text-muted-foreground">{i + 1}</span>
-                  {title}
-                </h3>
-                <p className="text-sm leading-relaxed text-muted-foreground">{body}</p>
-              </div>
-            </li>
-          ))}
+        {/* One journey, from posted to paid: a single track through six stops. When it comes on
+            screen a token (a needle on its side) travels it, lighting each stop as it arrives, then
+            goes round again (globals.css, "the journey"). Across on wide screens, down on phones. */}
+        <InView className="journey relative rounded-3xl border bg-background/45 px-5 py-8 sm:px-8 lg:px-4 lg:py-10" threshold={0.35}>
+          <div aria-hidden className="journey-rail">
+            <span className="journey-track" />
+            <span className="journey-fill" />
+            <span className="journey-runner">
+              <svg viewBox="0 0 17.5 3" className="journey-token" aria-hidden>
+                <path d="M0 1.5L10.5 0L17.5 1.5L10.5 3Z" fill="currentColor" />
+              </svg>
+            </span>
+          </div>
+          <ol className="relative grid auto-rows-fr gap-0 lg:grid-cols-6">
+            {STEPS.map(({ who, title, icon: Icon, body }, i) => (
+              <li key={title} className="journey-step" style={{ "--i": i } as React.CSSProperties}>
+                <span aria-hidden className="journey-node">
+                  <span className="journey-lit" />
+                  <Icon className="journey-icon size-5" />
+                </span>
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-xs font-medium text-primary">{who}</span>
+                  <h3 className="journey-title flex items-baseline gap-2 text-lg font-normal tracking-tight lg:justify-center">
+                    <span className="text-sm tabular-nums text-muted-foreground">{i + 1}</span>
+                    {title}
+                  </h3>
+                  <p className="text-sm leading-relaxed text-muted-foreground">{body}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
         </InView>
       </Section>
 

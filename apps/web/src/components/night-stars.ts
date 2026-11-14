@@ -143,7 +143,8 @@ export function galaxy(t: number) {
  * 10° up with the horizon at `horizonY`, dimmed by extinction low down (0.2 mag per air mass).
  * Grouped by brightness (and the few warm giants apart) into one path each.
  */
-export function starField(width: number, height: number, horizonY: number): { opacity: number; warm: boolean; d: string }[] {
+/** `top`: how far above the frame (in its own units, negative) to keep stars, for a scene that looks up. */
+export function starField(width: number, height: number, horizonY: number, top = -4): { opacity: number; warm: boolean; d: string }[] {
   const pitch = 10 * RAD;
   const f = (horizonY - height / 2) / Math.tan(pitch);
   const cp = Math.cos(pitch);
@@ -157,7 +158,7 @@ export function starField(width: number, height: number, horizonY: number): { op
     if (y < 0.02 || depth <= 0.05) continue;
     const px = width / 2 + (f * x) / depth;
     const py = height / 2 - (f * (y * cp - z * sp)) / depth;
-    if (px < -20 || px > width + 20 || py < -4 || py > horizonY) continue;
+    if (px < -20 || px > width + 20 || py < top || py > horizonY) continue;
     const el = Math.asin(y);
     const X = 1 / (Math.sin(el) + 0.50572 * Math.pow(el / RAD + 6.07995, -1.6364));
     const flux = s.flux * Math.pow(10, -0.08 * X);

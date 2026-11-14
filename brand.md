@@ -152,7 +152,8 @@ Things arrive the way the aurora does: rising a little as they brighten. Never b
   - A primary button sinks a touch while pressed. Nothing bursts, rings or flies off on a click.
   - The loader (`MarkLoader`, `LoadingPanel`, `ButtonLoader` in `components/loader.tsx`) runs light along the seven needles, west to east.
   - The needles themselves never move, turn or part. Only the light changes.
-- **Presenting a sequence.** The how-it-works steps draw their line, light their markers and raise their words in order when they come on screen. After that, a light runs from Quote to Settle every few seconds.
+- **Presenting a sequence.** How it works is one journey on one track. When it comes on screen, a token (a needle on its side) travels from Quote to Settle, lighting each stop as it arrives, then goes round again. It runs across on wide screens and down on phones.
+- **The home page's night.** The scene stays behind the whole page. As the page scrolls, the camera looks up: the land sinks out of frame and the sky fills it, until only the aurora is left behind the closing band.
 - **Loading.** Show `LoadingPanel` (the loader in the section's own space), never a grey pulsing block or bare "Loading…".
 - **Less motion.** Everything holds still for people who ask for less motion, and nothing is hidden when script is off.
 

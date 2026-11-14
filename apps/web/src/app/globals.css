@@ -148,10 +148,22 @@
   height: 100svh;
   mask-image: linear-gradient(to bottom, black 45%, transparent 95%);
 }
-/* The night (components/night-backdrop.tsx): its CSS gradient is the sky, behind the stars and the land. The home hero's live one reaches up behind the header. */
+/* The night (components/night-backdrop.tsx): its CSS gradient is the sky, behind the stars and the land.
+   The home page's live one is fixed to the screen, behind the header and every section: as the
+   page scrolls the camera looks up (components/aurora-sky.tsx sets --look, the horizon's drop),
+   and each depth of the land drops with it instead of the usual first-screen parallax. 100lvh, so
+   a phone's toolbar coming and going never resizes it. */
 .night-hero {
-  top: calc(-1 * var(--header-h, 4rem));
-  bottom: 0;
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 100lvh;
+}
+.night-hero .bb-par {
+  animation: none;
+}
+.night-hero .look {
+  translate: 0 calc(var(--look, 0px) * var(--k, 1));
+  will-change: translate;
 }
 /* How much aurora light the snow catches (set by components/aurora-sky.tsx). Registered so the
    browser glides between the values the sky sets instead of stepping. */
@@ -375,62 +387,150 @@ body > main {
   .mark-loader path { animation: none; opacity: 1; }
 }
 
-/* ------------------------------------------------------------------ the six steps (home, "How it works")
-   When the steps come on screen they present themselves in order, as a task moves: each segment of
-   the line draws out, its marker (a needle's north point) lights, then its words rise. After that,
-   every few seconds a light runs along the line from Quote to Settle, the way money moves from
-   posted to paid, and each marker brightens as it passes. Server-rendered and visible without
-   script (components/in-view.tsx adds [data-inview]). */
-.steps > li {
-  --d: calc(var(--i, 0) * 230ms);
+/* ------------------------------------------------------------------ the journey (home, "How it works")
+   Six stops on one track, from posted to paid. Everything follows one number, --p (0 to 5): where
+   the token is. The token (a needle on its side) waits at a stop, then slides to the next; the
+   track fills behind it and each stop lights as it arrives (--on). When the journey comes on screen
+   it sets off from Quote, and once all six are lit it goes round again. Across on wide screens,
+   down on phones. Without @property support, or for less motion, --p rests at 5: all lit, still. */
+@property --p {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 5;
 }
-.step-line {
-  overflow: hidden;
-  transform-origin: left;
+.journey-rail {
+  position: absolute;
+  pointer-events: none;
+  /* Phones: down the left, from the first stop's centre to the last's (rows are equal). */
+  left: calc(1.25rem + 22px - 1px);
+  top: calc(2rem + 22px);
+  width: 2px;
+  height: calc((100% - 4rem) * 5 / 6);
 }
-.step-line::after {
-  content: "";
+.journey-track,
+.journey-fill,
+.journey-runner {
   position: absolute;
   inset: 0;
-  width: 35%;
-  background: linear-gradient(90deg, transparent, var(--primary), transparent);
-  translate: -100% 0;
-  opacity: 0;
+  border-radius: 9999px;
+}
+.journey-track {
+  background: color-mix(in oklab, var(--primary) 22%, transparent);
+}
+.journey-fill {
+  background: var(--primary);
+  transform-origin: top;
+  scale: 1 calc(var(--p) / 5);
+}
+.journey-runner {
+  translate: 0 calc(var(--p) * 20%);
+}
+.journey-token {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 18px;
+  height: auto;
+  color: var(--primary);
+  translate: -50% -50%;
+  rotate: 90deg;
+}
+.journey-step {
+  --on: clamp(0, (var(--p) - var(--i) + 0.3) * 3, 1);
+  position: relative;
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 1rem;
+  align-items: start;
+  padding-bottom: 1.75rem;
+}
+.journey-step:last-child {
+  padding-bottom: 0;
+}
+.journey-node {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in oklab, var(--primary) 40%, transparent);
+  background: var(--background);
+  color: var(--primary);
+}
+.journey-lit {
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: var(--primary);
+  opacity: var(--on);
+  transition: opacity 500ms ease-out;
+}
+.journey-icon {
+  position: relative;
+  color: color-mix(in oklab, var(--primary-foreground) calc(var(--on) * 100%), var(--primary));
+}
+.journey-title {
+  color: color-mix(in oklab, var(--foreground) calc(55% + var(--on) * 45%), var(--muted-foreground));
+}
+@media (min-width: 1024px) {
+  /* Wide: across, through the centres of six equal columns. */
+  .journey-rail {
+    left: calc(1rem + (100% - 2rem) / 12);
+    top: calc(2.5rem + 22px - 1px);
+    width: calc((100% - 2rem) * 5 / 6);
+    height: 2px;
+  }
+  .journey-fill {
+    transform-origin: left;
+    scale: calc(var(--p) / 5) 1;
+  }
+  .journey-runner {
+    translate: calc(var(--p) * 20%) 0;
+  }
+  .journey-token {
+    left: 0;
+    top: 50%;
+    rotate: 0deg;
+  }
+  .journey-step {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+    padding: 0 0.75rem;
+  }
 }
 @media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
-  .steps .step-line {
-    scale: 0 1;
-    transition: scale 650ms var(--ease-north) var(--d);
+  .journey:not([data-inview]) {
+    --p: 0;
   }
-  .steps .step-mark {
-    opacity: 0;
-    scale: 0.2;
-    transition: opacity 350ms ease-out calc(var(--d) + 120ms), scale 600ms var(--ease-north) calc(var(--d) + 120ms);
+  .journey[data-inview] {
+    animation: journey 10s infinite;
   }
-  .steps .step-body {
-    opacity: 0;
-    translate: 0 8px;
-    transition: opacity 500ms ease-out calc(var(--d) + 220ms), translate 700ms var(--ease-north) calc(var(--d) + 220ms);
-  }
-  .steps[data-inview] .step-line { scale: 1 1; }
-  .steps[data-inview] .step-mark { opacity: 1; scale: 1; }
-  .steps[data-inview] .step-body { opacity: 1; translate: 0 0; }
-  .steps[data-inview] .step-line::after {
-    animation: step-glint 7s linear infinite;
-    animation-delay: calc(2.4s + var(--i, 0) * 420ms);
-  }
-  .steps[data-inview] .step-mark svg {
-    animation: step-ping 7s var(--ease-north) infinite;
-    animation-delay: calc(2.4s + var(--i, 0) * 420ms);
+  .journey[data-inview] .journey-runner,
+  .journey[data-inview] .journey-fill {
+    animation: journey-fade 10s infinite;
   }
 }
-@keyframes step-glint {
-  0% { translate: -100% 0; opacity: 1; }
-  8% { translate: 290% 0; opacity: 1; }
-  8.01%, 100% { translate: 290% 0; opacity: 0; }
+/* Waits of about a second at each stop, slides of 0.7 s between, a long rest with all six lit. */
+@keyframes journey {
+  0% { --p: 0; }
+  9% { --p: 0; animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1); }
+  16% { --p: 1; }
+  25% { --p: 1; animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1); }
+  32% { --p: 2; }
+  41% { --p: 2; animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1); }
+  48% { --p: 3; }
+  57% { --p: 3; animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1); }
+  64% { --p: 4; }
+  73% { --p: 4; animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1); }
+  80% { --p: 5; }
+  100% { --p: 5; }
 }
-@keyframes step-ping {
-  0% { scale: 1; }
-  3% { scale: 1.6; }
-  12%, 100% { scale: 1; }
+/* The token and the filled track fade before the journey starts over, so the reset doesn't jump. */
+@keyframes journey-fade {
+  0%, 94% { opacity: 1; }
+  98% { opacity: 0; }
+  100% { opacity: 0; }
 }

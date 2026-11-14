@@ -33,40 +33,48 @@ const mirror = (about: number) => `matrix(1 0 0 -1 0 ${2 * about})`;
 /** Where the horizon falls in the scene: the camera's level, just below the mountains' feet. */
 const Y_HORIZON = 397;
 const STARS = starField(W, H, Y_HORIZON);
+// The home page looks up as it scrolls (components/aurora-sky.tsx): it needs the stars above the
+// first frame too.
+const STARS_ABOVE = starField(W, H, Y_HORIZON, -560);
 
-/** One depth of the scene: slides down by `depth` of the scroll, so it seems that much farther. */
-function Layer({ depth, children }: { depth: number; children: ReactNode }) {
+/**
+ * One depth of the scene. On most pages it slides down by `depth` of the scroll over the first
+ * screen, so it seems that much farther (.bb-par). On the home page, where the camera looks up as
+ * the page scrolls, it drops with the horizon instead (.look: --look × `follow`), nearer layers a
+ * little faster, as if the camera also rose.
+ */
+function Layer({ depth, follow, children }: { depth: number; follow: number; children: ReactNode }) {
   return (
-    <div className={depth ? "bb-par absolute inset-0" : "absolute inset-0"} style={depth ? ({ "--d": depth } as CSSProperties) : undefined}>
+    <div className={`look absolute inset-0 ${depth ? "bb-par" : ""}`} style={{ "--d": depth, "--k": follow } as CSSProperties}>
       {children}
     </div>
   );
 }
 
-function Art({ children }: { children: ReactNode }) {
+function Art({ children, overflow = false }: { children: ReactNode; overflow?: boolean }) {
   return (
     <div className="absolute -inset-x-10 inset-y-0">
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" className="size-full">
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" className="size-full" overflow={overflow ? "visible" : undefined}>
         {children}
       </svg>
     </div>
   );
 }
 
-/** `sky` is the aurora's canvas on the home hero: it sits behind the far land and moves with it. */
+/** `sky` is the aurora's canvas on the home page: behind the far land; it does its own looking up. */
 export function NightLand({ id, sky }: { id: string; sky?: ReactNode }) {
   return (
     <div className="absolute inset-x-0 top-0 h-[min(100%,100svh)]">
-      <Layer depth={0.38}>
-        <Art>
-          {STARS.map((group) => (
+      <Layer depth={0.38} follow={0.9}>
+        <Art overflow={!!sky}>
+          {(sky ? STARS_ABOVE : STARS).map((group) => (
             <path key={`${group.opacity}${group.warm}`} d={group.d} fill={group.warm ? "#ffdcb8" : "#e6eefb"} opacity={group.opacity} />
           ))}
         </Art>
       </Layer>
 
-      <Layer depth={0.18}>
-        {sky}
+      {sky}
+      <Layer depth={0.18} follow={1}>
         <Art>
           <defs>
             <linearGradient id={`${id}-haze`} x1="0" y1="360" x2="0" y2={Y_WATER} gradientUnits="userSpaceOnUse">
@@ -112,7 +120,7 @@ export function NightLand({ id, sky }: { id: string; sky?: ReactNode }) {
       </Layer>
 
       {/* The near shore: a snowy bank and spruce stands. */}
-      <Layer depth={0.1}>
+      <Layer depth={0.1} follow={1.12}>
         <Art>
           <path d={NEAR_SHORE} fill="#162a2e" />
           <path d={NEAR_SHORE} fill={SNOW_LIGHT} style={lit(0.16)} />
@@ -123,7 +131,7 @@ export function NightLand({ id, sky }: { id: string; sky?: ReactNode }) {
       </Layer>
 
       {/* The foreground: tall spruces framing the view. */}
-      <Layer depth={0}>
+      <Layer depth={0} follow={1.3}>
         <Art>
           <path d={FOREGROUND} fill="#0f2023" />
           <path d={FOREGROUND} fill={SNOW_LIGHT} style={lit(0.1)} />

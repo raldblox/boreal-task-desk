@@ -518,6 +518,22 @@ function target(gl: WebGLRenderingContext) {
   return t;
 }
 
+const smooth = (a: number, b: number, x: number) => {
+  const k = Math.min(1, Math.max(0, (x - a) / (b - a)));
+  return k * k * (3 - 2 * k);
+};
+
+/**
+ * How far up to look (radians, over the hero's pitch) at a scroll position: nothing over the hero,
+ * then gradually more, until (by the closing band, before the footer comes up) the horizon sits a
+ * fifth of the screen below its bottom edge, so even the mountain tops have left the frame.
+ */
+function lookTarget(p: number, cssW: number, screenH: number) {
+  const c = camera(cssW, screenH);
+  const end = Math.atan((0.72 * screenH) / c.f) - c.pitch;
+  return end * smooth(0.05, 0.8, p);
+}
+
 /**
  * Run the aurora on a canvas that is on screen. Returns how to stop it. The shaders compile off
  * the main thread where the browser allows; until its first frame the canvas is clear, so the
@@ -530,6 +546,21 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
   const root = canvas.closest<HTMLElement>(".night-root");
   let dead = false;
   let stop = () => {};
+  // How far down the page the reader is, 0 to 1.
+  const scrolled = () => {
+    const room = document.documentElement.scrollHeight - window.innerHeight;
+    return room > 1 ? Math.min(1, Math.max(0, window.scrollY / room)) : 0;
+  };
+  // The words over the night get a shade once the hero is behind them, lifted a little at the
+  // page's end so the aurora shines around the closing band; the hero's own scrim fades as it goes.
+  let shaded = -1;
+  const shade = (p: number) => {
+    const read = 0.72 * smooth(0.015, 0.09, p) - 0.3 * smooth(0.72, 0.88, p);
+    if (!root || Math.abs(read - shaded) < 0.004) return;
+    shaded = read;
+    root.style.setProperty("--read", read.toFixed(3));
+    root.style.setProperty("--hero-scrim", (1 - smooth(0.015, 0.09, p)).toFixed(3));
+  };
 
   const programs = {
     sky: program(gl, QUAD_VERT, SKY_FRAG, ["p"]),
@@ -609,6 +640,15 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
     // not the wall clock, at most 1/20 s each: a page busy hydrating can't make it leap ahead.
     let rise = calm ? 1 : 0;
     let lastNow = -1;
+    // Looking up (live, on the home page): the night stays behind the whole page, and as it
+    // scrolls the camera tilts up, so the land sinks out of the frame and the sky above comes into
+    // it; by the page's end there is only the aurora. `look` is the extra pitch (radians); the
+    // land follows through --look, the horizon's drop in CSS pixels, so the two never part.
+    let look = 0;
+    const lookShift = (a: number) => {
+      const c = camera(cssW, screenH);
+      return c.f * (Math.tan(c.pitch + a) - Math.tan(c.pitch));
+    };
     const draw = (t: number, now: number) => {
       if (!calm && lastNow >= 0) rise = Math.min(1, rise + Math.min(Math.max(now - lastNow, 0), 0.05) / 4.5);
       lastNow = now;
@@ -618,8 +658,9 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
       const g = galaxy(t);
       const W = canvas.width;
       const H = canvas.height;
-      const water = landUp(Y_WATER, cssW, screenH);
-      const lakeBottom = landUp(Y_LAKE_BOTTOM, cssW, screenH);
+      const drop = lookShift(look);
+      const water = landUp(Y_WATER, cssW, screenH) - drop;
+      const lakeBottom = landUp(Y_LAKE_BOTTOM, cssW, screenH) - drop;
 
       // 1. The aurora, small, above the far waterline only.
       const cam = camera(sky.w, sky.h);
@@ -633,7 +674,7 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
       gl.uniform2f(u.uRes, sky.w, sky.h);
       gl.uniform1f(u.uCy, sky.h / 2);
       gl.uniform1f(u.uF, cam.f);
-      gl.uniform1f(u.uPitch, cam.pitch);
+      gl.uniform1f(u.uPitch, cam.pitch + look);
       gl.uniform1f(u.uTime, t);
       gl.uniform1f(u.uExposure, 0.06 * up);
       gl.uniform1f(u.uRise, up);
@@ -676,7 +717,7 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
       gl.uniform1i(uni.screen.uGlow, 1);
       gl.uniform1i(uni.screen.uHaze, 2);
       gl.uniform2f(uni.screen.uRes, W, H);
-      gl.uniform2f(uni.screen.uWater, water * dpr, lakeBottom * dpr);
+      gl.uniform2f(uni.screen.uWater, Math.max(water, -1) * dpr, Math.max(lakeBottom, -2) * dpr);
       gl.uniform1f(uni.screen.uTime, t);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
       gl.activeTexture(gl.TEXTURE0);
@@ -698,7 +739,8 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
     resize();
     draw(skyTime(), calm ? 0 : performance.now() / 1000);
 
-    // Still (less motion): the sky as it was when the live one last stopped.
+    // Still (less motion): the sky as it was when the live one last stopped. It doesn't look up
+    // as the page scrolls, but the words over it still get their shade.
     if (calm) {
       const ro = new ResizeObserver(() => {
         resize();
@@ -707,9 +749,15 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
       ro.observe(canvas);
       const onPause = () => draw(skyTime(), 0);
       window.addEventListener(SKY_PAUSED, onPause);
+      const onScroll = () => live && shade(scrolled());
+      if (live) {
+        onScroll();
+        window.addEventListener("scroll", onScroll, { passive: true });
+      }
       return () => {
         ro.disconnect();
         window.removeEventListener(SKY_PAUSED, onPause);
+        window.removeEventListener("scroll", onScroll);
       };
     }
 
@@ -775,12 +823,28 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
     let raf = 0;
     let last = 0;
     let frames = 0;
+    let lookAt = -1;
+    let lookShown = "";
     const loop = (now: number) => {
       raf = requestAnimationFrame(loop);
       if (!visible || document.hidden) {
         last = 0;
         return;
       }
+      // The look follows the scroll every frame, eased like a camera on a slow head, so the land
+      // moves as smoothly as the page; the aurora redraws for it at its own 30 frames a second.
+      const p = scrolled();
+      const want = lookTarget(p, cssW, screenH);
+      const step = lookAt < 0 ? 1 : Math.min(1, (now - lookAt) / 1000 / 0.35);
+      lookAt = now;
+      look += (want - look) * step;
+      if (Math.abs(want - look) < 1e-4) look = want;
+      const px = lookShift(look).toFixed(1);
+      if (root && px !== lookShown) {
+        lookShown = px;
+        root.style.setProperty("--look", `${px}px`);
+      }
+      shade(p);
       if (last && now - last < 30) return;
       const dt = last ? Math.min((now - last) / 1000, 0.1) : 0;
       last = now;
