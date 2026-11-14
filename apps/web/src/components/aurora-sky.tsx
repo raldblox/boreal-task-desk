@@ -308,7 +308,9 @@ vec3 scene(vec3 d, float t, float n) {
           float u = -qb2 / (2.0 * qa2);
           float fv = fp - 0.25 * qb2 * qb2 / qa2;
           float graze = fv * sign(fp) < 0.0 ? 1.0 : 1.0 - smoothstep(0.0, 1.5, abs(fv));
-          if (qa2 * sign(fp) > 0.0 && abs(u) <= 1.0 && graze > 0.0) sheet(s - ds + u * ds, d, Z, ph, strength, t, 2.0 * graze);
+          // A turn shallower than a fraction of a km is a line of sight running along the sheet
+          // (looking up the field), not a fold's edge: leave it.
+          if (qa2 * sign(fp) > 0.25 && abs(u) <= 1.0 && graze > 0.0) sheet(s - ds + u * ds, d, Z, ph, strength, t, 2.0 * graze);
         }
         fpp = fp;
         fp = fc;
@@ -667,8 +669,7 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
     // The reward for reading to the end: as the page's last screen comes up, a substorm breaks out
     // overhead, as a real one does: the arcs sweep in and flash bright, break into rays and folds,
     // a surge runs west along them, the hem turns pink under the hardest electrons, the tallest
-    // rays take on oxygen's red a few seconds later, and the arcs spread poleward. The camera tilts
-    // a little further up toward the magnetic zenith, where the rays converge. It lets go slowly
+    // rays take on oxygen's red a few seconds later, and the arcs spread poleward. It lets go slowly
     // on the way back up.
     // `reward` runs 0 to 1; what is drawn uses its eased value.
     let reward = 0;
@@ -688,15 +689,18 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
       // at 3 km/s, and oxygen's red coming in last, over about 8 s, as its slow light does.
       const since = breakAt >= 0 ? Math.max(0, t - breakAt) : 0;
       const flash = 1 - Math.exp(-since / 2.5);
-      const burst = flash * (1 + 0.45 * Math.exp(-since / 9));
+      const burst = flash * (1 + 0.25 * Math.exp(-since / 9));
       const spread = 1 - Math.exp(-since / 30);
       const mix = (a: number, b: number) => a + (b - a) * r;
       const state =
         r > 0
           ? {
               ...base,
-              arcZ: [mix(base.arcZ[0], 115 - 25 * flash + 45 * spread), mix(base.arcZ[1], 210 + 30 * spread), mix(base.arcZ[2], 330 + 60 * spread)] as [number, number, number],
-              arcI: [mix(base.arcI[0], 2.5 * burst), mix(base.arcI[1], 1.6 * burst), mix(base.arcI[2], 1.05 * burst)] as [number, number, number],
+              // The arcs stay a believable distance away (170 to 400 km north): brought nearly
+              // overhead, a sheet is seen almost edge-on along the field and both the eye and the
+              // sampling lose it. Bright, but short of the tone curve's white.
+              arcZ: [mix(base.arcZ[0], 175 - 15 * flash + 35 * spread), mix(base.arcZ[1], 260 + 30 * spread), mix(base.arcZ[2], 370 + 40 * spread)] as [number, number, number],
+              arcI: [mix(base.arcI[0], 1.7 * burst), mix(base.arcI[1], 1.15 * burst), mix(base.arcI[2], 0.8 * burst)] as [number, number, number],
               rays: mix(base.rays, 1),
               folds: mix(base.folds, 1),
               surgeX: mix(base.surgeX, 260 - 3 * since),
@@ -853,7 +857,7 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
     window.addEventListener("pointermove", onMove, { passive: true });
 
     // Quality: every couple of seconds, time one frame through to the GPU's finish (a one-pixel
-    // read waits for it). Over ~13 ms, a level down; under ~5 ms, a level up (a level costs about
+    // read waits for it). Over ~17 ms, a level down; under ~6 ms, a level up (a level costs about
     // 1.4× the one below, so that still leaves room). The median of three samples decides, so a
     // single hiccup (page load, a tab switch) doesn't.
     let pinned = false;
@@ -868,7 +872,7 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
       if (samples.length < 3) return;
       gpuMs = [...samples].sort((a, b) => a - b)[1];
       samples.length = 0;
-      const next = pinned ? level : gpuMs > 13 ? level + 1 : gpuMs < 5 ? level - 1 : level;
+      const next = pinned ? level : gpuMs > 17 ? level + 1 : gpuMs < 6 ? level - 1 : level;
       if (next !== level && next >= 0 && next < LEVELS.length) {
         level = next;
         resize();
@@ -897,10 +901,9 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
       reward = Math.min(1, Math.max(0, reward + (end > 0.5 ? tick / 3 : -tick / 7)));
       if (reward > 0 && breakAt < 0) breakAt = t;
       if (reward === 0) breakAt = -1;
-      const rw = reward * reward * (3 - 2 * reward);
-      const base = lookTarget(p, cssW, screenH);
-      const cam0 = camera(cssW, screenH);
-      const want = base + rw * Math.max(0, Math.min(0.18, (56 * Math.PI) / 180 - cam0.pitch - base));
+      // The breakup is watched from where the page's look ends: no further tilt toward the
+      // magnetic zenith, where lines of sight run along the sheets.
+      const want = lookTarget(p, cssW, screenH);
       const step = lookAt < 0 ? 1 : Math.min(1, (now - lookAt) / 1000 / 0.35);
       lookAt = now;
       look += (want - look) * step;
