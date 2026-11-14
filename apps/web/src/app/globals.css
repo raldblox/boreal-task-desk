@@ -150,8 +150,9 @@
 }
 /* The night (components/night-backdrop.tsx): its CSS gradient is the sky, behind the stars and the land.
    The home page's live one is fixed to the screen, behind the header and every section: as the
-   page scrolls the camera looks up (components/aurora-sky.tsx sets --look, the horizon's drop),
-   and each depth of the land drops with it instead of the usual first-screen parallax. 100lvh, so
+   page scrolls the camera looks up, and each depth of the land drops with the horizon
+   (components/aurora-sky.tsx sets each layer's translate) instead of the usual first-screen
+   parallax. 100lvh, so
    a phone's toolbar coming and going never resizes it. */
 .night-hero {
   position: fixed;
@@ -172,7 +173,6 @@ html[data-night-live] .site-footer {
   border-color: transparent;
 }
 .night-hero .look {
-  translate: 0 calc(var(--look, 0px) * var(--k, 1));
   will-change: translate;
 }
 /* How much aurora light the snow catches (set by components/aurora-sky.tsx). Registered so the

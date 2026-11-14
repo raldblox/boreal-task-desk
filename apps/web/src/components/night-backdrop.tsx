@@ -20,10 +20,10 @@ export function NightBackdrop({ live = false, className = "" }: { live?: boolean
       <NightLand id={live ? "night-live" : "night-still"} sky={live ? <AuroraSky live className="absolute inset-0" /> : undefined} />
       {/* Over the sky and the land, under the words, so text stays readable over the brightest
           aurora and the snow it lights. */}
-      <div className={`absolute inset-0 ${live ? "sky-scrim-hero" : "sky-scrim-page"}`} style={live ? { opacity: "var(--hero-scrim, 1)" } : undefined} />
+      <div className={`absolute inset-0 ${live ? "sky-scrim-hero" : "sky-scrim-page"}`} />
       {/* On the home page the night stays behind every section: past the hero, an even shade keeps
-          the words readable over it (aurora-sky.tsx sets --read from the scroll). */}
-      {live && <div className="absolute inset-0 bg-[#020a0c]" style={{ opacity: "var(--read, 0)" }} />}
+          the words readable over it (aurora-sky.tsx sets its opacity from the scroll). */}
+      {live && <div data-read-shade className="absolute inset-0 bg-[#020a0c] opacity-0" />}
       {/* The land fills the first screen; a taller hero (phones) stands on the ground below it. */}
       <div className="absolute inset-x-0 top-[min(100%,100svh)] bottom-0 bg-[#0f2023]" />
     </div>

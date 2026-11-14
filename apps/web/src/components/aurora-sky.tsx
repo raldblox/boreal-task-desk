@@ -175,13 +175,16 @@ float erfa(float x) {
   return x < 0.0 ? -e : e;
 }
 // ∫ exp(-(f/T)²) ds over a stretch of length L where f runs linearly from f0 to f1: km of slab.
-float slab(float f0, float f1, float L) {
+// T is the profile's width: the sheet's own, or wider (see the march) so it is never sharper than
+// a pixel; the light is scaled back so a wider profile holds the same total.
+float slab(float f0, float f1, float L, float T) {
   float df = f1 - f0;
-  if (abs(df) < 0.05 * SLAB_T) {
-    float fm = 0.5 * (f0 + f1) / SLAB_T;
-    return L * exp(-fm * fm);
+  float k = SLAB_T / T;
+  if (abs(df) < 0.05 * T) {
+    float fm = 0.5 * (f0 + f1) / T;
+    return k * L * exp(-fm * fm);
   }
-  return L * SLAB_T * 0.8862269 * abs(erfa(f1 / SLAB_T) - erfa(f0 / SLAB_T)) / abs(df);
+  return k * L * T * 0.8862269 * abs(erfa(f1 / T) - erfa(f0 / T)) / abs(df);
 }
 // How far the field line through the point s km along d lies north of the arc's foot.
 float footOff(float s, vec3 d, float Z, float ph, float t) {
@@ -324,6 +327,12 @@ vec3 scene(vec3 d, float t, float n) {
         if (!last && i > 0 && (cross || min(abs(fp), abs(fc)) < 24.0)) {
           float q = 0.25 * ds;
           float s0 = s - ds;
+          // Anti-aliasing by prefiltering: one pixel of the aurora's picture spans s/uF km at this
+          // distance, and across a fold's edge the sheet's offset changes up to about twice that
+          // from one pixel to the next. Widening the profile to match keeps every edge at least a
+          // pixel soft, so a sheet thinner than a pixel can't come out as a staircase.
+          float px = 1.8 * s / uF;
+          float wide = sqrt(SLAB_T * SLAB_T + px * px);
           float fa = fp;
           if (abs(fa) < runNear) {
             runNear = abs(fa);
@@ -332,7 +341,7 @@ vec3 scene(vec3 d, float t, float n) {
           for (int k = 1; k <= 4; k++) {
             float sk = s0 + q * float(k);
             float fk = k == 4 ? fc : footOff(sk, d, Z, ph, t);
-            runCol += slab(fa, fk, q);
+            runCol += slab(fa, fk, q, wide);
             if (fa * fk < 0.0) {
               if (runNear > 0.0) runAt = sk - q + q * fa / (fa - fk);
               runNear = 0.0;
@@ -584,39 +593,72 @@ function lookTarget(p: number, cssW: number, screenH: number) {
 }
 
 /**
+ * How much this device can take. Low: a software renderer, an old mobile or integrated GPU, 2 GB
+ * of memory or less, two cores, or data saver on: the still sky. Mid: phones and tablets, and
+ * machines with 4 GB or four cores: the live sky, lighter. High: everything else.
+ */
+function deviceTier(gl: WebGLRenderingContext): "low" | "mid" | "high" {
+  const nav = navigator as Navigator & { deviceMemory?: number; connection?: { saveData?: boolean } };
+  if (nav.connection?.saveData) return "low";
+  const memory = nav.deviceMemory ?? 8;
+  const cores = nav.hardwareConcurrency ?? 8;
+  const info = gl.getExtension("WEBGL_debug_renderer_info");
+  const gpu = info ? String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL)) : "";
+  if (/SwiftShader|llvmpipe|Software|Mali-[4T]|Mali-G(31|51|52)|Adreno \(TM\) [2-5]\d\d|PowerVR|Intel\(R\) HD Graphics [2-4]\d{3}/i.test(gpu)) return "low";
+  if (memory <= 2 || cores <= 2) return "low";
+  if (window.matchMedia("(pointer: coarse)").matches || memory <= 4 || cores <= 4) return "mid";
+  return "high";
+}
+
+/**
  * Run the aurora on a canvas that is on screen. Returns how to stop it. The shaders compile off
  * the main thread where the browser allows; until its first frame the canvas is clear, so the
  * page never waits on it.
  */
 function runSky(canvas: HTMLCanvasElement, live: boolean) {
-  const calm = !live || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const gl = canvas.getContext("webgl", { antialias: false, alpha: true, premultipliedAlpha: true, depth: false, stencil: false, powerPreference: "low-power" });
   if (!gl) return () => {};
+  // Low-end devices, and people who ask for less motion, get the still sky: one frame, no loop.
+  const tier = deviceTier(gl);
+  const calm = !live || tier === "low" || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const root = canvas.closest<HTMLElement>(".night-root");
   let dead = false;
   let stop = () => {};
-  // How far down the page the reader is, 0 to 1.
-  const scrolled = () => {
-    const room = document.documentElement.scrollHeight - window.innerHeight;
-    return room > 1 ? Math.min(1, Math.max(0, window.scrollY / room)) : 0;
-  };
-  // The words over the night get a shade once the hero is behind them, lifted a little at the
-  // page's end so the aurora shines around the closing band; the hero's own scrim fades as it goes.
-  // How much of the page's last screen (the finale, app/page.tsx) is in view, 0 to 1.
-  const finale = () => {
+
+  // The page's shape, read once and again only when it changes size: reading layout every frame
+  // while also writing styles makes the browser lay the page out again mid-scroll.
+  let docRoom = 1;
+  let finaleTop = Infinity;
+  let viewH = 1;
+  const measurePage = () => {
+    viewH = window.innerHeight || 1;
+    docRoom = Math.max(1, document.documentElement.scrollHeight - viewH);
     const el = document.querySelector("[data-finale]");
-    if (!el) return 0;
-    return Math.min(1, Math.max(0, 1 - el.getBoundingClientRect().top / window.innerHeight));
+    finaleTop = el ? el.getBoundingClientRect().top + window.scrollY : Infinity;
   };
+  measurePage();
+  const pageSize = new ResizeObserver(measurePage);
+  pageSize.observe(document.body);
+  // How far down the page the reader is, 0 to 1.
+  const scrolled = () => Math.min(1, Math.max(0, window.scrollY / docRoom));
+  // How much of the page's last screen (the finale, app/page.tsx) is in view, 0 to 1.
+  const finale = () => Math.min(1, Math.max(0, 1 - (finaleTop - window.scrollY) / viewH));
+
+  // What the scroll moves, written straight onto those elements (not as a custom property on the
+  // night root, which would restyle its whole SVG subtree every frame): the land's depths, the
+  // hero's scrim and the reading shade.
+  const layers = root ? [...root.querySelectorAll<HTMLElement>(".look")].map((el) => ({ el, k: Number(el.style.getPropertyValue("--k")) || 1 })) : [];
+  const heroScrim = root?.querySelector<HTMLElement>(".sky-scrim-hero") ?? null;
+  const readShade = root?.querySelector<HTMLElement>("[data-read-shade]") ?? null;
   let shaded = -1;
   const shade = (p: number, end: number) => {
     // Past the hero the words get an even shade; it clears as the finale comes up, whose own
     // gradient (globals.css, .finale-shade) shades only where its words are.
     const read = 0.72 * smooth(0.015, 0.09, p) * (1 - 0.94 * smooth(0.2, 0.95, end));
-    if (!root || Math.abs(read - shaded) < 0.004) return;
+    if (Math.abs(read - shaded) < 0.004) return;
     shaded = read;
-    root.style.setProperty("--read", read.toFixed(3));
-    root.style.setProperty("--hero-scrim", (1 - smooth(0.015, 0.09, p)).toFixed(3));
+    if (readShade) readShade.style.opacity = read.toFixed(3);
+    if (heroScrim) heroScrim.style.opacity = (1 - smooth(0.015, 0.09, p)).toFixed(3);
   };
 
   const programs = {
@@ -645,9 +687,9 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
     const haze = target(gl);
     gl.clearColor(0, 0, 0, 0);
 
-    // Phones and tablets start a step or two down; the live loop adjusts from there.
-    const coarse = window.matchMedia("(pointer: coarse)").matches;
-    let level = calm ? 0 : coarse ? 2 : 0;
+    // Mid-range devices start a few steps down and draw fewer frames; the live loop adjusts.
+    let level = calm ? 0 : tier === "mid" ? 3 : 0;
+    const frameGap = tier === "mid" ? 40 : 30;
     let cssW = 0;
     let screenH = 0;
     let scale = 1;
@@ -700,7 +742,7 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
     // Looking up (live, on the home page): the night stays behind the whole page, and as it
     // scrolls the camera tilts up, so the land sinks out of the frame and the sky above comes into
     // it; by the page's end there is only the aurora. `look` is the extra pitch (radians); the
-    // land follows through --look, the horizon's drop in CSS pixels, so the two never part.
+    // land drops by the horizon's drop in CSS pixels (each layer's translate), so the two never part.
     let look = 0;
     // The reward for reading to the end: as the page's last screen comes up, a substorm breaks out
     // overhead, as a real one does: the arcs sweep in and flash bright, break into rays and folds,
@@ -849,6 +891,7 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
       }
       return () => {
         ro.disconnect();
+        pageSize.disconnect();
         window.removeEventListener(SKY_PAUSED, onPause);
         window.removeEventListener("scroll", onScroll);
       };
@@ -892,10 +935,9 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
     };
     window.addEventListener("pointermove", onMove, { passive: true });
 
-    // Quality: every couple of seconds, time one frame through to the GPU's finish (a one-pixel
-    // read waits for it). Over ~17 ms, a level down; under ~6 ms, a level up (a level costs about
-    // 1.4× the one below, so that still leaves room). The median of three samples decides, so a
-    // single hiccup (page load, a tab switch) doesn't.
+    // Quality at the start: three frames timed through to the GPU's finish (a one-pixel read waits
+    // for it). Over ~17 ms, a level down; under ~6 ms, a level up (a level costs about 1.4× the
+    // one below, so that still leaves room). The median decides, so a single hiccup doesn't.
     let pinned = false;
     const probe = new Uint8Array(4);
     const samples: number[] = [];
@@ -918,12 +960,19 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
     let raf = 0;
     let last = 0;
     let frames = 0;
+    let slow = 0;
+    let frozen = false;
     let lookAt = -1;
     let lookShown = "";
     const loop = (now: number) => {
       raf = requestAnimationFrame(loop);
       if (!visible || document.hidden) {
         last = 0;
+        return;
+      }
+      // Fallen back to the still sky: only the reading shade follows the scroll.
+      if (frozen) {
+        shade(scrolled(), finale());
         return;
       }
       // The look follows the scroll every frame, eased like a camera on a slow head, so the land
@@ -944,24 +993,41 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
       lookAt = now;
       look += (want - look) * step;
       if (Math.abs(want - look) < 1e-4) look = want;
-      const px = lookShift(look).toFixed(1);
-      if (root && px !== lookShown) {
+      const drop = lookShift(look);
+      const px = drop.toFixed(1);
+      if (px !== lookShown) {
         lookShown = px;
-        root.style.setProperty("--look", `${px}px`);
+        for (const { el, k } of layers) el.style.translate = `0 ${(drop * k).toFixed(1)}px`;
       }
       shade(p, end);
-      if (last && now - last < 30) return;
-      const dt = last ? Math.min((now - last) / 1000, 0.1) : 0;
+      if (last && now - last < frameGap) return;
+      const gap = last ? now - last : frameGap;
+      const dt = last ? Math.min(gap / 1000, 0.1) : 0;
       last = now;
       frames++;
+      // After the start, slowness is read from the frames themselves, never by stalling the GPU:
+      // a level down when frames keep arriving late; at the lowest level, the still sky.
+      if (frames > 40) {
+        slow = slow * 0.95 + (gap > frameGap * 1.6 ? 0.05 : 0);
+        if (slow > 0.5 && !pinned) {
+          slow = 0;
+          if (level < LEVELS.length - 1) {
+            level++;
+            resize();
+          } else {
+            frozen = true;
+            return;
+          }
+        }
+      }
       t += dt;
       setSkyTime(t, false);
       // Ease toward the pointer; the stir dies away over a couple of seconds.
       pointerX += (targetX - pointerX) * Math.min(1, dt * 3);
       pointerY += (targetY - pointerY) * Math.min(1, dt * 3);
       stir *= Math.exp(-dt / 1.8);
-      // Sample the GPU on frames 10, 20, 30, then every 50 (a second and a half).
-      if (frames % (frames < 40 ? 10 : 50) === 0) measure(t, now / 1000);
+      // Time the GPU on frames 10, 20 and 30 only, to settle the starting level.
+      if (frames === 10 || frames === 20 || frames === 30) measure(t, now / 1000);
       else draw(t, now / 1000);
     };
     raf = requestAnimationFrame(loop);
@@ -981,6 +1047,7 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
       cancelAnimationFrame(raf);
       io.disconnect();
       ro.disconnect();
+      pageSize.disconnect();
       window.removeEventListener("pointermove", onMove);
       document.removeEventListener("visibilitychange", onHide);
       pause();

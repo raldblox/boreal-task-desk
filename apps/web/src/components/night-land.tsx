@@ -40,8 +40,8 @@ const STARS_ABOVE = starField(W, H, Y_HORIZON, -560);
 /**
  * One depth of the scene. On most pages it slides down by `depth` of the scroll over the first
  * screen, so it seems that much farther (.bb-par). On the home page, where the camera looks up as
- * the page scrolls, it drops with the horizon instead (.look: --look × `follow`), nearer layers a
- * little faster, as if the camera also rose.
+ * the page scrolls, it drops with the horizon instead (aurora-sky.tsx sets its translate to the
+ * horizon's drop × `follow`), nearer layers a little faster, as if the camera also rose.
  */
 function Layer({ depth, follow, children }: { depth: number; follow: number; children: ReactNode }) {
   return (
