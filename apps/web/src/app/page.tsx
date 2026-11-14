@@ -258,7 +258,7 @@ export default function Home() {
         {/* One journey, from posted to paid: a single track through six stops. When it comes on
             screen a token (a needle on its side) travels it, lighting each stop as it arrives, then
             goes round again (globals.css, "the journey"). Across on wide screens, down on phones. */}
-        <InView className="journey relative rounded-3xl border bg-background/45 px-5 py-8 sm:px-8 lg:px-4 lg:py-10" threshold={0.35}>
+        <InView className="journey frost relative rounded-3xl border px-5 py-8 sm:px-8 lg:px-4 lg:py-10" threshold={0.35}>
           <div aria-hidden className="journey-rail">
             <span className="journey-track" />
             <span className="journey-fill" />

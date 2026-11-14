@@ -103,7 +103,7 @@ export function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} className={cn("scroll-mt-20", band && "border-y bg-card/80")}>
+    <section id={id} className={cn("scroll-mt-20", band && "frost border-y")}>
       <Container className={cn("flex flex-col gap-8 py-12 md:py-16", className)}>
         {(title || kicker || action) && (
           // The heading rises in as it scrolls into view.
