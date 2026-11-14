@@ -153,8 +153,16 @@
   top: calc(-1 * var(--header-h, 4rem));
   bottom: 0;
 }
+/* How much aurora light the snow catches (set by components/aurora-sky.tsx). Registered so the
+   browser glides between the values the sky sets instead of stepping. */
+@property --aurora-light {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0.35;
+}
 .night-root {
   background: linear-gradient(to bottom, #020b10, #061a20 55%, #0b252c 64%, #071a1e);
+  transition: --aurora-light 1.2s linear;
 }
 /* No rule may hide .bb-root by looking for the home hero (body:has([data-hero])): after a client
    navigation Next keeps the home page mounted but hidden, so such a rule would still match and

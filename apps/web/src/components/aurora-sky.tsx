@@ -75,6 +75,7 @@ uniform float uRed;
 uniform float uPulse;
 uniform float uDiffuse;
 uniform float uLight;
+uniform float uRise;
 uniform float uSteps;
 uniform vec3 uGalN;
 uniform vec3 uGalC;
@@ -215,7 +216,8 @@ vec3 scene(vec3 d, float t, float n) {
   float sg = distTo(95.0, max(dy, 0.0));
   vec2 gp = vec2(sg * d.x, sg * d.z);
   float band = sin(dot(gp, vec2(0.6, 0.8)) * 0.1 - t * 0.006) * smoothstep(0.35, 0.8, noise2(gp / 300.0 + 4.0)) * smoothstep(0.12, 0.5, dy);
-  vec3 sky = vec3(0.0, 0.0022, 0.0012) * vr * max(band, 0.0) + uLight * vec3(0.0004, 0.0032, 0.0020) * (vr - 1.0);
+  // All of it comes up with the aurora (uRise), so nothing lights before it does.
+  vec3 sky = (vec3(0.0, 0.0022, 0.0012) * vr * max(band, 0.0) + uLight * vec3(0.0004, 0.0032, 0.0020) * (vr - 1.0)) * uRise;
 
   // The Milky Way: a band about the galactic plane, brighter toward the centre, split by dust.
   if (dy > 0.0) {
@@ -225,7 +227,7 @@ vec3 scene(vec3 d, float t, float n) {
     float gl = atan(dot(d, e2), dot(d, e1));
     float dust = smoothstep(0.42, 0.72, noise2(vec2(gl * 7.0, gb * 26.0))) * exp(-pow(gb / 0.07, 2.0));
     float mw = exp(-pow(gb / 0.17, 2.0)) * (0.5 + 0.5 * cos(gl)) * (1.0 - 0.65 * dust) * (0.7 + 0.3 * noise2(vec2(gl * 18.0, gb * 45.0)));
-    sky += vec3(0.017, 0.021, 0.026) * mw * exp(-0.25 * X);
+    sky += vec3(0.017, 0.021, 0.026) * mw * exp(-0.25 * X) * uRise;
   }
 
   float qb = d.z + dy * COTI;
@@ -602,11 +604,15 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
     };
     let lightShown = -1;
     let shown = false;
-    // The aurora comes up over a few seconds from its first frame, as a real one does.
-    let born = -1;
+    // The aurora comes up over a few seconds from its first frame, as a real one does, and with it
+    // everything it lights: the glow in the low air, the lake, the snow. The rise counts frames,
+    // not the wall clock, at most 1/20 s each: a page busy hydrating can't make it leap ahead.
+    let rise = calm ? 1 : 0;
+    let lastNow = -1;
     const draw = (t: number, now: number) => {
-      if (born < 0) born = now;
-      const up = calm ? 1 : Math.min(1, (now - born) / 4.5);
+      if (!calm && lastNow >= 0) rise = Math.min(1, rise + Math.min(Math.max(now - lastNow, 0), 0.05) / 4.5);
+      lastNow = now;
+      const up = rise * rise * (3 - 2 * rise);
       const state = skyState(t);
       const drift = skyDrift(t);
       const g = galaxy(t);
@@ -629,7 +635,8 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
       gl.uniform1f(u.uF, cam.f);
       gl.uniform1f(u.uPitch, cam.pitch);
       gl.uniform1f(u.uTime, t);
-      gl.uniform1f(u.uExposure, 0.06 * up * up * (3 - 2 * up));
+      gl.uniform1f(u.uExposure, 0.06 * up);
+      gl.uniform1f(u.uRise, up);
       gl.uniform2f(u.uPointer, pointerX * sky.w, pointerY * sky.h);
       gl.uniform1f(u.uStir, stir);
       gl.uniform3f(u.uZ, ...state.arcZ);
@@ -643,7 +650,7 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
       gl.uniform1f(u.uRed, state.red);
       gl.uniform1f(u.uPulse, state.pulse);
       gl.uniform1f(u.uDiffuse, state.diffuse);
-      gl.uniform1f(u.uLight, state.light);
+      gl.uniform1f(u.uLight, state.light * up);
       gl.uniform1f(u.uSteps, LEVELS[level].steps);
       gl.uniform3f(u.uGalN, ...g.pole);
       gl.uniform3f(u.uGalC, ...g.centre);
@@ -678,11 +685,13 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
         shown = true;
         canvas.dataset.ready = "1";
       }
-      // The snow's share of the aurora's light. A style change repaints the land, so only on a
-      // change the eye would notice.
-      if (root && Math.abs(state.light - lightShown) > 0.08) {
-        lightShown = state.light;
-        root.style.setProperty("--aurora-light", state.light.toFixed(2));
+      // The snow's share of the aurora's light, rising with it from the illustration's own 0.35.
+      // A style change repaints the land, so only on a change the eye would notice; the browser
+      // glides between values (globals.css: @property --aurora-light), so the steps don't show.
+      const snow = 0.35 + (state.light - 0.35) * up;
+      if (root && Math.abs(snow - lightShown) > 0.06) {
+        lightShown = snow;
+        root.style.setProperty("--aurora-light", snow.toFixed(2));
       }
     };
 
