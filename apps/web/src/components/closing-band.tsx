@@ -20,12 +20,12 @@ const PATHS = [
 
 /**
  * The home page's closing band: the two ways in, to earn or to hire. By the time it is reached the
- * home page's night has looked all the way up (components/aurora-sky.tsx), so the band is frost
- * (globals.css, the same as the hero's sample card) over the live aurora itself, not a picture of one.
+ * home page's night has looked all the way up (components/aurora-sky.tsx), so the band is a pane of
+ * dark glass over the live aurora itself rather than a picture of one.
  */
 export function ClosingBand() {
   return (
-    <div className="frost relative isolate overflow-hidden rounded-3xl border text-white">
+    <div className="relative isolate overflow-hidden rounded-3xl border border-white/12 bg-[#03141a]/55 text-white shadow-[0_0_0_1px_rgb(255_255_255/0.02)_inset]">
       <div className="grid gap-8 p-6 sm:p-10 lg:grid-cols-[1fr_1.4fr] lg:items-start lg:gap-12 lg:p-12">
         <div className="flex flex-col gap-3">
           <h2 className="text-3xl font-light tracking-[-0.03em] md:text-4xl">Earn, or get it done.</h2>
