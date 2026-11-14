@@ -27,7 +27,7 @@ export type SkyState = {
   arcI: [number, number, number];
   /** 0: a homogeneous arc; 1: fully rayed, flickering. */
   rays: number;
-  /** Amplitude of folds and curls, 0 to 1. */
+  /** Amplitude of the folds, 0 to 1. */
   folds: number;
   /** The westward travelling surge: its eastward position along the arcs (km) and strength (0–1). */
   surgeX: number;

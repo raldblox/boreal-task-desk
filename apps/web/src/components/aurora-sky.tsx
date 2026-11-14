@@ -11,8 +11,8 @@ import { galaxy } from "@/components/night-stars";
  *
  * Geometry. The observer stands above a lake at 65° N, looking north, the camera pitched 10° up,
  * with the Earth's curvature included (R = 6371 km). Each auroral arc is a thin sheet of light
- * hanging along the magnetic field: its foot runs east-west at a northward distance that folds,
- * curls and sways with time, and with altitude it leans back toward the observer along field lines
+ * hanging along the magnetic field: its foot runs east-west at a northward distance that folds
+ * and sways with time, and with altitude it leans back toward the observer along field lines
  * dipping at I = 77° (cot I ≈ 0.23). Rays are field-aligned too, so in perspective they converge
  * toward the magnetic zenith. A ray from the eye finds every place it crosses a sheet; each
  * crossing adds the sheet's column emission there, which grows where the line of sight runs along
@@ -117,23 +117,25 @@ vec3 gFold = vec3(0.0);
 // What the line of sight has gathered: the pink hem, oxygen green, oxygen red.
 vec3 gL = vec3(0.0);
 
-// An arc's foot: northward distance (km) as a function of eastward distance x. A long undulation,
-// folds (hundreds of km) and curls (tens of km) travel along it and grow with activity; each
-// smaller one bunches up on a flank of the larger, as shear-driven folds do, so they lean and
-// overlap rather than ripple evenly. The westward travelling surge bulges it equatorward, with a
+// An arc's foot: northward distance (km) as a function of eastward distance x. A long undulation
+// and folds (hundreds of km down to ~150 km) travel along it and grow with activity; each smaller
+// one bunches up on a flank of the larger, as shear-driven folds do, so they lean and overlap
+// rather than ripple evenly. Curls (a few km) are left out of the shape: they are thinner than the
+// sheet itself and far finer than the steps it is traced in, so near a fold's edge they only made
+// the line of sight touch the sheet once or three times from one pixel to the next (a ragged,
+// flickering thread). The westward travelling surge bulges it equatorward, with a
 // steep western head and a long tail. Near the pointer's bearing it leans toward the viewer.
 float arcFoot(float x, float Z, float ph, float t) {
   float F = uFolds;
   float s1 = sin(x * 0.0042 + ph + t * 0.011);
   float s2 = sin(x * 0.0125 - ph * 1.7 - gFold.x + 0.7 * s1);
   float s3 = sin(x * 0.039 + ph * 3.1 + gFold.y + 1.1 * s2);
-  float s4 = sin(x * 0.105 - ph * 2.3 - gFold.z + 1.3 * s3);
   float v = (x - uSurge.x) / 55.0;
   v *= v < 0.0 ? 1.0 : 0.45;
   float surge = uSurge.y * 55.0 * exp(-v * v);
   float u = (x / Z - gBearing) / 0.25;
   float lean = gStir * 0.05 * Z * exp(-u * u);
-  return Z + 60.0 * s1 + (12.0 + 26.0 * F) * s2 + (2.5 + 8.0 * F) * s3 + (0.4 + 2.8 * F) * s4 - surge - lean;
+  return Z + 60.0 * s1 + (12.0 + 26.0 * F) * s2 + (2.5 + 8.0 * F) * s3 - surge - lean;
 }
 
 // Striation along an arc at the drifted position d (km), about 1 on average: rays a few km across,
@@ -158,8 +160,9 @@ float airMass(float el) {
   return 1.0 / (sin(max(el, 0.0)) + 0.50572 * pow(deg + 6.07995, -1.6364));
 }
 
-// The light of one arc's sheet where the line of sight d crosses it, s km away.
-void sheet(float s, vec3 d, float Z, float ph, float strength, float t) {
+// The light of one arc's sheet where the line of sight d crosses it, s km away; w counts the
+// crossings (2 where the line of sight grazes a fold's edge, touching the sheet twice at once).
+void sheet(float s, vec3 d, float Z, float ph, float strength, float t, float w) {
   float h = altAt(s, d.y);
   float x = s * d.x;
   // Column emission through a sheet ~4 km thick, seen at this angle: brightest where the line of
@@ -177,7 +180,7 @@ void sheet(float s, vec3 d, float Z, float ph, float strength, float t) {
   float stir = gStir * exp(-near * near);
   float sv = (x - uSurge.x) / 70.0;
   float inSurge = uSurge.y * exp(-sv * sv);
-  float lum = col * strength * stretch * (1.0 + 0.9 * stir + 0.8 * inSurge);
+  float lum = w * col * strength * stretch * (1.0 + 0.9 * stir + 0.8 * inSurge);
   // The electrons' energy sets the curtain's height. Hard (around 10 keV) stops near 100 km in a
   // bright, compact ribbon; soft (below 1 keV) stops high, feeding the veil and the red. It
   // varies along the arc and hardens with the substorm.
@@ -269,6 +272,7 @@ vec3 scene(vec3 d, float t, float n) {
       if (sb <= sa || strength < 0.01) continue;
       float ds = (sb - sa) / n;
       float fp = 0.0;
+      float fpp = 0.0;
       for (int i = 0; i <= MAX_STEPS; i++) {
         if (float(i) > n) break;
         float s = sa + ds * float(i);
@@ -279,8 +283,21 @@ vec3 scene(vec3 d, float t, float n) {
           float sx = s0 + ds * fp / (fp - fc);
           float fx = sx * d.z + altAt(sx, dy) * COTI - arcFoot(sx * d.x, Z, ph, t);
           sx = fx * fp < 0.0 ? s0 + (sx - s0) * fp / (fp - fx) : sx + (s - sx) * fx / (fx - fc);
-          sheet(sx, d, Z, ph, strength, t);
+          sheet(sx, d, Z, ph, strength, t, 1.0);
+        } else if (i > 1 && fpp * fp > 0.0 && abs(fp) < abs(fpp) && abs(fp) <= abs(fc)) {
+          // The line of sight came close to the sheet and turned away within two steps: at a fold's
+          // edge it can touch the sheet twice between samples, or pass within its thickness. Fit a
+          // parabola through the three samples; where its turn reaches into the sheet (~4 km thick),
+          // light both touches at the turn, fading out as the turn clears the sheet. Without this,
+          // neighbouring pixels see two crossings or none, and the edge breaks into a ragged thread.
+          float qa2 = 0.5 * (fpp + fc) - fp;
+          float qb2 = 0.5 * (fc - fpp);
+          float u = -qb2 / (2.0 * qa2);
+          float fv = fp - 0.25 * qb2 * qb2 / qa2;
+          float graze = fv * sign(fp) < 0.0 ? 1.0 : 1.0 - smoothstep(0.0, 4.0, abs(fv));
+          if (qa2 * sign(fp) > 0.0 && abs(u) <= 1.0 && graze > 0.0) sheet(s - ds + u * ds, d, Z, ph, strength, t, 2.0 * graze);
         }
+        fpp = fp;
         fp = fc;
       }
     }
