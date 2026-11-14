@@ -14,9 +14,10 @@ import { galaxy } from "@/components/night-stars";
  * hanging along the magnetic field: its foot runs east-west at a northward distance that folds
  * and sways with time, and with altitude it leans back toward the observer along field lines
  * dipping at I = 77° (cot I ≈ 0.23). Rays are field-aligned too, so in perspective they converge
- * toward the magnetic zenith. A ray from the eye finds every place it crosses a sheet; each
- * crossing adds the sheet's column emission there, which grows where the line of sight runs along
- * the sheet (the bright edges of folds).
+ * toward the magnetic zenith. Each sheet is a soft slab about 4 km thick; along every line of
+ * sight its profile is integrated exactly where the line passes near it, so the light gathered
+ * grows smoothly where the line of sight runs along a sheet (the bright edges of folds) and never
+ * flips between neighbouring pixels.
  *
  * Activity. How bright, rayed and folded the arcs are, where they lie, the westward travelling
  * surge, the hardness of the electrons, the red tops and the pulsating patches all come from a
@@ -161,15 +162,37 @@ float airMass(float el) {
   return 1.0 / (sin(max(el, 0.0)) + 0.50572 * pow(deg + 6.07995, -1.6364));
 }
 
-// The light of one arc's sheet where the line of sight d crosses it, s km away; w counts the
-// crossings (2 where the line of sight grazes a fold's edge, touching the sheet twice at once).
-void sheet(float s, vec3 d, float Z, float ph, float strength, float t, float w) {
+// Each sheet is a soft slab: its light falls off as exp(-(f/T)²) with f, how far (in km, north)
+// the field line through a point lies from the arc's foot. T = 2.26 km makes it ~4 km thick
+// (√π T). Light is gathered by integrating that profile along the line of sight, never by deciding
+// whether a sample "crossed" the sheet: a decision flips between neighbouring pixels where the
+// line of sight grazes a fold, and breaks the fold's edge into blocks.
+const float SLAB_T = 2.2568;
+// erf, to within 1e-3 (Winitzki).
+float erfa(float x) {
+  float x2 = x * x;
+  float e = sqrt(1.0 - exp(-x2 * (1.2732395 + 0.147 * x2) / (1.0 + 0.147 * x2)));
+  return x < 0.0 ? -e : e;
+}
+// ∫ exp(-(f/T)²) ds over a stretch of length L where f runs linearly from f0 to f1: km of slab.
+float slab(float f0, float f1, float L) {
+  float df = f1 - f0;
+  if (abs(df) < 0.05 * SLAB_T) {
+    float fm = 0.5 * (f0 + f1) / SLAB_T;
+    return L * exp(-fm * fm);
+  }
+  return L * SLAB_T * 0.8862269 * abs(erfa(f1 / SLAB_T) - erfa(f0 / SLAB_T)) / abs(df);
+}
+// How far the field line through the point s km along d lies north of the arc's foot.
+float footOff(float s, vec3 d, float Z, float ph, float t) {
+  return s * d.z + altAt(s, d.y) * COTI - arcFoot(s * d.x, Z, ph, t);
+}
+
+// The light of one arc's sheet near s km along the line of sight d; col is how many km of the
+// sheet the line of sight passes through there (see the march in scene()).
+void sheet(float s, vec3 d, float Z, float ph, float strength, float t, float col) {
   float h = altAt(s, d.y);
   float x = s * d.x;
-  // Column emission through a sheet ~4 km thick, seen at this angle: brightest where the line of
-  // sight runs along it (the edges of folds).
-  float slope = (arcFoot(x + 1.5, Z, ph, t) - arcFoot(x - 1.5, Z, ph, t)) / 3.0;
-  float col = 4.0 / max(abs(dot(normalize(vec3(-slope, COTI, 1.0)), d)), 0.25);
   float fine = clamp(2.0 - s / uF, 0.0, 1.0);
   float dr = x + uDrift.x;
   // Nitrogen answers the electrons at once; oxygen's green takes 0.7 s to radiate, so it trails
@@ -181,7 +204,7 @@ void sheet(float s, vec3 d, float Z, float ph, float strength, float t, float w)
   float stir = gStir * exp(-near * near);
   float sv = (x - uSurge.x) / 70.0;
   float inSurge = uSurge.y * exp(-sv * sv);
-  float lum = w * col * strength * stretch * (1.0 + 0.9 * stir + 0.8 * inSurge);
+  float lum = col * strength * stretch * (1.0 + 0.9 * stir + 0.8 * inSurge);
   // Above ~500 km the air is too thin for much light at all: everything fades out by 700 km.
   lum *= 1.0 - smoothstep(480.0, 690.0, h);
   // The electrons' energy sets the curtain's height. Hard (around 10 keV) stops near 100 km in a
@@ -278,41 +301,54 @@ vec3 scene(vec3 d, float t, float n) {
       if (sb <= sa || strength < 0.01) continue;
       float ds = (sb - sa) / n;
       float fp = 0.0;
-      float fpp = 0.0;
-      for (int i = 0; i <= MAX_STEPS; i++) {
-        if (float(i) > n) break;
+      // A contact: consecutive steps near the sheet, gathered into one, so a line of sight that
+      // runs along a sheet for a long way (looking up the field) still costs one call to sheet().
+      float runCol = 0.0;
+      float runNear = 1e9;
+      float runAt = sa;
+      for (int i = 0; i <= MAX_STEPS + 1; i++) {
+        if (float(i) > n + 1.0) break;
+        bool last = float(i) > n;
         float s = sa + ds * float(i);
-        float fc = s * d.z + altAt(s, dy) * COTI - arcFoot(s * d.x, Z, ph, t);
-        if (i > 0 && fp * fc < 0.0) {
-          // A crossing in this step: close in on it, keeping it bracketed, until it is within a
-          // fraction of a km. Looking steeply up, height changes almost as fast as distance along
-          // the line of sight, so a crossing found only roughly puts the curtain's sharp lower
-          // border at the wrong height from one step to the next: a sawtooth of scallops.
-          float lo = s - ds, hi = s, flo = fp, fhi = fc;
-          float sx = lo + ds * fp / (fp - fc);
-          for (int k = 0; k < 4; k++) {
-            float fx = sx * d.z + altAt(sx, dy) * COTI - arcFoot(sx * d.x, Z, ph, t);
-            if (fx * flo < 0.0) { hi = sx; fhi = fx; flo *= 0.5; } else { lo = sx; flo = fx; fhi *= 0.5; }
-            sx = lo + (hi - lo) * flo / (flo - fhi);
-          }
-          sheet(sx, d, Z, ph, strength, t, 1.0);
-        } else if (i > 1 && fpp * fp > 0.0 && abs(fp) < abs(fpp) && abs(fp) <= abs(fc)) {
-          // The line of sight came close to the sheet and turned away within two steps: at a fold's
-          // edge it can touch the sheet twice between samples, or pass within its thickness. Fit a
-          // parabola through the three samples; where its turn reaches the sheet, light both touches
-          // at the turn, fading out within a km or two as it clears (any wider, and near misses
-          // along the lower border light up as lobes). Without this, neighbouring pixels see two
-          // crossings or none, and the edge breaks into a ragged thread.
-          float qa2 = 0.5 * (fpp + fc) - fp;
-          float qb2 = 0.5 * (fc - fpp);
-          float u = -qb2 / (2.0 * qa2);
-          float fv = fp - 0.25 * qb2 * qb2 / qa2;
-          float graze = fv * sign(fp) < 0.0 ? 1.0 : 1.0 - smoothstep(0.0, 1.5, abs(fv));
-          // A turn shallower than a fraction of a km is a line of sight running along the sheet
-          // (looking up the field), not a fold's edge: leave it.
-          if (qa2 * sign(fp) > 0.25 && abs(u) <= 1.0 && graze > 0.0) sheet(s - ds + u * ds, d, Z, ph, strength, t, 2.0 * graze);
+        float fc = last ? 1e9 : footOff(s, d, Z, ph, t);
+        // A step that crosses the sheet or comes within 24 km of it (a fold can bend back toward
+        // the line of sight between two samples) is gone over in four, the slab's light integrated
+        // exactly on each, and the contact's light taken where the line of sight is nearest it.
+        bool cross = fp * fc < 0.0;
+        // A second crossing is a second contact (another fold, at another height): light the first.
+        if (cross && runNear == 0.0 && i > 0) {
+          sheet(runAt, d, Z, ph, strength, t, min(runCol, 16.0));
+          runCol = 0.0;
+          runNear = 1e9;
         }
-        fpp = fp;
+        if (!last && i > 0 && (cross || min(abs(fp), abs(fc)) < 24.0)) {
+          float q = 0.25 * ds;
+          float s0 = s - ds;
+          float fa = fp;
+          if (abs(fa) < runNear) {
+            runNear = abs(fa);
+            runAt = s0;
+          }
+          for (int k = 1; k <= 4; k++) {
+            float sk = s0 + q * float(k);
+            float fk = k == 4 ? fc : footOff(sk, d, Z, ph, t);
+            runCol += slab(fa, fk, q);
+            if (fa * fk < 0.0) {
+              if (runNear > 0.0) runAt = sk - q + q * fa / (fa - fk);
+              runNear = 0.0;
+            } else if (abs(fk) < runNear) {
+              runNear = abs(fk);
+              runAt = sk;
+            }
+            fa = fk;
+          }
+        } else if (runCol > 0.0) {
+          // Brightest where the line of sight runs along the sheet (a fold's edge), up to about
+          // four times face-on.
+          if (runCol > 0.02) sheet(runAt, d, Z, ph, strength, t, min(runCol, 16.0));
+          runCol = 0.0;
+          runNear = 1e9;
+        }
         fp = fc;
       }
     }
