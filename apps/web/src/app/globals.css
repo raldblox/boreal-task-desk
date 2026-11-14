@@ -161,11 +161,15 @@
 .night-hero .bb-par {
   animation: none;
 }
-/* The home page's footer: the night shows through it, under a shade dark enough to read on, and
-   the pointer stirs the aurora there as it does over the hero. */
+/* The home page's end (app/page.tsx, the finale): the last screen's top is clear sky; from about
+   its middle it darkens to the night's own ink, and the footer carries on in that same ink, a
+   touch see-through, with no edge between them. */
+.finale-shade {
+  background: linear-gradient(to bottom, transparent 0%, transparent 38%, rgb(2 10 12 / 0.55) 62%, rgb(2 10 12 / 0.86) 88%, rgb(2 10 12 / 0.9) 100%);
+}
 html[data-night-live] .site-footer {
-  background-color: rgb(2 10 12 / 0.62);
-  border-color: rgb(255 255 255 / 0.08);
+  background-color: rgb(2 10 12 / 0.9);
+  border-color: transparent;
 }
 .night-hero .look {
   translate: 0 calc(var(--look, 0px) * var(--k, 1));

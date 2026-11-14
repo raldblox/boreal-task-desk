@@ -280,23 +280,30 @@ vec3 scene(vec3 d, float t, float n) {
         float s = sa + ds * float(i);
         float fc = s * d.z + altAt(s, dy) * COTI - arcFoot(s * d.x, Z, ph, t);
         if (i > 0 && fp * fc < 0.0) {
-          // A crossing in this step: close in on it twice, so the border has no stairs.
-          float s0 = s - ds;
-          float sx = s0 + ds * fp / (fp - fc);
-          float fx = sx * d.z + altAt(sx, dy) * COTI - arcFoot(sx * d.x, Z, ph, t);
-          sx = fx * fp < 0.0 ? s0 + (sx - s0) * fp / (fp - fx) : sx + (s - sx) * fx / (fx - fc);
+          // A crossing in this step: close in on it, keeping it bracketed, until it is within a
+          // fraction of a km. Looking steeply up, height changes almost as fast as distance along
+          // the line of sight, so a crossing found only roughly puts the curtain's sharp lower
+          // border at the wrong height from one step to the next: a sawtooth of scallops.
+          float lo = s - ds, hi = s, flo = fp, fhi = fc;
+          float sx = lo + ds * fp / (fp - fc);
+          for (int k = 0; k < 4; k++) {
+            float fx = sx * d.z + altAt(sx, dy) * COTI - arcFoot(sx * d.x, Z, ph, t);
+            if (fx * flo < 0.0) { hi = sx; fhi = fx; flo *= 0.5; } else { lo = sx; flo = fx; fhi *= 0.5; }
+            sx = lo + (hi - lo) * flo / (flo - fhi);
+          }
           sheet(sx, d, Z, ph, strength, t, 1.0);
         } else if (i > 1 && fpp * fp > 0.0 && abs(fp) < abs(fpp) && abs(fp) <= abs(fc)) {
           // The line of sight came close to the sheet and turned away within two steps: at a fold's
           // edge it can touch the sheet twice between samples, or pass within its thickness. Fit a
-          // parabola through the three samples; where its turn reaches into the sheet (~4 km thick),
-          // light both touches at the turn, fading out as the turn clears the sheet. Without this,
-          // neighbouring pixels see two crossings or none, and the edge breaks into a ragged thread.
+          // parabola through the three samples; where its turn reaches the sheet, light both touches
+          // at the turn, fading out within a km or two as it clears (any wider, and near misses
+          // along the lower border light up as lobes). Without this, neighbouring pixels see two
+          // crossings or none, and the edge breaks into a ragged thread.
           float qa2 = 0.5 * (fpp + fc) - fp;
           float qb2 = 0.5 * (fc - fpp);
           float u = -qb2 / (2.0 * qa2);
           float fv = fp - 0.25 * qb2 * qb2 / qa2;
-          float graze = fv * sign(fp) < 0.0 ? 1.0 : 1.0 - smoothstep(0.0, 4.0, abs(fv));
+          float graze = fv * sign(fp) < 0.0 ? 1.0 : 1.0 - smoothstep(0.0, 1.5, abs(fv));
           if (qa2 * sign(fp) > 0.0 && abs(u) <= 1.0 && graze > 0.0) sheet(s - ds + u * ds, d, Z, ph, strength, t, 2.0 * graze);
         }
         fpp = fp;
@@ -553,9 +560,17 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
   };
   // The words over the night get a shade once the hero is behind them, lifted a little at the
   // page's end so the aurora shines around the closing band; the hero's own scrim fades as it goes.
+  // How much of the page's last screen (the finale, app/page.tsx) is in view, 0 to 1.
+  const finale = () => {
+    const el = document.querySelector("[data-finale]");
+    if (!el) return 0;
+    return Math.min(1, Math.max(0, 1 - el.getBoundingClientRect().top / window.innerHeight));
+  };
   let shaded = -1;
-  const shade = (p: number, reward = 0) => {
-    const read = 0.72 * smooth(0.015, 0.09, p) - 0.3 * smooth(0.72, 0.88, p) - 0.24 * reward;
+  const shade = (p: number, end: number) => {
+    // Past the hero the words get an even shade; it clears as the finale comes up, whose own
+    // gradient (globals.css, .finale-shade) shades only where its words are.
+    const read = 0.72 * smooth(0.015, 0.09, p) * (1 - 0.94 * smooth(0.2, 0.95, end));
     if (!root || Math.abs(read - shaded) < 0.004) return;
     shaded = read;
     root.style.setProperty("--read", read.toFixed(3));
@@ -645,10 +660,10 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
     // it; by the page's end there is only the aurora. `look` is the extra pitch (radians); the
     // land follows through --look, the horizon's drop in CSS pixels, so the two never part.
     let look = 0;
-    // The reward for reading to the end: at the very bottom of the page a substorm breaks out right
-    // overhead. The arcs sweep in over the observer and brighten, rays crowd every arc, the tallest
-    // turn red, and the camera keeps tilting up toward the magnetic zenith, where field-aligned
-    // rays meet in a corona. It comes on over a few seconds and lets go slowly on the way back up.
+    // The reward for reading to the end: at the very bottom of the page the arcs sweep in over the
+    // observer and brighten, rays gather along them, and the camera tilts a little further up
+    // toward the magnetic zenith, where the rays converge. Green only: no red is added. It comes
+    // on over a few seconds and lets go slowly on the way back up.
     // `reward` runs 0 to 1; what is drawn uses its eased value.
     let reward = 0;
     const lookShift = (a: number) => {
@@ -666,13 +681,13 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
         r > 0
           ? {
               ...base,
-              arcZ: [mix(base.arcZ[0], 70), mix(base.arcZ[1], 170), mix(base.arcZ[2], 330)] as [number, number, number],
-              arcI: [base.arcI[0] * (1 + 1.4 * r) + 1.1 * r, base.arcI[1] * (1 + 1.2 * r) + 0.9 * r, base.arcI[2] * (1 + r) + 0.6 * r] as [number, number, number],
-              rays: mix(base.rays, 1),
-              folds: mix(base.folds, 0.85),
-              hard: Math.max(base.hard, 0.75 * r),
-              red: Math.max(base.red, 0.9 * r),
-              light: Math.min(1, base.light + 0.5 * r),
+              arcZ: [mix(base.arcZ[0], 110), mix(base.arcZ[1], 230), mix(base.arcZ[2], 400)] as [number, number, number],
+              arcI: [base.arcI[0] * (1 + 0.6 * r) + 0.5 * r, base.arcI[1] * (1 + 0.5 * r) + 0.35 * r, base.arcI[2] * (1 + 0.4 * r) + 0.2 * r] as [number, number, number],
+              rays: mix(base.rays, 0.7),
+              folds: mix(base.folds, 0.55),
+              hard: base.hard * (1 - r),
+              red: base.red * (1 - r),
+              light: Math.min(1, base.light + 0.25 * r),
             }
           : base;
       const drift = skyDrift(t);
@@ -770,7 +785,7 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
       ro.observe(canvas);
       const onPause = () => draw(skyTime(), 0);
       window.addEventListener(SKY_PAUSED, onPause);
-      const onScroll = () => live && shade(scrolled());
+      const onScroll = () => live && shade(scrolled(), finale());
       if (live) {
         onScroll();
         window.addEventListener("scroll", onScroll, { passive: true });
@@ -802,11 +817,12 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
 
     // The aurora answers the pointer: where it moves, the arcs brighten and lean toward the
     // viewer, then settle over a couple of seconds. Mouse and pen only, and only over the hero and
-    // the footer: over the sections in between, where people read, the sky keeps to itself.
+    // the page's last screen (the finale and the footer): over the sections in between, where
+    // people read, the sky keeps to itself.
     let lastMove = 0;
     const onMove = (e: PointerEvent) => {
       if (e.pointerType === "touch") return;
-      if (!(e.target instanceof Element) || !e.target.closest("[data-hero], .site-footer")) return;
+      if (!(e.target instanceof Element) || !e.target.closest("[data-hero], [data-finale], .site-footer")) return;
       const rect = canvas.getBoundingClientRect();
       if (e.clientY > rect.bottom || e.clientY < rect.top) return;
       const x = (e.clientX - rect.left) / Math.max(rect.width, 1);
@@ -859,11 +875,13 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
       const p = scrolled();
       // The reward builds over about 3.5 s once the page's end is reached, and fades over 7 s after.
       const tick = lookAt < 0 ? 0 : Math.min((now - lookAt) / 1000, 0.1);
-      reward = Math.min(1, Math.max(0, reward + (p > 0.965 ? tick / 3.5 : -tick / 7)));
+      // It starts once the finale fills the screen.
+      const end = finale();
+      reward = Math.min(1, Math.max(0, reward + (end > 0.97 ? tick / 3.5 : -tick / 7)));
       const rw = reward * reward * (3 - 2 * reward);
       const base = lookTarget(p, cssW, screenH);
       const cam0 = camera(cssW, screenH);
-      const want = base + rw * Math.max(0, Math.min(0.3, (62 * Math.PI) / 180 - cam0.pitch - base));
+      const want = base + rw * Math.max(0, Math.min(0.18, (56 * Math.PI) / 180 - cam0.pitch - base));
       const step = lookAt < 0 ? 1 : Math.min(1, (now - lookAt) / 1000 / 0.35);
       lookAt = now;
       look += (want - look) * step;
@@ -873,7 +891,7 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
         lookShown = px;
         root.style.setProperty("--look", `${px}px`);
       }
-      shade(p, rw);
+      shade(p, end);
       if (last && now - last < 30) return;
       const dt = last ? Math.min((now - last) / 1000, 0.1) : 0;
       last = now;

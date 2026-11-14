@@ -154,8 +154,9 @@ Things arrive the way the aurora does: rising a little as they brighten. Never b
   - The needles themselves never move, turn or part. Only the light changes.
 - **Presenting a sequence.** How it works is one journey on one track. When it comes on screen, a token (a needle on its side) travels from Quote to Settle, lighting each stop as it arrives, then goes round again. It runs across on wide screens and down on phones.
 - **The home page's night.** The scene stays behind the whole page. As the page scrolls, the camera looks up: the land sinks out of frame and the sky fills it, until only the aurora is left behind the closing band.
-  - **The reward at the end.** Reach the bottom and a substorm breaks out overhead: the camera keeps tilting toward the magnetic zenith, the rays meet in a corona with red tops, and the shade lifts. It builds over a few seconds and fades slowly as you scroll back.
-  - **The pointer.** The aurora answers it over the hero and the footer only. The sections in between are for reading.
+  - **The finale.** The page ends on one full screen. Its top is clear sky; toward the bottom it darkens into the footer's ink with no seam, and the closing words sit there, on no box.
+  - **The reward at the end.** When the finale fills the screen, the arcs sweep in overhead and brighten, rays gather, and the camera tilts a little further up. It is green only and calm, builds over a few seconds, and fades slowly as you scroll back.
+  - **The pointer.** The aurora answers it over the hero and over the finale and footer only. The sections in between are for reading.
 - **Loading.** Show `LoadingPanel` (the loader in the section's own space), never a grey pulsing block or bare "Loading…".
 - **Less motion.** Everything holds still for people who ask for less motion, and nothing is hidden when script is off.
 
