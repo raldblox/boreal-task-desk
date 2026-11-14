@@ -38,7 +38,7 @@ async function Passkeys({ searchParams }: Props) {
 export default function AdminPasskeyPage(props: Props) {
   return (
     <>
-      <PageHero title="Admin passkey" lede="The admin area opens only with your security key, on top of signing in." />
+      <PageHero title="Admin passkey" lede="The admin area opens with a passkey as well as your sign-in, like two-step sign-in on GitHub or Google." />
       <Container className="max-w-2xl py-10">
         <Suspense fallback={<p className="text-sm text-muted-foreground">Loading…</p>}>
           <Passkeys {...props} />
