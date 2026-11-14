@@ -182,6 +182,8 @@ void sheet(float s, vec3 d, float Z, float ph, float strength, float t, float w)
   float sv = (x - uSurge.x) / 70.0;
   float inSurge = uSurge.y * exp(-sv * sv);
   float lum = w * col * strength * stretch * (1.0 + 0.9 * stir + 0.8 * inSurge);
+  // Above ~500 km the air is too thin for much light at all: everything fades out by 700 km.
+  lum *= 1.0 - smoothstep(480.0, 690.0, h);
   // The electrons' energy sets the curtain's height. Hard (around 10 keV) stops near 100 km in a
   // bright, compact ribbon; soft (below 1 keV) stops high, feeding the veil and the red. It
   // varies along the arc and hardens with the substorm.
@@ -260,10 +262,12 @@ vec3 scene(vec3 d, float t, float n) {
     gL.y += glow;
 
     // The arcs. Each is traced only along the stretch of the ray whose field lines can reach it
-    // (its foot never strays more than reach km from its mean), between 88 and 420 km up.
+    // (its foot never strays more than reach km from its mean), between 88 and 700 km up: high
+    // enough that even the red tops of the tallest rays have faded out on their own (traced only
+    // to 420 km, they were still a third as bright there and ended in a hard edge overhead).
     float qa = COTI * (1.0 - dy * dy) / (2.0 * RE);
     float sLo = distTo(88.0, dy);
-    float sHi = min(distTo(420.0, dy), 2400.0);
+    float sHi = min(distTo(700.0, dy), 2600.0);
     float reach = 105.0 + 40.0 * uFolds + 60.0 * uSurge.y + 40.0 * gStir;
     for (int a = 0; a < 3; a++) {
       float Z = a == 0 ? uZ.x : (a == 1 ? uZ.y : uZ.z);
@@ -660,12 +664,15 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
     // it; by the page's end there is only the aurora. `look` is the extra pitch (radians); the
     // land follows through --look, the horizon's drop in CSS pixels, so the two never part.
     let look = 0;
-    // The reward for reading to the end: at the very bottom of the page the arcs sweep in over the
-    // observer and brighten, rays gather along them, and the camera tilts a little further up
-    // toward the magnetic zenith, where the rays converge. Green only: no red is added. It comes
-    // on over a few seconds and lets go slowly on the way back up.
+    // The reward for reading to the end: as the page's last screen comes up, a substorm breaks out
+    // overhead, as a real one does: the arcs sweep in and flash bright, break into rays and folds,
+    // a surge runs west along them, the hem turns pink under the hardest electrons, the tallest
+    // rays take on oxygen's red a few seconds later, and the arcs spread poleward. The camera tilts
+    // a little further up toward the magnetic zenith, where the rays converge. It lets go slowly
+    // on the way back up.
     // `reward` runs 0 to 1; what is drawn uses its eased value.
     let reward = 0;
+    let breakAt = -1;
     const lookShift = (a: number) => {
       const c = camera(cssW, screenH);
       return c.f * (Math.tan(c.pitch + a) - Math.tan(c.pitch));
@@ -676,18 +683,28 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
       const up = rise * rise * (3 - 2 * rise);
       const r = reward * reward * (3 - 2 * reward);
       const base = skyState(t);
+      // The breakup's own clock, in sky seconds since it began: a flash within a few seconds that
+      // overshoots and settles, arcs spreading poleward over half a minute, a surge running west
+      // at 3 km/s, and oxygen's red coming in last, over about 8 s, as its slow light does.
+      const since = breakAt >= 0 ? Math.max(0, t - breakAt) : 0;
+      const flash = 1 - Math.exp(-since / 2.5);
+      const burst = flash * (1 + 0.45 * Math.exp(-since / 9));
+      const spread = 1 - Math.exp(-since / 30);
       const mix = (a: number, b: number) => a + (b - a) * r;
       const state =
         r > 0
           ? {
               ...base,
-              arcZ: [mix(base.arcZ[0], 110), mix(base.arcZ[1], 230), mix(base.arcZ[2], 400)] as [number, number, number],
-              arcI: [base.arcI[0] * (1 + 0.6 * r) + 0.5 * r, base.arcI[1] * (1 + 0.5 * r) + 0.35 * r, base.arcI[2] * (1 + 0.4 * r) + 0.2 * r] as [number, number, number],
-              rays: mix(base.rays, 0.7),
-              folds: mix(base.folds, 0.55),
-              hard: base.hard * (1 - r),
-              red: base.red * (1 - r),
-              light: Math.min(1, base.light + 0.25 * r),
+              arcZ: [mix(base.arcZ[0], 115 - 25 * flash + 45 * spread), mix(base.arcZ[1], 210 + 30 * spread), mix(base.arcZ[2], 330 + 60 * spread)] as [number, number, number],
+              arcI: [mix(base.arcI[0], 2.5 * burst), mix(base.arcI[1], 1.6 * burst), mix(base.arcI[2], 1.05 * burst)] as [number, number, number],
+              rays: mix(base.rays, 1),
+              folds: mix(base.folds, 1),
+              surgeX: mix(base.surgeX, 260 - 3 * since),
+              surge: mix(base.surge, 0.9 * flash * Math.exp(-since / 45)),
+              hard: mix(base.hard, 0.9 * flash * (1 - 0.3 * spread)),
+              red: mix(base.red, 0.62 * (1 - Math.exp(-since / 8))),
+              diffuse: mix(base.diffuse, 0.75),
+              light: mix(base.light, Math.min(1, 0.85 * burst)),
             }
           : base;
       const drift = skyDrift(t);
@@ -878,6 +895,8 @@ function runSky(canvas: HTMLCanvasElement, live: boolean) {
       // already lighting as it comes into view, and it builds over about 3 s.
       const end = finale();
       reward = Math.min(1, Math.max(0, reward + (end > 0.5 ? tick / 3 : -tick / 7)));
+      if (reward > 0 && breakAt < 0) breakAt = t;
+      if (reward === 0) breakAt = -1;
       const rw = reward * reward * (3 - 2 * reward);
       const base = lookTarget(p, cssW, screenH);
       const cam0 = camera(cssW, screenH);
