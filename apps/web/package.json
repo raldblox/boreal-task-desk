@@ -29,6 +29,7 @@
     "@modelcontextprotocol/server": "^2.4.0",
     "@simplewebauthn/browser": "^14.0.0",
     "@simplewebauthn/server": "^14.1.0",
+    "@vercel/analytics": "^2.0.1",
     "@zkpassport/sdk": "0.19.3",
     "ag-studio": "3.0.0",
     "ag-studio-react": "3.0.0",
